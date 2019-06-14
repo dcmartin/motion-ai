@@ -21,8 +21,15 @@ frontend:
     # - http://cdn.clustrmaps.com/map_v2.js?cl=ffffff&w=a&t=n&d=xr2Q2vt76X42HBH3uchXdk6LOOAJDVqAySTTK3bDWsM
 
 recorder:
+        #  keep_days: 2
   purge_keep_days: 1
   purge_interval: 1
+  #  exclude:
+  #  domains:
+  #    - automation
+  #    - updater
+  #  entities:
+  #    - sun.sun
 
 system_health:
 
@@ -63,7 +70,7 @@ sensor host_ip:
       - ipv4
     value_template: >
       {%- if value_json is defined -%}
-        {{ value_json.date | timestamp_custom("%a %b %d @ %I:%M %p") }}
+        {{ value_json.date | int | timestamp_custom("%a %b %d @ %I:%M %p") }}
       {%- else -%}null{%- endif -%}
       
 panel_iframe:
@@ -156,22 +163,22 @@ history_graph:
     entities:
       - sensor.yolo2msghub_events_count
   yolo2msghub_activity_count:
-    name: yolo2msghub Activity Count
+    name: yolo2msghub_activity_count
     hours_to_show: 24
     refresh: 30
     entities:
       - sensor.yolo2msghub_event_activity_count
-      - sensor.yolo2msghub_activity_count_statistics_mean
-      - sensor.yolo2msghub_activity_count_stdev_mean
-      - sensor.yolo2msghub_activity_count_max_value
-      - sensor.yolo2msghub_activity_count_min_value
+      - sensor.yolo2msghub_event_activity_count_statistics_mean
+      - sensor.yolo2msghub_event_activity_count_stdev_mean
+      - sensor.yolo2msghub_event_activity_count_max_value
+      - sensor.yolo2msghub_event_activity_count_min_value
   yolo2msghub_activity_stdev:
-    name: yolo2msghub Activity Stdev
+    name: yolo2msghub_activity_stdev
     hours_to_show: 24
     refresh: 30
     entities:
-      - sensor.yolo2msghub_activity_count_stdev_mean
-      - sensor.yolo2msghub_activity_count_standard_deviation
+      - sensor.yolo2msghub_event_activity_count_stdev_mean
+      - sensor.yolo2msghub_event_activity_count_standard_deviation
   ## SDR
   sdr2msghub_sentiment:
     name: sdr2msghub_sentiment
@@ -339,7 +346,7 @@ sensor yolo2msghub:
           {% if states.sensor.yolo2msghub_event is defined %}
             {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.date is defined %}
               
-              From {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|sort(attribute='date')|first).id }} at {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|sort(attribute='date')|first).date | timestamp_custom("%a %b %d %I:%M %p") }}
+              From {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|sort(attribute='date')|first).id }} at {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|sort(attribute='date')|first).date | int | timestamp_custom("%a %b %d %I:%M %p") }}
             {% else %} null {% endif %}
           {% else %} null {% endif %}
       ## timing
@@ -372,18 +379,13 @@ sensor yolo2msghub:
             {{ states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|length }}
           {%- else -%}null{%- endif -%}
       ## latest activity details
-      yolo2msghub_activity_latest:
+      yolo2msghub_latest_id:
         entity_id:
           - sensor.yolo2msghub_event
         value_template: >
-          {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity is defined %}
-            {{ states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|sort(attribute='date')|first }}
+          {% if states.sensor.yolo2msghub_event.attributes is defined %}
+            {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).id }}
           {%- else -%}null{%- endif -%}
-      yolo2msghub_latest_id:
-        entity_id:
-          - sensor.yolo2msghub_activity_latest
-        value_template: >
-          {{ states.sensor.yolo2msghub_activity_latest.state.id }}
       yolo2msghub_latest_entity:
         entity_id:
           - sensor.yolo2msghub_event
@@ -398,26 +400,19 @@ sensor yolo2msghub:
           {% if states.sensor.yolo2msghub_event.attributes is defined %}
             {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).date }}
           {%- else -%}null{%- endif -%}
+      yolo2msghub_latest_timestamp:
+        entity_id:
+          - sensor.yolo2msghub_event
+        value_template: >
+          {% if states.sensor.yolo2msghub_event.attributes is defined %}
+            {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).date | int | timestamp_custom("%a %b %d %I:%M %p") }}
+          {%- else -%}null{%- endif -%}
       yolo2msghub_latest_count:
         entity_id:
           - sensor.yolo2msghub_event
         value_template: >
           {% if states.sensor.yolo2msghub_event.attributes is defined %}
             {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).count }}
-          {%- else -%}null{%- endif -%}
-      yolo2msghub_latest_mock:
-        entity_id:
-          - sensor.yolo2msghub_event
-        value_template: >
-          {% if states.sensor.yolo2msghub_event.attributes is defined %}
-            {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).mock }}
-          {%- else -%}null{%- endif -%}
-      yolo2msghub_latest_seen:
-        entity_id:
-          - sensor.yolo2msghub_event
-        value_template: >
-          {% if states.sensor.yolo2msghub_event.attributes is defined %}
-            {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).seen }}
           {%- else -%}null{%- endif -%}
       yolo2msghub_latest_first:
         entity_id:
@@ -435,37 +430,6 @@ sensor yolo2msghub:
           {% if states.sensor.yolo2msghub_event.attributes is defined %}
             {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).last }}
           {%- else -%}null{%- endif -%}
-      yolo2msghub_latest_average:
-        entity_id:
-          - sensor.yolo2msghub_event
-        unit_of_measurement: people
-        value_template: >
-          {% if states.sensor.yolo2msghub_event.attributes is defined %}
-            {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).average }}
-          {%- else -%}null{%- endif -%}
-      yolo2msghub_latest_download:
-        entity_id:
-          - sensor.yolo2msghub_event
-        unit_of_measurement: Mbps
-        value_template: >
-          {% if states.sensor.yolo2msghub_event.attributes is defined %}
-            {{ '%0.2f' | format( (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).download / 1000000.0) }}
-          {%- else -%}null{%- endif -%}
-      yolo2msghub_latest_percent:
-        entity_id:
-          - sensor.yolo2msghub_event
-        unit_of_measurement: '%'
-        value_template: >
-          {% if states.sensor.yolo2msghub_event.attributes is defined %}
-            {{ '%0.2f' | format((states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).percent / 1000000.0) }}
-          {%- else -%}null{%- endif -%}
-      yolo2msghub_latest_product:
-        entity_id:
-          - sensor.yolo2msghub_event
-        value_template: >
-          {% if states.sensor.yolo2msghub_event.attributes is defined %}
-            {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).product }}
-          {%- else -%}null{%- endif -%}
       yolo2msghub_latest_interval:
         entity_id:
           - sensor.yolo2msghub_event
@@ -482,47 +446,98 @@ sensor yolo2msghub:
           {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity is defined %}
             {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).ago }}
           {%- else -%}null{%- endif -%}
-      yolo2msghub_activity_count_mean:
+      yolo2msghub_latest_average:
         entity_id:
-          - sensor.yolo2msghub_activity_count_statistics_mean
-        unit_of_measurement: clients
+          - sensor.yolo2msghub_event
+        unit_of_measurement: people
         value_template: >
-          {% if states.sensor.yolo2msghub_activity_count_statistics_mean is defined %}
-            {{ states.sensor.yolo2msghub_activity_count_statistics_mean.state }}
+          {% if states.sensor.yolo2msghub_event.attributes is defined %}
+            {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).average }}
           {%- else -%}null{%- endif -%}
-      yolo2msghub_activity_count_min_value:
+      ## download speed from wan
+      yolo2msghub_latest_download:
         entity_id:
-          - sensor.yolo2msghub_activity_count_statistics_mean
-        unit_of_measurement: clients
+          - sensor.yolo2msghub_event
+        unit_of_measurement: Mbps
         value_template: >
-          {% if states.sensor.yolo2msghub_activity_count_statistics_mean is defined %}
-            {{ states.sensor.yolo2msghub_activity_count_statistics_mean.attributes.min_value }}
+          {% if states.sensor.yolo2msghub_event.attributes is defined %}
+            {{ '%0.2f' | format( (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).download / 1000000.0) }}
           {%- else -%}null{%- endif -%}
-      yolo2msghub_activity_count_max_value:
+      ## download speed from cpu
+      yolo2msghub_latest_percent:
         entity_id:
-          - sensor.yolo2msghub_activity_count_statistics_mean
-        unit_of_measurement: clients
+          - sensor.yolo2msghub_event
+        unit_of_measurement: '%'
         value_template: >
-          {% if states.sensor.yolo2msghub_activity_count_statistics_mean is defined %}
-            {{ states.sensor.yolo2msghub_activity_count_statistics_mean.attributes.max_value }}
+          {% if states.sensor.yolo2msghub_event.attributes is defined %}
+            {{ '%0.2f' | format((states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).percent / 1000000.0) }}
           {%- else -%}null{%- endif -%}
-      yolo2msghub_activity_count_standard_deviation:
+      ## product from hal
+      yolo2msghub_latest_product:
         entity_id:
-          - sensor.yolo2msghub_activity_count_statistics_mean
+          - sensor.yolo2msghub_event
+        value_template: >
+          {% if states.sensor.yolo2msghub_event.attributes is defined %}
+            {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).product }}
+          {%- else -%}null{%- endif -%}
+      ## items from yolo
+      yolo2msghub_latest_mock:
+        entity_id:
+          - sensor.yolo2msghub_event
+        value_template: >
+          {% if states.sensor.yolo2msghub_event.attributes is defined %}
+            {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).mock }}
+          {%- else -%}null{%- endif -%}
+      yolo2msghub_latest_seen:
+        entity_id:
+          - sensor.yolo2msghub_event
+        value_template: >
+          {% if states.sensor.yolo2msghub_event.attributes is defined %}
+            {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).seen }}
+          {%- else -%}null{%- endif -%}
+      yolo2msghub_event_activity_count_mean:
+        entity_id:
+          - sensor.yolo2msghub_event_activity_count_statistics_mean
         unit_of_measurement: clients
         value_template: >
-          {% if states.sensor.yolo2msghub_activity_count_statistics_mean is defined %}
-            {{ states.sensor.yolo2msghub_activity_count_statistics_mean.attributes.standard_deviation }}
+          {% if states.sensor.yolo2msghub_event_activity_count_statistics_mean is defined %}
+            {{ states.sensor.yolo2msghub_event_activity_count_statistics_mean.state }}
+          {%- else -%}null{%- endif -%}
+      yolo2msghub_event_activity_count_min_value:
+        entity_id:
+          - sensor.yolo2msghub_event_activity_count_statistics_mean
+        unit_of_measurement: clients
+        value_template: >
+          {% if states.sensor.yolo2msghub_event_activity_count_statistics_mean is defined %}
+            {{ states.sensor.yolo2msghub_event_activity_count_statistics_mean.attributes.min_value }}
+          {%- else -%}null{%- endif -%}
+      yolo2msghub_event_activity_count_max_value:
+        entity_id:
+          - sensor.yolo2msghub_event_activity_count_statistics_mean
+        unit_of_measurement: clients
+        value_template: >
+          {% if states.sensor.yolo2msghub_event_activity_count_statistics_mean is defined %}
+            {{ states.sensor.yolo2msghub_event_activity_count_statistics_mean.attributes.max_value }}
+          {%- else -%}null{%- endif -%}
+      yolo2msghub_event_activity_count_standard_deviation:
+        entity_id:
+          - sensor.yolo2msghub_event_activity_count_statistics_mean
+        unit_of_measurement: clients
+        value_template: >
+          {% if states.sensor.yolo2msghub_event_activity_count_statistics_mean is defined %}
+            {% if states.sensor.yolo2msghub_event_activity_count_statistics_mean.attributes.standard_deviation != 'unknown' %}
+              {{ states.sensor.yolo2msghub_event_activity_count_statistics_mean.attributes.standard_deviation }}
+            {%- else -%}null{%- endif -%}
           {%- else -%}null{%- endif -%}
   - platform: statistics
-    entity_id: sensor.yolo2msghub_activity_count_standard_deviation
-    name: yolo2msghub_activity_count_stdev
+    entity_id: sensor.yolo2msghub_event_activity_count_standard_deviation
+    name: yolo2msghub_event_activity_count_stdev
     sampling_size: 120
     max_age:
       hours: 24
   - platform: statistics
     entity_id: sensor.yolo2msghub_event_activity_count
-    name: yolo2msghub_activity_count_statistics
+    name: yolo2msghub_event_activity_count_statistics
     sampling_size: 20
     max_age:
       hours: 24
@@ -544,56 +559,64 @@ binary_sensor yolo2msghub_event:
         value_template: >
           {% if states.sensor.yolo2msghub_event_ago is defined %}
             {% if states.sensor.yolo2msghub_event_ago.state|int > 1 %}False{% else %}True{% endif %}
-          {%- else -%}null{%- endif -%}
+          {%- else -%}False{%- endif -%}
       yolo2msghub_event_detect:
         entity_id:
           - sensor.yolo2msghub_event
         value_template: >
           {% if states.sensor.yolo2msghub_event_ago is defined %}
             {% if states.sensor.yolo2msghub_event_ago.state|int > 1 and (now().timestamp()|int - (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).last) > 30 %}False{% else %}True{% endif %}
-          {%- else -%}null{%- endif -%}
+          {%- else -%}False{%- endif -%}
       yolo2msghub_activity_low:
         entity_id:
-          - sensor.yolo2msghub_activity_count
-          - sensor.yolo2msghub_activity_count_statistics_mean
+          - sensor.yolo2msghub_event_activity_count
+          - sensor.yolo2msghub_event_activity_count_statistics_mean
           - input_number.yolo2msghub_activity_deviation
         value_template: >-
-          {{ (((states.sensor.yolo2msghub_activity_mean.state|float) - (states.sensor.yolo2msghub_activity_count.state|float))
-               / (states.sensor.yolo2msghub_activity_count_statistics_mean.attributes.standard_deviation|float) 
-             > (states.input_number.yolo2msghub_activity_deviation.state|float)) }}
+          {% if states.sensor.yolo2msghub_event_activity_count_statistics_mean.attributes.standard_deviation|float > 0 %}
+            {{ (((states.sensor.yolo2msghub_event_activity_count_statistics_mean.state|float) - (states.sensor.yolo2msghub_event_activity_count.state|float))
+                 / (states.sensor.yolo2msghub_event_activity_count_statistics_mean.attributes.standard_deviation|float) 
+               > (states.input_number.yolo2msghub_activity_deviation.state|float)) }}
+          {%- else -%}False{%- endif -%}
         icon_template: >
             mdi:emoticon-sad
       yolo2msghub_activity_low_persistent:
         entity_id:
-          - sensor.yolo2msghub_activity_count
-          - sensor.yolo2msghub_activity_stdev_mean
+          - sensor.yolo2msghub_event_activity_count
+          - sensor.yolo2msghub_event_activity_count_stdev_mean
           - input_number.yolo2msghub_activity_deviation
         value_template: >-
-          {{ (((states.sensor.yolo2msghub_activity_mean.state|float) - (states.sensor.yolo2msghub_activity_count.state|float))
-               / (states.sensor.yolo2msghub_activity_stdev_mean.state|float) 
-             > (states.input_number.yolo2msghub_activity_deviation.state|float)) }}
+          {% if states.sensor.yolo2msghub_event_activity_count_stdev_mean.state|float > 0 %}
+            {{ (((states.sensor.yolo2msghub_event_activity_count_statistics_mean.state|float) - (states.sensor.yolo2msghub_event_activity_count.state|float))
+                 / (states.sensor.yolo2msghub_event_activity_count_stdev_mean.state|float) 
+               > (states.input_number.yolo2msghub_activity_deviation.state|float)) }}
+          {%- else -%}False{%- endif -%}
         icon_template: >
             mdi:emoticon-sad
       yolo2msghub_activity_high:
         entity_id:
-          - sensor.yolo2msghub_activity_count
-          - sensor.yolo2msghub_activity_count_statistics_mean
+          - sensor.yolo2msghub_event_activity_count
+          - sensor.yolo2msghub_event_activity_count_statistics_mean
           - input_number.yolo2msghub_activity_deviation
         value_template: >-
-          {{ (((states.sensor.yolo2msghub_activity_count.state|float) - (states.sensor.yolo2msghub_activity_mean.state|float))
-               / (states.sensor.yolo2msghub_activity_count_statistics_mean.attributes.standard_deviation|float)) 
-             > (states.input_number.yolo2msghub_activity_deviation.state|float) }}
+          {% if states.sensor.yolo2msghub_event_activity_count_statistics_mean.attributes.standard_deviation|float > 0 %}
+            {{ (((states.sensor.yolo2msghub_event_activity_count.state|float) - (states.sensor.yolo2msghub_event_activity_count_statistics_mean.state|float))
+                 / (states.sensor.yolo2msghub_event_activity_count_statistics_mean.attributes.standard_deviation|float)) 
+               > (states.input_number.yolo2msghub_activity_deviation.state|float) }}
+          {%- else -%}False{%- endif -%}
         icon_template: >-
             mdi:emoticon-happy
       yolo2msghub_activity_high_persistent:
         entity_id:
-          - sensor.yolo2msghub_activity_count
-          - sensor.yolo2msghub_activity_stdev_mean
+          - sensor.yolo2msghub_event_activity_count
+          - sensor.yolo2msghub_event_activity_count_stdev_mean
           - input_number.yolo2msghub_activity_deviation
         value_template: >-
-          {{ (((states.sensor.yolo2msghub_activity_count.state|float) - (states.sensor.yolo2msghub_activity_mean.state|float))
-               / (states.sensor.yolo2msghub_activity_stdev_mean.state|float)) 
-             > (states.input_number.yolo2msghub_activity_deviation.state|float) }}
+          {% if states.input_number.yolo2msghub_activity_deviation.state|float > 0 %}
+            {{ (((states.sensor.yolo2msghub_event_activity_count.state|float) - (states.sensor.yolo2msghub_event_activity_count_statistics_mean.state|float))
+                 / (states.sensor.yolo2msghub_event_activity_count_stdev_mean.state|float)) 
+               > (states.input_number.yolo2msghub_activity_deviation.state|float) }}
+          {%- else -%}False{%- endif -%}
         icon_template: >-
             mdi:emoticon-happy
             
@@ -630,14 +653,14 @@ sensor sdr2msghub:
           - sensor.sdr2msghub_event
         value_template: >-
           {% if states.sensor.sdr2msghub_event is defined and states.sensor.sdr2msghub_event.attributes.date is defined %}
-            From {{ states.sensor.sdr2msghub_event.attributes.name }} at {{ states.sensor.sdr2msghub_event.attributes.date | timestamp_custom("%a %b %d %I:%M %p") }}
+            From {{ states.sensor.sdr2msghub_event.attributes.name }} at {{ states.sensor.sdr2msghub_event.attributes.date | int | timestamp_custom("%a %b %d %I:%M %p") }}
           {% else %} null {% endif %}
       sdr2msghub_date:
         entity_id:
           - sensor.sdr2msghub_event
         value_template: >
           {% if states.sensor.sdr2msghub_event is defined and states.sensor.sdr2msghub_event.attributes.date is defined %}
-            {{ states.sensor.sdr2msghub_event.attributes.date | timestamp_custom("%a %b %d %I:%M %p") }}
+            {{ states.sensor.sdr2msghub_event.attributes.date | int | timestamp_custom("%a %b %d %I:%M %p") }}
           {% else %} null {% endif %}
       sdr2msghub_name:
         entity_id:
@@ -881,14 +904,14 @@ sensor cpu2msghub:
           - sensor.cpu2msghub_event
         value_template: >-
           {% if states.sensor.cpu2msghub_event is defined and states.sensor.cpu2msghub_event.attributes.date is defined %}
-            From {{ states.sensor.cpu2msghub_event.attributes.name }} at {{ states.sensor.cpu2msghub_event.attributes.date | timestamp_custom("%a %b %d %I:%M %p") }}
+            From {{ states.sensor.cpu2msghub_event.attributes.name }} at {{ states.sensor.cpu2msghub_event.attributes.date | int | timestamp_custom("%a %b %d %I:%M %p") }}
           {% else %} null {% endif %}
       cpu2msghub_date:
         entity_id:
           - sensor.cpu2msghub_event
         value_template: >
           {% if states.sensor.cpu2msghub_event is defined and states.sensor.cpu2msghub_event.attributes.date is defined %}
-            {{ states.sensor.cpu2msghub_event.attributes.date | timestamp_custom("%a %b %d %I:%M %p") }}
+            {{ states.sensor.cpu2msghub_event.attributes.date | int | timestamp_custom("%a %b %d %I:%M %p") }}
           {% else %} null {% endif %}
       cpu2msghub_name:
         entity_id:
@@ -1000,7 +1023,7 @@ sensor horizon:
           - sensor.horizon_addon_nodes
         value_template: >
           {%- if states.sensor.horizon_addon_nodes is defined %}
-            From {{ states.sensor.horizon_addon_nodes.attributes.device }} at {{ states.sensor.horizon_addon_nodes.attributes.date | timestamp_custom("%a %b %d %I:%M %p") }}
+            From {{ states.sensor.horizon_addon_nodes.attributes.device }} at {{ states.sensor.horizon_addon_nodes.attributes.date | int | timestamp_custom("%a %b %d %I:%M %p") }}
           {% else %} null {% endif %}
       horizon_addon_ago:
         entity_id:
@@ -1294,7 +1317,7 @@ sensor internet_test:
       - upload 
     value_template: >
       {%- if value_json is defined -%}
-        {{ value_json.date | timestamp_custom("%a %b %d @ %I:%M %p") }}
+        {{ value_json.date | int | timestamp_custom("%a %b %d @ %I:%M %p") }}
       {%- else -%}null{%- endif -%}
   - platform: template
     sensors:
@@ -1303,7 +1326,7 @@ sensor internet_test:
           - sensor.internet_test
         value_template: >-
           {% if states.sensor.internet_test is defined and states.sensor.internet_test.attributes.date is defined %}
-            From {{ states.sensor.internet_test.attributes.server.name }} at {{ states.sensor.internet_test.attributes.date | timestamp_custom("%a %b %d %I:%M %p") }}
+            From {{ states.sensor.internet_test.attributes.server.name }} at {{ states.sensor.internet_test.attributes.date | int | timestamp_custom("%a %b %d %I:%M %p") }}
           {% else %} null {% endif %}
       internet_test_receive:
         entity_id:
@@ -1351,7 +1374,9 @@ sensor internet_test:
         unit_of_measurement: Mbps
         value_template: >
           {% if states.sensor.internet_receive_statistics_mean is defined %}
-            {{ states.sensor.internet_receive_statistics_mean.attributes.standard_deviation }}
+            {% if states.sensor.internet_receive_statistics_mean.attributes.standard_deviation != 'unknown' %}
+              {{ states.sensor.internet_receive_statistics_mean.attributes.standard_deviation }}
+            {%- else -%}null{%- endif -%}
           {%- else -%}null{%- endif -%}
       internet_send_mean:
         entity_id:
@@ -1383,7 +1408,9 @@ sensor internet_test:
         unit_of_measurement: Mbps
         value_template: >
           {% if states.sensor.internet_send_statistics_mean is defined %}
-            {{ states.sensor.internet_send_statistics_mean.attributes.standard_deviation }}
+            {% if states.sensor.internet_send_statistics_mean.attributes.standard_deviation != 'unknown' %}
+              {{ states.sensor.internet_send_statistics_mean.attributes.standard_deviation }}
+            {%- else -%}null{%- endif -%}
           {%- else -%}null{%- endif -%}
       internet_test_ago:
         entity_id:
@@ -1476,9 +1503,11 @@ binary_sensor internet_test:
           - sensor.internet_receive_statistics_mean
           - input_number.internet_deviation
         value_template: >-
-          {{ (((states.sensor.internet_receive_mean.state|float) - (states.sensor.internet_test_receive.state|float))
-               / (states.sensor.internet_receive_statistics_mean.attributes.standard_deviation|float) 
-             > (states.input_number.internet_deviation.state|float)) }}
+          {% if states.sensor.internet_receive_statistics_mean.attributes.standard_deviation|float > 0 %}
+            {{ (((states.sensor.internet_receive_mean.state|float) - (states.sensor.internet_test_receive.state|float))
+                 / (states.sensor.internet_receive_statistics_mean.attributes.standard_deviation|float) 
+               > (states.input_number.internet_deviation.state|float)) }}
+          {%- else -%}null{%- endif -%}
         icon_template: >
             mdi:emoticon-sad
       internet_slow_persistent:
@@ -1487,9 +1516,11 @@ binary_sensor internet_test:
           - sensor.internet_receive_stdev_mean
           - input_number.internet_deviation
         value_template: >-
-          {{ (((states.sensor.internet_receive_mean.state|float) - (states.sensor.internet_test_receive.state|float))
-               / (states.sensor.internet_receive_stdev_mean.state|float) 
-             > (states.input_number.internet_deviation.state|float)) }}
+          {% if states.sensor.internet_receive_stdev_mean.state|float > 0 %}
+            {{ (((states.sensor.internet_receive_mean.state|float) - (states.sensor.internet_test_receive.state|float))
+                 / (states.sensor.internet_receive_stdev_mean.state|float) 
+               > (states.input_number.internet_deviation.state|float)) }}
+          {%- else -%}null{%- endif -%}
         icon_template: >
             mdi:emoticon-sad
       internet_fast:
@@ -1498,9 +1529,11 @@ binary_sensor internet_test:
           - sensor.internet_receive_statistics_mean
           - input_number.internet_deviation
         value_template: >-
-          {{ (((states.sensor.internet_test_receive.state|float) - (states.sensor.internet_receive_mean.state|float))
-               / (states.sensor.internet_receive_statistics_mean.attributes.standard_deviation|float)) 
-             > (states.input_number.internet_deviation.state|float) }}
+          {% if states.sensor.internet_receive_statistics_mean.attributes.standard_deviation|float > 0 %}
+            {{ (((states.sensor.internet_test_receive.state|float) - (states.sensor.internet_receive_mean.state|float))
+                 / (states.sensor.internet_receive_statistics_mean.attributes.standard_deviation|float)) 
+               > (states.input_number.internet_deviation.state|float) }}
+          {%- else -%}null{%- endif -%}
         icon_template: >-
             mdi:emoticon-happy
       internet_fast_persistent:
@@ -1509,9 +1542,11 @@ binary_sensor internet_test:
           - sensor.internet_receive_stdev_mean
           - input_number.internet_deviation
         value_template: >-
-          {{ (((states.sensor.internet_test_receive.state|float) - (states.sensor.internet_receive_mean.state|float))
-               / (states.sensor.internet_receive_stdev_mean.state|float)) 
-             > (states.input_number.internet_deviation.state|float) }}
+          {% if states.sensor.internet_receive_stdev_mean.state|float > 0 %}
+            {{ (((states.sensor.internet_test_receive.state|float) - (states.sensor.internet_receive_mean.state|float))
+                 / (states.sensor.internet_receive_stdev_mean.state|float)) 
+               > (states.input_number.internet_deviation.state|float) }}
+          {%- else -%}null{%- endif -%}
         icon_template: >-
             mdi:emoticon-happy
             
@@ -1637,7 +1672,7 @@ sensor motion_sensors:
           - sensor.motion_event_end
         value_template: >-
           {% if states.sensor.motion_event_end is defined and states.sensor.motion_event_end.attributes.date is defined %}
-            From {{ states.sensor.motion_event_end.attributes.device }} at {{ states.sensor.motion_event_end.attributes.date | timestamp_custom("%a %b %d %I:%M %p") }}
+            From {{ states.sensor.motion_event_end.attributes.device }} at {{ states.sensor.motion_event_end.attributes.date | int | timestamp_custom("%a %b %d %I:%M %p") }}
           {% else %} null {% endif %}
       motion_configuration_localhost_camera_count:
         entity_id:
@@ -1713,7 +1748,7 @@ sensor motion_sensors:
           - sensor.motion_event_end
         value_template: >
           {% if states.sensor.motion_event_end is defined %}
-            {{ states.sensor.motion_event_end.attributes.date | timestamp_custom("%a %b %d ~ %I:%M %p") }}
+            {{ states.sensor.motion_event_end.attributes.date | int | timestamp_custom("%a %b %d ~ %I:%M %p") }}
           {% else %} null {% endif %}
       motion_event_end_device:
         entity_id:
