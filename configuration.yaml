@@ -155,12 +155,12 @@ history_graph:
     refresh: 10
     entities:
       - sensor.yolo2msghub_events_count
-      - sensor.yolo2msghub_clients_count
   yolo2msghub_activity_count:
     name: yolo2msghub Activity Count
     hours_to_show: 24
     refresh: 30
     entities:
+      - sensor.yolo2msghub_event_activity_count
       - sensor.yolo2msghub_activity_count_statistics_mean
       - sensor.yolo2msghub_activity_count_stdev_mean
       - sensor.yolo2msghub_activity_count_max_value
@@ -328,8 +328,8 @@ sensor yolo2msghub:
         entity_id:
           - sensor.yolo2msghub_event
         value_template: >-
-          {% if states.sensor.yolo2msghub_event is defined and states.sensor.yolo2msghub_event.attributes.yolo2msghub.date is defined %}
-            {{ states.sensor.yolo2msghub_event.attributes.yolo2msghub.date|int | timestamp_custom("%a %b %d @ %I:%M %p") }}
+          {% if states.sensor.yolo2msghub_event is defined and states.sensor.yolo2msghub_event.attributes.yolo2msghub is defined %}
+            {{ states.sensor.yolo2msghub_event.attributes.yolo2msghub.timestamp }}
           {% else %} null {% endif %}
       ## status message
       yolo2msghub_status:
@@ -375,7 +375,7 @@ sensor yolo2msghub:
       yolo2msghub_activity_latest:
         entity_id:
           - sensor.yolo2msghub_event
-        value_template: >-
+        value_template: >
           {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity is defined %}
             {{ states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|sort(attribute='date')|first }}
           {%- else -%}null{%- endif -%}
@@ -383,7 +383,7 @@ sensor yolo2msghub:
         entity_id:
           - sensor.yolo2msghub_activity_latest
         value_template: >
-          {{ states.sensor.yolo2msghub_activity_latest.id }}
+          {{ states.sensor.yolo2msghub_activity_latest.state.id }}
       yolo2msghub_latest_entity:
         entity_id:
           - sensor.yolo2msghub_event
@@ -515,7 +515,7 @@ sensor yolo2msghub:
             {{ states.sensor.yolo2msghub_activity_count_statistics_mean.attributes.standard_deviation }}
           {%- else -%}null{%- endif -%}
   - platform: statistics
-    entity_id: sensor.activity_count_standard_deviation
+    entity_id: sensor.yolo2msghub_activity_count_standard_deviation
     name: yolo2msghub_activity_count_stdev
     sampling_size: 120
     max_age:
@@ -555,11 +555,11 @@ binary_sensor yolo2msghub_event:
       yolo2msghub_activity_low:
         entity_id:
           - sensor.yolo2msghub_activity_count
-          - sensor.yolo2msghub_activity_statistics_mean
+          - sensor.yolo2msghub_activity_count_statistics_mean
           - input_number.yolo2msghub_activity_deviation
         value_template: >-
           {{ (((states.sensor.yolo2msghub_activity_mean.state|float) - (states.sensor.yolo2msghub_activity_count.state|float))
-               / (states.sensor.yolo2msghub_activity_statistics_mean.attributes.standard_deviation|float) 
+               / (states.sensor.yolo2msghub_activity_count_statistics_mean.attributes.standard_deviation|float) 
              > (states.input_number.yolo2msghub_activity_deviation.state|float)) }}
         icon_template: >
             mdi:emoticon-sad
@@ -577,11 +577,11 @@ binary_sensor yolo2msghub_event:
       yolo2msghub_activity_high:
         entity_id:
           - sensor.yolo2msghub_activity_count
-          - sensor.yolo2msghub_activity_statistics_mean
+          - sensor.yolo2msghub_activity_count_statistics_mean
           - input_number.yolo2msghub_activity_deviation
         value_template: >-
           {{ (((states.sensor.yolo2msghub_activity_count.state|float) - (states.sensor.yolo2msghub_activity_mean.state|float))
-               / (states.sensor.yolo2msghub_activity_statistics_mean.attributes.standard_deviation|float)) 
+               / (states.sensor.yolo2msghub_activity_count_statistics_mean.attributes.standard_deviation|float)) 
              > (states.input_number.yolo2msghub_activity_deviation.state|float) }}
         icon_template: >-
             mdi:emoticon-happy
