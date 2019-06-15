@@ -118,6 +118,14 @@ input_number:
     max: 3
     step: 0.1
     icon: mdi:sigma-lower
+  yolo2msghub_detected_deviation:
+    name: yolo2msghub detected deviation
+    mode: slider
+    initial: 1.5
+    min: 0.1
+    max: 3
+    step: 0.1
+    icon: mdi:sigma-lower
   # SDR
   sdr2msghub_confidence:
     name: Confidence
@@ -162,13 +170,32 @@ history_graph:
     refresh: 10
     entities:
       - sensor.yolo2msghub_events_count
+  # entity detected
+  yolo2msghub_entity_detected:
+    name: yolo2msghub_entity_detected
+    hours_to_show: 24
+    refresh: 30
+    entities:
+      - sensor.yolo2msghub_entity_detected_count
+      - sensor.yolo2msghub_entity_detected_mean
+      - sensor.yolo2msghub_entity_detected_stdev_mean
+      - sensor.yolo2msghub_entity_detected_max_value
+      - sensor.yolo2msghub_entity_detected_min_value
+  yolo2msghub_detected_stdev:
+    name: yolo2msghub_detected_stdev
+    hours_to_show: 24
+    refresh: 30
+    entities:
+      - sensor.yolo2msghub_entity_detected_stdev_mean
+      - sensor.yolo2msghub_entity_detected_standard_deviation
+  # any activity
   yolo2msghub_activity_count:
     name: yolo2msghub_activity_count
     hours_to_show: 24
     refresh: 30
     entities:
       - sensor.yolo2msghub_event_activity_count
-      - sensor.yolo2msghub_event_activity_count_statistics_mean
+      - sensor.yolo2msghub_event_activity_count_mean
       - sensor.yolo2msghub_event_activity_count_stdev_mean
       - sensor.yolo2msghub_event_activity_count_max_value
       - sensor.yolo2msghub_event_activity_count_min_value
@@ -444,7 +471,9 @@ sensor yolo2msghub:
         unit_of_measurement: seconds
         value_template: >
           {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity is defined %}
-            {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).ago }}
+            {% if (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).ago is defined %}
+              {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).ago }}
+            {%- else -%}null{%- endif -%}
           {%- else -%}null{%- endif -%}
       yolo2msghub_latest_average:
         entity_id:
@@ -470,7 +499,7 @@ sensor yolo2msghub:
         unit_of_measurement: '%'
         value_template: >
           {% if states.sensor.yolo2msghub_event.attributes is defined %}
-            {{ '%0.2f' | format((states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).percent / 1000000.0) }}
+            {{ '%0.2f' | format((states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).percent) }}
           {%- else -%}null{%- endif -%}
       ## product from hal
       yolo2msghub_latest_product:
@@ -495,6 +524,7 @@ sensor yolo2msghub:
           {% if states.sensor.yolo2msghub_event.attributes is defined %}
             {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).seen }}
           {%- else -%}null{%- endif -%}
+      ## any activity count
       yolo2msghub_event_activity_count_mean:
         entity_id:
           - sensor.yolo2msghub_event_activity_count_statistics_mean
@@ -529,6 +559,49 @@ sensor yolo2msghub:
               {{ states.sensor.yolo2msghub_event_activity_count_statistics_mean.attributes.standard_deviation }}
             {%- else -%}null{%- endif -%}
           {%- else -%}null{%- endif -%}
+      ## entity detected
+      yolo2msghub_entity_detected_mean:
+        entity_id:
+          - sensor.yolo2msghub_entity_detected_statistics_mean
+        unit_of_measurement: entities
+        value_template: >
+          {% if states.sensor.yolo2msghub_entity_detected_statistics_mean is defined %}
+            {{ states.sensor.yolo2msghub_entity_detected_statistics_mean.state }}
+          {%- else -%}null{%- endif -%}
+      yolo2msghub_entity_detected_count:
+        entity_id:
+          - sensor.yolo2msghub_entity_detected_statistics_mean
+        unit_of_measurement: entities
+        value_template: >
+          {% if states.sensor.yolo2msghub_entity_detected_statistics_mean is defined %}
+            {{ states.sensor.yolo2msghub_entity_detected_statistics_mean.attributes.count }}
+          {%- else -%}null{%- endif -%}
+      yolo2msghub_entity_detected_min_value:
+        entity_id:
+          - sensor.yolo2msghub_entity_detected_statistics_mean
+        unit_of_measurement: entities
+        value_template: >
+          {% if states.sensor.yolo2msghub_entity_detected_statistics_mean is defined %}
+            {{ states.sensor.yolo2msghub_entity_detected_statistics_mean.attributes.min_value }}
+          {%- else -%}null{%- endif -%}
+      yolo2msghub_entity_detected_max_value:
+        entity_id:
+          - sensor.yolo2msghub_entity_detected_statistics_mean
+        unit_of_measurement: entities
+        value_template: >
+          {% if states.sensor.yolo2msghub_entity_detected_statistics_mean is defined %}
+            {{ states.sensor.yolo2msghub_entity_detected_statistics_mean.attributes.max_value }}
+          {%- else -%}null{%- endif -%}
+      yolo2msghub_entity_detected_standard_deviation:
+        entity_id:
+          - sensor.yolo2msghub_entity_detected_statistics_mean
+        unit_of_measurement: entities
+        value_template: >
+          {% if states.sensor.yolo2msghub_entity_detected_statistics_mean is defined %}
+            {% if states.sensor.yolo2msghub_entity_detected_statistics_mean.attributes.standard_deviation != 'unknown' %}
+              {{ states.sensor.yolo2msghub_entity_detected_statistics_mean.attributes.standard_deviation }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
   - platform: statistics
     entity_id: sensor.yolo2msghub_event_activity_count_standard_deviation
     name: yolo2msghub_event_activity_count_stdev
@@ -548,6 +621,19 @@ sensor yolo2msghub:
     type: count
     start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
     end: '{{ now() }}'
+  - platform: statistics
+    entity_id: sensor.yolo2msghub_entity_detected_count
+    name: yolo2msghub_entity_detected_statistics
+    sampling_size: 20
+    max_age:
+      hours: 24
+  - platform: history_stats
+    name: yolo2msghub_entity_detected
+    entity_id: binary_sensor.yolo2msghub_entity_detected
+    state: 'on'
+    type: count
+    start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+    end: '{{ now() }}'
 
 
 binary_sensor yolo2msghub_event:
@@ -560,13 +646,17 @@ binary_sensor yolo2msghub_event:
           {% if states.sensor.yolo2msghub_event_ago is defined %}
             {% if states.sensor.yolo2msghub_event_ago.state|int > 1 %}False{% else %}True{% endif %}
           {%- else -%}False{%- endif -%}
-      yolo2msghub_event_detect:
+      yolo2msghub_entity_detected:
         entity_id:
           - sensor.yolo2msghub_event
         value_template: >
-          {% if states.sensor.yolo2msghub_event_ago is defined %}
-            {% if states.sensor.yolo2msghub_event_ago.state|int > 1 and (now().timestamp()|int - (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).last) > 30 %}False{% else %}True{% endif %}
-          {%- else -%}False{%- endif -%}
+          {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity is defined %}
+            {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first is defined %}
+              {% if (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).ago is defined %}
+                {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).ago|int < 10 }}
+              {%- else -%}False{%- endif -%}
+            {%- else -%}False{%- endif -%}
+          {%- else -%}null{%- endif -%}
       yolo2msghub_activity_low:
         entity_id:
           - sensor.yolo2msghub_event_activity_count
