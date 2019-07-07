@@ -49,14 +49,14 @@ history: !include history.yaml
 group: !include groups.yaml
 automation: !include automations.yaml
 
-#influxdb:
-#  host: a0d7b954-influxdb
-#  port: 8086
-#  database: homeassistant
-#  username: homeassistant
-#  password: CH@ngem3
-#  max_retries: 3
-#  default_measurement: state
+influxdb:
+  host: a0d7b954-influxdb
+  port: 8086
+  database: homeassistant
+  username: homeassistant
+  password: homeassistant
+  max_retries: 3
+  default_measurement: state
 
 sensor host_ip:
   - platform: command_line
@@ -78,6 +78,10 @@ panel_iframe:
         #    title: InfluxDB
         #    icon: mdi:chart-areaspline
         #    url: http://horizon.dcmartin.com:8123/hassio/ingress/a0d7b954_influxdb
+  netdata:
+    title: NetData
+    icon: mdi:chart
+    url: http://horizon.dcmartin.com:19999/
   grafana:
     title: Grafana
     icon: mdi:chart-timeline
@@ -281,7 +285,7 @@ history_graph:
   startup_percent:
     name: startup_percent
     hours_to_show: 24
-    refresh: 30
+    refresh: 30 
     entities:
       - sensor.startup_percent
   # entity detected
@@ -290,6 +294,7 @@ history_graph:
     hours_to_show: 24
     refresh: 30
     entities:
+      - sensor.startup_container_latest_average
       - sensor.startup_container_average_mean
       - sensor.startup_container_average_max_value
       - sensor.startup_container_average_min_value
@@ -305,7 +310,7 @@ history_graph:
   startup_client_count:
     name: startup_client_count
     hours_to_show: 24
-    refresh: 5
+    refresh: 30
     entities:
       - sensor.horizon_organization_nodes_count
       - sensor.startup_event_client_count
@@ -510,7 +515,7 @@ history_graph:
   motion_event_images_count:
     name: motion_event_images_count
     hours_to_show: 24
-    refresh: 5
+    refresh: 30
     entities:
       - sensor.motion_event_images_count
   motion_event_image_ago:
@@ -589,10 +594,8 @@ sensor startup:
           - sun.sun
         unit_of_measurement: seconds
         value_template: >
-          {% if states.sensor.startup_event is defined %}
-            {% if states.sensor.startup_event.attributes.startup.date is defined %}
-              {{ (now().timestamp()|int) - (states.sensor.startup_event.attributes.startup.date|int) }}
-            {%- else -%}null{%- endif -%}
+          {% if states.sensor.startup_event.attributes.startup.date is defined %}
+            {{ (now().timestamp()|int) - (states.sensor.startup_event.attributes.startup.date|int) }}
           {%- else -%}null{%- endif -%}
       # mean ago
       startup_event_ago_mean:
@@ -668,10 +671,10 @@ sensor startup:
           {% if states.sensor.startup_event.attributes.startup.activity is defined %}
             {{ states.sensor.startup_event.attributes.startup.activity|length }}
           {%- else -%}null{%- endif -%}
-      ## attributes
       startup_event_date:
         entity_id:
           - sensor.startup_event
+        unit_of_measurement: seconds
         value_template: >
           {% if states.sensor.startup_event is defined and states.sensor.startup_event.attributes.startup.date is defined %}
             {{ states.sensor.startup_event.attributes.startup.date }}
@@ -686,7 +689,7 @@ sensor startup:
       startup_event_period:
         entity_id:
           - sensor.startup_event
-        unit_of_measurement: 'seconds'
+        unit_of_measurement: seconds
         value_template: >
           {% if states.sensor.startup_event is defined and states.sensor.startup_event.attributes.startup.period is defined %}
             {{ states.sensor.startup_event.attributes.startup.period }}
@@ -702,20 +705,15 @@ sensor startup:
       startup_latest_date:
         entity_id:
           - sensor.startup_event
+        unit_of_measurement: seconds
         value_template: >
           {% if states.sensor.startup_event.attributes.startup.activity is defined %}
             {{ (states.sensor.startup_event.attributes.startup.activity|first).date }}
           {%- else -%}null{%- endif -%}
-      startup_latest_timestamp:
-        entity_id:
-          - sensor.startup_event
-        value_template: >
-          {% if states.sensor.startup_event.attributes.startup.activity is defined %}
-            {{ (states.sensor.startup_event.attributes.startup.activity|first).date | int | timestamp_custom("%a %b %d %I:%M %p") }}
-          {%- else -%}null{%- endif -%}
       startup_latest_count:
         entity_id:
           - sensor.startup_event
+        unit_of_measurement: events
         value_template: >
           {% if states.sensor.startup_event.attributes.startup.activity is defined %}
             {{ (states.sensor.startup_event.attributes.startup.activity|first).count }}
@@ -728,20 +726,27 @@ sensor startup:
           {% if states.sensor.startup_event.attributes.startup.activity is defined %}
             {{ (states.sensor.startup_event.attributes.startup.activity|first).interval }}
           {%- else -%}null{%- endif -%}
+      startup_latest_timestamp:
+        entity_id:
+          - sensor.startup_event
+        value_template: >
+          {% if states.sensor.startup_event.attributes.startup.activity is defined %}
+            {{ (states.sensor.startup_event.attributes.startup.activity|first).timestamp }}
+          {%- else -%}null{%- endif -%}
       startup_latest_ago:
         entity_id:
           - sensor.startup_event
+          - sun.sun
         unit_of_measurement: seconds
+        # {{ (now().timestamp()|int) - ((states.sensor.startup_event.attributes.startup.activity|first).date|int) }}
         value_template: >
           {% if states.sensor.startup_event.attributes.startup.activity is defined %}
-            {% if (states.sensor.startup_event.attributes.startup.activity|first).ago is defined %}
-              {{ (states.sensor.startup_event.attributes.startup.activity|first).ago }}
-            {%- else -%}null{%- endif -%}
+            {{ now().timestamp()|int - as_timestamp(strptime((states.sensor.startup_event.attributes.startup.activity|first).timestamp, "%FT%TZ"))|int }}
           {%- else -%}null{%- endif -%}
       startup_latest_average:
         entity_id:
           - sensor.startup_event
-        unit_of_measurement: people
+        unit_of_measurement: containers
         value_template: >
           {% if states.sensor.startup_event.attributes.startup.activity is defined %}
             {{ (states.sensor.startup_event.attributes.startup.activity|first).average }}
@@ -785,6 +790,7 @@ sensor startup:
       startup_latest_product_type:
         entity_id:
           - sensor.startup_latest_product
+        unit_of_measurement: product_type
         value_template: >
           {% if states.sensor.startup_latest_product is defined %}
             {% if "Raspberry Pi 3 Model B Plus" in states.sensor.startup_latest_product.state %}
@@ -803,15 +809,6 @@ sensor startup:
               {{ 'other' }}
             {% endif %}
           {%- else -%}null{%- endif -%}
-      ## items from yolo
-      startup_latest_average:
-        entity_id:
-          - sensor.startup_event
-        unit_of_measurement: containers
-        value_template: >
-          {% if states.sensor.startup_event.attributes.startup.activity is defined %}
-            {{ (states.sensor.startup_event.attributes.startup.activity|first).average }}
-          {%- else -%}0{%- endif -%}
       ## any activity count
       startup_event_client_count_mean:
         entity_id:
@@ -1087,10 +1084,8 @@ sensor yolo2msghub:
           - sun.sun
         unit_of_measurement: seconds
         value_template: >
-          {% if states.sensor.yolo2msghub_event is defined %}
-            {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.date is defined %}
-              {{ (now().timestamp()|int) - (states.sensor.yolo2msghub_event.attributes.yolo2msghub.date|int) }}
-            {%- else -%}null{%- endif -%}
+          {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.date is defined %}
+            {{ (now().timestamp()|int) - (states.sensor.yolo2msghub_event.attributes.yolo2msghub.date|int) }}
           {%- else -%}null{%- endif -%}
       ## mean ago
       yolo2msghub_event_ago_mean:
@@ -1234,6 +1229,7 @@ sensor yolo2msghub:
       yolo2msghub_latest_ago:
         entity_id:
           - sensor.yolo2msghub_event
+          - sun.sun
         unit_of_measurement: seconds
         value_template: >
           {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity is defined %}
@@ -1599,10 +1595,8 @@ sensor sdr2msghub:
           - sun.sun
         unit_of_measurement: seconds
         value_template: >
-          {% if states.sensor.sdr2msghub_event is defined %}
-            {% if states.sensor.sdr2msghub_event.attributes.date is defined %}
-              {{ (now().timestamp()|int) - (states.sensor.sdr2msghub_event.attributes.date|int) }}
-            {%- else -%}null{%- endif -%}
+          {% if states.sensor.sdr2msghub_event.attributes.date is defined %}
+            {{ (now().timestamp()|int) - (states.sensor.sdr2msghub_event.attributes.date|int) }}
           {%- else -%}null{%- endif -%}
       ## statistics
       sdr2msghub_event_ago_mean:
@@ -2112,9 +2106,7 @@ sensor horizon:
       - numberOfNodes
       - numberOfUsers
     value_template: >
-      {%- if value_json is defined -%}
-        {{ value_json.msg }}
-      {%- else -%}null{%- endif -%}
+      {%- if value_json is defined -%} {{ value_json.msg }} {%- else -%}null{%- endif -%}
   - platform: template
     sensors:
       horizon_exchange_org:
@@ -2284,10 +2276,8 @@ sensor hznsetup:
           - sun.sun
         unit_of_measurement: seconds
         value_template: >
-          {% if states.sensor.hznsetup_event is defined %}
-            {% if states.sensor.hznsetup_event.attributes.date is defined %}
-              {{ (now().timestamp()|int) - (states.sensor.hznsetup_event.attributes.date|int) }}
-            {%- else -%}null{%- endif -%}
+          {% if states.sensor.hznsetup_event.attributes.date is defined %}
+            {{ (now().timestamp()|int) - (states.sensor.hznsetup_event.attributes.date|int) }}
           {%- else -%}null{%- endif -%}
       ## mean timing
       hznsetup_event_ago_mean:
@@ -2543,7 +2533,10 @@ sensor internet_test:
           - sensor.internet_test
           - sun.sun
         unit_of_measurement: seconds
-        value_template: '{{ (now().timestamp()|int) - (states.sensor.internet_test.attributes.date|int) }}'
+        value_template: >
+          {% if states.sensor.internet_test.attributes.date is defined %}
+           {{ (now().timestamp()|int) - (states.sensor.internet_test.attributes.date|int) }}
+          {%- else -%}null{%- endif -%}
       internet_tests_count:
         entity_id:
           - sensor.internet_test_count
@@ -2781,10 +2774,8 @@ sensor motion_sensors:
           - sun.sun
         unit_of_measurement: seconds
         value_template: >
-          {% if states.sensor.motion_event_image is defined %}
-            {% if states.sensor.motion_event_image.attributes.date is defined %}
-              {{ (now().timestamp()|int) - (states.sensor.motion_event_image.attributes.date|int) }}
-            {%- else -%}null{%- endif -%}
+          {% if states.sensor.motion_event_image.attributes.date is defined %}
+            {{ (now().timestamp()|int) - (states.sensor.motion_event_image.attributes.date|int) }}
           {%- else -%}null{%- endif -%}
       ## mean ago
       motion_event_image_ago_mean:
@@ -2908,10 +2899,8 @@ sensor motion_sensors:
           - sun.sun
         unit_of_measurement: seconds
         value_template: >
-          {% if states.sensor.motion_event_end is defined %}
-            {% if states.sensor.motion_event_end.attributes.date is defined %}
-              {{ (now().timestamp()|int) - (states.sensor.motion_event_end.attributes.date|int) }}
-            {%- else -%}null{%- endif -%}
+          {% if states.sensor.motion_event_end.attributes.date is defined %}
+            {{ (now().timestamp()|int) - (states.sensor.motion_event_end.attributes.date|int) }}
           {%- else -%}null{%- endif -%}
       ## mean ago
       motion_event_ago_mean:
