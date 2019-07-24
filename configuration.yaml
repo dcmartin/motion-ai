@@ -48,14 +48,14 @@ history: !include history.yaml
 group: !include groups.yaml
 automation: !include automations.yaml
 
-#influxdb:
-#  host: a0d7b954-influxdb
-#  port: 8086
-#  database: homeassistant
-#  username: homeassistant
-#  password: homeassistant
-#  max_retries: 3
-#  default_measurement: state
+influxdb:
+  host: a0d7b954-influxdb
+  port: 8086
+  database: homeassistant
+  username: homeassistant
+  password: !secret influxdb-password
+  max_retries: 3
+  default_measurement: state
 
 sensor host_ip:
   - platform: command_line
@@ -81,7 +81,11 @@ panel_iframe:
     title: HZN monitor
     icon: mdi:factory
     url: !secret hznmonitor 
-
+  grafana:
+    title: Grafana
+    icon: mdi:chart-timeline
+    url: !secret grafana-url
+    
 ## INPUT BOOLEAN(s)
 input_boolean:
   # MOTION
@@ -237,6 +241,22 @@ input_number:
     max: 3
     step: 0.1
     icon: mdi:sigma-lower
+  startup_download_deviation:
+    name: startup download deviation
+    mode: slider
+    initial: 1.5
+    min: 0.1
+    max: 3
+    step: 0.1
+    icon: mdi:sigma-lower
+  startup_measurement_deviation:
+    name: startup measurement deviation
+    mode: slider
+    initial: 1.5
+    min: 0.1
+    max: 3
+    step: 0.1
+    icon: mdi:sigma-lower
   # YOLO
   yolo2msghub_client_deviation:
     name: yolo2msghub client deviation
@@ -291,15 +311,6 @@ input_number:
     
 ## HISTORY GRAPH(s
 history_graph:
-  ## META
-  client_count:
-    name: client_count
-    hours_to_show: 2
-    refresh: 30
-    entities:
-      - sensor.horizon_organization_nodes_count
-      - sensor.startup_client_count
-      - sensor.yolo2msghub_event_client_count
   ## STARTUP
   startup_events_count:
     name: startup_events_count
@@ -316,13 +327,6 @@ history_graph:
       - sensor.startup_event_ago_min_value
       - sensor.startup_event_ago_max_value
       - sensor.startup_event_ago_mean
-  # percent
-  startup_percent:
-    name: startup_percent
-    hours_to_show: 2
-    refresh: 30 
-    entities:
-      - sensor.startup_percent
   # average containers
   startup_container_average:
     name: startup_container_average
@@ -340,13 +344,35 @@ history_graph:
     hours_to_show: 2
     refresh: 30
     entities:
-      - sensor.startup_download_latest_download
+#     - sensor.startup_latest_download
       - sensor.startup_download_mean
       - sensor.startup_download_max_value
       - sensor.startup_download_min_value
       - sensor.startup_download_stdev_mean
       - sensor.startup_download_standard_deviation
-  # any activity
+  startup_measurement:
+    name: startup_measurement
+    hours_to_show: 2
+    refresh: 30
+    entities:
+#     - sensor.startup_latest_measurement
+      - sensor.startup_measurement_mean
+      - sensor.startup_measurement_max_value
+      - sensor.startup_measurement_min_value
+      - sensor.startup_measurement_stdev_mean
+      - sensor.startup_measurement_standard_deviation
+  startup_percent:
+    name: startup_percent
+    hours_to_show: 2
+    refresh: 30 
+    entities:
+#     - sensor.startup_latest_percent
+      - sensor.startup_percent_mean
+      - sensor.startup_percent_max_value
+      - sensor.startup_percent_min_value
+      - sensor.startup_percent_stdev_mean
+      - sensor.startup_percent_standard_deviation
+  # count of client
   startup_client_count:
     name: startup_client_count
     hours_to_show: 2
@@ -355,10 +381,18 @@ history_graph:
       - sensor.horizon_organization_nodes_count
       - sensor.startup_client_count
       - sensor.startup_client_count_mean
-      - sensor.startup_client_count_max_value
-      - sensor.startup_client_count_min_value
       - sensor.startup_client_count_stdev_mean
       - sensor.startup_client_count_standard_deviation
+  # percent of client
+  startup_client_percent:
+    name: startup_client_percent
+    hours_to_show: 2
+    refresh: 30
+    entities:
+      - sensor.startup_client_percent
+      - sensor.startup_client_percent_mean
+      - sensor.startup_client_percent_stdev_mean
+      - sensor.startup_client_percent_standard_deviation
   # product ratio
   startup_product_ratio:
     name: startup_product_ratio
@@ -707,14 +741,6 @@ sensor startup:
             {{ (states.sensor.startup_event.attributes.startup.activity|first).longitude|float }}
           {%- else -%}null{%- endif -%}
       ## calculators
-      startup_percent:
-        entity_id:
-          - sensor.startup_event
-        unit_of_measurement: '%'
-        value_template: >-
-          {% if states.sensor.startup_client_count is defined and states.sensor.horizon_organization_nodes_count is defined and states.sensor.horizon_organization_nodes_count.state != null and states.sensor.horizon_organization_nodes_count is defined and states.sensor.horizon_organization_nodes_count.state|int > 0 %}
-            {{ '%0.2f' | format(states.sensor.startup_client_count.state|float / states.sensor.horizon_organization_nodes_count.state|float * 100.0 ) }}
-          {% else %} null {% endif %}
       startup_client_count:
         entity_id:
           - sensor.startup_event
@@ -724,6 +750,14 @@ sensor startup:
           {% if states.sensor.startup_event.attributes.startup.activity is defined %}
             {{ states.sensor.startup_event.attributes.startup.activity|length }}
           {%- else -%}null{%- endif -%}
+      startup_client_percent:
+        entity_id:
+          - sensor.startup_event
+        unit_of_measurement: '%'
+        value_template: >-
+          {% if states.sensor.startup_client_count is defined and states.sensor.horizon_organization_nodes_count is defined and states.sensor.horizon_organization_nodes_count.state != null and states.sensor.horizon_organization_nodes_count is defined and states.sensor.horizon_organization_nodes_count.state|int > 0 %}
+            {{ '%0.2f' | format(states.sensor.startup_client_count.state|float / states.sensor.horizon_organization_nodes_count.state|float * 100.0 ) }}
+          {% else %} null {% endif %}
       startup_event_date:
         entity_id:
           - sensor.startup_event
@@ -763,7 +797,7 @@ sensor startup:
           {% if states.sensor.startup_event.attributes.startup.activity is defined %}
             {{ (states.sensor.startup_event.attributes.startup.activity|first).date }}
           {%- else -%}null{%- endif -%}
-      startup_latest_count:
+      startup_latest_measurement:
         entity_id:
           - sensor.startup_event
         unit_of_measurement: events
@@ -862,7 +896,7 @@ sensor startup:
               {{ 'other' }}
             {% endif %}
           {%- else -%}null{%- endif -%}
-      ## any activity count
+      ## client count
       startup_client_count_mean:
         entity_id:
           - sensor.startup_event
@@ -899,6 +933,45 @@ sensor startup:
           {% if states.sensor.startup_client_count_statistics_mean is defined %}
             {% if states.sensor.startup_client_count_statistics_mean.attributes.standard_deviation != 'unknown' %}
               {{ states.sensor.startup_client_count_statistics_mean.attributes.standard_deviation }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+      ## client percent
+      startup_client_percent_mean:
+        entity_id:
+          - sensor.startup_event
+          - sensor.startup_client_percent_statistics_mean
+        unit_of_measurement: '%'
+        value_template: >
+          {% if states.sensor.startup_client_percent_statistics_mean is defined %}
+            {{ states.sensor.startup_client_percent_statistics_mean.state }}
+          {%- else -%}null{%- endif -%}
+      startup_client_percent_min_value:
+        entity_id:
+          - sensor.startup_event
+          - sensor.startup_client_percent_statistics_mean
+        unit_of_measurement: '%'
+        value_template: >
+          {% if states.sensor.startup_client_percent_statistics_mean is defined %}
+            {{ states.sensor.startup_client_percent_statistics_mean.attributes.min_value }}
+          {%- else -%}null{%- endif -%}
+      startup_client_percent_max_value:
+        entity_id:
+          - sensor.startup_event
+          - sensor.startup_client_percent_statistics_mean
+        unit_of_measurement: '%'
+        value_template: >
+          {% if states.sensor.startup_client_percent_statistics_mean is defined %}
+            {{ states.sensor.startup_client_percent_statistics_mean.attributes.max_value }}
+          {%- else -%}null{%- endif -%}
+      startup_client_percent_standard_deviation:
+        entity_id:
+          - sensor.startup_event
+          - sensor.startup_client_percent_statistics_mean
+        unit_of_measurement: '%'
+        value_template: >
+          {% if states.sensor.startup_client_percent_statistics_mean is defined %}
+            {% if states.sensor.startup_client_percent_statistics_mean.attributes.standard_deviation != 'unknown' %}
+              {{ states.sensor.startup_client_percent_statistics_mean.attributes.standard_deviation }}
             {%- else -%}null{%- endif -%}
           {%- else -%}null{%- endif -%}
       ## containers average
@@ -979,6 +1052,84 @@ sensor startup:
               {{ states.sensor.startup_download_statistics_mean.attributes.standard_deviation }}
             {%- else -%}null{%- endif -%}
           {%- else -%}null{%- endif -%}
+      ## measurements average
+      startup_measurement_mean:
+        entity_id:
+          - sensor.startup_event
+          - sensor.startup_measurement_statistics_mean
+        unit_of_measurement: events
+        value_template: >
+          {% if states.sensor.startup_measurement_statistics_mean is defined %}
+            {{ states.sensor.startup_measurement_statistics_mean.state }}
+          {%- else -%}null{%- endif -%}
+      startup_measurement_min_value:
+        entity_id:
+          - sensor.startup_event
+          - sensor.startup_measurement_statistics_mean
+        unit_of_measurement: events
+        value_template: >
+          {% if states.sensor.startup_measurement_statistics_mean is defined %}
+            {{ states.sensor.startup_measurement_statistics_mean.attributes.min_value|float }}
+          {%- else -%}null{%- endif -%}
+      startup_measurement_max_value:
+        entity_id:
+          - sensor.startup_event
+          - sensor.startup_measurement_statistics_mean
+        unit_of_measurement: events
+        value_template: >
+          {% if states.sensor.startup_measurement_statistics_mean is defined %}
+            {{ states.sensor.startup_measurement_statistics_mean.attributes.max_value|float }}
+          {%- else -%}null{%- endif -%}
+      startup_measurement_standard_deviation:
+        entity_id:
+          - sensor.startup_event
+          - sensor.startup_measurement_statistics_mean
+        unit_of_measurement: events
+        value_template: >
+          {% if states.sensor.startup_measurement_statistics_mean is defined %}
+            {% if states.sensor.startup_measurement_statistics_mean.attributes.standard_deviation != 'unknown' %}
+              {{ states.sensor.startup_measurement_statistics_mean.attributes.standard_deviation }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+      ## percent average
+      startup_percent_mean:
+        entity_id:
+          - sensor.startup_event
+          - sensor.startup_percent_statistics_mean
+        unit_of_measurement: '%'
+        value_template: >
+          {% if states.sensor.startup_percent_statistics_mean is defined %}
+            {{ states.sensor.startup_percent_statistics_mean.state }}
+          {%- else -%}null{%- endif -%}
+      startup_percent_min_value:
+        entity_id:
+          - sensor.startup_event
+          - sensor.startup_percent_statistics_mean
+        unit_of_measurement: '%'
+        value_template: >
+          {% if states.sensor.startup_percent_statistics_mean is defined %}
+            {{ states.sensor.startup_percent_statistics_mean.attributes.min_value|float }}
+          {%- else -%}null{%- endif -%}
+      startup_percent_max_value:
+        entity_id:
+          - sensor.startup_event
+          - sensor.startup_percent_statistics_mean
+        unit_of_measurement: '%'
+        value_template: >
+          {% if states.sensor.startup_percent_statistics_mean is defined %}
+            {{ states.sensor.startup_percent_statistics_mean.attributes.max_value|float }}
+          {%- else -%}null{%- endif -%}
+      startup_percent_standard_deviation:
+        entity_id:
+          - sensor.startup_event
+          - sensor.startup_percent_statistics_mean
+        unit_of_measurement: '%'
+        value_template: >
+          {% if states.sensor.startup_percent_statistics_mean is defined %}
+            {% if states.sensor.startup_percent_statistics_mean.attributes.standard_deviation != 'unknown' %}
+              {{ states.sensor.startup_percent_statistics_mean.attributes.standard_deviation }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
   # client count
   - platform: statistics
     entity_id: sensor.startup_client_count_standard_deviation
@@ -992,10 +1143,37 @@ sensor startup:
     sampling_size: 100
     max_age:
       hours: 2
+  # client percent
+  - platform: statistics
+    entity_id: sensor.startup_client_percent_standard_deviation
+    name: startup_client_percent_stdev
+    sampling_size: 100
+    max_age:
+      hours: 2
+  - platform: statistics
+    entity_id: sensor.startup_client_percent
+    name: startup_client_percent_statistics
+    sampling_size: 100
+    max_age:
+      hours: 2
   # client download
   - platform: statistics
     entity_id: sensor.startup_latest_download
     name: startup_download_statistics
+    sampling_size: 100
+    max_age:
+      hours: 2
+  # client measurement
+  - platform: statistics
+    entity_id: sensor.startup_latest_measurement
+    name: startup_measurement_statistics
+    sampling_size: 100
+    max_age:
+      hours: 2
+  # client percent
+  - platform: statistics
+    entity_id: sensor.startup_latest_percent
+    name: startup_percent_statistics
     sampling_size: 100
     max_age:
       hours: 2
@@ -2366,7 +2544,7 @@ sensor horizon:
             {{ states.sensor.horizon_exchange_status.attributes.msg }}
           {% else %}null{% endif %}
       horizon_exchange_status_agbot_agreements:
-        unit_of_measurement: Count
+        unit_of_measurement: agreements
         entity_id:
           - sensor.horizon_exchange_status
         value_template: >
@@ -2374,7 +2552,7 @@ sensor horizon:
             {{ states.sensor.horizon_exchange_status.attributes.numberOfAgbotAgreements|int }}
           {% else %}null{% endif %}
       horizon_exchange_status_node_agreements:
-        unit_of_measurement: Count
+        unit_of_measurement: agreements
         entity_id:
           - sensor.horizon_exchange_status
         value_template: >
@@ -2382,7 +2560,7 @@ sensor horizon:
             {{ states.sensor.horizon_exchange_status.attributes.numberOfNodeAgreements|int }}
           {% else %}null{% endif %}
       horizon_exchange_status_nodes:
-        unit_of_measurement: Count
+        unit_of_measurement: nodes
         entity_id:
           - sensor.horizon_exchange_status
         value_template: >
@@ -2390,7 +2568,7 @@ sensor horizon:
             {{ states.sensor.horizon_exchange_status.attributes.numberOfNodes|int }}
           {% else %}null{% endif %}
       horizon_exchange_status_users:
-        unit_of_measurement: Count
+        unit_of_measurement: users
         entity_id:
           - sensor.horizon_exchange_status
         value_template: >
@@ -2572,6 +2750,7 @@ sensor hznsetup:
       hznsetup_event_nodes_count:
         entity_id:
           - sensor.hznsetup_event_nodes
+        unit_of_measurement: nodes
         value_template: >
           {%- if states.sensor.hznsetup_event_nodes is defined %}
             {%- if states.sensor.hznsetup_event_nodes.attributes.nodes is defined %}
