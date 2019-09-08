@@ -5,6 +5,8 @@ homeassistant:
   customize: !include customize.yaml
 
 http:
+  server_port: 3092
+  base_url: http://horizon.dcmartin.com:3092
   cors_allowed_origins:
     - https://google.com
     - https://www.home-assistant.io
@@ -106,11 +108,6 @@ input_boolean:
 
 ## COUNTERS
 counter:
-  cpu2msghub_event_counter:
-    name: cpu2msghub_event_counter
-    initial: 0
-    step: 1
-    icon: mdi:counter
   sdr2msghub_event_counter:
     name: sdr2msghub_event_counter
     initial: 0
@@ -158,9 +155,6 @@ weblink:
     - name: sdr2msghub_addon
       url: https://github.com/dcmartin/hassio-addons/blob/master/sdr2msghub/README.md
       icon: mdi:radio
-    - name: cpu2msghub_addon
-      url: https://github.com/dcmartin/hassio-addons/blob/master/cpu2msghub/README.md
-      icon: mdi:chip
     - name: kafka2mqtt4yolo_addon
       url: https://github.com/dcmartin/hassio-addons/blob/master/kafka2mqtt4yolo/README.md
       icon: mdi:message-text-outline
@@ -168,9 +162,6 @@ weblink:
     - name: sdr2msghub
       url: https://github.com/open-horizon/examples/tree/master/edge/msghub/sdr2msghub
       icon: mdi:radio
-    - name: cpu2msghub
-      url: https://github.com/open-horizon/examples/blob/master/edge/msghub/cpu2msghub/README.md
-      icon: mdi:chip
     # open-horizon patterns
     - name: yolo2msghub
       url: https://github.com/dcmartin/open-horizon/blob/master/yolo2msghub/README.md
@@ -500,20 +491,6 @@ history_graph:
     entities:
       - sensor.sdr2msghub_sentiment_score
       - sensor.sdr2msghub_sentiment_mean
-  ## CPU
-  cpu2msghub_cpu:
-    name: cpu2msghub_cpu
-    hours_to_show: 2
-    refresh: 30
-    entities:
-      - sensor.cpu2msghub_cpu
-      - sensor.cpu2msghub_cpu_mean
-  cpu2msghub_count:
-    name: cpu2msghub_count
-    hours_to_show: 2
-    refresh: 30
-    entities:
-      - sensor.cpu2msghub_count
   ## INTRANET
   intranet_docsisgw_test:
     name: Intranet DOCSISGW Test
@@ -2189,222 +2166,6 @@ binary_sensor sdr2msghub_event:
             mdi:emoticon-happy
 
 ###
-### CPU2MSGHUB
-###
-  
-sensor cpu2msghub:
-  - platform: mqtt
-    name: cpu2msghub_event
-    state_topic: 'cpu2msghub'
-    force_update: true
-    expire_after: 1
-    json_attributes:
-      - name
-      - date
-      - cpu
-      - longitude
-      - latitude
-      - altitude
-    value_template: >
-      {% if value_json is defined %} true {% else %} false {% endif %}
-  ## standard event count, ago, mean, status
-  - platform: template
-    sensors:
-      ## counting
-      cpu2msghub_events_count:
-        entity_id:
-          - counter.cpu2msghub_event_counter
-        unit_of_measurement: events
-        value_template: >
-          {% if states.counter.cpu2msghub_event_counter is defined %}
-            {{ states.counter.cpu2msghub_event_counter.state|int }}
-          {%- else -%}null{%- endif -%}
-      ## timing
-      cpu2msghub_event_ago:
-        entity_id:
-          - sensor.cpu2msghub_event
-          - sun.sun
-        unit_of_measurement: seconds
-        value_template: >
-          {% if states.sensor.cpu2msghub_event.attributes.date is defined %}
-            {{ (now().timestamp()|int) - (states.sensor.cpu2msghub_event.attributes.date|int) }}
-          {%- else -%}null{%- endif -%}
-      ## statistics
-      cpu2msghub_event_ago_mean:
-        entity_id:
-          - sensor.cpu2msghub_event_ago_statistics_mean
-        unit_of_measurement: seconds
-        value_template: >
-          {% if states.sensor.cpu2msghub_event_ago_statistics_mean is defined %}
-            {{ states.sensor.cpu2msghub_event_ago_statistics_mean.state }}
-          {%- else -%}null{%- endif -%}
-      cpu2msghub_event_ago_min_value:
-        entity_id:
-          - sensor.yolo2msghub_event
-          - sensor.cpu2msghub_event_ago_statistics_mean
-        unit_of_measurement: seconds
-        value_template: >
-          {% if states.sensor.cpu2msghub_event_ago_statistics_mean is defined %}
-            {{ states.sensor.cpu2msghub_event_ago_statistics_mean.attributes.min_value }}
-          {%- else -%}null{%- endif -%}
-      cpu2msghub_event_ago_max_value:
-        entity_id:
-          - sensor.yolo2msghub_event
-          - sensor.cpu2msghub_event_ago_statistics_mean
-        unit_of_measurement: seconds
-        value_template: >
-          {% if states.sensor.cpu2msghub_event_ago_statistics_mean is defined %}
-            {{ states.sensor.cpu2msghub_event_ago_statistics_mean.attributes.max_value }}
-          {%- else -%}null{%- endif -%}
-      ## derived
-      cpu2msghub_event_status:
-        entity_id:
-          - sensor.cpu2msghub_event
-        value_template: >-
-          {% if states.sensor.cpu2msghub_event is defined and states.sensor.cpu2msghub_event.attributes.date is defined %}
-            From {{ states.sensor.cpu2msghub_event.attributes.name }}
-          {% else %} null {% endif %}
-  - platform: history_stats
-    name: cpu2msghub_event_count
-    entity_id: sensor.cpu2msghub_event
-    state: true
-    type: count
-    start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
-    end: '{{ now() }}'
-  - platform: statistics
-    entity_id: sensor.cpu2msghub_event_ago
-    name: cpu2msghub_event_ago_statistics
-    max_age:
-      hours: 2
-  ## attributes
-  - platform: template
-    sensors:
-      cpu2msghub_date:
-        entity_id:
-          - sensor.cpu2msghub_event
-        value_template: >
-          {% if states.sensor.cpu2msghub_event is defined and states.sensor.cpu2msghub_event.attributes.date is defined %}
-            {{ states.sensor.cpu2msghub_event.attributes.date | int | timestamp_custom("%a %b %d %I:%M %p") }}
-          {% else %} null {% endif %}
-      cpu2msghub_name:
-        entity_id:
-          - sensor.cpu2msghub_event
-        value_template: >
-          {% if states.sensor.cpu2msghub_event is defined and states.sensor.cpu2msghub_event.attributes.name is defined %}
-            {{ states.sensor.cpu2msghub_event.attributes.name}}
-          {% else %} null {% endif %}
-      cpu2msghub_cpu:
-        entity_id:
-          - sensor.cpu2msghub_event
-        unit_of_measurement: '%'
-        value_template: >
-          {% if states.sensor.cpu2msghub_event is defined and states.sensor.cpu2msghub_event.attributes.cpu is defined %}
-            {{ states.sensor.cpu2msghub_event.attributes.cpu}}
-          {% else %} null {% endif %}
-      cpu2msghub_latitude:
-        entity_id:
-          - sensor.cpu2msghub_event
-        unit_of_measurement: degrees
-        value_template: >
-          {% if states.sensor.cpu2msghub_event is defined and states.sensor.cpu2msghub_event.attributes.latitude is defined %}
-            {{ states.sensor.cpu2msghub_event.attributes.latitude}}
-          {% else %} null {% endif %}
-      cpu2msghub_longitude:
-        entity_id:
-          - sensor.cpu2msghub_event
-        unit_of_measurement: degrees
-        value_template: >
-          {% if states.sensor.cpu2msghub_event is defined and states.sensor.cpu2msghub_event.attributes.longitude is defined %}
-            {{ states.sensor.cpu2msghub_event.attributes.longitude}}
-          {% else %} null {% endif %}
-      cpu2msghub_altitude:
-        entity_id:
-          - sensor.cpu2msghub_event
-        unit_of_measurement: feet
-        value_template: >
-          {% if states.sensor.cpu2msghub_event is defined and states.sensor.cpu2msghub_event.attributes.altitude is defined %}
-            {{ states.sensor.cpu2msghub_event.attributes.altitude}}
-          {% else %} null {% endif %}
-      cpu2msghub_cpu_mean:
-        entity_id:
-          - sensor.cpu2msghub_cpu_statistics_mean
-        unit_of_measurement: '%'
-        value_template: >
-          {% if states.sensor.cpu2msghub_cpu is defined %}
-            {{ states.sensor.cpu2msghub_cpu_statistics_mean.state }}
-          {%- else -%}null{%- endif -%}
-  ## statistics on attributes
-  - platform: statistics
-    entity_id: sensor.cpu2msghub_cpu
-    name: cpu2msghub_cpu_statistics
-    sampling_size: 100 
-    max_age:
-      hours: 2
-
-binary_sensor cpu2msghub_event:
-  - platform: template
-    sensors:
-      ## state
-      cpu2msghub_event_state:
-        entity_id:
-          - sensor.cpu2msghub_event_latest_id
-          - sensor.cpu2msghub_event_ago
-        value_template: >
-          {{ states.sensor.cpu2msghub_event.state }}
-      cpu2msghub_client_low:
-        entity_id:
-          - sensor.cpu2msghub_event_client_count
-          - sensor.cpu2msghub_event_client_count_statistics_mean
-          - input_number.cpu2msghub_client_deviation
-        value_template: >-
-          {% if states.sensor.cpu2msghub_event_client_count_statistics_mean.attributes.standard_deviation|float > 0 %}
-            {{ (((states.sensor.cpu2msghub_event_client_count_statistics_mean.state|float) - (states.sensor.cpu2msghub_event_client_count.state|float))
-                 / (states.sensor.cpu2msghub_event_client_count_statistics_mean.attributes.standard_deviation|float)
-               > (states.input_number.cpu2msghub_client_deviation.state|float)) }}
-          {%- else -%}false{%- endif -%}
-        icon_template: >
-            mdi:emoticon-sad
-      cpu2msghub_client_low_persistent:
-        entity_id:
-          - sensor.cpu2msghub_event_client_count
-          - sensor.cpu2msghub_event_client_count_stdev_mean
-          - input_number.cpu2msghub_client_deviation
-        value_template: >-
-          {% if states.sensor.cpu2msghub_event_client_count_stdev_mean.state|float > 0 %}
-            {{ (((states.sensor.cpu2msghub_event_client_count_statistics_mean.state|float) - (states.sensor.cpu2msghub_event_client_count.state|float))
-                 / (states.sensor.cpu2msghub_event_client_count_stdev_mean.state|float)
-               > (states.input_number.cpu2msghub_client_deviation.state|float)) }}
-          {%- else -%}false{%- endif -%}
-        icon_template: >
-            mdi:emoticon-sad
-      cpu2msghub_client_high:
-        entity_id:
-          - sensor.cpu2msghub_event_client_count
-          - sensor.cpu2msghub_event_client_count_statistics_mean
-          - input_number.cpu2msghub_client_deviation
-        value_template: >-
-          {% if states.sensor.cpu2msghub_event_client_count_statistics_mean.attributes.standard_deviation|float > 0 %}
-            {{ (((states.sensor.cpu2msghub_event_client_count.state|float) - (states.sensor.cpu2msghub_event_client_count_statistics_mean.state|float))
-                 / (states.sensor.cpu2msghub_event_client_count_statistics_mean.attributes.standard_deviation|float))
-               > (states.input_number.cpu2msghub_client_deviation.state|float) }}
-          {%- else -%}false{%- endif -%}
-        icon_template: >-
-            mdi:emoticon-happy
-      cpu2msghub_client_high_persistent:
-        entity_id:
-          - sensor.cpu2msghub_event_client_count
-          - sensor.cpu2msghub_event_client_count_stdev_mean
-          - input_number.cpu2msghub_client_deviation
-        value_template: >-
-          {% if states.input_number.cpu2msghub_client_deviation.state|float > 0 %}
-            {{ (((states.sensor.cpu2msghub_event_client_count.state|float) - (states.sensor.cpu2msghub_event_client_count_statistics_mean.state|float))
-                 / (states.sensor.cpu2msghub_event_client_count_stdev_mean.state|float))
-               > (states.input_number.cpu2msghub_client_deviation.state|float) }}
-          {%- else -%}false{%- endif -%}
-        icon_template: >-
-            mdi:emoticon-happy
-      
-###
 ### HORIZON (via hznmonitor)
 ###
 
@@ -3271,7 +3032,7 @@ sensor motion_sensors:
           {%- else -%}null{%- endif -%}
       motion_event_image_ago_min_value:
         entity_id:
-          - sensor.yolo2msghub_event
+          - sensor.motion_event_image
           - sensor.motion_event_ago_statistics_mean
         unit_of_measurement: seconds
         value_template: >
@@ -3280,7 +3041,7 @@ sensor motion_sensors:
           {%- else -%}null{%- endif -%}
       motion_event_image_ago_max_value:
         entity_id:
-          - sensor.yolo2msghub_event
+          - sensor.ymotion_event_image
           - sensor.motion_event_ago_statistics_mean
         unit_of_measurement: seconds
         value_template: >
