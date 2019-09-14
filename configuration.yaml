@@ -609,10 +609,12 @@ history_graph:
     hours_to_show: 2
     refresh: 30
     entities:
-      - sensor.horizon_exchange_status_nodes
-      - sensor.horizon_exchange_status_users
-      - sensor.horizon_exchange_status_node_agreements
-      - sensor.horizon_exchange_status_agbot_agreements
+      - sensor.horizon_exchange_nodes
+      - sensor.horizon_exchange_users
+      - sensor.horizon_exchange_node_agreements
+      - sensor.horizon_exchange_agbot_msgs
+      - sensor.horizon_exchange_agbot_msgs
+
 
 ###
 ### STARTUP
@@ -657,7 +659,7 @@ sensor startup:
         unit_of_measurement: seconds
         value_template: >
           {% if states.sensor.startup_event_ago_statistics is defined %}
-            {{ states.sensor.startup_event_ago_statistics.state }}
+            {{ states.sensor.startup_event_ago_statistics.state|float }}
           {%- else -%}null{%- endif -%}
       startup_event_ago_min_value:
         entity_id:
@@ -666,7 +668,7 @@ sensor startup:
         unit_of_measurement: seconds
         value_template: >
           {% if states.sensor.startup_event_ago_statistics is defined %}
-            {{ states.sensor.startup_event_ago_statistics.attributes.min_value|float }}
+            {{ states.sensor.startup_event_ago_statistics.attributes.min_value|int }}
           {%- else -%}null{%- endif -%}
       startup_event_ago_max_value:
         entity_id:
@@ -675,7 +677,7 @@ sensor startup:
         unit_of_measurement: seconds
         value_template: >
           {% if states.sensor.startup_event_ago_statistics is defined %}
-            {{ states.sensor.startup_event_ago_statistics.attributes.max_value|float }}
+            {{ states.sensor.startup_event_ago_statistics.attributes.max_value|int }}
           {%- else -%}null{%- endif -%}
       ## status 
       startup_event_status:
@@ -1808,11 +1810,6 @@ camera yolo2msghub:
     name: yolo2msghub
     topic: 'yolo2msghub/image'
 
-camera startup_client_ago:
-  - platform: generic
-    name: startup_client_ago
-    still_image_url: http://horizon.dcmartin.com:3000/render/d-solo/4J60BVdZk/client-percent?orgId=1&theme=light&panelId=6&width=1000&height=500&tz=America%2FLos_Angeles
-
 ###
 ### SDR2MSGHUB
 ###
@@ -2274,10 +2271,8 @@ sensor horizon:
     password: !secret exchange_api
     force_update: true
     json_attributes:
-      - msg
-      - org
-      - url
       - dbSchemaVersion
+      - msg
       - numberOfAgbotAgreements
       - numberOfAgbotMsgs
       - numberOfAgbots
@@ -2285,6 +2280,8 @@ sensor horizon:
       - numberOfNodeMsgs
       - numberOfNodes
       - numberOfUsers
+      - org
+      - url
     value_template: >
       {%- if value_json is defined -%} {{ value_json.msg }} {%- else -%}null{%- endif -%}
   - platform: template
@@ -2310,7 +2307,7 @@ sensor horizon:
           {% if states.sensor.horizon_exchange_status is defined %}
             {{ states.sensor.horizon_exchange_status.attributes.msg }}
           {% else %}null{% endif %}
-      horizon_exchange_status_agbot_agreements:
+      horizon_exchange_agbot_agreements:
         unit_of_measurement: agreements
         entity_id:
           - sensor.horizon_exchange_status
@@ -2318,7 +2315,7 @@ sensor horizon:
           {% if states.sensor.horizon_exchange_status is defined %}
             {{ states.sensor.horizon_exchange_status.attributes.numberOfAgbotAgreements|int }}
           {% else %}null{% endif %}
-      horizon_exchange_status_node_agreements:
+      horizon_exchange_node_agreements:
         unit_of_measurement: agreements
         entity_id:
           - sensor.horizon_exchange_status
@@ -2326,7 +2323,23 @@ sensor horizon:
           {% if states.sensor.horizon_exchange_status is defined %}
             {{ states.sensor.horizon_exchange_status.attributes.numberOfNodeAgreements|int }}
           {% else %}null{% endif %}
-      horizon_exchange_status_nodes:
+      horizon_exchange_agbot_msgs:
+        unit_of_measurement: msgs
+        entity_id:
+          - sensor.horizon_exchange_status
+        value_template: >
+          {% if states.sensor.horizon_exchange_status is defined %}
+            {{ states.sensor.horizon_exchange_status.attributes.numberOfAgbotAgreements|int }}
+          {% else %}null{% endif %}
+      horizon_exchange_node_msgs:
+        unit_of_measurement: msgs
+        entity_id:
+          - sensor.horizon_exchange_status
+        value_template: >
+          {% if states.sensor.horizon_exchange_status is defined %}
+            {{ states.sensor.horizon_exchange_status.attributes.numberOfNodeAgreements|int }}
+          {% else %}null{% endif %}
+      horizon_exchange_nodes:
         unit_of_measurement: nodes
         entity_id:
           - sensor.horizon_exchange_status
@@ -2334,7 +2347,7 @@ sensor horizon:
           {% if states.sensor.horizon_exchange_status is defined %}
             {{ states.sensor.horizon_exchange_status.attributes.numberOfNodes|int }}
           {% else %}null{% endif %}
-      horizon_exchange_status_users:
+      horizon_exchange_users:
         unit_of_measurement: users
         entity_id:
           - sensor.horizon_exchange_status
@@ -2342,80 +2355,14 @@ sensor horizon:
           {% if states.sensor.horizon_exchange_status is defined %}
             {{ states.sensor.horizon_exchange_status.attributes.numberOfUsers|int }}
           {% else %}null{% endif %}
-  - platform: rest
-    name: horizon_localhost_status
-    resource: 'http://localhost/status'
-    method: GET
-    force_update: true
-    json_attributes:
-     - configuration
-     - connectivity
-    value_template: >
-      {{ now().strftime("%a %b %d @ %I:%M %p") }}
-  - platform: rest
-    name: horizon_agreements
-    resource: 'http://localhost/agreement'
-    method: GET
-    force_update: true
-    json_attributes:
-     - agreements
-    value_template: >
-      {% if value_json is defined and value_json != '[]' %}
-        {{ now().strftime("%a %b %d @ %I:%M %p") }}
-      {% else %}null{% endif %}
-  - platform: template
-    sensors:
-      horizon_agreement_active:
+      horizon_exchange_schema_version:
+        unit_of_measurement: version
         entity_id:
-          - sensor.horizon_agreements_count_active
+          - sensor.horizon_exchange_dbSchemaVersion
         value_template: >
-          {% if states.sensor.horizon_agreements_count_active.state|int > 0 %}
-            {{ states.sensor.horizon_agreements.attributes.agreements.active[0].workload_to_run.url }}
+          {% if states.sensor.horizon_exchange_status is defined %}
+            {{ states.sensor.horizon_exchange_status.attributes.dbSchemaVersion }}
           {% else %}null{% endif %}
-      horizon_agreements_count_active:
-        entity_id:
-          - sensor.horizon_agreements
-        value_template: >
-          {% if states.sensor.horizon_agreements.attributes.agreements is defined and states.sensor.horizon_agreements.attributes.agreements.active != '[]' %}
-            {{ states.sensor.horizon_agreements.attributes.agreements.active|length }}
-          {% else %}null{% endif %}
-      horizon_agreements_count_archived:
-        entity_id:
-          - sensor.horizon_agreements
-        value_template: >
-          {% if states.sensor.horizon_agreements.attributes.agreements is defined and states.sensor.horizon_agreements.attributes.agreements.archived != '[]' %}
-            {{ states.sensor.horizon_agreements.attributes.agreements.archived|length }}
-          {% else %}null{% endif %}
-      horizon_exchange_api:
-        entity_id:
-          - sensor.horizon_localhost_status
-        value_template: >
-          {{ states.sensor.horizon_localhost_status.attributes.configuration.exchange_api }} 
-      horizon_exchange_version:
-        entity_id:
-          - sensor.horizon_localhost_status
-        value_template: >
-          {{ states.sensor.horizon_localhost_status.attributes.configuration.exchange_version }} 
-      horizon_required_minimum_exchange_version:
-        entity_id:
-          - sensor.horizon_localhost_status
-        value_template: >
-          {{ states.sensor.horizon_localhost_status.attributes.configuration.required_minimum_exchange_version }} 
-      horizon_preferred_exchange_version:
-        entity_id:
-          - sensor.horizon_localhost_status
-        value_template: >
-          {{ states.sensor.horizon_localhost_status.attributes.configuration.preferred_exchange_version }} 
-      horizon_architecture:
-        entity_id:
-          - sensor.horizon_localhost_status
-        value_template: >
-          {{ states.sensor.horizon_localhost_status.attributes.configuration.architecture }} 
-      horizon_version:
-        entity_id:
-          - sensor.horizon_localhost_status
-        value_template: >
-          {{ states.sensor.horizon_localhost_status.attributes.configuration.horizon_version }} 
 
 ###
 ### HZNSETUP
@@ -3068,12 +3015,12 @@ sensor motion_sensors:
     name: motion_event_image_count_statistics
     entity_id: sensor.motion_event_images_count
     max_age:
-      hours: 2
+      hours: 24
   - platform: statistics
     name: motion_event_image_ago_statistics
     entity_id: sensor.motion_event_image_ago
     max_age:
-      hours: 2
+      hours: 24
   ## attributes
   - platform: template
     sensors:
