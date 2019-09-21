@@ -23,24 +23,6 @@ frontend:
     - http://clustrmaps.com/map_v2.png?cl=ffffff&w=a&t=n&d=xr2Q2vt76X42HBH3uchXdk6LOOAJDVqAySTTK3bDWsM
     # - http://cdn.clustrmaps.com/map_v2.js?cl=ffffff&w=a&t=n&d=xr2Q2vt76X42HBH3uchXdk6LOOAJDVqAySTTK3bDWsM
 
-recorder:
-  purge_keep_days: 2
-  purge_interval: 1
-  exclude:
-    domains:
-      - automation
-      - updater
-    entities:
-      - sun.sun
-
-system_health:
-
-logger:
-  default: error
-  logs:
-    homeassistant.core: fatal
-    homeassistant.components.mqtt: warn
-
 hassio:
 cloud:
 config:
@@ -49,13 +31,38 @@ conversation:
 logbook:
 map:
 sun:
-tts:
-  - platform: google_translate
-    service_name: google_say
-  
+system_health:
+
+logger:
+  default: error
+  logs:
+    homeassistant.core: fatal
+    homeassistant.components.mqtt: warn
+
+###
+### RECORDER & HISTORY
+###
+
+recorder: !include recorder.yaml
 history: !include history.yaml
+
+###
+### GROUP
+###
+
 group: !include groups.yaml
+
+###
+### AUTOMATION
+###
+
 automation: !include automations.yaml
+
+###
+### HISTORY GRAPH(s)
+###
+
+history_graph: !include history_graphs.yaml
 
 influxdb:
   host: a0d7b954-influxdb
@@ -80,6 +87,10 @@ sensor host_ip:
       {%- if value_json is defined -%}
         {{ value_json.date | int | timestamp_custom("%a %b %d @ %I:%M %p") }}
       {%- else -%}null{%- endif -%}
+
+###
+### PANEL
+###
       
 panel_iframe:
   netdata:
@@ -324,12 +335,6 @@ input_number:
     step: 1
 
 ###
-### HISTORY GRAPH(s)
-###
-
-history_graph: !include history_graphs.yaml
-
-###
 ### STARTUP
 ###
 
@@ -351,19 +356,10 @@ sensor startup:
         entity_id:
           - counter.startup_event_counter
           - sensor.startup_event
-        unit_of_measurement: events
+        unit_of_measurement: count
         value_template: >
           {% if states.counter.startup_event_counter is defined %}
             {{ states.counter.startup_event_counter.state|int }}
-          {%- else -%}null{%- endif -%}
-      startup_count_count:
-        entity_id:
-          - sensor.startup_count_statistics
-          - sensor.startup_event
-        unit_of_measurement: events
-        value_template: >
-          {% if states.sensor.startup_event_count_statistics is defined %}
-            {{ states.sensor.startup_event_count_statistics.attributes.count|int }}
           {%- else -%}null{%- endif -%}
       ## timing
       startup_event_ago:
@@ -375,6 +371,13 @@ sensor startup:
           {% if states.sensor.startup_event.attributes.startup.date is defined %}
             {{ (now().timestamp()|int) - (states.sensor.startup_event.attributes.startup.date|int) }}
           {%- else -%}null{%- endif -%}
+      startup_event_when:
+        entity_id:
+          - sensor.startup_event
+        value_template: >
+          {% if states.sensor.startup_event.attributes.date is defined %}
+            {{ states.sensor.startup_event.attributes.date|int|timestamp_custom("%a %b %d ~ %I:%M %p") }}
+          {% else %}null{% endif %}
       # mean ago
       startup_event_ago_mean:
         entity_id:
@@ -431,7 +434,7 @@ sensor startup:
       startup_latitude:
         entity_id:
           - sensor.startup_event
-        unit_of_measurement: latitude
+        unit_of_measurement: degrees
         value_template: >
           {% if states.sensor.startup_event.attributes.startup.activity is defined %}
             {{ (states.sensor.startup_event.attributes.startup.activity|first).latitude|float }}
@@ -439,7 +442,7 @@ sensor startup:
       startup_longitude:
         entity_id:
           - sensor.startup_event
-        unit_of_measurement: longitude
+        unit_of_measurement: degrees
         value_template: >
           {% if states.sensor.startup_event.attributes.startup.activity is defined %}
             {{ (states.sensor.startup_event.attributes.startup.activity|first).longitude|float }}
@@ -449,7 +452,7 @@ sensor startup:
         entity_id:
           - sensor.startup_event
           - sensor.startup_event
-        unit_of_measurement: clients
+        unit_of_measurement: count
         value_template: >
           {% if states.sensor.startup_event.attributes.startup.activity is defined %}
             {{ states.sensor.startup_event.attributes.startup.activity|length }}
@@ -504,7 +507,7 @@ sensor startup:
       startup_latest_measurement:
         entity_id:
           - sensor.startup_event
-        unit_of_measurement: events
+        unit_of_measurement: count
         value_template: >
           {% if states.sensor.startup_event.attributes.startup.activity is defined %}
             {{ (states.sensor.startup_event.attributes.startup.activity|first).count }}
@@ -537,7 +540,7 @@ sensor startup:
       startup_latest_average:
         entity_id:
           - sensor.startup_event
-        unit_of_measurement: containers
+        unit_of_measurement: count
         value_template: >
           {% if states.sensor.startup_event.attributes.startup.activity is defined %}
             {{ (states.sensor.startup_event.attributes.startup.activity|first).average }}
@@ -605,7 +608,7 @@ sensor startup:
         entity_id:
           - sensor.startup_event
           - sensor.startup_client_count_statistics
-        unit_of_measurement: clients
+        unit_of_measurement: count
         value_template: >
           {% if states.sensor.startup_client_count_statistics is defined %}
             {{ states.sensor.startup_client_count_statistics.state }}
@@ -614,7 +617,7 @@ sensor startup:
         entity_id:
           - sensor.startup_event
           - sensor.startup_client_count_statistics
-        unit_of_measurement: clients
+        unit_of_measurement: ccount
         value_template: >
           {% if states.sensor.startup_client_count_statistics is defined %}
             {{ states.sensor.startup_client_count_statistics.attributes.min_value }}
@@ -623,7 +626,7 @@ sensor startup:
         entity_id:
           - sensor.startup_event
           - sensor.startup_client_count_statistics
-        unit_of_measurement: clients
+        unit_of_measurement: count
         value_template: >
           {% if states.sensor.startup_client_count_statistics is defined %}
             {{ states.sensor.startup_client_count_statistics.attributes.max_value }}
@@ -632,7 +635,7 @@ sensor startup:
         entity_id:
           - sensor.startup_event
           - sensor.startup_client_count_statistics
-        unit_of_measurement: clients
+        unit_of_measurement: count
         value_template: >
           {% if states.sensor.startup_client_count_statistics is defined %}
             {% if states.sensor.startup_client_count_statistics.attributes.standard_deviation != 'unknown' %}
@@ -683,7 +686,7 @@ sensor startup:
         entity_id:
           - sensor.startup_event
           - sensor.startup_container_average_statistics
-        unit_of_measurement: containers
+        unit_of_measurement: count
         value_template: >
           {% if states.sensor.startup_container_average_statistics is defined %}
             {{ states.sensor.startup_container_average_statistics.state }}
@@ -692,7 +695,7 @@ sensor startup:
         entity_id:
           - sensor.startup_event
           - sensor.startup_container_average_statistics
-        unit_of_measurement: containers
+        unit_of_measurement: count
         value_template: >
           {% if states.sensor.startup_container_average_statistics is defined %}
             {{ states.sensor.startup_container_average_statistics.attributes.min_value|float }}
@@ -701,7 +704,7 @@ sensor startup:
         entity_id:
           - sensor.startup_event
           - sensor.startup_container_average_statistics
-        unit_of_measurement: containers
+        unit_of_measurement: count
         value_template: >
           {% if states.sensor.startup_container_average_statistics is defined %}
             {{ states.sensor.startup_container_average_statistics.attributes.max_value|float }}
@@ -710,7 +713,7 @@ sensor startup:
         entity_id:
           - sensor.startup_event
           - sensor.startup_container_average_statistics
-        unit_of_measurement: containers
+        unit_of_measurement: count
         value_template: >
           {% if states.sensor.startup_container_average_statistics is defined %}
             {% if states.sensor.startup_container_average_statistics.attributes.standard_deviation != 'unknown' %}
@@ -761,7 +764,7 @@ sensor startup:
         entity_id:
           - sensor.startup_event
           - sensor.startup_measurement_statistics
-        unit_of_measurement: events
+        unit_of_measurement: count
         value_template: >
           {% if states.sensor.startup_measurement_statistics is defined %}
             {{ states.sensor.startup_measurement_statistics.state }}
@@ -770,7 +773,7 @@ sensor startup:
         entity_id:
           - sensor.startup_event
           - sensor.startup_measurement_statistics
-        unit_of_measurement: events
+        unit_of_measurement: count
         value_template: >
           {% if states.sensor.startup_measurement_statistics is defined %}
             {{ states.sensor.startup_measurement_statistics.attributes.min_value|float }}
@@ -779,7 +782,7 @@ sensor startup:
         entity_id:
           - sensor.startup_event
           - sensor.startup_measurement_statistics
-        unit_of_measurement: events
+        unit_of_measurement: count
         value_template: >
           {% if states.sensor.startup_measurement_statistics is defined %}
             {{ states.sensor.startup_measurement_statistics.attributes.max_value|float }}
@@ -788,7 +791,7 @@ sensor startup:
         entity_id:
           - sensor.startup_event
           - sensor.startup_measurement_statistics
-        unit_of_measurement: events
+        unit_of_measurement: count
         value_template: >
           {% if states.sensor.startup_measurement_statistics is defined %}
             {% if states.sensor.startup_measurement_statistics.attributes.standard_deviation != 'unknown' %}
@@ -1051,7 +1054,7 @@ sensor yolo2msghub:
       yolo2msghub_event_count:
         entity_id:
           - counter.yolo2msghub_event_counter
-        unit_of_measurement: events
+        unit_of_measurement: count
         value_template: >
           {% if states.counter.yolo2msghub_event_counter is defined %}
             {{ states.counter.yolo2msghub_event_counter.state|int }}
@@ -1066,6 +1069,13 @@ sensor yolo2msghub:
           {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.date is defined %}
             {{ (now().timestamp()|int) - (states.sensor.yolo2msghub_event.attributes.yolo2msghub.date|int) }}
           {%- else -%}null{%- endif -%}
+      yolo2msghub_event_when:
+        entity_id:
+          - sensor.yolo2msghub_event
+        value_template: >
+          {% if states.sensor.yolo2msghub_event.attributes.date is defined %}
+            {{ states.sensor.yolo2msghub_event.attributes.date|int|timestamp_custom("%a %b %d ~ %I:%M %p") }}
+          {% else %}null{% endif %}
       ## mean ago
       yolo2msghub_event_ago_mean:
         entity_id:
@@ -1142,7 +1152,7 @@ sensor yolo2msghub:
       yolo2msghub_event_client_count:
         entity_id:
           - sensor.yolo2msghub_event
-        unit_of_measurement: clients
+        unit_of_measurement: count
         value_template: >
           {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity is defined %}
             {{ states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|length }}
@@ -1221,7 +1231,7 @@ sensor yolo2msghub:
       yolo2msghub_latest_average:
         entity_id:
           - sensor.yolo2msghub_event
-        unit_of_measurement: people
+        unit_of_measurement: count
         value_template: >
           {% if states.sensor.yolo2msghub_event.attributes is defined %}
             {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).average }}
@@ -1284,7 +1294,7 @@ sensor yolo2msghub:
       yolo2msghub_latest_seen:
         entity_id:
           - sensor.yolo2msghub_event
-        unit_of_measurement: entities
+        unit_of_measurement: count
         value_template: >
           {% if states.sensor.yolo2msghub_event.attributes is defined %}
             {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).seen }}
@@ -1294,7 +1304,7 @@ sensor yolo2msghub:
         entity_id:
           - sensor.yolo2msghub_event
           - sensor.yolo2msghub_event_client_count_statistics
-        unit_of_measurement: clients
+        unit_of_measurement: count
         value_template: >
           {% if states.sensor.yolo2msghub_event_client_count_statistics is defined %}
             {{ states.sensor.yolo2msghub_event_client_count_statistics.state }}
@@ -1303,7 +1313,7 @@ sensor yolo2msghub:
         entity_id:
           - sensor.yolo2msghub_event
           - sensor.yolo2msghub_event_client_count_statistics
-        unit_of_measurement: clients
+        unit_of_measurement: count
         value_template: >
           {% if states.sensor.yolo2msghub_event_client_count_statistics is defined %}
             {{ states.sensor.yolo2msghub_event_client_count_statistics.attributes.min_value }}
@@ -1312,7 +1322,7 @@ sensor yolo2msghub:
         entity_id:
           - sensor.yolo2msghub_event
           - sensor.yolo2msghub_event_client_count_statistics
-        unit_of_measurement: clients
+        unit_of_measurement: count
         value_template: >
           {% if states.sensor.yolo2msghub_event_client_count_statistics is defined %}
             {{ states.sensor.yolo2msghub_event_client_count_statistics.attributes.max_value }}
@@ -1321,7 +1331,7 @@ sensor yolo2msghub:
         entity_id:
           - sensor.yolo2msghub_event
           - sensor.yolo2msghub_event_client_count_statistics
-        unit_of_measurement: clients
+        unit_of_measurement: count
         value_template: >
           {% if states.sensor.yolo2msghub_event_client_count_statistics is defined %}
             {% if states.sensor.yolo2msghub_event_client_count_statistics.attributes.standard_deviation != 'unknown' %}
@@ -1333,7 +1343,7 @@ sensor yolo2msghub:
         entity_id:
           - sensor.yolo2msghub_event
           - sensor.yolo2msghub_entity_detected_statistics
-        unit_of_measurement: entities
+        unit_of_measurement: count
         value_template: >
           {% if states.sensor.yolo2msghub_entity_detected_statistics is defined %}
             {{ states.sensor.yolo2msghub_entity_detected_statistics.state }}
@@ -1342,7 +1352,7 @@ sensor yolo2msghub:
         entity_id:
           - sensor.yolo2msghub_event
           - sensor.yolo2msghub_entity_detected_statistics
-        unit_of_measurement: entities
+        unit_of_measurement: count
         value_template: >
           {% if states.sensor.yolo2msghub_entity_detected is defined %}
             {{ states.sensor.yolo2msghub_entity_detected.state|int }}
@@ -1351,7 +1361,7 @@ sensor yolo2msghub:
         entity_id:
           - sensor.yolo2msghub_event
           - sensor.yolo2msghub_entity_detected_statistics
-        unit_of_measurement: entities
+        unit_of_measurement: count
         value_template: >
           {% if states.sensor.yolo2msghub_entity_detected_statistics is defined %}
             {{ states.sensor.yolo2msghub_entity_detected_statistics.attributes.min_value }}
@@ -1360,7 +1370,7 @@ sensor yolo2msghub:
         entity_id:
           - sensor.yolo2msghub_event
           - sensor.yolo2msghub_entity_detected_statistics
-        unit_of_measurement: entities
+        unit_of_measurement: count
         value_template: >
           {% if states.sensor.yolo2msghub_entity_detected_statistics is defined %}
             {{ states.sensor.yolo2msghub_entity_detected_statistics.attributes.max_value }}
@@ -1369,7 +1379,7 @@ sensor yolo2msghub:
         entity_id:
           - sensor.yolo2msghub_event
           - sensor.yolo2msghub_entity_detected_statistics
-        unit_of_measurement: entities
+        unit_of_measurement: count
         value_template: >
           {% if states.sensor.yolo2msghub_entity_detected_statistics is defined %}
             {% if states.sensor.yolo2msghub_entity_detected_statistics.attributes.standard_deviation != 'unknown' %}
@@ -1571,7 +1581,7 @@ sensor sdr2msghub:
       sdr2msghub_event_count:
         entity_id:
           - counter.sdr2msghub_event_counter
-        unit_of_measurement: events
+        unit_of_measurement: count
         value_template: >
           {% if states.counter.sdr2msghub_event_counter is defined %}
             {{ states.counter.sdr2msghub_event_counter.state|int }}
@@ -1919,7 +1929,7 @@ sensor horizon:
       horizon_organization_services_count:
         entity_id:
           - sensor.horizon_organization_service_list
-        unit_of_measurement: services
+        unit_of_measurement: count
         value_template: >
           {%- if states.sensor.horizon_organization_service_list.attributes.services|length > 0 %}
            {{ states.sensor.horizon_organization_service_list.attributes.services|length }}
@@ -1941,7 +1951,7 @@ sensor horizon:
       horizon_organization_nodes_count:
         entity_id:
           - sensor.horizon_organization_node_list
-        unit_of_measurement: clients
+        unit_of_measurement: count
         value_template: >
           {%- if states.sensor.horizon_organization_node_list is defined 
             and states.sensor.horizon_organization_node_list.attributes is defined
@@ -1981,7 +1991,7 @@ sensor horizon:
       horizon_organization_patterns_count:
         entity_id:
           - sensor.horizon_organization_pattern_list
-        unit_of_measurement: patterns
+        unit_of_measurement: count
         value_template: >
           {%- if states.sensor.horizon_organization_pattern_list.attributes.patterns|length > 0 %}
            {{ states.sensor.horizon_organization_pattern_list.attributes.patterns|length }}
@@ -1998,6 +2008,26 @@ sensor horizon:
             {% endfor %}
           {% else %}null{% endif %}
   - platform: rest
+    name: horizon_exchange_api
+    resource: !secret exchange-api-status
+    method: GET
+    authentication: basic
+    username: !secret exchange_auth
+    password: !secret exchange_api
+    force_update: true
+    json_attributes:
+      - msg
+      - numberOfUsers
+      - numberOfNodes
+      - numberOfNodeAgreements
+      - numberOfNodeMsgs
+      - numberOfAgbots
+      - numberOfAgbotAgreements
+      - numberOfAgbotMsgs
+      - dbSchemaVersion
+    value_template: >
+      {%- if value_json is defined -%} {{ value_json.msg }} {%- else -%}null{%- endif -%}
+  - platform: rest
     name: horizon_exchange_status
     resource: !secret cgi-exchange
     method: GET
@@ -2006,17 +2036,18 @@ sensor horizon:
     password: !secret exchange_api
     force_update: true
     json_attributes:
-      - dbSchemaVersion
       - msg
-      - numberOfAgbotAgreements
-      - numberOfAgbotMsgs
-      - numberOfAgbots
+      - org
+      - user
+      - url
+      - numberOfUsers
+      - numberOfNodes
       - numberOfNodeAgreements
       - numberOfNodeMsgs
-      - numberOfNodes
-      - numberOfUsers
-      - org
-      - url
+      - numberOfAgbots
+      - numberOfAgbotAgreements
+      - numberOfAgbotMsgs
+      - dbSchemaVersion
     value_template: >
       {%- if value_json is defined -%} {{ value_json.msg }} {%- else -%}null{%- endif -%}
   - platform: template
@@ -2043,7 +2074,7 @@ sensor horizon:
             {{ states.sensor.horizon_exchange_status.attributes.msg }}
           {% else %}null{% endif %}
       horizon_exchange_agbot_agreements:
-        unit_of_measurement: agreements
+        unit_of_measurement: count
         entity_id:
           - sensor.horizon_exchange_status
         value_template: >
@@ -2051,7 +2082,7 @@ sensor horizon:
             {{ states.sensor.horizon_exchange_status.attributes.numberOfAgbotAgreements|int }}
           {% else %}null{% endif %}
       horizon_exchange_node_agreements:
-        unit_of_measurement: agreements
+        unit_of_measurement: count
         entity_id:
           - sensor.horizon_exchange_status
         value_template: >
@@ -2059,7 +2090,7 @@ sensor horizon:
             {{ states.sensor.horizon_exchange_status.attributes.numberOfNodeAgreements|int }}
           {% else %}null{% endif %}
       horizon_exchange_agbot_msgs:
-        unit_of_measurement: msgs
+        unit_of_measurement: count
         entity_id:
           - sensor.horizon_exchange_status
         value_template: >
@@ -2067,7 +2098,7 @@ sensor horizon:
             {{ states.sensor.horizon_exchange_status.attributes.numberOfAgbotAgreements|int }}
           {% else %}null{% endif %}
       horizon_exchange_node_msgs:
-        unit_of_measurement: msgs
+        unit_of_measurement: count
         entity_id:
           - sensor.horizon_exchange_status
         value_template: >
@@ -2075,7 +2106,7 @@ sensor horizon:
             {{ states.sensor.horizon_exchange_status.attributes.numberOfNodeAgreements|int }}
           {% else %}null{% endif %}
       horizon_exchange_nodes:
-        unit_of_measurement: nodes
+        unit_of_measurement: count
         entity_id:
           - sensor.horizon_exchange_status
         value_template: >
@@ -2083,7 +2114,7 @@ sensor horizon:
             {{ states.sensor.horizon_exchange_status.attributes.numberOfNodes|int }}
           {% else %}null{% endif %}
       horizon_exchange_users:
-        unit_of_measurement: users
+        unit_of_measurement: count
         entity_id:
           - sensor.horizon_exchange_status
         value_template: >
@@ -2201,7 +2232,7 @@ sensor hznsetup:
       hznsetup_event_nodes_count:
         entity_id:
           - sensor.hznsetup_event_nodes
-        unit_of_measurement: nodes
+        unit_of_measurement: count
         value_template: >
           {%- if states.sensor.hznsetup_event_nodes is defined %}
             {%- if states.sensor.hznsetup_event_nodes.attributes.nodes is defined %}
@@ -2368,7 +2399,7 @@ sensor internet_test:
       internet_tests_count:
         entity_id:
           - counter.internet_test_counter
-        unit_of_measurement: tests
+        unit_of_measurement: count
         value_template: >
           {% if states.counter.internet_test_counter is defined %}
             {{ states.counter.internet_test_counter.state|int }}
@@ -2476,7 +2507,7 @@ sensor internet_test:
       internet_slow_count:
         entity_id:
           - sensor.internet_slow_test_count
-        unit_of_measurement: tests
+        unit_of_measurement: count
         value_template: >
           {% if states.sensor.internet_slow_test_count is defined %}
             {{ states.sensor.internet_slow_test_count.state }}
@@ -2484,7 +2515,7 @@ sensor internet_test:
       internet_fast_count:
         entity_id:
           - sensor.internet_fast_test_count
-        unit_of_measurement: tests
+        unit_of_measurement: count
         value_template: >
           {% if states.sensor.internet_fast_test_count is defined %}
             {{ states.sensor.internet_fast_test_count.state }}
@@ -2711,7 +2742,7 @@ sensor motion:
       motion_event_image_count:
         entity_id:
           - counter.motion_event_image_counter
-        unit_of_measurement: events
+        unit_of_measurement: count
         value_template: >
           {% if states.counter.motion_event_image_counter is defined %}
             {{ states.counter.motion_event_image_counter.state|int }}
@@ -2893,7 +2924,7 @@ sensor motion:
         entity_id:
           - counter.motion_counter
           - sensor.motion_event_end
-        unit_of_measurement: events
+        unit_of_measurement: count
         value_template: >
           {% if states.counter.motion_counter is defined %}
             {{ states.counter.motion_counter.state|int }}
@@ -3063,7 +3094,7 @@ sensor motion:
       motion_images_count:
         entity_id:
           - sensor.motion_event_end
-        unit_of_measurement: 'images'
+        unit_of_measurement: count
         value_template: >
           {% if states.sensor.motion_event_end is defined %}
             {{ states.sensor.motion_event_end.attributes.images | length }}
