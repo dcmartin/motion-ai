@@ -19,59 +19,73 @@ mqtt:
   password: !secret mqtt-password
   
 frontend:
+  javascript_version: latest
   extra_html_url:
     - http://clustrmaps.com/map_v2.png?cl=ffffff&w=a&t=n&d=xr2Q2vt76X42HBH3uchXdk6LOOAJDVqAySTTK3bDWsM
-    # - http://cdn.clustrmaps.com/map_v2.js?cl=ffffff&w=a&t=n&d=xr2Q2vt76X42HBH3uchXdk6LOOAJDVqAySTTK3bDWsM
 
+updater:
+  reporting: no
+  include_used_components: false
+
+discovery:
+system_health:
 hassio:
 cloud:
 config:
-updater:
-conversation:
-logbook:
 map:
 sun:
-system_health:
+
+###
+### LOGGER
+###
 
 logger:
   default: error
   logs:
-    homeassistant.core: fatal
-    homeassistant.components.mqtt: warn
+    homeassistant.core: error
+    homeassistant.setup: error
+    homeassistant.loader: error
+    homeassistant.components: warn
+    homeassistant.components.sensor: error
+    homeassistant.components.automation: error
+    homeassistant.components.template.binary_sensor: fatal
+    homeassistant.components.template.sensor: fatal
+    homeassistant.components.mqtt.sensor: error
+    homeassistant.components.recorder: debug
+    homeassistant.components.recorder.util: info
 
 ###
-### RECORDER & HISTORY
+### RECORDER, HISTORY
 ###
 
 recorder: !include recorder.yaml
+logbook: !include logbook.yaml
 history: !include history.yaml
 
 ###
-### GROUP
+### GROUP, AUTOMATION, HISTORY_GRAPH
 ###
 
 group: !include groups.yaml
-
-###
-### AUTOMATION
-###
-
 automation: !include automations.yaml
-
-###
-### HISTORY GRAPH(s)
-###
-
 history_graph: !include history_graphs.yaml
 
-influxdb:
-  host: a0d7b954-influxdb
-  port: 8086
-  database: homeassistant
-  username: homeassistant
-  password: !secret influxdb-password
-  max_retries: 3
-  default_measurement: state
+###
+### INFLUX
+###
+
+#influxdb:
+  #host: a0d7b954-influxdb
+  #port: 8086
+  #database: homeassistant
+  #username: homeassistant
+  #password: !secret influxdb-password
+  #max_retries: 3
+  #default_measurement: state
+
+###
+### HOSTIP
+###
 
 sensor host_ip:
   - platform: command_line
@@ -244,6 +258,7 @@ input_number:
   client_update_interval:
     name: client update interval
     mode: slider
+    unit_of_measurement: seconds
     initial: 30
     min: 5
     max: 900
@@ -253,6 +268,7 @@ input_number:
   startup_client_deviation:
     name: startup client deviation
     mode: slider
+    unit_of_measurement: count
     initial: 1.5
     min: 0.1
     max: 3
@@ -260,6 +276,7 @@ input_number:
     icon: mdi:sigma-lower
   startup_average_deviation:
     name: startup average deviation
+    unit_of_measurement: count
     mode: slider
     initial: 1.5
     min: 0.1
@@ -268,6 +285,7 @@ input_number:
     icon: mdi:sigma-lower
   startup_download_deviation:
     name: startup download deviation
+    unit_of_measurement: Mbps
     mode: slider
     initial: 1.5
     min: 0.1
@@ -276,6 +294,7 @@ input_number:
     icon: mdi:sigma-lower
   startup_measurement_deviation:
     name: startup measurement deviation
+    unit_of_measurement: count
     mode: slider
     initial: 1.5
     min: 0.1
@@ -285,6 +304,7 @@ input_number:
   # YOLO
   yolo2msghub_client_deviation:
     name: yolo2msghub client deviation
+    unit_of_measurement: count
     mode: slider
     initial: 1.5
     min: 0.1
@@ -293,6 +313,7 @@ input_number:
     icon: mdi:sigma-lower
   yolo2msghub_detected_deviation:
     name: yolo2msghub detected deviation
+    unit_of_measurement: count
     mode: slider
     initial: 1.5
     min: 0.1
@@ -302,6 +323,7 @@ input_number:
   # SDR
   sdr2msghub_confidence:
     name: Confidence
+    unit_of_measurement: '%'
     mode: slider
     initial: 0
     min: 0
@@ -310,6 +332,7 @@ input_number:
     icon: mdi:target
   sdr2msghub_relevance:
     name: Relevance
+    unit_of_measurement: '%'
     mode: slider
     initial: 0
     min: 0
@@ -319,6 +342,7 @@ input_number:
   # INTERNET
   internet_deviation:
     name: Internet deviation
+    unit_of_measurement: Mbps
     mode: slider
     initial: 1.5
     min: 0.1
@@ -328,6 +352,7 @@ input_number:
   # HORIZON
   hznsetup_event_nodes_index:
     name: Node index
+    unit_of_measurement: count
     mode: slider
     initial: 1
     min: 1
@@ -617,7 +642,7 @@ sensor startup:
         entity_id:
           - sensor.startup_event
           - sensor.startup_client_count_statistics
-        unit_of_measurement: ccount
+        unit_of_measurement: count
         value_template: >
           {% if states.sensor.startup_client_count_statistics is defined %}
             {{ states.sensor.startup_client_count_statistics.attributes.min_value }}
@@ -906,7 +931,7 @@ sensor startup:
       hours: 2
   # ratio of machines whose container count is average
   - platform: history_stats
-    name: startup_containers_average
+    name: startup_containers_history
     entity_id: binary_sensor.startup_containers_average
     state: on
     type: ratio 
@@ -1113,8 +1138,8 @@ sensor yolo2msghub:
           {% else %} null {% endif %}
   ## statistics
   - platform: history_stats
-    name: yolo2msghub_event_count
-    entity_id: sensor.yolo2msghub_event
+    name: yolo2msghub_event_history
+    entity_id: sensor.yolo2msghub_event_state
     state: true
     type: count
     start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
@@ -1632,8 +1657,8 @@ sensor sdr2msghub:
             From {{ states.sensor.sdr2msghub_event.attributes.name }}
           {% else %} null {% endif %}
   - platform: history_stats
-    name: sdr2msghub_event_count
-    entity_id: sensor.sdr2msghub_event
+    name: sdr2msghub_event_history
+    entity_id: sensor.sdr2msghub_event_state
     state: true
     type: count
     start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
@@ -2137,7 +2162,7 @@ sensor horizon:
 sensor hznsetup:
   - platform: mqtt
     name: hznsetup_event_nodes
-    state_topic: 'hznsetup/dcmartin@us.ibm.com/status/node'
+    state_topic: 'hznsetup/dcmartin/status/node'
     force_update: true
     expire_after: 1
     json_attributes:
@@ -2209,8 +2234,8 @@ sensor hznsetup:
           {% else %} null {% endif %}
   ## statistics
   - platform: history_stats
-    name: hznsetup_event_count
-    entity_id: sensor.hznsetup_event
+    name: hznsetup_event_history
+    entity_id: sensor.hznsetup_event_state
     state: 'true'
     type: count
     start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
@@ -2545,21 +2570,21 @@ sensor internet_test:
     max_age:
       hours: 2
   - platform: history_stats
-    name: internet_test_count
+    name: internet_test_history
     entity_id: binary_sensor.internet_test_state
     state: on
     type: count
     start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
     end: '{{ now() }}'
   - platform: history_stats
-    name: internet_slow_test_count
+    name: internet_slow_test_history
     entity_id: binary_sensor.internet_slow
     state: on
     type: count
     start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
     end: '{{ now() }}'
   - platform: history_stats
-    name: internet_fast_test_count
+    name: internet_fast_test_history
     entity_id: binary_sensor.internet_fast
     state: on
     type: count
@@ -2801,8 +2826,8 @@ sensor motion:
           {% else %} null {% endif %}
   ## statistics
   - platform: history_stats
-    name: motion_event_image_count
-    entity_id: sensor.motion_event_image
+    name: motion_event_image_history
+    entity_id: sensor.motion_event_image_state
     state: 'true'
     type: count
     start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
@@ -3030,7 +3055,7 @@ sensor motion:
           {% else %} null {% endif %}
   ## statistics
   - platform: history_stats
-    name: motion_count_today
+    name: motion_count_history
     entity_id: sensor.motion_event_end
     state: 'true'
     type: count
@@ -3091,7 +3116,7 @@ sensor motion:
           {% if states.sensor.motion_event_end is defined %}
             {{ states.sensor.motion_event_end.attributes.date | int | timestamp_custom("%a %b %d ~ %I:%M %p") }}
           {% else %} null {% endif %}
-      motion_images_count:
+      motion_image_count:
         entity_id:
           - sensor.motion_event_end
         unit_of_measurement: count
