@@ -7,6 +7,7 @@
  # sudo apt install -y nvidia-cuda-toolkit
 
 docker run \
+  --restart always \
   --name digits \
   -d \
   -p 5000:5000 \
