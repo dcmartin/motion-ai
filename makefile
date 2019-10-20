@@ -28,26 +28,37 @@ motion: motion/camera motion/sensor motion/binary_sensor
 
 motion/camera: motion/camera.yaml.tmpl makefile
 	for C in ${CAMERAS}; do \
-	  echo "making motion/camera/$${C}.yaml" > /dev/stderr; \
+	  echo "making motion/camera/camera-$${C}.yaml" > /dev/stderr; \
 	  export MOTION_TLD="${TLD}" MOTION_GROUP="${GROUP}" MOTION_CAMERA="$${C}" \
 	  && \
-	  cat motion/camera.yaml.tmpl | envsubst > motion/camera/$${C}.yaml; \
+	  cat motion/camera.yaml.tmpl | envsubst > motion/camera/camera-$${C}.yaml; \
 	done
 
 motion/sensor: motion/sensor.yaml.tmpl makefile
 	for C in ${CAMERAS}; do \
-	  echo "making motion/sensor/$${C}.yaml" > /dev/stderr; \
+	  echo "making motion/sensor/camera-$${C}.yaml" > /dev/stderr; \
 	  export MOTION_TLD="${TLD}" MOTION_GROUP="${GROUP}" MOTION_CAMERA="$${C}" \
 	  && \
-	  cat motion/sensor.yaml.tmpl | envsubst > motion/sensor/$${C}.yaml; \
+	  cat motion/sensor.yaml.tmpl | envsubst > motion/sensor/camera-$${C}.yaml; \
 	done
 
 motion/binary_sensor: motion/binary_sensor.yaml.tmpl makefile
 	for C in ${CAMERAS}; do \
-	  echo "making motion/binary_sensor/$${C}.yaml" > /dev/stderr; \
+	  echo "making motion/binary_sensor/camera-$${C}.yaml" > /dev/stderr; \
 	  export MOTION_TLD="${TLD}" MOTION_GROUP="${GROUP}" MOTION_CAMERA="$${C}" \
 	  && \
-	  cat motion/binary_sensor.yaml.tmpl | envsubst > motion/binary_sensor/$${C}.yaml; \
+	  cat motion/binary_sensor.yaml.tmpl | envsubst > motion/binary_sensor/camera-$${C}.yaml; \
+	done
+
+remove:
+	for C in ${CAMERAS}; do \
+	  echo "removing files for camera-$${C}" > /dev/stderr; \
+	  rm -f motion/camera/$${C}.yaml; \
+	  rm -f motion/sensor/$${C}.yaml; \
+	  rm -f motion/binary_sensor/$${C}.yaml; \
+	  #rm -f motion/camera/camera-$${C}.yaml; \
+	  #rm -f motion/sensor/camera-$${C}.yaml; \
+	  #rm -f motion/binary_sensor/camera-$${C}.yaml; \
 	done
 
 up: motion
