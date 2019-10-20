@@ -22,15 +22,35 @@ CAMERAS := \
 TLD := dcmartin.com
 GROUP := motion
 
-motion/cameras: motion/camera.tmpl makefile
+default: motion
+
+motion: motion/camera motion/sensor motion/binary_sensor
+
+motion/camera: motion/camera.yaml.tmpl makefile
 	for C in ${CAMERAS}; do \
-	  echo "making motion/cameras/$${C}.yaml" > /dev/stderr; \
+	  echo "making motion/camera/$${C}.yaml" > /dev/stderr; \
 	  export MOTION_TLD="${TLD}" MOTION_GROUP="${GROUP}" MOTION_CAMERA="$${C}" \
 	  && \
-	  cat motion/camera.tmpl | envsubst > motion/cameras/$${C}.yaml; \
+	  cat motion/camera.yaml.tmpl | envsubst > motion/camera/$${C}.yaml; \
 	done
 
-up: motion/cameras
+motion/sensor: motion/sensor.yaml.tmpl makefile
+	for C in ${CAMERAS}; do \
+	  echo "making motion/sensor/$${C}.yaml" > /dev/stderr; \
+	  export MOTION_TLD="${TLD}" MOTION_GROUP="${GROUP}" MOTION_CAMERA="$${C}" \
+	  && \
+	  cat motion/sensor.yaml.tmpl | envsubst > motion/sensor/$${C}.yaml; \
+	done
+
+motion/binary_sensor: motion/binary_sensor.yaml.tmpl makefile
+	for C in ${CAMERAS}; do \
+	  echo "making motion/binary_sensor/$${C}.yaml" > /dev/stderr; \
+	  export MOTION_TLD="${TLD}" MOTION_GROUP="${GROUP}" MOTION_CAMERA="$${C}" \
+	  && \
+	  cat motion/binary_sensor.yaml.tmpl | envsubst > motion/binary_sensor/$${C}.yaml; \
+	done
+
+up: motion
 	docker start homeassistant
 
 down:
@@ -55,4 +75,4 @@ realclean: clean
 distclean: realclean
 	rm -fr .uuid .HA_VERSION .cloud deps tts
 
-.phony: up down logs clean realclean distclean motion/cameras
+.phony: up down logs clean realclean distclean motion motion/camera motion/sensor motion/binary_sensor
