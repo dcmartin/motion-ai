@@ -1,0 +1,497 @@
+##
+## EVENT ANNOTATED
+##
+
+- platform: mqtt
+  name: motion_event_annotated
+  state_topic: 'motion/p40/+/event/end/+'
+  qos: 2
+  expire_after: 1
+  force_update: True
+  json_attributes:
+    - timestamp
+    - date
+    - time
+    - count
+    - event
+    - info
+    - detected
+  value_template: >
+    {% if value_json is defined %}True{% else %}False{% endif %}
+## sensors for annotated (event)
+- platform: template
+  sensors:
+    ## human readable status
+    motion_annotated_status:
+      entity_id:
+        - sensor.motion_event_annotated
+      value_template: >-
+        {% if states.sensor.motion_event_annotated is defined and states.sensor.motion_event_annotated.attributes.count|int > 0 %}
+          Annotated {{ states.sensor.motion_event_annotated.attributes.count }}  entities
+          from {{ states.sensor.motion_event_annotated.attributes.event.device -}}/{{- states.sensor.motion_event_annotated.attributes.event.camera }} 
+        {% else %}
+          Nothing annotated
+        {% endif %}
+    ## timing
+    motion_annotated_date:
+      entity_id:
+        - sensor.motion_event_annotated
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states.sensor.motion_event_annotated is defined %}
+          {% if states.sensor.motion_event_annotated.attributes.event.end|int is number %}
+            {% if states.sensor.motion_event_annotated.attributes.event.end|int > 0 %}
+              {{ states.sensor.motion_event_annotated.attributes.event.end|int }}
+            {% else %} null {% endif %}
+          {% else %} null {% endif %}
+        {% else %} null {% endif %}
+    # human readable
+    motion_annotated_when:
+      entity_id:
+        - sensor.motion_annotated_date
+      value_template: >-
+        {% if states.sensor.motion_annotated_date is defined %}
+          {{ states.sensor.motion_annotated_date.state|int|timestamp_custom("%a %b %d ~ %I:%M %p") }}
+        {% else %}null{% endif %}
+    # ago
+    motion_annotated_ago:
+      entity_id:
+        - sensor.motion_annotated_date
+        - sun.sun
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.motion_annotated_date is defined %}
+          {% if states.sensor.motion_annotated_date.state|int is number %}
+            {% if states.sensor.motion_annotated_date.state|int > 0 %}
+              {{ (now().timestamp()|int) - (states.sensor.motion_annotated_date.state|int) }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+    # derived ago
+    motion_annotated_ago_mean:
+      entity_id:
+        - sensor.motion_annotated_ago_statistics
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states.sensor.motion_annotated_ago_statistics is defined %}
+          {{ states.sensor.motion_annotated_ago_statistics.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_annotated_ago_min_value:
+      entity_id:
+        - sensor.motion_annotated_ago_statistics
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states.sensor.motion_annotated_ago_statistics is defined %}
+          {{ states.sensor.motion_annotated_ago_statistics.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_annotated_ago_max_value:
+      entity_id:
+        - sensor.motion_annotated_ago_statistics
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states.sensor.motion_annotated_ago_statistics is defined %}
+          {{ states.sensor.motion_annotated_ago_statistics.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_annotated_ago_stdev:
+      entity_id:
+        - sensor.motion_annotated_ago_statistics
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.motion_annotated_ago_statistics is defined %}
+          {{ states.sensor.motion_annotated_ago_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_annotated_ago_change_rate:
+      entity_id:
+        - sensor.motion_annotated_ago_statistics
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.motion_annotated_ago_statistics is defined %}
+          {{ states.sensor.motion_annotated_ago_statistics.attributes.change_rate|float }}
+        {%- else -%}null{%- endif -%}
+
+    # elapsed
+    motion_annotated_elapsed:
+      entity_id:
+        - sensor.motion_event_annotated
+        - binary_sensor.motion_annotated
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.motion_event_annotated is defined %}
+          {% if states.binary_sensor.motion_annotated.state == 'on' %}
+            {{ states.sensor.motion_event_annotated.attributes.event.elapsed|int }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+    motion_annotated_elapsed_mean:
+      entity_id:
+        - sensor.motion_annotated_elapsed_statistics
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states.sensor.motion_annotated_elapsed_statistics is defined %}
+          {{ states.sensor.motion_annotated_elapsed_statistics.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_annotated_elapsed_min_value:
+      entity_id:
+        - sensor.motion_annotated_elapsed_statistics
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states.sensor.motion_annotated_elapsed_statistics is defined %}
+          {{ states.sensor.motion_annotated_elapsed_statistics.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_annotated_elapsed_max_value:
+      entity_id:
+        - sensor.motion_annotated_elapsed_statistics
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states.sensor.motion_annotated_elapsed_statistics is defined %}
+          {{ states.sensor.motion_annotated_elapsed_statistics.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_annotated_elapsed_stdev:
+      entity_id:
+        - sensor.motion_annotated_elapsed_statistics
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.motion_annotated_elapsed_statistics is defined %}
+          {{ states.sensor.motion_annotated_elapsed_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_annotated_elapsed_change_rate:
+      entity_id:
+        - sensor.motion_annotated_elapsed_statistics
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.motion_annotated_elapsed_statistics is defined %}
+          {{ states.sensor.motion_annotated_elapsed_statistics.attributes.change_rate|float }}
+        {%- else -%}null{%- endif -%}
+
+    # delay 
+    motion_annotated_delay:
+      entity_id:
+        - sensor.motion_event_annotated
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.motion_event_annotated is defined %}
+          {% if states.binary_sensor.motion_annotated.state == 'on' %}
+            {{ (now().timestamp()|int) - ( states.sensor.motion_event_annotated.attributes.event.end|int) }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+    motion_annotated_delay_mean:
+      entity_id:
+        - sensor.motion_annotated_delay_statistics
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states.sensor.motion_annotated_delay_statistics is defined %}
+          {{ states.sensor.motion_annotated_delay_statistics.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_annotated_delay_min_value:
+      entity_id:
+        - sensor.motion_annotated_delay_statistics
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states.sensor.motion_annotated_delay_statistics is defined %}
+          {{ states.sensor.motion_annotated_delay_statistics.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_annotated_delay_max_value:
+      entity_id:
+        - sensor.motion_annotated_delay_statistics
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states.sensor.motion_annotated_delay_statistics is defined %}
+          {{ states.sensor.motion_annotated_delay_statistics.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_annotated_delay_stdev:
+      entity_id:
+        - sensor.motion_annotated_delay_statistics
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.motion_annotated_delay_statistics is defined %}
+          {{ states.sensor.motion_annotated_delay_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_annotated_delay_change_rate:
+      entity_id:
+        - sensor.motion_annotated_delay_statistics
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.motion_annotated_delay_statistics is defined %}
+          {{ states.sensor.motion_annotated_delay_statistics.attributes.change_rate|float }}
+        {%- else -%}null{%- endif -%}
+
+    ## counting annotated (events)
+    motion_annotated_counter:
+      entity_id:
+        - counter.motion_annotated_counter
+      unit_of_measurement: count
+      value_template: >
+        {% if states.counter.motion_annotated_counter is defined %}
+          {{ states.counter.motion_annotated_counter.state|int }}
+        {%- else -%}null{%- endif -%}
+    # derived detected counter statistics
+    motion_annotated_counter_mean:
+      entity_id:
+        - sensor.motion_annotated_counter_statistics
+      unit_of_measurement: count
+      value_template: >-
+        {% if states.sensor.motion_annotated_counter_statistics is defined %}
+          {{ states.sensor.motion_annotated_counter_statistics.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_annotated_counter_min_value:
+      entity_id:
+        - sensor.motion_annotated_counter_statistics
+      unit_of_measurement: count
+      value_template: >-
+        {% if states.sensor.motion_annotated_counter_statistics is defined %}
+          {{ states.sensor.motion_annotated_counter_statistics.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_annotated_counter_max_value:
+      entity_id:
+        - sensor.motion_annotated_counter_statistics
+      unit_of_measurement: count
+      value_template: >-
+        {% if states.sensor.motion_annotated_counter_statistics is defined %}
+          {{ states.sensor.motion_annotated_counter_statistics.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_annotated_counter_stdev:
+      entity_id:
+        - sensor.motion_annotated_counter_statistics
+      unit_of_measurement: count
+      value_template: >
+        {% if states.sensor.motion_annotated_counter_statistics is defined %}
+          {{ states.sensor.motion_annotated_counter_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_annotated_counter_change_rate:
+      entity_id:
+        - sensor.motion_annotated_counter_statistics
+      unit_of_measurement: count
+      value_template: >
+        {% if states.sensor.motion_annotated_counter_statistics is defined %}
+          {{ states.sensor.motion_annotated_counter_statistics.attributes.change_rate|float }}
+        {%- else -%}null{%- endif -%}
+
+    # percent of motion events which were annotated
+    motion_annotated_percent:
+      entity_id:
+        - counter.motion_counter
+        - counter.motion_annotated_counter
+      unit_of_measurement: '%'
+      value_template: >-
+        {% if states.counter.motion_counter is defined and states.motion_annotated_counter is defined %}
+          {% if states.counter.motion_counter.state|int > 0 %}
+            {{  ( states.counter.motion_annotated_counter.state|int / states.counter.motion_counter.state|int ) * 100.0 }}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+    # derived annotated percent statistics
+    motion_annotated_percent_mean:
+      entity_id:
+        - sensor.motion_annotated_percent_statistics
+      unit_of_measurement: '%'
+      value_template: >-
+        {% if states.sensor.motion_annotated_percent_statistics is defined %}
+          {{ states.sensor.motion_annotated_percent_statistics.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_annotated_percent_min_value:
+      entity_id:
+        - sensor.motion_annotated_percent_statistics
+      unit_of_measurement: '%'
+      value_template: >-
+        {% if states.sensor.motion_annotated_percent_statistics is defined %}
+          {{ states.sensor.motion_annotated_percent_statistics.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_annotated_percent_max_value:
+      entity_id:
+        - sensor.motion_annotated_percent_statistics
+      unit_of_measurement: '%'
+      value_template: >-
+        {% if states.sensor.motion_annotated_percent_statistics is defined %}
+          {{ states.sensor.motion_annotated_percent_statistics.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_annotated_percent_stdev:
+      entity_id:
+        - sensor.motion_annotated_percent_statistics
+      unit_of_measurement: '%'
+      value_template: >
+        {% if states.sensor.motion_annotated_percent_statistics is defined %}
+          {{ states.sensor.motion_annotated_percent_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_annotated_percent_change_rate:
+      entity_id:
+        - sensor.motion_annotated_percent_statistics
+      unit_of_measurement: '%'
+      value_template: >
+        {% if states.sensor.motion_annotated_percent_statistics is defined %}
+          {{ states.sensor.motion_annotated_percent_statistics.attributes.change_rate|float }}
+        {%- else -%}null{%- endif -%}
+
+    ## counting entities
+    motion_annotated_count:
+      entity_id:
+        - sensor.motion_event_annotated
+      unit_of_measurement: entities
+      value_template: >-
+        {% if states.sensor.motion_event_annotated is defined %}
+          {{ states.sensor.motion_event_annotated.attributes.count }}
+        {% else %} null {% endif %}
+    ## derived attributes from statistics
+    motion_annotated_count_mean:
+      entity_id:
+        - sensor.motion_annotated_count_statistics
+      unit_of_measurement: entities
+      value_template: >-
+        {% if states.sensor.motion_annotated_count_statistics is defined %}
+          {{ states.sensor.motion_annotated_count_statistics.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_annotated_count_min_value:
+      entity_id:
+        - sensor.motion_event_annotated_count_statistics
+      unit_of_measurement: entities
+      value_template: >-
+        {% if states.sensor.motion_annotated_count_statistics is defined %}
+          {{ states.sensor.motion_annotated_count_statistics.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_annotated_count_max_value:
+      entity_id:
+        - sensor.motion_event_annotated_count_statistics
+      unit_of_measurement: entities
+      value_template: >-
+        {% if states.sensor.motion_annotated_count_statistics is defined %}
+          {{ states.sensor.motion_annotated_count_statistics.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_annotated_count_stdev:
+      entity_id:
+        - sensor.motion_annotated_count_statistics
+      unit_of_measurement: entities
+      value_template: >
+        {% if states.sensor.motion_annotated_count_statistics is defined %}
+          {{ states.sensor.motion_annotated_count_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_annotated_count_change_rate:
+      entity_id:
+        - sensor.motion_annotated_count_statistics
+      unit_of_measurement: entities
+      value_template: >
+        {% if states.sensor.motion_annotated_count_statistics is defined %}
+          {{ states.sensor.motion_annotated_count_statistics.attributes.change_rate|float }}
+        {%- else -%}null{%- endif -%}
+
+    ## attributes
+    motion_annotated_detected:
+      entity_id:
+        - sensor.motion_event_annotated
+      value_template: >-
+        {% if states.sensor.motion_event_annotated is defined %}
+          {{ states.sensor.motion_event_annotated.attributes.detected }}
+        {% else %} null {% endif %}
+    motion_annotated_device:
+      entity_id:
+        - sensor.motion_event_annotated
+      value_template: >-
+        {% if states.sensor.motion_event_annotated is defined %}
+          {{ states.sensor.motion_event_annotated.attributes.event.device }}
+        {% else %}null{% endif %}
+    motion_annotated_camera:
+      entity_id:
+        - sensor.motion_event_annotated
+      value_template: >-
+        {% if states.sensor.motion_event_annotated is defined %}
+          {{ states.sensor.motion_event_annotated.attributes.event.camera }}
+        {% else %}null{% endif %}
+
+## history_stats
+
+- platform: history_stats
+  name: motion_annotated_history
+  entity_id: binary_sensor.motion_annotated
+  state: 'on'
+  type: count
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+## statistics
+
+# counter
+- platform: statistics
+  name: motion_annotated_counter_statistics
+  entity_id: sensor.motion_annotated_counter
+  sampling_size: 100
+  max_age:
+    hours: 24
+- platform: statistics
+  name: motion_annotated_counter_stdev_statistics
+  entity_id: sensor.motion_annotated_counter_stdev
+  sampling_size: 100
+  max_age:
+    hours: 24
+# entity count
+- platform: statistics
+  name: motion_annotated_count_statistics
+  entity_id: sensor.motion_annotated_count
+  sampling_size: 100
+  max_age:
+    hours: 24
+- platform: statistics
+  name: motion_annotated_count_stdev_statistics
+  entity_id: sensor.motion_annotated_count_stdev
+  sampling_size: 100
+  max_age:
+    hours: 24
+- platform: statistics
+  name: motion_annotated_count_statistics
+  entity_id: sensor.motion_annotated_count
+  sampling_size: 100
+  max_age:
+    hours: 24
+- platform: statistics
+  name: motion_annotated_count_stdev_statistics
+  entity_id: sensor.motion_annotated_count_stdev
+  sampling_size: 100
+  max_age:
+    hours: 24
+# seconds ago
+- platform: statistics
+  name: motion_annotated_ago_statistics
+  entity_id: sensor.motion_annotated_ago
+  sampling_size: 100
+  max_age:
+    hours: 24
+- platform: statistics
+  name: motion_annotated_ago_stdev_statistics
+  entity_id: sensor.motion_annotated_ago_stdev
+  sampling_size: 100
+  max_age:
+    hours: 24
+# seconds elapsed
+- platform: statistics
+  name: motion_annotated_elapsed_statistics
+  entity_id: sensor.motion_annotated_elapsed
+  sampling_size: 100
+  max_age:
+    hours: 24
+- platform: statistics
+  name: motion_annotated_elapsed_stdev_statistics
+  entity_id: sensor.motion_annotated_elapsed_stdev
+  sampling_size: 100
+  max_age:
+    hours: 24
+# seconds delay
+- platform: statistics
+  name: motion_annotated_delay_statistics
+  entity_id: sensor.motion_annotated_delay
+  sampling_size: 100
+  max_age:
+    hours: 24
+- platform: statistics
+  name: motion_annotated_delay_stdev_statistics
+  entity_id: sensor.motion_annotated_delay_stdev
+  sampling_size: 100
+  max_age:
+    hours: 24
+# annotated percent
+- platform: statistics
+  name: motion_annotated_percent_statistics
+  entity_id: sensor.motion_annotated_percent
+  sampling_size: 100
+  max_age:
+    hours: 24
+- platform: statistics
+  name: motion_annotated_percent_stdev_statistics
+  entity_id: sensor.motion_annotated_percent_stdev
+  sampling_size: 100
+  max_age:
+    hours: 24
