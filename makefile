@@ -53,7 +53,7 @@ motion-addon.json: motion-addon.json.tmpl makefile
 	  MOTION_COUCHDB_PASSWORD=${MOTION_COUCHDB_PASSWORD} \
 	&& \
 	cat motion-addon.json.tmpl | envsubst > motion-addon.json
-	for C in ${CAMERAS}; do \
+	@for C in ${CAMERAS}; do \
 	  export MOTION_GROUP="${GROUP}" MOTION_CAMERA="$${C}" \
 	  && \
           jq '.|.cameras+=[ { "name": "'$${C}'", "url": "ftpd:///share/ftp/'$${C}'" } ]' motion-addon.json > motion-addon.json.$$; \
@@ -61,7 +61,7 @@ motion-addon.json: motion-addon.json.tmpl makefile
 	done
 
 motion/camera: motion/camera.yaml.tmpl makefile
-	for C in ${CAMERAS}; do \
+	@for C in ${CAMERAS}; do \
 	  echo "making motion/camera/camera-$${C}.yaml" > /dev/stderr; \
 	  export MOTION_TLD="${MOTION_TLD}" MOTION_GROUP="${MOTION_GROUP}" MOTION_CAMERA="$${C}" \
 	  && \
@@ -69,7 +69,7 @@ motion/camera: motion/camera.yaml.tmpl makefile
 	done
 
 motion/sensor: motion/sensor.yaml.tmpl makefile
-	for C in ${CAMERAS}; do \
+	@for C in ${CAMERAS}; do \
 	  echo "making motion/sensor/camera-$${C}.yaml" > /dev/stderr; \
 	  export MOTION_TLD="${MOTION_TLD}" MOTION_GROUP="${MOTION_GROUP}" MOTION_CAMERA="$${C}" \
 	  && \
@@ -77,7 +77,7 @@ motion/sensor: motion/sensor.yaml.tmpl makefile
 	done
 
 motion/binary_sensor: motion/binary_sensor.yaml.tmpl makefile
-	for C in ${CAMERAS}; do \
+	@for C in ${CAMERAS}; do \
 	  echo "making motion/binary_sensor/camera-$${C}.yaml" > /dev/stderr; \
 	  export MOTION_TLD="${MOTION_TLD}" MOTION_GROUP="${MOTION_GROUP}" MOTION_CAMERA="$${C}" \
 	  && \
@@ -87,7 +87,7 @@ motion/binary_sensor: motion/binary_sensor.yaml.tmpl makefile
 ## remove dynamic files
 
 remove:
-	for C in ${CAMERAS}; do \
+	@for C in ${CAMERAS}; do \
 	  echo "removing files for camera-$${C}" > /dev/stderr; \
 	  rm -f motion/camera/camera-$${C}.yaml; \
 	  rm -f motion/sensor/camera-$${C}.yaml; \
