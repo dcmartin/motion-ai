@@ -103,8 +103,7 @@ up: motion
 down:
 	docker stop homeassistant
 
-restart:
-	docker restart homeassistant
+restart: down up
 
 logs:
 	docker logs -f homeassistant
