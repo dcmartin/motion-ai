@@ -29,7 +29,7 @@
         - sensor.motion_event_date
       value_template: >-
         Annotated 
-        {% if states.sensor.motion_event_annotated is defined and states.sensor.motion_event_annotated.attributes.count|int > 0 %}
+        {% if states.sensor.motion_event_annotated.attributes.count is defined and states.sensor.motion_event_annotated.attributes.count|int > 0 %}
           {{ states.sensor.motion_event_annotated.attributes.count|int }}
         {% else %}
           zero
@@ -114,17 +114,19 @@
           {{ states.sensor.motion_annotated_ago_statistics.attributes.change_rate|float }}
         {%- else -%}null{%- endif -%}
 
-    # elapsed
+    ## elapsed
     motion_annotated_elapsed:
       entity_id:
-        - sensor.motion_event_annotated
+        - sensor.motion_event_annotated_counter
+        #- sensor.motion_event_annotated
       unit_of_measurement: seconds
       value_template: >
         {% if states.sensor.motion_event_annotated is defined %}
-          {% if states.binary_sensor.motion_annotated.state == 'on' %}
-            {{ states.sensor.motion_event_annotated.attributes.event.elapsed|int }}
-          {% else %}null{% endif %}
+          {% if states.sensor.motion_event_annotated.attributes.event.end|int is number %}
+              {{ states.sensor.motion_event_annotated.attributes.event.elapsed|int }}
+          {%- else -%}null{%- endif -%}
         {% else %}null{% endif %}
+    # statistics
     motion_annotated_elapsed_mean:
       entity_id:
         - sensor.motion_annotated_elapsed_statistics
@@ -166,17 +168,21 @@
           {{ states.sensor.motion_annotated_elapsed_statistics.attributes.change_rate|float }}
         {%- else -%}null{%- endif -%}
 
-    # delay 
+    ## delay 
     motion_annotated_delay:
       entity_id:
-        - sensor.motion_event_annotated
+        - sensor.motion_event_annotated_counter
+        #- sensor.motion_event_annotated
       unit_of_measurement: seconds
       value_template: >
         {% if states.sensor.motion_event_annotated is defined %}
-          {% if states.binary_sensor.motion_annotated.state == 'on' %}
-            {{ (now().timestamp()|int) - ( states.sensor.motion_event_annotated.attributes.event.end|int) }}
+          {% if states.sensor.motion_event_annotated.attributes.event.end|int is number %}
+            {% if states.sensor.motion_event_annotated.attributes.event.end|int > 0 %}
+                {{ (now().timestamp()|int) - ( states.sensor.motion_event_annotated.attributes.event.end|int) }}
+            {% else %}null{% endif %}
           {% else %}null{% endif %}
         {% else %}null{% endif %}
+    # statistics
     motion_annotated_delay_mean:
       entity_id:
         - sensor.motion_annotated_delay_statistics
@@ -323,15 +329,18 @@
           {{ states.sensor.motion_annotated_percent_statistics.attributes.change_rate|float }}
         {%- else -%}null{%- endif -%}
 
-    ## counting entities
+    ## count
     motion_annotated_count:
       entity_id:
-        - sensor.motion_event_annotated
-      unit_of_measurement: entities
-      value_template: >-
-        {% if states.sensor.motion_event_annotated is defined %}
-          {{ states.sensor.motion_event_annotated.attributes.count }}
-        {% else %} null {% endif %}
+        - sensor.motion_detected_last
+        #- sensor.motion_event_annotated
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.motion_event_annotated.attributes.event.count is defined %}
+          {% if states.sensor.motion_event_annotated.attributes.event.count|int is number %}
+            {{ states.sensor.motion_event_annotated.attributes.event.count|int }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
     ## derived attributes from statistics
     motion_annotated_count_mean:
       entity_id:
