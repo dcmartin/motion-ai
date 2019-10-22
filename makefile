@@ -123,4 +123,4 @@ realclean: clean
 distclean: realclean
 	rm -fr .uuid .HA_VERSION .cloud deps tts
 
-.phony: up down logs clean realclean distclean motion motion/camera motion/sensor motion/binary_sensor
+.phony: up down logs clean realclean distclean motion motion/camera/ motion/sensor/ motion/binary_sensor/
