@@ -1,0 +1,291 @@
+###
+### ${MOTION_CAMERA} sensors
+###
+
+## MOTION_CAMERA FOUND - '${MOTION_GROUP}/+/${MOTION_CAMERA}/status/found'
+- platform: mqtt
+  name: motion_found_${MOTION_CAMERA}
+  state_topic: '${MOTION_GROUP}/+/${MOTION_CAMERA}/status/found'
+  expire_after: 1
+  force_update: true
+  json_attributes:
+    - device
+    - camera
+    - date
+    - status
+  value_template: >
+    {% if value_json is defined %}true{% else %}null{% endif %}
+
+## MOTION_CAMERA LOST - '${MOTION_GROUP}/+/${MOTION_CAMERA}/status/lost' 
+- platform: mqtt
+  name: motion_lost_${MOTION_CAMERA}
+  state_topic: '${MOTION_GROUP}/+/${MOTION_CAMERA}/status/lost'
+  expire_after: 1
+  force_update: true
+  json_attributes:
+    - device
+    - camera
+    - date
+    - status
+  value_template: >
+    {% if value_json is defined %}true{% else %}null{% endif %}
+
+## EVENT IMAGE - motion/+/${MOTION_CAMERA}/event/image
+- platform: mqtt
+  name: motion_image_${MOTION_CAMERA}
+  qos: 1
+  state_topic: '${MOTION_GROUP}/+/${MOTION_CAMERA}/event/image'
+  expire_after: 1
+  force_update: true
+  json_attributes:
+    - device
+    - camera
+    - type
+    - date
+    - seqno
+    - event
+    - id
+    - center
+    - width
+    - height
+    - size
+    - noise
+  value_template: >
+    {% if value_json is defined %}true{% else %}null{% endif %}
+
+## START EVENT
+- platform: mqtt
+  name: motion_start_${MOTION_CAMERA}
+  qos: 1
+  state_topic: '${MOTION_GROUP}/+/${MOTION_CAMERA}/event/start'
+  expire_after: 1
+  force_update: true
+  json_attributes:
+    - device
+    - camera
+    - event
+    - start
+  value_template: >
+    {% if value_json is defined %}true{% else %}null{% endif %}
+
+## END EVENT
+- platform: mqtt
+  name: motion_end_${MOTION_CAMERA}
+  qos: 1
+  state_topic: '${MOTION_GROUP}/+/${MOTION_CAMERA}/event/end'
+  expire_after: 1
+  force_update: true
+  json_attributes:
+    - device
+    - camera
+    - event
+    - start
+    - end
+    - elapsed
+    - date
+  value_template: >
+    {% if value_json is defined %}true{% else %}null{% endif %}
+
+## ANNOTATED EVENT
+- platform: mqtt
+  name: motion_annotated_${MOTION_CAMERA}
+  state_topic: '${MOTION_GROUP}/+/${MOTION_CAMERA}/event/end/+'
+  expire_after: 1
+  force_update: true
+  json_attributes:
+    - timestamp
+    - date
+    - time
+    - count
+    - event
+    - info
+    - detected
+  value_template: >
+    {% if value_json is defined %}true{% else %}null{% endif %}
+
+## DETECTED_ENTITY
+- platform: mqtt
+  name: motion_detected_entity_${MOTION_CAMERA}
+  state_topic: '${MOTION_GROUP}/+/${MOTION_CAMERA}/event/end/{{- states.sensor.motion_detect_entity.state|string -}}'
+  expire_after: 1
+  force_update: true
+  json_attributes:
+    - timestamp
+    - date
+    - time
+    - count
+    - event
+    - info
+    - detected
+  value_template: >
+    {% if value_json is defined %}true{% else %}null{% endif %}
+
+## timing
+- platform: template
+  sensors:
+    ## timing
+    motion_detected_entity_date_${MOTION_CAMERA}:
+      entity_id:
+        - sensor.motion_detected_entity_date
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states.sensor.motion_detected_camera is defined 
+              and states.sensor.motion_detected_camera.state is defined
+              and states.sensor.motion_detected_camera.state|string == '${MOTION_CAMERA}' %}
+          {{ states.sensor.motion_detected_entity_date.state|int }}
+        {% else %}{{ states.sensor.motion_detected_entity_date_${MOTION_CAMERA}.state|int}}{% endif %}
+    # human readable
+    motion_detected_entity_when_${MOTION_CAMERA}:
+      entity_id:
+        - sensor.motion_detected_entity_date_${MOTION_CAMERA}
+      value_template: >-
+        {% if states.sensor.motion_detected_entity_date_${MOTION_CAMERA} is defined %}
+          {% if states.sensor.motion_detected_entity_date_${MOTION_CAMERA}.state|int is number %}
+            {% if states.sensor.motion_detected_entity_date_${MOTION_CAMERA}.state|int > 0 %}
+              {{ states.sensor.motion_detected_entity_date_${MOTION_CAMERA}.state|int|timestamp_custom("%a %b %d ~ %I:%M %p") }}
+            {% else %}{{ states.sensor.motion_detected_entity_when_${MOTION_CAMERA}.state }}{% endif %}
+          {% else %}{{ states.sensor.motion_detected_entity_when_${MOTION_CAMERA}.state }}{% endif %}
+        {% else %}null{% endif %} 
+
+## ago
+- platform: template
+  sensors:
+    motion_detected_entity_ago_${MOTION_CAMERA}:
+      entity_id:
+        - sensor.motion_detected_entity_date_${MOTION_CAMERA}
+        - sun.sun
+      unit_of_measurement: seconds
+      value_template: >
+          {% if states.sensor.motion_detected_entity_date_${MOTION_CAMERA} is defined 
+                and states.sensor.motion_detected_entity_date_${MOTION_CAMERA}.state|int is number
+                and states.sensor.motion_detected_entity_date_${MOTION_CAMERA}.state|int > 0 %}
+            {{ (now().timestamp()|int) - (states.sensor.motion_detected_entity_date_${MOTION_CAMERA}.state|int) }}
+          {%- else -%}null{%- endif -%}
+    # statistics
+    motion_detected_entity_ago_${MOTION_CAMERA}_mean:
+      entity_id:
+        - sensor.motion_detected_entity_ago_${MOTION_CAMERA}_statistics
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states.sensor.motion_detected_entity_ago_${MOTION_CAMERA}_statistics is defined %}
+          {% if states.sensor.motion_detected_entity_ago_${MOTION_CAMERA}_statistics.state|int is number %}
+            {{ states.sensor.motion_detected_entity_ago_${MOTION_CAMERA}_statistics.state|float }}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+    motion_detected_entity_ago_${MOTION_CAMERA}_min_value:
+      entity_id:
+        - sensor.motion_detected_entity_ago_${MOTION_CAMERA}_statistics
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states.sensor.motion_detected_entity_ago_${MOTION_CAMERA}_statistics is defined %}
+          {{ states.sensor.motion_detected_entity_ago_${MOTION_CAMERA}_statistics.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_entity_ago_${MOTION_CAMERA}_max_value:
+      entity_id:
+        - sensor.motion_detected_entity_ago_${MOTION_CAMERA}_statistics
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states.sensor.motion_detected_entity_ago_${MOTION_CAMERA}_statistics is defined %}
+          {{ states.sensor.motion_detected_entity_ago_${MOTION_CAMERA}_statistics.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_entity_ago_${MOTION_CAMERA}_stdev:
+      entity_id:
+        - sensor.motion_detected_entity_ago_${MOTION_CAMERA}_statistics
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.motion_detected_entity_ago_${MOTION_CAMERA}_statistics is defined %}
+          {{ states.sensor.motion_detected_entity_ago_${MOTION_CAMERA}_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_entity_ago_${MOTION_CAMERA}_change_rate:
+      entity_id:
+        - sensor.motion_detected_entity_ago_${MOTION_CAMERA}_statistics
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.motion_detected_entity_ago_${MOTION_CAMERA}_statistics is defined %}
+          {{ states.sensor.motion_detected_entity_ago_${MOTION_CAMERA}_statistics.attributes.change_rate|float }}
+        {%- else -%}null{%- endif -%}
+# statistics
+- platform: statistics
+  name: motion_detected_entity_ago_${MOTION_CAMERA}_statistics
+  entity_id: sensor.motion_detected_entity_ago_${MOTION_CAMERA}
+  sampling_size: 100
+  max_age:
+    hours: 24
+- platform: statistics
+  name: motion_detected_entity_ago_${MOTION_CAMERA}_stdev_statistics
+  entity_id: sensor.motion_detected_entity_ago_${MOTION_CAMERA}_stdev
+  sampling_size: 100
+  max_age:
+    hours: 24
+
+## ago
+- platform: template
+  sensors:
+    motion_detected_ago_${MOTION_CAMERA}:
+      entity_id:
+        - sensor.motion_detected_date_${MOTION_CAMERA}
+        - sun.sun
+      unit_of_measurement: seconds
+      value_template: >
+          {% if states.sensor.motion_detected_date_${MOTION_CAMERA} is defined 
+                and states.sensor.motion_detected_date_${MOTION_CAMERA}.state is defined
+                and states.sensor.motion_detected_date_${MOTION_CAMERA}.state|int is number
+                and states.sensor.motion_detected_date_${MOTION_CAMERA}.state|int > 0 %}
+            {{ (now().timestamp()|int) - (states.sensor.motion_detected_date_${MOTION_CAMERA}.state|int) }}
+          {%- else -%}null{%- endif -%}
+    # statistics
+    motion_detected_ago_${MOTION_CAMERA}_mean:
+      entity_id:
+        - sensor.motion_detected_ago_${MOTION_CAMERA}_statistics
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states.sensor.motion_detected_ago_${MOTION_CAMERA}_statistics is defined %}
+          {% if states.sensor.motion_detected_ago_${MOTION_CAMERA}_statistics.state|int is number %}
+            {{ states.sensor.motion_detected_ago_${MOTION_CAMERA}_statistics.state|float }}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+    motion_detected_ago_${MOTION_CAMERA}_min_value:
+      entity_id:
+        - sensor.motion_detected_ago_${MOTION_CAMERA}_statistics
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states.sensor.motion_detected_ago_${MOTION_CAMERA}_statistics is defined %}
+          {{ states.sensor.motion_detected_ago_${MOTION_CAMERA}_statistics.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_ago_${MOTION_CAMERA}_max_value:
+      entity_id:
+        - sensor.motion_detected_ago_${MOTION_CAMERA}_statistics
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states.sensor.motion_detected_ago_${MOTION_CAMERA}_statistics is defined %}
+          {{ states.sensor.motion_detected_ago_${MOTION_CAMERA}_statistics.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_ago_${MOTION_CAMERA}_stdev:
+      entity_id:
+        - sensor.motion_detected_ago_${MOTION_CAMERA}_statistics
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.motion_detected_ago_${MOTION_CAMERA}_statistics is defined %}
+          {{ states.sensor.motion_detected_ago_${MOTION_CAMERA}_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_ago_${MOTION_CAMERA}_change_rate:
+      entity_id:
+        - sensor.motion_detected_ago_${MOTION_CAMERA}_statistics
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.motion_detected_ago_${MOTION_CAMERA}_statistics is defined %}
+          {{ states.sensor.motion_detected_ago_${MOTION_CAMERA}_statistics.attributes.change_rate|float }}
+        {%- else -%}null{%- endif -%}
+# statistics
+- platform: statistics
+  name: motion_detected_ago_${MOTION_CAMERA}_statistics
+  entity_id: sensor.motion_detected_ago_${MOTION_CAMERA}
+  sampling_size: 100
+  max_age:
+    hours: 24
+- platform: statistics
+  name: motion_detected_ago_${MOTION_CAMERA}_stdev_statistics
+  entity_id: sensor.motion_detected_ago_${MOTION_CAMERA}_stdev
+  sampling_size: 100
+  max_age:
+    hours: 24

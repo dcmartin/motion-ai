@@ -278,13 +278,13 @@
     # percent of motion events which were annotated
     motion_annotated_percent:
       entity_id:
-        - counter.motion_counter
+        - counter.motion_end_counter
         - counter.motion_annotated_counter
       unit_of_measurement: '%'
       value_template: >-
-        {% if states.counter.motion_counter is defined and states.motion_annotated_counter is defined %}
-          {% if states.counter.motion_annotated_counter.state|int is number and states.counter.motion_counter.state|int > 0 %}
-            {{  ( states.counter.motion_annotated_counter.state|int / states.counter.motion_counter.state|int ) * 100.0 }}
+        {% if states.counter.motion_end_counter is defined and states.motion_annotated_counter is defined %}
+          {% if states.counter.motion_annotated_counter.state|int is number and states.counter.motion_end_counter.state|int > 0 %}
+            {{  ( states.counter.motion_annotated_counter.state|int / states.counter.motion_end_counter.state|int ) * 100.0 }}
           {%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif -%}
     # derived annotated percent statistics
@@ -334,7 +334,7 @@
       entity_id:
         - sensor.motion_detected_last
         #- sensor.motion_event_annotated
-      unit_of_measurement: seconds
+      unit_of_measurement: entities
       value_template: >
         {% if states.sensor.motion_event_annotated.attributes.event.count is defined %}
           {% if states.sensor.motion_event_annotated.attributes.event.count|int is number %}
@@ -414,18 +414,28 @@
             {{ states.sensor.motion_event_annotated.attributes.event.camera }}
           {% else %}{{ states.sensor.motion_annotated_camera.state }}{% endif %}
         {% else %}null{% endif %}
-    ## picture
+    # picture
     motion_annotated_picture:
       entity_id:
-        - sensor.motion_event_annotated
+        - sensor.motion_annotated_camera
+        - sensor.motion_base_url
       value_template: >-
-        {% if states.sensor.motion_event_annotated is defined %}
-          {% set camera = states.sensor.motion_event_annotated.attributes.event.camera %}
-          {% if camera is defined and camera|length %}
-            {% set device = 'camera.motion_annotated_' + camera %}
-            http://192.168.1.251:3092{{- state_attr(device, 'entity_picture') -}}
-          {% else %}null{% endif %}  
-        {% else %}null{% endif %}
+        {% if states.sensor.motion_annotated_camera is defined %}
+          {% if states.sensor.motion_annotated_camera.state is defined %}
+            {% set camera = states.sensor.motion_annotated_camera.state %}
+            {% if camera|length and camera|lower != 'none' and camera|lower != 'unknown' %}
+              {% set picture = state_attr('camera.motion_annotated_' + camera, 'entity_picture') %}
+              {% if picture is defined and picture|lower != 'none' %}
+                {% set url = states.sensor.motion_base_url.state|string + picture %}
+              {% endif %}
+            {% endif %}
+          {% endif %}
+        {% endif %}
+        {% if url is defined and url|length and url != 'none' and url != 'unknown' %}
+          {{ url }}
+        {% else %}
+          {{ states.sensor.motion_base_url.state + '/local/images/test-signal.jpg' }}
+        {% endif %}
 
 ## history_stats
 
