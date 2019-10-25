@@ -1,0 +1,518 @@
+###
+### YOLO2MSGHUB SENSOR
+###
+
+- platform: mqtt
+  name: yolo2msghub_event
+  state_topic: 'yolo2msghub'
+  force_update: true
+  expire_after: 1
+  json_attributes:
+    - yolo2msghub
+  value_template: >
+    {%- if value_json is defined -%}true{%- else -%}false{%- endif -%}
+- platform: template
+  sensors:
+    ## counting
+    yolo2msghub_event_count:
+      entity_id:
+        - counter.yolo2msghub_event_counter
+      unit_of_measurement: count
+      value_template: >
+        {% if states.counter.yolo2msghub_event_counter is defined %}
+          {{ states.counter.yolo2msghub_event_counter.state|int }}
+        {%- else -%}null{%- endif -%}
+    ## timing
+    yolo2msghub_event_ago:
+      entity_id:
+        - sensor.yolo2msghub_event
+        - sun.sun
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.yolo2msghub_event.attributes is defined %}
+          {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub is defined %}
+            {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.date is defined %}
+              {{ (now().timestamp()|int) - (states.sensor.yolo2msghub_event.attributes.yolo2msghub.date|int) }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+    yolo2msghub_event_when:
+      entity_id:
+        - sensor.yolo2msghub_event
+      value_template: >
+        {% if states.sensor.yolo2msghub_event.attributes is defined %}
+          {% if states.sensor.yolo2msghub_event.attributes.date is defined %}
+            {{ states.sensor.yolo2msghub_event.attributes.date|int|timestamp_custom("%a %b %d ~ %I:%M %p") }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+    ## mean ago
+    yolo2msghub_event_ago_mean:
+      entity_id:
+        - sensor.yolo2msghub_event_ago_statistics
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.yolo2msghub_event_ago_statistics is defined %}
+          {{ states.sensor.yolo2msghub_event_ago_statistics.state }}
+        {%- else -%}null{%- endif -%}
+    yolo2msghub_event_ago_min_value:
+      entity_id:
+        - sensor.yolo2msghub_event
+        - sensor.yolo2msghub_event_ago_statistics
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.yolo2msghub_event_ago_statistics is defined %}
+          {% if states.sensor.yolo2msghub_event.attributes is defined %}
+            {{ states.sensor.yolo2msghub_event_ago_statistics.attributes.min_value }}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+    yolo2msghub_event_ago_max_value:
+      entity_id:
+        - sensor.yolo2msghub_event
+        - sensor.yolo2msghub_event_ago_statistics
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.yolo2msghub_event_ago_statistics is defined %}
+          {% if states.sensor.yolo2msghub_event.attributes is defined %}
+            {{ states.sensor.yolo2msghub_event_ago_statistics.attributes.max_value }}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+    ## status
+    yolo2msghub_event_status:
+      entity_id:
+        - sensor.yolo2msghub_event
+      value_template: >-
+        {% if states.sensor.yolo2msghub_event is defined %}
+          {% if states.sensor.yolo2msghub_event.attributes is defined %}
+            {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub is defined %}
+              {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|length %}
+                From {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).id }}
+              {% else %} null {% endif %}
+            {% else %} null {% endif %}
+          {% else %} null {% endif %}
+        {% else %} null {% endif %}
+## statistics
+- platform: history_stats
+  name: yolo2msghub_event_history
+  entity_id: sensor.yolo2msghub_event_state
+  state: true
+  type: count
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+- platform: statistics
+  name: yolo2msghub_event_count_statistics
+  entity_id: sensor.yolo2msghub_event_count
+  sampling_size: 100
+  max_age:
+    hours: 2
+- platform: statistics
+  name: yolo2msghub_event_ago_statistics
+  entity_id: sensor.yolo2msghub_event_ago
+  sampling_size: 100
+  max_age:
+    hours: 2
+## attributes
+- platform: template
+  sensors:
+    yolo2msghub_event_date:
+      entity_id:
+        - sensor.yolo2msghub_event
+      value_template: >
+          {% if states.sensor.yolo2msghub_event.attributes is defined %}
+            {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub is defined %}
+              {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.date is defined %}
+                {{ states.sensor.yolo2msghub_event.attributes.yolo2msghub.date|int }}
+              {% else %} null {% endif %}
+            {% else %} null {% endif %}
+          {% else %} null {% endif %}
+    yolo2msghub_event_timestamp:
+      entity_id:
+        - sensor.yolo2msghub_event
+      value_template: >-
+          {% if states.sensor.yolo2msghub_event.attributes is defined %}
+            {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub is defined %}
+              {{ states.sensor.yolo2msghub_event.attributes.yolo2msghub.timestamp }}
+            {% else %} null {% endif %}
+          {% else %} null {% endif %}
+    ## calculators
+    yolo2msghub_event_client_count:
+      entity_id:
+        - sensor.yolo2msghub_event
+      unit_of_measurement: count
+      value_template: >
+          {% if states.sensor.yolo2msghub_event.attributes is defined %}
+            {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub is defined %}
+              {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|length %}
+                {{ states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|length }}
+              {%- else -%}null{%- endif -%}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+    ## latest activity details
+    yolo2msghub_latest_id:
+      entity_id:
+        - sensor.yolo2msghub_event
+      value_template: >
+        {% if states.sensor.yolo2msghub_event.attributes is defined %}
+          {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub is defined %}
+            {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|length %}
+              {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).id }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+    yolo2msghub_latest_entity:
+      entity_id:
+        - sensor.yolo2msghub_event
+      value_template: >
+        {% if states.sensor.yolo2msghub_event.attributes is defined %}
+          {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub is defined %}
+            {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|length %}
+              {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).entity }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+    yolo2msghub_latest_date:
+      entity_id:
+        - sensor.yolo2msghub_event
+      value_template: >
+        {% if states.sensor.yolo2msghub_event.attributes is defined %}
+          {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub is defined %}
+            {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|length %}
+              {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).date }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+    yolo2msghub_latest_timestamp:
+      entity_id:
+        - sensor.yolo2msghub_event
+      value_template: >
+        {% if states.sensor.yolo2msghub_event.attributes is defined %}
+          {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub is defined %}
+            {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|length %}
+              {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).date | int | timestamp_custom("%a %b %d %I:%M %p") }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+    yolo2msghub_latest_count:
+      entity_id:
+        - sensor.yolo2msghub_event
+      value_template: >
+        {% if states.sensor.yolo2msghub_event.attributes is defined %}
+          {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub is defined %}
+            {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|length %}
+              {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).count }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+    yolo2msghub_latest_first:
+      entity_id:
+        - sensor.yolo2msghub_event
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.yolo2msghub_event.attributes is defined %}
+          {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub is defined %}
+            {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|length %}
+              {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).first }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+    yolo2msghub_latest_last:
+      entity_id:
+        - sensor.yolo2msghub_event
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.yolo2msghub_event.attributes is defined %}
+          {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub is defined %}
+            {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|length %}
+              {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).last }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+    yolo2msghub_latest_interval:
+      entity_id:
+        - sensor.yolo2msghub_event
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity is defined %}
+          {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub is defined %}
+            {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|length %}
+              {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).interval }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+    yolo2msghub_latest_ago:
+      entity_id:
+        - sensor.yolo2msghub_event
+        - sun.sun
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity is defined %}
+          {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub is defined %}
+            {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|length %}
+              {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).ago }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+    yolo2msghub_latest_average:
+      entity_id:
+        - sensor.yolo2msghub_event
+      unit_of_measurement: count
+      value_template: >
+        {% if states.sensor.yolo2msghub_event.attributes is defined %}
+          {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub is defined %}
+            {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|length %}
+              {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).average }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+    ## download speed from wan
+    yolo2msghub_latest_download:
+      entity_id:
+        - sensor.yolo2msghub_event
+      unit_of_measurement: Mbps
+      value_template: >
+        {% if states.sensor.yolo2msghub_event.attributes is defined %}
+          {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub is defined %}
+            {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|length %}
+              {{ '%0.2f' | format( (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).download|float / 1000000.0) }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+    ## download speed from cpu
+    yolo2msghub_latest_percent:
+      entity_id:
+        - sensor.yolo2msghub_event
+      unit_of_measurement: '%'
+      value_template: >
+        {% if states.sensor.yolo2msghub_event.attributes is defined %}
+          {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub is defined %}
+            {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|length %}
+              {{ '%0.2f' | format((states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).percent) }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+    ## product from hal
+    yolo2msghub_latest_product:
+      entity_id:
+        - sensor.yolo2msghub_event
+      value_template: >
+        {% if states.sensor.yolo2msghub_event.attributes is defined %}
+          {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub is defined %}
+            {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|length %}
+              {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).product }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+    yolo2msghub_latest_product_type:
+      entity_id:
+        - sensor.yolo2msghub_latest_product
+      value_template: >
+        {% if states.sensor.yolo2msghub_latest_product is defined %}
+          {% if "Raspberry Pi 3 Model B Plus" in states.sensor.yolo2msghub_latest_product.state %}
+            {{ 'raspberrypi-3bp' }}
+          {% elif "Raspberry Pi 3 Model B" in states.sensor.yolo2msghub_latest_product.state %}
+            {{ 'raspberrypi-3b' }}
+          {% elif "jetson-nano" in states.sensor.yolo2msghub_latest_product.state %}
+            {{ 'jetson-nano' }}
+          {% elif "quill" in states.sensor.yolo2msghub_latest_product.state %}
+            {{ 'jetson-tx2' }}
+          {% elif "VirtualBox" in states.sensor.yolo2msghub_latest_product.state %}
+            {{ 'virtualbox' }}
+          {% elif "HVM" in states.sensor.yolo2msghub_latest_product.state %}
+            {{ 'cloudvm' }}
+          {% else %}
+            {{ 'other' }}
+          {% endif %}
+        {%- else -%}null{%- endif -%}
+
+    ## items from yolo
+    yolo2msghub_latest_mock:
+      entity_id:
+        - sensor.yolo2msghub_event
+      value_template: >
+        {% if states.sensor.yolo2msghub_event.attributes is defined %}
+          {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub is defined %}
+            {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|length %}
+              {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).mock }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}0{%- endif -%}
+        {%- else -%}null{%- endif -%}
+    yolo2msghub_latest_seen:
+      entity_id:
+        - sensor.yolo2msghub_event
+      unit_of_measurement: count
+      value_template: >
+        {% if states.sensor.yolo2msghub_event.attributes is defined %}
+          {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub is defined %}
+            {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|length %}
+              {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).seen }}
+            {%- else -%}0{%- endif -%}
+          {%- else -%}0{%- endif -%}
+        {%- else -%}0{%- endif -%}
+
+    ## any activity count
+    yolo2msghub_event_client_count_mean:
+      entity_id:
+        - sensor.yolo2msghub_event
+        - sensor.yolo2msghub_event_client_count_statistics
+      unit_of_measurement: count
+      value_template: >
+        {% if states.sensor.yolo2msghub_event_client_count_statistics is defined %}
+          {{ states.sensor.yolo2msghub_event_client_count_statistics.state }}
+        {%- else -%}null{%- endif -%}
+    yolo2msghub_event_client_count_min_value:
+      entity_id:
+        - sensor.yolo2msghub_event
+        - sensor.yolo2msghub_event_client_count_statistics
+      unit_of_measurement: count
+      value_template: >
+        {% if states.sensor.yolo2msghub_event_client_count_statistics is defined %}
+          {{ states.sensor.yolo2msghub_event_client_count_statistics.attributes.min_value }}
+        {%- else -%}null{%- endif -%}
+    yolo2msghub_event_client_count_max_value:
+      entity_id:
+        - sensor.yolo2msghub_event
+        - sensor.yolo2msghub_event_client_count_statistics
+      unit_of_measurement: count
+      value_template: >
+        {% if states.sensor.yolo2msghub_event_client_count_statistics is defined %}
+          {{ states.sensor.yolo2msghub_event_client_count_statistics.attributes.max_value }}
+        {%- else -%}null{%- endif -%}
+    yolo2msghub_event_client_count_stdev:
+      entity_id:
+        - sensor.yolo2msghub_event
+        - sensor.yolo2msghub_event_client_count_statistics
+      unit_of_measurement: count
+      value_template: >
+        {% if states.sensor.yolo2msghub_event_client_count_statistics is defined %}
+          {{ states.sensor.yolo2msghub_event_client_count_statistics.attributes.standard_deviation }}
+        {%- else -%}null{%- endif -%}
+    ## entity detected
+    yolo2msghub_entity_detected_mean:
+      entity_id:
+        - sensor.yolo2msghub_event
+        - sensor.yolo2msghub_entity_detected_statistics
+      unit_of_measurement: count
+      value_template: >
+        {% if states.sensor.yolo2msghub_entity_detected_statistics is defined %}
+          {{ states.sensor.yolo2msghub_entity_detected_statistics.state }}
+        {%- else -%}null{%- endif -%}
+    yolo2msghub_entity_detected_min_value:
+      entity_id:
+        - sensor.yolo2msghub_event
+        - sensor.yolo2msghub_entity_detected_statistics
+      unit_of_measurement: count
+      value_template: >
+        {% if states.sensor.yolo2msghub_entity_detected_statistics is defined %}
+          {{ states.sensor.yolo2msghub_entity_detected_statistics.attributes.min_value }}
+        {%- else -%}null{%- endif -%}
+    yolo2msghub_entity_detected_max_value:
+      entity_id:
+        - sensor.yolo2msghub_event
+        - sensor.yolo2msghub_entity_detected_statistics
+      unit_of_measurement: count
+      value_template: >
+        {% if states.sensor.yolo2msghub_entity_detected_statistics is defined %}
+          {{ states.sensor.yolo2msghub_entity_detected_statistics.attributes.max_value }}
+        {%- else -%}null{%- endif -%}
+    yolo2msghub_entity_detected_stdev:
+      entity_id:
+        - sensor.yolo2msghub_event
+        - sensor.yolo2msghub_entity_detected_statistics
+      unit_of_measurement: count
+      value_template: >
+        {% if states.sensor.yolo2msghub_entity_detected_statistics is defined %}
+          {% if states.sensor.yolo2msghub_entity_detected_statistics.attributes.standard_deviation != 'unknown' %}
+            {{ states.sensor.yolo2msghub_entity_detected_statistics.attributes.standard_deviation }}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+
+# client count
+- platform: statistics
+  name: yolo2msghub_event_client_count_stdev_statistics
+  entity_id: sensor.yolo2msghub_event_client_count_stdev
+  sampling_size: 100
+  max_age:
+    hours: 2
+- platform: statistics
+  name: yolo2msghub_event_client_count_statistics
+  entity_id: sensor.yolo2msghub_event_client_count
+  sampling_size: 100
+  max_age:
+    hours: 2
+# client download
+- platform: statistics
+  name: yolo2msghub_entity_download_statistics
+  entity_id: sensor.yolo2msghub_latest_download
+  sampling_size: 100
+  max_age:
+    hours: 2
+# client seen
+- platform: statistics
+  name: yolo2msghub_entity_detected_statistics
+  entity_id: sensor.yolo2msghub_latest_seen
+  sampling_size: 100
+  max_age:
+    hours: 2
+# client detected
+- platform: statistics
+  name: yolo2msghub_entity_detected_stdev_statistics
+  entity_id: sensor.yolo2msghub_entity_detected_stdev
+  sampling_size: 100
+  max_age:
+    hours: 2
+- platform: history_stats
+  name: yolo2msghub_entity_detected
+  entity_id: binary_sensor.yolo2msghub_entity_detected
+  state: on
+  type: count
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+## history of HAL product type
+- platform: history_stats
+  name: yolo2msghub_product_ratio_rpi3bp
+  entity_id: sensor.yolo2msghub_latest_product_type
+  state: 'raspberrypi-3bp'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+- platform: history_stats
+  name: yolo2msghub_product_ratio_rpi3b
+  entity_id: sensor.yolo2msghub_latest_product_type
+  state: 'raspberrypi-3b'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+- platform: history_stats
+  name: yolo2msghub_product_ratio_nano
+  entity_id: sensor.yolo2msghub_latest_product_type
+  state: 'jetson-nano'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+- platform: history_stats
+  name: yolo2msghub_product_ratio_tx2
+  entity_id: sensor.yolo2msghub_latest_product_type
+  state: 'jetson-tx2'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+- platform: history_stats
+  name: yolo2msghub_product_ratio_virtualbox
+  entity_id: sensor.yolo2msghub_latest_product_type
+  state: 'virtualbox'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+- platform: history_stats
+  name: yolo2msghub_product_ratio_cloudvm
+  entity_id: sensor.yolo2msghub_latest_product_type
+  state: 'cloudvm'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+- platform: history_stats
+  name: yolo2msghub_product_ratio_other
+  entity_id: sensor.yolo2msghub_latest_product_type
+  state: 'other'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'

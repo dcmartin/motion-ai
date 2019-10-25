@@ -223,10 +223,10 @@
   condition:
     - condition: template
       value_template: >
-        {{ states.binary_sensor.motion_state.state == 'on' }}
+        {{ states.binary_sensor.motion_end_state.state == 'on' }}
   action:
     - service: counter.increment
-      entity_id: counter.motion_counter
+      entity_id: counter.motion_end_counter
 
 - id: motion_annotated_counter
   alias: motion_annotated_counter
@@ -270,33 +270,37 @@
     - service: counter.increment
       entity_id: counter.motion_detected_entity_counter
 
+###
 ## notifications
+###
 
-# event end
-- id: motion_event_end_notify
-  alias: 'motion_event_end_notify'
+## detected_entity
+- id: motion_notify_detected_entity
+  alias: motion_notify_detected_entity
   initial_state: 'on'
   trigger:
-    platform: state
-    entity_id: sensor.motion_event_end
+    - platform: state
+      entity_id: binary_sensor.motion_detected_entity
+    - platform: state
+      entity_id: input_boolean.motion_notify_detected_entity
   condition:
     condition: template
     value_template: >
-      {{ is_state('input_boolean.motion_event_notify','on') and states.sensor.motion_event_end.state }}
+      {{ is_state('input_boolean.motion_notity_detected_entity','on') and is_state('binary_sensor.motion_detected_entity','on') }}
   action:
     - service: persistent_notification.create
       data_template:
         title: >
-          Motion {{ states.sensor.motion_event_end.attributes.camera }} camera
+          Detected entity {{ states.sensor.motion_detect_entity.state }} on {{ states.sensor.motion_detected_entity_camera.state }} camera
         notification_id: >
-          {{ states.sensor.motion_event_end.attributes.device }}
+          {{- states.sensor.motion_event_end.attributes.device -}}-detected_entity
         message: >-
           Detected {{ states.sensor.motion_event_end.attributes.elapsed }} seconds ({{ states.sensor.motion_event_end.attributes.images|length }} frames) on
           {{ states.sensor.motion_event_end.attributes.start|int|timestamp_custom("%a %b %d @ %I:%M %p") | default(null) }}
 
 ## CAMERA STATUS NOTIFICATION
-- id: motion_camera_status_notify
-  alias: 'motion_camera_status_notify'
+- id: motion_notify_camera_status
+  alias: 'motion_notify_camera_status'
   initial_state: 'on'
   trigger:
     - platform: mqtt
@@ -304,7 +308,7 @@
   condition:
     condition: template
     value_template: >
-      {{ is_state('input_boolean.motion_status_notify','on') }}
+      {{ is_state('input_boolean.motion_notify_status','on') }}
   action:
     - service: persistent_notification.create
       data_template:
@@ -316,8 +320,8 @@
           Camera {{ trigger.payload_json.camera }} on device {{ trigger.payload_json.device }} {{ trigger.payload_json.status }} at
           {{ trigger.payload_json.time|int|timestamp_custom("%a %b %d @ %I:%M %p") | default(null) }}
 
-- id: motion_camera_network_status_notify
-  alias: 'motion_camera_network_status_notify'
+- id: motion_notify_camera_network_status
+  alias: 'motion_notify_camera_network_status'
   initial_state: 'on'
   trigger:
     - platform: state
@@ -328,7 +332,7 @@
     conditions:
       - condition: template
         value_template: >
-          {{ is_state('input_boolean.motion_status_notify','on') }}
+          {{ is_state('input_boolean.motion_notify_status','on') }}
       - condition: template
         value_template: >
           {{ (trigger.from_state != None) and ((trigger.from_state.state|lower) != "unknown") and (trigger.to_state.state != trigger.from_state.state) }}
