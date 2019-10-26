@@ -11,24 +11,20 @@ PACKAGES := motion
 #	startup \
 #	yolo2msghub 
 
-default: ${PACKAGES} run
+default: all run
 
-all: ${PACKAGES} run
+TARGETS := build all
 
-build: $(PACKAGES)
+${TARGETS}: makefile
+	for P in ${PACKAGES}; do ${MAKE} -C $${P} $@; done
 
-$(PACKAGES): makefile
-	${MAKE} -C $@ all
-
-run: build
+run:
 	docker start homeassistant
 
 stop:
 	docker stop homeassistant
 
-restart:
-	${MAKE} stop
-	${MAKE} all
+restart: stop all run
 
 logs:
 	docker logs -f homeassistant
@@ -36,15 +32,15 @@ logs:
 ## clean and clean and clean ..
 
 clean:
-	make -C motion clean
 	docker stop homeassistant
-	rm -fr home-assistant_v2.*
-	rm -fr home-assistant.log
+	make -C motion clean
 	rm -f .storage/core.restore_state
-	for i in $(sudo echo /var/lib/docker/containers/*/*.log); do sudo cp /dev/null "$${i}"; done
 
 realclean: clean
+	rm -fr home-assistant.log
+	rm -fr home-assistant_v2.*
 	rm -fr .storage
+	for i in $(sudo echo /var/lib/docker/containers/*/*.log); do sudo cp /dev/null "$${i}"; done
 
 distclean: realclean
 	rm -fr .uuid .HA_VERSION .cloud deps tts
