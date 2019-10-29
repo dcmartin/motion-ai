@@ -14,7 +14,7 @@
 
 # history
 - platform: history_stats
-  name: yolo2msghub_event_history
+  name: yolo2msghub_history
   entity_id: sensor.yolo2msghub_event
   state: true
   type: count
@@ -24,35 +24,36 @@
 - platform: template
   sensors:
     ## human readable
-    yolo2msghub_event_status:
+    yolo2msghub_status:
       entity_id:
         - sensor.yolo2msghub_event
+        - sensor.yolo2msghub_when
       value_template: >-
-        {% if states.sensor.yolo2msghub_event is defined %}
-          {% if states.sensor.yolo2msghub_event.attributes is defined %}
-            {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub is defined %}
-              {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|length > 0 %}
-                From {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).id }}
-              {% else %} null {% endif %}
-            {% else %} null {% endif %}
-          {% else %} null {% endif %}
+        {% if states.sensor.yolo2msghub_event is defined
+              and states.sensor.yolo2msghub_event.attributes is defined
+              and states.sensor.yolo2msghub_event.attributes.yolo2msghub is defined
+              and states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity is defined
+              and states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first is defined %}
+          From {{ (states.sensor.yolo2msghub_event.attributes.yolo2msghub.activity|first).id }}
+          at {{ states.sensor.yolo2msghub_when.state }}
         {% else %} null {% endif %}
 
 ## counting
 - platform: template
   sensors:
-    yolo2msghub_event_count:
+    yolo2msghub_counter:
       entity_id:
-        - counter.yolo2msghub_event_counter
+        - counter.yolo2msghub_counter
       unit_of_measurement: count
       value_template: >
-        {% if states.counter.yolo2msghub_event_counter is defined %}
-          {{ states.counter.yolo2msghub_event_counter.state|int }}
+        {% if states.counter.yolo2msghub_counter is defined %}
+          {{ states.counter.yolo2msghub_counter.state|int }}
         {%- else -%}null{%- endif -%}
+
 # statistics
 - platform: statistics
-  name: yolo2msghub_event_count_statistics
-  entity_id: sensor.yolo2msghub_event_count
+  name: yolo2msghub_count_statistics
+  entity_id: sensor.yolo2msghub_counter
   sampling_size: 100
   max_age:
     hours: 2
@@ -60,78 +61,79 @@
 ## timing
 - platform: template
   sensors:
-    yolo2msghub_event_date:
+    yolo2msghub_date:
       entity_id:
         - sensor.yolo2msghub_event
-        - sun.sun
       unit_of_measurement: seconds
       value_template: >
-        {% if states.sensor.yolo2msghub_event.attributes is defined %}
-          {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub is defined %}
-            {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.date|int is number %}
-              {{ states.sensor.yolo2msghub_event.attributes.yolo2msghub.date|int }}
-            {%- else -%}null{%- endif -%}
-          {%- else -%}null{%- endif -%}
+        {% if states.sensor.yolo2msghub_event.attributes is defined
+              and states.sensor.yolo2msghub_event.attributes.yolo2msghub is defined
+              and states.sensor.yolo2msghub_event.attributes.yolo2msghub.date|int is number 
+              and states.sensor.yolo2msghub_event.attributes.yolo2msghub.date|int is number
+              and states.sensor.yolo2msghub_event.attributes.yolo2msghub.date|int > 0 %}
+          {{ states.sensor.yolo2msghub_event.attributes.yolo2msghub.date|int }}
         {%- else -%}null{%- endif -%}
-    yolo2msghub_event_ago:
+    yolo2msghub_when:
       entity_id:
-        - sensor.yolo2msghub_event
-        - sun.sun
-      unit_of_measurement: seconds
+        - sensor.yolo2msghub_date
       value_template: >
-        {% if states.sensor.yolo2msghub_event.attributes is defined %}
-          {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub is defined %}
-            {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.date is defined %}
-              {{ (now().timestamp()|int) - (states.sensor.yolo2msghub_event.attributes.yolo2msghub.date|int) }}
-            {%- else -%}null{%- endif -%}
-          {%- else -%}null{%- endif -%}
-        {%- else -%}null{%- endif -%}
-    yolo2msghub_event_when:
-      entity_id:
-        - sensor.yolo2msghub_event
-      value_template: >
-        {% if states.sensor.yolo2msghub_event.attributes is defined %}
-          {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub is defined %}
-            {% if states.sensor.yolo2msghub_event.attributes.yolo2msghub.date is defined %}
-              {{ states.sensor.yolo2msghub_event.attributes.yolo2msghub.date|int|timestamp_custom("%a %b %d ~ %I:%M %p") }}
-            {% else %}null{% endif %}
-          {% else %}null{% endif %}
+        {% if states.sensor.yolo2msghub_date is defined
+              and states.sensor.yolo2msghub_date.state is defined
+              and states.sensor.yolo2msghub_date.state|int is number 
+              and states.sensor.yolo2msghub_date.state|int > 0 %}
+          {{ states.sensor.yolo2msghub_date.state|int|timestamp_custom("%a %b %d ~ %I:%M %p") }}
         {% else %}null{% endif %}
-    ## mean ago
-    yolo2msghub_event_ago_mean:
+
+## ago
+- platform: template
+  sensors:
+    yolo2msghub_ago:
       entity_id:
-        - sensor.yolo2msghub_event_ago_statistics
+        - sensor.yolo2msghub_date
+        - sun.sun
       unit_of_measurement: seconds
       value_template: >
-        {% if states.sensor.yolo2msghub_event_ago_statistics is defined %}
-          {{ states.sensor.yolo2msghub_event_ago_statistics.state }}
+        {% if states.sensor.yolo2msghub_date is defined
+              and states.sensor.yolo2msghub_date.state is defined
+              and states.sensor.yolo2msghub_date.state|int is number 
+              and states.sensor.yolo2msghub_date.state|int > 0 %}
+          {{ (now().timestamp()|int) - (states.sensor.yolo2msghub_date.state|int) }}
         {%- else -%}null{%- endif -%}
-    yolo2msghub_event_ago_min_value:
+    # statistics
+    yolo2msghub_ago_mean:
+      entity_id:
+        - sensor.yolo2msghub_ago_statistics
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.yolo2msghub_ago_statistics is defined %}
+          {{ states.sensor.yolo2msghub_ago_statistics.state }}
+        {%- else -%}null{%- endif -%}
+    yolo2msghub_ago_min_value:
       entity_id:
         - sensor.yolo2msghub_event
-        - sensor.yolo2msghub_event_ago_statistics
+        - sensor.yolo2msghub_ago_statistics
       unit_of_measurement: seconds
       value_template: >
-        {% if states.sensor.yolo2msghub_event_ago_statistics is defined %}
+        {% if states.sensor.yolo2msghub_ago_statistics is defined %}
           {% if states.sensor.yolo2msghub_event.attributes is defined %}
-            {{ states.sensor.yolo2msghub_event_ago_statistics.attributes.min_value }}
+            {{ states.sensor.yolo2msghub_ago_statistics.attributes.min_value }}
           {%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif -%}
-    yolo2msghub_event_ago_max_value:
+    yolo2msghub_ago_max_value:
       entity_id:
         - sensor.yolo2msghub_event
-        - sensor.yolo2msghub_event_ago_statistics
+        - sensor.yolo2msghub_ago_statistics
       unit_of_measurement: seconds
       value_template: >
-        {% if states.sensor.yolo2msghub_event_ago_statistics is defined %}
+        {% if states.sensor.yolo2msghub_ago_statistics is defined %}
           {% if states.sensor.yolo2msghub_event.attributes is defined %}
-            {{ states.sensor.yolo2msghub_event_ago_statistics.attributes.max_value }}
+            {{ states.sensor.yolo2msghub_ago_statistics.attributes.max_value }}
           {%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif -%}
 # statistics
 - platform: statistics
-  name: yolo2msghub_event_ago_statistics
-  entity_id: sensor.yolo2msghub_event_ago
+  name: yolo2msghub_ago_statistics
+  entity_id: sensor.yolo2msghub_ago
   sampling_size: 100
   max_age:
     hours: 2
@@ -139,7 +141,7 @@
 ## attributes
 - platform: template
   sensors:
-    yolo2msghub_event_timestamp:
+    yolo2msghub_timestamp:
       entity_id:
         - sensor.yolo2msghub_event
       value_template: >-
@@ -351,7 +353,7 @@
         {%- else -%}0{%- endif -%}
 
     ## client_count
-    yolo2msghub_event_client_count:
+    yolo2msghub_client_count:
       entity_id:
         - sensor.yolo2msghub_event
       unit_of_measurement: count
@@ -364,41 +366,41 @@
             {%- else -%}null{%- endif -%}
           {%- else -%}null{%- endif -%}
     # statistics
-    yolo2msghub_event_client_count_mean:
+    yolo2msghub_client_count_mean:
       entity_id:
         - sensor.yolo2msghub_event
-        - sensor.yolo2msghub_event_client_count_statistics
+        - sensor.yolo2msghub_client_count_statistics
       unit_of_measurement: count
       value_template: >
-        {% if states.sensor.yolo2msghub_event_client_count_statistics is defined %}
-          {{ states.sensor.yolo2msghub_event_client_count_statistics.state }}
+        {% if states.sensor.yolo2msghub_client_count_statistics is defined %}
+          {{ states.sensor.yolo2msghub_client_count_statistics.state }}
         {%- else -%}null{%- endif -%}
-    yolo2msghub_event_client_count_min_value:
+    yolo2msghub_client_count_min_value:
       entity_id:
         - sensor.yolo2msghub_event
-        - sensor.yolo2msghub_event_client_count_statistics
+        - sensor.yolo2msghub_client_count_statistics
       unit_of_measurement: count
       value_template: >
-        {% if states.sensor.yolo2msghub_event_client_count_statistics is defined %}
-          {{ states.sensor.yolo2msghub_event_client_count_statistics.attributes.min_value }}
+        {% if states.sensor.yolo2msghub_client_count_statistics is defined %}
+          {{ states.sensor.yolo2msghub_client_count_statistics.attributes.min_value }}
         {%- else -%}null{%- endif -%}
-    yolo2msghub_event_client_count_max_value:
+    yolo2msghub_client_count_max_value:
       entity_id:
         - sensor.yolo2msghub_event
-        - sensor.yolo2msghub_event_client_count_statistics
+        - sensor.yolo2msghub_client_count_statistics
       unit_of_measurement: count
       value_template: >
-        {% if states.sensor.yolo2msghub_event_client_count_statistics is defined %}
-          {{ states.sensor.yolo2msghub_event_client_count_statistics.attributes.max_value }}
+        {% if states.sensor.yolo2msghub_client_count_statistics is defined %}
+          {{ states.sensor.yolo2msghub_client_count_statistics.attributes.max_value }}
         {%- else -%}null{%- endif -%}
-    yolo2msghub_event_client_count_stdev:
+    yolo2msghub_client_count_stdev:
       entity_id:
         - sensor.yolo2msghub_event
-        - sensor.yolo2msghub_event_client_count_statistics
+        - sensor.yolo2msghub_client_count_statistics
       unit_of_measurement: count
       value_template: >
-        {% if states.sensor.yolo2msghub_event_client_count_statistics is defined %}
-          {{ states.sensor.yolo2msghub_event_client_count_statistics.attributes.standard_deviation }}
+        {% if states.sensor.yolo2msghub_client_count_statistics is defined %}
+          {{ states.sensor.yolo2msghub_client_count_statistics.attributes.standard_deviation }}
         {%- else -%}null{%- endif -%}
 
     ## entity detected
@@ -443,14 +445,14 @@
 
 # client count
 - platform: statistics
-  name: yolo2msghub_event_client_count_stdev_statistics
-  entity_id: sensor.yolo2msghub_event_client_count_stdev
+  name: yolo2msghub_client_count_stdev_statistics
+  entity_id: sensor.yolo2msghub_client_count_stdev
   sampling_size: 100
   max_age:
     hours: 2
 - platform: statistics
-  name: yolo2msghub_event_client_count_statistics
-  entity_id: sensor.yolo2msghub_event_client_count
+  name: yolo2msghub_client_count_statistics
+  entity_id: sensor.yolo2msghub_client_count
   sampling_size: 100
   max_age:
     hours: 2

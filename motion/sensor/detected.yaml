@@ -5,33 +5,39 @@
 ## annotations that detected entity(s)
 - platform: template
   sensors:
+
     ## human readable status
     motion_detected_status:
       entity_id:
-        - sensor.motion_detected_date
+        - sensor.motion_detected_when
+        - sensor.motion_detected_count
+        - sensor.motion_detected_camera
+        - sensor.motion_detected_device
       value_template: >-
         Detected
-        {% if states.sensor.motion_detected_count is defined and states.sensor.motion_detected_count.state|int > 0 %}
-            {{ states.sensor.motion_detected_count.state }}
-        {% else %}zero{% endif %}
-        entity(s); from {{ states.sensor.motion_detected_device.state -}}/{{- states.sensor.motion_detected_camera.state }}
+        {% if states.sensor.motion_detected_count is defined and states.sensor.motion_detected_count.state|int is number %}
+            {{ states.sensor.motion_detected_count.state }} entities
+        {% else %} nothing {% endif %}
+        from {{ states.sensor.motion_detected_device.state -}}/{{- states.sensor.motion_detected_camera.state }}
         at {{ states.sensor.motiion_detected_when.state }}
 
     ## timing
     motion_detected_date:
       entity_id:
-        - binary_sensor.motion_detected
+        - sensor.motion_detected_counter
       unit_of_measurement: seconds
       value_template: >-
-        {% if states.binary_sensor.motion_detected.state == 'on' %}
           {% if states.sensor.motion_event_annotated is defined
-              and states.sensor.motion_event_annotated.attributes is defined
-              and states.sensor.motion_event_annotated.attributes.event is defined
-              and states.sensor.motion_event_annotated.attributes.event.end is defined
-              and states.sensor.motion_event_annotated.attributes.event.end|int is number
-              and states.sensor.motion_event_annotated.attributes.event.end|int > 0 %}
+                and states.sensor.motion_event_annotated.attributes is defined
+                and states.sensor.motion_event_annotated.attributes.count is defined
+                and states.sensor.motion_event_annotated.attributes.count|int is number
+                and states.sensor.motion_event_annotated.attributes.count|int > 0
+                and states.sensor.motion_event_annotated.attributes.event is defined
+                and states.sensor.motion_event_annotated.attributes.event.end is defined
+                and states.sensor.motion_event_annotated.attributes.event.end|int is number
+                and states.sensor.motion_event_annotated.attributes.event.end|int > 0 %}
+            {{ states.sensor.motion_event_annotated.attributes.event.end|int }}
           {% else %}null{% endif %}
-        {% else %}{{ states.sensor.motion_detected_date }}{% endif %}
     # human readable
     motion_detected_when:
       entity_id:
@@ -52,14 +58,13 @@
         - sun.sun
       unit_of_measurement: seconds
       value_template: >
-        {% if states.sensor.motion_detected_date is defined %}
-          {% if states.sensor.motion_detected_date.state|int is number %}
-            {% if states.sensor.motion_detected_date.state|int > 0 %}
-              {{ (now().timestamp()|int) - (states.sensor.motion_detected_date.state|int) }}
-            {%- else -%}null{%- endif -%}
-          {%- else -%}null{%- endif -%}
+        {% if states.sensor.motion_detected_date is defined
+              and states.sensor.motion_detected_date.state is defined
+              and states.sensor.motion_detected_date.state|int is number
+              and states.sensor.motion_detected_date.state|int > 0 %}
+          {{ (now().timestamp()|int) - (states.sensor.motion_detected_date.state|int) }}
         {%- else -%}null{%- endif -%}
-    # derived ago
+    # statistics
     motion_detected_ago_mean:
       entity_id:
         - sensor.motion_detected_ago_statistics
@@ -106,7 +111,7 @@
     ## elapsed
     motion_detected_elapsed:
       entity_id:
-        - sensor.motion_detected_date
+        - sensor.motion_detected_counter
       unit_of_measurement: seconds
       value_template: >
         {% if states.sensor.motion_event_annotated is defined %}
@@ -158,10 +163,10 @@
           {{ states.sensor.motion_detected_elapsed_statistics.attributes.change_rate|float }}
         {%- else -%}null{%- endif -%}
 
-    # count of detected events
+    ## counter of detected events
     motion_detected_counter:
       entity_id:
-        - counter.motion_detected_date
+        - counter.motion_detected_counter
       unit_of_measurement: count
       value_template: >
         {% if states.counter.motion_detected_counter is defined %}
@@ -209,18 +214,22 @@
           {{ states.sensor.motion_detected_counter_statistics.attributes.change_rate|float }}
         {%- else -%}null{%- endif -%}
 
-    # percent of motion events which were detected
+    ## percent of annotated detecting entity
     motion_detected_percent:
       entity_id:
         - sensor.motion_detected_counter
         - sensor.motion_annotated_counter
       unit_of_measurement: '%'
       value_template: >-
-        {% if states.sensor.motion_detected_counter is defined and states.sensor.motion_detected_counter.state|int is number and 
-              states.sensor.motion_annotated_counter is defined and states.sensor.motion_annotated_counter.state|int > 0 %}
+        {% if states.sensor.motion_detected_counter is defined
+              and states.sensor.motion_detected_counter.state is defined
+              and states.sensor.motion_detected_counter.state|int is number
+              and states.sensor.motion_annotated_counter is defined 
+              and states.sensor.motion_annotated_counter.state is defined 
+              and states.sensor.motion_annotated_counter.state|int > 0 %}
           {{ ( states.sensor.motion_detected_counter.state|int / states.sensor.motion_annotated_counter.state|int ) * 100.0 }}
         {%- else -%}null{%- endif -%}
-    ## detected entity percent
+    # statistics
     motion_detected_percent_mean:
       entity_id:
         - sensor.motion_detected_percent_statistics
@@ -261,18 +270,19 @@
         {% if states.sensor.motion_detected_percent_statistics is defined %}
           {{ states.sensor.motion_detected_percent_statistics.attributes.change_rate|float }}
         {%- else -%}null{%- endif -%}
+
     ## detected entities
     motion_detected_count:
       entity_id:
-        - sensor.motion_event_annotated
+        - sensor.motion_detected_counter
       unit_of_measurement: entities
       value_template: >-
-        {% if states.sensor.motion_event_annotated is defined %}
-          {% if states.sensor.motion_event_annotated.attributes.count is defined %}
-            {{ states.sensor.motion_event_annotated.attributes.count|int }}
-          {% else %}null{% endif %}
+        {% if states.sensor.motion_event_annotated is defined 
+              and states.sensor.motion_event_annotated.attributes.count is defined
+              and states.sensor.motion_event_annotated.attributes.count|int is number %}
+          {{ states.sensor.motion_event_annotated.attributes.count|int }}
         {% else %}null{% endif %}
-    # derived motion detected entity count statistics
+    # statistics
     motion_detected_count_mean:
       entity_id:
         - sensor.motion_detected_count_statistics
@@ -337,7 +347,7 @@
           {% else %}null{% endif %}
     motion_detected_entity_list:
       entity_id:
-        - sensor.motion_annotated_detected
+        - sensor.motion_detected_counter
       value_template: >-
         {% if states.sensor.motion_event_annotated is defined
               and states.sensor.motion_event_annotated.attributes is defined
@@ -352,19 +362,15 @@
     # picture
     motion_detected_picture:
       entity_id:
-        - sensor.motion_detected_counter
+        - sensor.motion_detected_camera
         - sensor.motion_base_url
       value_template: >-
         {% if states.sensor.motion_detected_camera is defined and states.sensor.motion_detected_camera.state is defined %}
           {% set camera = states.sensor.motion_detected_camera.state %}
           {% if camera|length and camera|lower != 'none' and camera|lower != 'unknown' %}
             {% set picture = state_attr('camera.motion_annotated_' + camera, 'entity_picture') %}
-            {% if picture is defined and picture|lower != 'none' %}
-              {% if states.binary_sensor.motion_detected.state == 'on' %}
-                {% set url = states.sensor.motion_base_url.state|string + picture %}
-              {% else %}
-                {% set url = states.sensor.motion_base_url.state + '/local/images/no-signal.jpg' %}
-              {% endif %}
+            {% if picture is defined and picture|lower != 'none' and picture|lower != 'unknown' %}
+              {% set url = states.sensor.motion_base_url.state|string + picture %}
             {% endif %}
           {% endif %}
         {% endif %}
