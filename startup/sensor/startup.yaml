@@ -1,622 +1,677 @@
-  - platform: mqtt
-    qos: 1
-    name: startup_event
-    state_topic: 'startup'
-    force_update: true
-    expire_after: 1
-    json_attributes:
-      - startup
-    value_template: >
-      {%- if value_json is defined -%}true{%- else -%}false{%- endif -%}
-  - platform: template
-    sensors:
-      ## counting
-      startup_event_count:
-        entity_id:
-          - counter.startup_event_counter
-          - sensor.startup_event
-        unit_of_measurement: count
-        value_template: >
-          {% if states.counter.startup_event_counter is defined %}
-            {{ states.counter.startup_event_counter.state|int }}
+###
+### startup SENSOR
+###
+
+- platform: mqtt
+  qos: 1
+  name: startup_event
+  state_topic: 'startup'
+  force_update: true
+  expire_after: 1
+  json_attributes:
+    - startup
+  value_template: >
+    {%- if value_json is defined -%}true{%- else -%}false{%- endif -%}
+
+## status 
+- platform: template
+  sensors:
+    startup_status:
+      entity_id:
+        - sensor.startup_event
+      value_template: >-
+        {% if states.sensor.startup_event.attributes.startup.date is defined %}
+          From {{ states.sensor.startup_latest_id.state }}
+        {% else %} null {% endif %}
+
+## counting
+- platform: template
+  sensors:
+    startup_counter:
+      entity_id:
+        - counter.startup_counter
+        - sensor.startup_event
+      unit_of_measurement: count
+      value_template: >
+        {% if states.counter.startup_counter is defined %}
+          {{ states.counter.startup_counter.state|int }}
+        {%- else -%}null{%- endif -%}
+
+# counter
+- platform: statistics
+  name: startup_counter_statistics
+  entity_id: sensor.startup_counter
+  sampling_size: 100
+  max_age:
+    hours: 2
+
+## timestamp
+- platform: template
+  sensors:
+    startup_timestamp:
+      entity_id:
+        - sensor.startup_event
+      value_template: >-
+        {% if states.sensor.startup_event is defined and states.sensor.startup_event.attributes.startup is defined %}
+          {{ states.sensor.startup_event.attributes.startup.timestamp }}
+        {% else %} null {% endif %}
+
+## timing
+- platform: template
+  sensors:
+    startup_date:
+      entity_id:
+        - sensor.startup_event
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.startup_event is defined and states.sensor.startup_event.attributes.startup.date is defined %}
+          {{ states.sensor.startup_event.attributes.startup.date|int }}
+        {% else %} null {% endif %}
+    startup_when:
+      entity_id:
+        - sensor.startup_date
+      value_template: >
+        {% if states.sensor.startup_date.state is defined %}
+          {{ states.sensor.startup_date.state|int|timestamp_custom("%a %b %d ~ %I:%M %p") }}
+        {% else %}null{% endif %}
+
+## ago
+- platform: template
+  sensors:
+    startup_ago:
+      entity_id:
+        - sensor.startup_date
+        - sun.sun
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.startup_event.attributes.startup.date is defined %}
+          {{ (now().timestamp()|int) - (states.sensor.startup_event.attributes.startup.date|int) }}
+        {%- else -%}null{%- endif -%}
+    # mean ago
+    startup_ago_mean:
+      entity_id:
+        - sensor.startup_ago_statistics
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.startup_ago_statistics is defined %}
+          {{ states.sensor.startup_ago_statistics.state|float }}
+        {%- else -%}null{%- endif -%}
+    startup_ago_min_value:
+      entity_id:
+        - sensor.yolo2msghub_event
+        - sensor.startup_ago_statistics
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.startup_ago_statistics is defined %}
+          {{ states.sensor.startup_ago_statistics.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    startup_ago_max_value:
+      entity_id:
+        - sensor.yolo2msghub_event
+        - sensor.startup_ago_statistics
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.startup_ago_statistics is defined %}
+          {{ states.sensor.startup_ago_statistics.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+
+# ago
+- platform: statistics
+  name: startup_ago_statistics
+  entity_id: sensor.startup_ago
+  sampling_size: 100
+  max_age:
+    hours: 2
+
+## location
+- platform: template
+  sensors:
+    startup_latitude:
+      entity_id:
+        - sensor.startup_event
+      unit_of_measurement: degrees
+      value_template: >
+        {% if states.sensor.startup_event.attributes.startup.activity is defined %}
+          {{ (states.sensor.startup_event.attributes.startup.activity|first).latitude|float }}
+        {%- else -%}null{%- endif -%}
+    startup_longitude:
+      entity_id:
+        - sensor.startup_event
+      unit_of_measurement: degrees
+      value_template: >
+        {% if states.sensor.startup_event.attributes.startup.activity is defined %}
+          {{ (states.sensor.startup_event.attributes.startup.activity|first).longitude|float }}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    startup_period:
+      entity_id:
+        - sensor.startup_event
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.startup_event is defined and states.sensor.startup_event.attributes.startup.period is defined %}
+          {{ states.sensor.startup_event.attributes.startup.period }}
+        {% else %} null {% endif %}
+
+## latest activity details
+- platform: template
+  sensors:
+    startup_latest_id:
+      entity_id:
+        - sensor.startup_event
+      value_template: >
+        {% if states.sensor.startup_event.attributes.startup.activity is defined %}
+          {{ (states.sensor.startup_event.attributes.startup.activity|first).id }}
+        {%- else -%}null{%- endif -%}
+    startup_latest_date:
+      entity_id:
+        - sensor.startup_event
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.startup_event.attributes.startup.activity is defined %}
+          {{ (states.sensor.startup_event.attributes.startup.activity|first).date }}
+        {%- else -%}null{%- endif -%}
+    startup_latest_measurement:
+      entity_id:
+        - sensor.startup_event
+      unit_of_measurement: count
+      value_template: >
+        {% if states.sensor.startup_event.attributes.startup.activity is defined %}
+          {{ (states.sensor.startup_event.attributes.startup.activity|first).count }}
+        {%- else -%}null{%- endif -%}
+    startup_latest_interval:
+      entity_id:
+        - sensor.startup_event
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.startup_event.attributes.startup.activity is defined %}
+          {{ (states.sensor.startup_event.attributes.startup.activity|first).interval }}
+        {%- else -%}null{%- endif -%}
+    startup_latest_timestamp:
+      entity_id:
+        - sensor.startup_event
+      value_template: >
+        {% if states.sensor.startup_event.attributes.startup.activity is defined %}
+          {{ (states.sensor.startup_event.attributes.startup.activity|first).timestamp }}
+        {%- else -%}null{%- endif -%}
+    startup_latest_ago:
+      entity_id:
+        - sensor.startup_event
+        - sun.sun
+      unit_of_measurement: seconds
+      # {{ (now().timestamp()|int) - ((states.sensor.startup_event.attributes.startup.activity|first).date|int) }}
+      value_template: >
+        {% if states.sensor.startup_event.attributes.startup.activity is defined %}
+          {{ now().timestamp()|int - as_timestamp(strptime((states.sensor.startup_event.attributes.startup.activity|first).timestamp, "%FT%TZ"))|int }}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    startup_latest_average:
+      entity_id:
+        - sensor.startup_event
+      unit_of_measurement: count
+      value_template: >
+        {% if states.sensor.startup_event.attributes.startup.activity is defined %}
+          {{ (states.sensor.startup_event.attributes.startup.activity|first).average }}
+        {%- else -%}null{%- endif -%}
+
+# client containers (average)
+- platform: statistics
+  name: startup_container_average_statistics
+  entity_id: sensor.startup_latest_average
+  sampling_size: 100
+  max_age:
+    hours: 24
+- platform: statistics
+  name: startup_container_average_stdev_statistics
+  entity_id: sensor.startup_container_average_stdev
+  sampling_size: 100
+  max_age:
+    hours: 2
+
+# ratio of machines whose container count is average
+
+## product from hal
+- platform: template
+  sensors:
+    startup_latest_product:
+      entity_id:
+        - sensor.startup_event
+      value_template: >
+        {% if states.sensor.startup_event.attributes.startup.activity is defined %}
+          {{ (states.sensor.startup_event.attributes.startup.activity|first).product }}
+        {%- else -%}null{%- endif -%}
+    startup_latest_product_type:
+      entity_id:
+        - sensor.startup_latest_product
+      unit_of_measurement: product_type
+      value_template: >
+        {% if states.sensor.startup_latest_product is defined %}
+          {% if "Raspberry Pi 3 Model B Plus" in states.sensor.startup_latest_product.state %}
+            {{ 'raspberrypi-3bp' }}
+          {% elif "Raspberry Pi 3 Model B" in states.sensor.startup_latest_product.state %}
+            {{ 'raspberrypi-3b' }}
+          {% elif "jetson-nano" in states.sensor.startup_latest_product.state %}
+            {{ 'jetson-nano' }}
+          {% elif "quill" in states.sensor.startup_latest_product.state %}
+            {{ 'jetson-tx2' }}
+          {% elif "VirtualBox" in states.sensor.startup_latest_product.state %}
+            {{ 'virtualbox' }}
+          {% elif "HVM" in states.sensor.startup_latest_product.state %}
+            {{ 'cloudvm' }}
+          {% else %}
+            {{ 'other' }}
+          {% endif %}
+        {%- else -%}null{%- endif -%}
+
+## client count
+- platform: template
+  sensors:
+    startup_client_count:
+      entity_id:
+        - sensor.startup_event
+      unit_of_measurement: count
+      value_template: >
+        {% if states.sensor.startup_event.attributes.startup.activity is defined %}
+          {{ states.sensor.startup_event.attributes.startup.activity|length }}
+        {%- else -%}null{%- endif -%}
+    # statistics
+    startup_client_count_mean:
+      entity_id:
+        - sensor.startup_event
+        - sensor.startup_client_count_statistics
+      unit_of_measurement: count
+      value_template: >
+        {% if states.sensor.startup_client_count_statistics is defined %}
+          {{ states.sensor.startup_client_count_statistics.state }}
+        {%- else -%}null{%- endif -%}
+    startup_client_count_min_value:
+      entity_id:
+        - sensor.startup_event
+        - sensor.startup_client_count_statistics
+      unit_of_measurement: count
+      value_template: >
+        {% if states.sensor.startup_client_count_statistics is defined %}
+          {{ states.sensor.startup_client_count_statistics.attributes.min_value }}
+        {%- else -%}null{%- endif -%}
+    startup_client_count_max_value:
+      entity_id:
+        - sensor.startup_event
+        - sensor.startup_client_count_statistics
+      unit_of_measurement: count
+      value_template: >
+        {% if states.sensor.startup_client_count_statistics is defined %}
+          {{ states.sensor.startup_client_count_statistics.attributes.max_value }}
+        {%- else -%}null{%- endif -%}
+    startup_client_count_stdev:
+      entity_id:
+        - sensor.startup_event
+        - sensor.startup_client_count_statistics
+      unit_of_measurement: count
+      value_template: >
+        {% if states.sensor.startup_client_count_statistics is defined %}
+          {% if states.sensor.startup_client_count_statistics.attributes.standard_deviation != 'unknown' %}
+            {{ states.sensor.startup_client_count_statistics.attributes.standard_deviation }}
           {%- else -%}null{%- endif -%}
-      ## timing
-      startup_event_ago:
-        entity_id:
-          - sensor.startup_event
-          - sun.sun
-        unit_of_measurement: seconds
-        value_template: >
-          {% if states.sensor.startup_event.attributes.startup.date is defined %}
-            {{ (now().timestamp()|int) - (states.sensor.startup_event.attributes.startup.date|int) }}
+        {%- else -%}null{%- endif -%}
+
+# client count
+- platform: statistics
+  name: startup_client_count_statistics
+  entity_id: sensor.startup_client_count
+  sampling_size: 100
+  max_age:
+    hours: 24
+- platform: statistics
+  name: startup_client_count_stdev_statistics
+  entity_id: sensor.startup_client_count_stdev
+  sampling_size: 100
+  max_age:
+    hours: 24
+
+## client percent
+- platform: template
+  sensors:
+    startup_client_percent:
+      entity_id:
+        - sensor.startup_event
+      unit_of_measurement: '%'
+      value_template: >-
+        {% if states.sensor.startup_client_count is defined and states.sensor.horizon_organization_nodes_count is defined and states.sensor.horizon_organization_nodes_count.state != null and states.sensor.horizon_organization_nodes_count is defined and states.sensor.horizon_organization_nodes_count.state|int > 0 %}
+          {{ '%0.2f' | format(states.sensor.startup_client_count.state|float / states.sensor.horizon_organization_nodes_count.state|float * 100.0 ) }}
+        {% else %} null {% endif %}
+    # statistics
+    startup_client_percent_mean:
+      entity_id:
+        - sensor.startup_event
+        - sensor.startup_client_percent_statistics
+      unit_of_measurement: '%'
+      value_template: >
+        {% if states.sensor.startup_client_percent_statistics is defined %}
+          {{ states.sensor.startup_client_percent_statistics.state }}
+        {%- else -%}null{%- endif -%}
+    startup_client_percent_min_value:
+      entity_id:
+        - sensor.startup_event
+        - sensor.startup_client_percent_statistics
+      unit_of_measurement: '%'
+      value_template: >
+        {% if states.sensor.startup_client_percent_statistics is defined %}
+          {{ states.sensor.startup_client_percent_statistics.attributes.min_value }}
+        {%- else -%}null{%- endif -%}
+    startup_client_percent_max_value:
+      entity_id:
+        - sensor.startup_event
+        - sensor.startup_client_percent_statistics
+      unit_of_measurement: '%'
+      value_template: >
+        {% if states.sensor.startup_client_percent_statistics is defined %}
+          {{ states.sensor.startup_client_percent_statistics.attributes.max_value }}
+        {%- else -%}null{%- endif -%}
+    startup_client_percent_stdev:
+      entity_id:
+        - sensor.startup_event
+        - sensor.startup_client_percent_statistics
+      unit_of_measurement: '%'
+      value_template: >
+        {% if states.sensor.startup_client_percent_statistics is defined %}
+          {% if states.sensor.startup_client_percent_statistics.attributes.standard_deviation != 'unknown' %}
+            {{ states.sensor.startup_client_percent_statistics.attributes.standard_deviation }}
           {%- else -%}null{%- endif -%}
-      startup_event_when:
-        entity_id:
-          - sensor.startup_event
-        value_template: >
-          {% if states.sensor.startup_event.attributes.date is defined %}
-            {{ states.sensor.startup_event.attributes.date|int|timestamp_custom("%a %b %d ~ %I:%M %p") }}
-          {% else %}null{% endif %}
-      # mean ago
-      startup_event_ago_mean:
-        entity_id:
-          - sensor.startup_event_ago_statistics
-        unit_of_measurement: seconds
-        value_template: >
-          {% if states.sensor.startup_event_ago_statistics is defined %}
-            {{ states.sensor.startup_event_ago_statistics.state|float }}
+        {%- else -%}null{%- endif -%}
+
+# client percent
+- platform: statistics
+  name: startup_client_percent_stdev_statistics
+  entity_id: sensor.startup_client_percent_stdev
+  sampling_size: 100
+  max_age:
+    hours: 24
+- platform: statistics
+  name: startup_client_percent_statistics
+  entity_id: sensor.startup_client_percent
+  sampling_size: 100
+  max_age:
+    hours: 24
+
+
+## containers average
+- platform: template
+  sensors:
+    startup_container_average_mean:
+      entity_id:
+        - sensor.startup_event
+        - sensor.startup_container_average_statistics
+      unit_of_measurement: count
+      value_template: >
+        {% if states.sensor.startup_container_average_statistics is defined %}
+          {{ states.sensor.startup_container_average_statistics.state }}
+        {%- else -%}null{%- endif -%}
+    startup_container_average_min_value:
+      entity_id:
+        - sensor.startup_event
+        - sensor.startup_container_average_statistics
+      unit_of_measurement: count
+      value_template: >
+        {% if states.sensor.startup_container_average_statistics is defined %}
+          {{ states.sensor.startup_container_average_statistics.attributes.min_value|float }}
+        {%- else -%}null{%- endif -%}
+    startup_container_average_max_value:
+      entity_id:
+        - sensor.startup_event
+        - sensor.startup_container_average_statistics
+      unit_of_measurement: count
+      value_template: >
+        {% if states.sensor.startup_container_average_statistics is defined %}
+          {{ states.sensor.startup_container_average_statistics.attributes.max_value|float }}
+        {%- else -%}null{%- endif -%}
+    startup_container_average_stdev:
+      entity_id:
+        - sensor.startup_event
+        - sensor.startup_container_average_statistics
+      unit_of_measurement: count
+      value_template: >
+        {% if states.sensor.startup_container_average_statistics is defined %}
+          {% if states.sensor.startup_container_average_statistics.attributes.standard_deviation != 'unknown' %}
+            {{ states.sensor.startup_container_average_statistics.attributes.standard_deviation }}
           {%- else -%}null{%- endif -%}
-      startup_event_ago_min_value:
-        entity_id:
-          - sensor.yolo2msghub_event
-          - sensor.startup_event_ago_statistics
-        unit_of_measurement: seconds
-        value_template: >
-          {% if states.sensor.startup_event_ago_statistics is defined %}
-            {{ states.sensor.startup_event_ago_statistics.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+
+## download speed from wan
+- platform: template
+  sensors:
+    startup_latest_download:
+      entity_id:
+        - sensor.startup_event
+      unit_of_measurement: Mbps
+      value_template: >
+        {% if states.sensor.startup_event is defined 
+              and states.sensor.startup_event.attributes is defined
+              and states.sensor.startup_event.attributes.startup is defined
+              and states.sensor.startup_event.attributes.startup.activity is defined
+              and states.sensor.startup_event.attributes.startup.activity|first is defined %}
+           {% set result = (states.sensor.startup_event.attributes.startup.activity|first).download %}
+           {% if result != null %}
+              {{ '%0.2f' | format(result|float / 1000000.0) }}
+           {% else %}
+              {{ '%0.2f' | format(0.0 / 1000000.0) }}
+           {% endif %}
+        {%- else -%}null{%- endif -%}
+
+    # statistics
+    startup_download_mean:
+      entity_id:
+        - sensor.startup_download_statistics
+      unit_of_measurement: Mbps
+      value_template: >
+        {% if states.sensor.startup_download_statistics is defined %}
+          {{ states.sensor.startup_download_statistics.state }}
+        {%- else -%}null{%- endif -%}
+    startup_download_min_value:
+      entity_id:
+        - sensor.startup_download_statistics
+      unit_of_measurement: Mbps
+      value_template: >
+        {% if states.sensor.startup_download_statistics is defined %}
+          {{ states.sensor.startup_download_statistics.attributes.min_value|float }}
+        {%- else -%}null{%- endif -%}
+    startup_download_max_value:
+      entity_id:
+        - sensor.startup_download_statistics
+      unit_of_measurement: Mbps
+      value_template: >
+        {% if states.sensor.startup_download_statistics is defined %}
+          {{ states.sensor.startup_download_statistics.attributes.max_value|float }}
+        {%- else -%}null{%- endif -%}
+    startup_download_stdev:
+      entity_id:
+        - sensor.startup_download_statistics
+      unit_of_measurement: Mbps
+      value_template: >
+        {% if states.sensor.startup_download_statistics is defined %}
+          {% if states.sensor.startup_download_statistics.attributes.standard_deviation != 'unknown' %}
+            {{ states.sensor.startup_download_statistics.attributes.standard_deviation }}
           {%- else -%}null{%- endif -%}
-      startup_event_ago_max_value:
-        entity_id:
-          - sensor.yolo2msghub_event
-          - sensor.startup_event_ago_statistics
-        unit_of_measurement: seconds
-        value_template: >
-          {% if states.sensor.startup_event_ago_statistics is defined %}
-            {{ states.sensor.startup_event_ago_statistics.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+
+# client download
+- platform: statistics
+  name: startup_download_statistics
+  entity_id: sensor.startup_latest_download
+  sampling_size: 100
+  max_age:
+    hours: 24
+- platform: statistics
+  name: startup_download_stdev_statistics
+  entity_id: sensor.startup_download_stdev
+  sampling_size: 100
+  max_age:
+    hours: 24
+
+## measurements average
+- platform: template
+  sensors:
+    startup_measurement_mean:
+      entity_id:
+        - sensor.startup_event
+        - sensor.startup_measurement_statistics
+      unit_of_measurement: count
+      value_template: >
+        {% if states.sensor.startup_measurement_statistics is defined %}
+          {{ states.sensor.startup_measurement_statistics.state }}
+        {%- else -%}null{%- endif -%}
+    startup_measurement_min_value:
+      entity_id:
+        - sensor.startup_event
+        - sensor.startup_measurement_statistics
+      unit_of_measurement: count
+      value_template: >
+        {% if states.sensor.startup_measurement_statistics is defined %}
+          {{ states.sensor.startup_measurement_statistics.attributes.min_value|float }}
+        {%- else -%}null{%- endif -%}
+    startup_measurement_max_value:
+      entity_id:
+        - sensor.startup_event
+        - sensor.startup_measurement_statistics
+      unit_of_measurement: count
+      value_template: >
+        {% if states.sensor.startup_measurement_statistics is defined %}
+          {{ states.sensor.startup_measurement_statistics.attributes.max_value|float }}
+        {%- else -%}null{%- endif -%}
+    startup_measurement_stdev:
+      entity_id:
+        - sensor.startup_event
+        - sensor.startup_measurement_statistics
+      unit_of_measurement: count
+      value_template: >
+        {% if states.sensor.startup_measurement_statistics is defined %}
+          {% if states.sensor.startup_measurement_statistics.attributes.standard_deviation != 'unknown' %}
+            {{ states.sensor.startup_measurement_statistics.attributes.standard_deviation }}
           {%- else -%}null{%- endif -%}
-      ## status 
-      startup_event_status:
-        entity_id:
-          - sensor.startup_event
-        value_template: >-
-          {% if states.sensor.startup_event.attributes.startup.date is defined %}
-            From {{ states.sensor.startup_latest_id.state }}
-          {% else %} null {% endif %}
-  # count
-  - platform: statistics
-    name: startup_event_count_statistics
-    entity_id: sensor.startup_event_count
-    sampling_size: 100
-    max_age:
-      hours: 2
-  # ago
-  - platform: statistics
-    name: startup_event_ago_statistics
-    entity_id: sensor.startup_event_ago
-    sampling_size: 100
-    max_age:
-      hours: 2
-  ## attributes
-  - platform: template
-    sensors:
-      ## location
-      startup_latitude:
-        entity_id:
-          - sensor.startup_event
-        unit_of_measurement: degrees
-        value_template: >
-          {% if states.sensor.startup_event.attributes.startup.activity is defined %}
-            {{ (states.sensor.startup_event.attributes.startup.activity|first).latitude|float }}
+        {%- else -%}null{%- endif -%}
+
+## download percent from cpu
+- platform: template
+  sensors:
+    startup_latest_percent:
+      entity_id:
+        - sensor.startup_event
+      unit_of_measurement: '%'
+      value_template: >
+        {% if states.sensor.startup_event.attributes.startup.activity is defined %}
+          {{ '%0.2f' | format((states.sensor.startup_event.attributes.startup.activity|first).percent) }}
+        {%- else -%}null{%- endif -%}
+    startup_percent_mean:
+      entity_id:
+        - sensor.startup_event
+        - sensor.startup_percent_statistics
+      unit_of_measurement: '%'
+      value_template: >
+        {% if states.sensor.startup_percent_statistics is defined %}
+          {{ states.sensor.startup_percent_statistics.state }}
+        {%- else -%}null{%- endif -%}
+    startup_percent_min_value:
+      entity_id:
+        - sensor.startup_event
+        - sensor.startup_percent_statistics
+      unit_of_measurement: '%'
+      value_template: >
+        {% if states.sensor.startup_percent_statistics is defined %}
+          {{ states.sensor.startup_percent_statistics.attributes.min_value|float }}
+        {%- else -%}null{%- endif -%}
+    startup_percent_max_value:
+      entity_id:
+        - sensor.startup_event
+        - sensor.startup_percent_statistics
+      unit_of_measurement: '%'
+      value_template: >
+        {% if states.sensor.startup_percent_statistics is defined %}
+          {{ states.sensor.startup_percent_statistics.attributes.max_value|float }}
+        {%- else -%}null{%- endif -%}
+    startup_percent_stdev:
+      entity_id:
+        - sensor.startup_event
+        - sensor.startup_percent_statistics
+      unit_of_measurement: '%'
+      value_template: >
+        {% if states.sensor.startup_percent_statistics is defined %}
+          {% if states.sensor.startup_percent_statistics.attributes.standard_deviation != 'unknown' %}
+            {{ states.sensor.startup_percent_statistics.attributes.standard_deviation }}
           {%- else -%}null{%- endif -%}
-      startup_longitude:
-        entity_id:
-          - sensor.startup_event
-        unit_of_measurement: degrees
-        value_template: >
-          {% if states.sensor.startup_event.attributes.startup.activity is defined %}
-            {{ (states.sensor.startup_event.attributes.startup.activity|first).longitude|float }}
-          {%- else -%}null{%- endif -%}
-      ## calculators
-      startup_client_count:
-        entity_id:
-          - sensor.startup_event
-          - sensor.startup_event
-        unit_of_measurement: count
-        value_template: >
-          {% if states.sensor.startup_event.attributes.startup.activity is defined %}
-            {{ states.sensor.startup_event.attributes.startup.activity|length }}
-          {%- else -%}null{%- endif -%}
-      startup_client_percent:
-        entity_id:
-          - sensor.startup_event
-        unit_of_measurement: '%'
-        value_template: >-
-          {% if states.sensor.startup_client_count is defined and states.sensor.horizon_organization_nodes_count is defined and states.sensor.horizon_organization_nodes_count.state != null and states.sensor.horizon_organization_nodes_count is defined and states.sensor.horizon_organization_nodes_count.state|int > 0 %}
-            {{ '%0.2f' | format(states.sensor.startup_client_count.state|float / states.sensor.horizon_organization_nodes_count.state|float * 100.0 ) }}
-          {% else %} null {% endif %}
-      startup_event_date:
-        entity_id:
-          - sensor.startup_event
-        unit_of_measurement: seconds
-        value_template: >
-          {% if states.sensor.startup_event is defined and states.sensor.startup_event.attributes.startup.date is defined %}
-            {{ states.sensor.startup_event.attributes.startup.date }}
-          {% else %} null {% endif %}
-      startup_event_timestamp:
-        entity_id:
-          - sensor.startup_event
-        value_template: >-
-          {% if states.sensor.startup_event is defined and states.sensor.startup_event.attributes.startup is defined %}
-            {{ states.sensor.startup_event.attributes.startup.timestamp }}
-          {% else %} null {% endif %}
-      startup_event_period:
-        entity_id:
-          - sensor.startup_event
-        unit_of_measurement: seconds
-        value_template: >
-          {% if states.sensor.startup_event is defined and states.sensor.startup_event.attributes.startup.period is defined %}
-            {{ states.sensor.startup_event.attributes.startup.period }}
-          {% else %} null {% endif %}
-      ## latest activity details
-      startup_latest_id:
-        entity_id:
-          - sensor.startup_event
-        value_template: >
-          {% if states.sensor.startup_event.attributes.startup.activity is defined %}
-            {{ (states.sensor.startup_event.attributes.startup.activity|first).id }}
-          {%- else -%}null{%- endif -%}
-      startup_latest_date:
-        entity_id:
-          - sensor.startup_event
-        unit_of_measurement: seconds
-        value_template: >
-          {% if states.sensor.startup_event.attributes.startup.activity is defined %}
-            {{ (states.sensor.startup_event.attributes.startup.activity|first).date }}
-          {%- else -%}null{%- endif -%}
-      startup_latest_measurement:
-        entity_id:
-          - sensor.startup_event
-        unit_of_measurement: count
-        value_template: >
-          {% if states.sensor.startup_event.attributes.startup.activity is defined %}
-            {{ (states.sensor.startup_event.attributes.startup.activity|first).count }}
-          {%- else -%}null{%- endif -%}
-      startup_latest_interval:
-        entity_id:
-          - sensor.startup_event
-        unit_of_measurement: seconds
-        value_template: >
-          {% if states.sensor.startup_event.attributes.startup.activity is defined %}
-            {{ (states.sensor.startup_event.attributes.startup.activity|first).interval }}
-          {%- else -%}null{%- endif -%}
-      startup_latest_timestamp:
-        entity_id:
-          - sensor.startup_event
-        value_template: >
-          {% if states.sensor.startup_event.attributes.startup.activity is defined %}
-            {{ (states.sensor.startup_event.attributes.startup.activity|first).timestamp }}
-          {%- else -%}null{%- endif -%}
-      startup_latest_ago:
-        entity_id:
-          - sensor.startup_event
-          - sun.sun
-        unit_of_measurement: seconds
-        # {{ (now().timestamp()|int) - ((states.sensor.startup_event.attributes.startup.activity|first).date|int) }}
-        value_template: >
-          {% if states.sensor.startup_event.attributes.startup.activity is defined %}
-            {{ now().timestamp()|int - as_timestamp(strptime((states.sensor.startup_event.attributes.startup.activity|first).timestamp, "%FT%TZ"))|int }}
-          {%- else -%}null{%- endif -%}
-      startup_latest_average:
-        entity_id:
-          - sensor.startup_event
-        unit_of_measurement: count
-        value_template: >
-          {% if states.sensor.startup_event.attributes.startup.activity is defined %}
-            {{ (states.sensor.startup_event.attributes.startup.activity|first).average }}
-          {%- else -%}null{%- endif -%}
-      ## download speed from wan
-      startup_latest_download:
-        entity_id:
-          - sensor.startup_event
-        unit_of_measurement: Mbps
-        value_template: >
-          {% if states.sensor.startup_event is defined 
-             and states.sensor.startup_event.attributes is defined
-             and states.sensor.startup_event.attributes != null
-             and states.sensor.startup_event.attributes.startup is defined
-             and states.sensor.startup_event.attributes.startup.activity is defined
-             and states.sensor.startup_event.attributes.startup.activity != null %}
-             {% set result = (states.sensor.startup_event.attributes.startup.activity|first).download %}
-             {% if result != null %}
-                {{ '%0.2f' | format(result|float / 1000000.0) }}
-             {% else %}
-                {{ '%0.2f' | format(0.0 / 1000000.0) }}
-             {% endif %}
-          {%- else -%}null{%- endif -%}
-      ## download percent from cpu
-      startup_latest_percent:
-        entity_id:
-          - sensor.startup_event
-        unit_of_measurement: '%'
-        value_template: >
-          {% if states.sensor.startup_event.attributes.startup.activity is defined %}
-            {{ '%0.2f' | format((states.sensor.startup_event.attributes.startup.activity|first).percent) }}
-          {%- else -%}null{%- endif -%}
-      ## product from hal
-      startup_latest_product:
-        entity_id:
-          - sensor.startup_event
-        value_template: >
-          {% if states.sensor.startup_event.attributes.startup.activity is defined %}
-            {{ (states.sensor.startup_event.attributes.startup.activity|first).product }}
-          {%- else -%}null{%- endif -%}
-      startup_latest_product_type:
-        entity_id:
-          - sensor.startup_latest_product
-        unit_of_measurement: product_type
-        value_template: >
-          {% if states.sensor.startup_latest_product is defined %}
-            {% if "Raspberry Pi 3 Model B Plus" in states.sensor.startup_latest_product.state %}
-              {{ 'raspberrypi-3bp' }}
-            {% elif "Raspberry Pi 3 Model B" in states.sensor.startup_latest_product.state %}
-              {{ 'raspberrypi-3b' }}
-            {% elif "jetson-nano" in states.sensor.startup_latest_product.state %}
-              {{ 'jetson-nano' }}
-            {% elif "quill" in states.sensor.startup_latest_product.state %}
-              {{ 'jetson-tx2' }}
-            {% elif "VirtualBox" in states.sensor.startup_latest_product.state %}
-              {{ 'virtualbox' }}
-            {% elif "HVM" in states.sensor.startup_latest_product.state %}
-              {{ 'cloudvm' }}
-            {% else %}
-              {{ 'other' }}
-            {% endif %}
-          {%- else -%}null{%- endif -%}
-      ## client count
-      startup_client_count_mean:
-        entity_id:
-          - sensor.startup_event
-          - sensor.startup_client_count_statistics
-        unit_of_measurement: count
-        value_template: >
-          {% if states.sensor.startup_client_count_statistics is defined %}
-            {{ states.sensor.startup_client_count_statistics.state }}
-          {%- else -%}null{%- endif -%}
-      startup_client_count_min_value:
-        entity_id:
-          - sensor.startup_event
-          - sensor.startup_client_count_statistics
-        unit_of_measurement: count
-        value_template: >
-          {% if states.sensor.startup_client_count_statistics is defined %}
-            {{ states.sensor.startup_client_count_statistics.attributes.min_value }}
-          {%- else -%}null{%- endif -%}
-      startup_client_count_max_value:
-        entity_id:
-          - sensor.startup_event
-          - sensor.startup_client_count_statistics
-        unit_of_measurement: count
-        value_template: >
-          {% if states.sensor.startup_client_count_statistics is defined %}
-            {{ states.sensor.startup_client_count_statistics.attributes.max_value }}
-          {%- else -%}null{%- endif -%}
-      startup_client_count_stdev:
-        entity_id:
-          - sensor.startup_event
-          - sensor.startup_client_count_statistics
-        unit_of_measurement: count
-        value_template: >
-          {% if states.sensor.startup_client_count_statistics is defined %}
-            {% if states.sensor.startup_client_count_statistics.attributes.standard_deviation != 'unknown' %}
-              {{ states.sensor.startup_client_count_statistics.attributes.standard_deviation }}
-            {%- else -%}null{%- endif -%}
-          {%- else -%}null{%- endif -%}
-      ## client percent
-      startup_client_percent_mean:
-        entity_id:
-          - sensor.startup_event
-          - sensor.startup_client_percent_statistics
-        unit_of_measurement: '%'
-        value_template: >
-          {% if states.sensor.startup_client_percent_statistics is defined %}
-            {{ states.sensor.startup_client_percent_statistics.state }}
-          {%- else -%}null{%- endif -%}
-      startup_client_percent_min_value:
-        entity_id:
-          - sensor.startup_event
-          - sensor.startup_client_percent_statistics
-        unit_of_measurement: '%'
-        value_template: >
-          {% if states.sensor.startup_client_percent_statistics is defined %}
-            {{ states.sensor.startup_client_percent_statistics.attributes.min_value }}
-          {%- else -%}null{%- endif -%}
-      startup_client_percent_max_value:
-        entity_id:
-          - sensor.startup_event
-          - sensor.startup_client_percent_statistics
-        unit_of_measurement: '%'
-        value_template: >
-          {% if states.sensor.startup_client_percent_statistics is defined %}
-            {{ states.sensor.startup_client_percent_statistics.attributes.max_value }}
-          {%- else -%}null{%- endif -%}
-      startup_client_percent_stdev:
-        entity_id:
-          - sensor.startup_event
-          - sensor.startup_client_percent_statistics
-        unit_of_measurement: '%'
-        value_template: >
-          {% if states.sensor.startup_client_percent_statistics is defined %}
-            {% if states.sensor.startup_client_percent_statistics.attributes.standard_deviation != 'unknown' %}
-              {{ states.sensor.startup_client_percent_statistics.attributes.standard_deviation }}
-            {%- else -%}null{%- endif -%}
-          {%- else -%}null{%- endif -%}
-      ## containers average
-      startup_container_average_mean:
-        entity_id:
-          - sensor.startup_event
-          - sensor.startup_container_average_statistics
-        unit_of_measurement: count
-        value_template: >
-          {% if states.sensor.startup_container_average_statistics is defined %}
-            {{ states.sensor.startup_container_average_statistics.state }}
-          {%- else -%}null{%- endif -%}
-      startup_container_average_min_value:
-        entity_id:
-          - sensor.startup_event
-          - sensor.startup_container_average_statistics
-        unit_of_measurement: count
-        value_template: >
-          {% if states.sensor.startup_container_average_statistics is defined %}
-            {{ states.sensor.startup_container_average_statistics.attributes.min_value|float }}
-          {%- else -%}null{%- endif -%}
-      startup_container_average_max_value:
-        entity_id:
-          - sensor.startup_event
-          - sensor.startup_container_average_statistics
-        unit_of_measurement: count
-        value_template: >
-          {% if states.sensor.startup_container_average_statistics is defined %}
-            {{ states.sensor.startup_container_average_statistics.attributes.max_value|float }}
-          {%- else -%}null{%- endif -%}
-      startup_container_average_stdev:
-        entity_id:
-          - sensor.startup_event
-          - sensor.startup_container_average_statistics
-        unit_of_measurement: count
-        value_template: >
-          {% if states.sensor.startup_container_average_statistics is defined %}
-            {% if states.sensor.startup_container_average_statistics.attributes.standard_deviation != 'unknown' %}
-              {{ states.sensor.startup_container_average_statistics.attributes.standard_deviation }}
-            {%- else -%}null{%- endif -%}
-          {%- else -%}null{%- endif -%}
-      ## downloads average
-      startup_download_mean:
-        entity_id:
-          - sensor.startup_event
-          - sensor.startup_download_statistics
-        unit_of_measurement: Mbps
-        value_template: >
-          {% if states.sensor.startup_download_statistics is defined %}
-            {{ states.sensor.startup_download_statistics.state }}
-          {%- else -%}null{%- endif -%}
-      startup_download_min_value:
-        entity_id:
-          - sensor.startup_event
-          - sensor.startup_download_statistics
-        unit_of_measurement: Mbps
-        value_template: >
-          {% if states.sensor.startup_download_statistics is defined %}
-            {{ states.sensor.startup_download_statistics.attributes.min_value|float }}
-          {%- else -%}null{%- endif -%}
-      startup_download_max_value:
-        entity_id:
-          - sensor.startup_event
-          - sensor.startup_download_statistics
-        unit_of_measurement: Mbps
-        value_template: >
-          {% if states.sensor.startup_download_statistics is defined %}
-            {{ states.sensor.startup_download_statistics.attributes.max_value|float }}
-          {%- else -%}null{%- endif -%}
-      startup_download_stdev:
-        entity_id:
-          - sensor.startup_event
-          - sensor.startup_download_statistics
-        unit_of_measurement: Mbps
-        value_template: >
-          {% if states.sensor.startup_download_statistics is defined %}
-            {% if states.sensor.startup_download_statistics.attributes.standard_deviation != 'unknown' %}
-              {{ states.sensor.startup_download_statistics.attributes.standard_deviation }}
-            {%- else -%}null{%- endif -%}
-          {%- else -%}null{%- endif -%}
-      ## measurements average
-      startup_measurement_mean:
-        entity_id:
-          - sensor.startup_event
-          - sensor.startup_measurement_statistics
-        unit_of_measurement: count
-        value_template: >
-          {% if states.sensor.startup_measurement_statistics is defined %}
-            {{ states.sensor.startup_measurement_statistics.state }}
-          {%- else -%}null{%- endif -%}
-      startup_measurement_min_value:
-        entity_id:
-          - sensor.startup_event
-          - sensor.startup_measurement_statistics
-        unit_of_measurement: count
-        value_template: >
-          {% if states.sensor.startup_measurement_statistics is defined %}
-            {{ states.sensor.startup_measurement_statistics.attributes.min_value|float }}
-          {%- else -%}null{%- endif -%}
-      startup_measurement_max_value:
-        entity_id:
-          - sensor.startup_event
-          - sensor.startup_measurement_statistics
-        unit_of_measurement: count
-        value_template: >
-          {% if states.sensor.startup_measurement_statistics is defined %}
-            {{ states.sensor.startup_measurement_statistics.attributes.max_value|float }}
-          {%- else -%}null{%- endif -%}
-      startup_measurement_stdev:
-        entity_id:
-          - sensor.startup_event
-          - sensor.startup_measurement_statistics
-        unit_of_measurement: count
-        value_template: >
-          {% if states.sensor.startup_measurement_statistics is defined %}
-            {% if states.sensor.startup_measurement_statistics.attributes.standard_deviation != 'unknown' %}
-              {{ states.sensor.startup_measurement_statistics.attributes.standard_deviation }}
-            {%- else -%}null{%- endif -%}
-          {%- else -%}null{%- endif -%}
-      ## percent average
-      startup_percent_mean:
-        entity_id:
-          - sensor.startup_event
-          - sensor.startup_percent_statistics
-        unit_of_measurement: '%'
-        value_template: >
-          {% if states.sensor.startup_percent_statistics is defined %}
-            {{ states.sensor.startup_percent_statistics.state }}
-          {%- else -%}null{%- endif -%}
-      startup_percent_min_value:
-        entity_id:
-          - sensor.startup_event
-          - sensor.startup_percent_statistics
-        unit_of_measurement: '%'
-        value_template: >
-          {% if states.sensor.startup_percent_statistics is defined %}
-            {{ states.sensor.startup_percent_statistics.attributes.min_value|float }}
-          {%- else -%}null{%- endif -%}
-      startup_percent_max_value:
-        entity_id:
-          - sensor.startup_event
-          - sensor.startup_percent_statistics
-        unit_of_measurement: '%'
-        value_template: >
-          {% if states.sensor.startup_percent_statistics is defined %}
-            {{ states.sensor.startup_percent_statistics.attributes.max_value|float }}
-          {%- else -%}null{%- endif -%}
-      startup_percent_stdev:
-        entity_id:
-          - sensor.startup_event
-          - sensor.startup_percent_statistics
-        unit_of_measurement: '%'
-        value_template: >
-          {% if states.sensor.startup_percent_statistics is defined %}
-            {% if states.sensor.startup_percent_statistics.attributes.standard_deviation != 'unknown' %}
-              {{ states.sensor.startup_percent_statistics.attributes.standard_deviation }}
-            {%- else -%}null{%- endif -%}
-          {%- else -%}null{%- endif -%}
-  # client count
-  - platform: statistics
-    name: startup_client_count_stdev_statistics
-    entity_id: sensor.startup_client_count_stdev
-    sampling_size: 100
-    max_age:
-      hours: 24
-  - platform: statistics
-    name: startup_client_count_statistics
-    entity_id: sensor.startup_client_count
-    sampling_size: 100
-    max_age:
-      hours: 24
-  # client percent
-  - platform: statistics
-    name: startup_client_percent_stdev_statistics
-    entity_id: sensor.startup_client_percent_stdev
-    sampling_size: 100
-    max_age:
-      hours: 24
-  - platform: statistics
-    name: startup_client_percent_statistics
-    entity_id: sensor.startup_client_percent
-    sampling_size: 100
-    max_age:
-      hours: 24
-  # client download
-  - platform: statistics
-    name: startup_download_statistics
-    entity_id: sensor.startup_latest_download
-    sampling_size: 100
-    max_age:
-      hours: 24
-  - platform: statistics
-    name: startup_download_stdev_statistics
-    entity_id: sensor.startup_download_stdev
-    sampling_size: 100
-    max_age:
-      hours: 24
-  # client measurement
-  - platform: statistics
-    name: startup_measurement_statistics
-    entity_id: sensor.startup_latest_measurement
-    sampling_size: 100
-    max_age:
-      hours: 24
-  # client percent
-  - platform: statistics
-    name: startup_percent_statistics
-    entity_id: sensor.startup_latest_percent
-    sampling_size: 100
-    max_age:
-      hours: 24
-  # client containers (average)
-  - platform: statistics
-    name: startup_container_average_statistics
-    entity_id: sensor.startup_latest_average
-    sampling_size: 100
-    max_age:
-      hours: 24
-  - platform: statistics
-    name: startup_container_average_stdev_statistics
-    entity_id: sensor.startup_container_average_stdev
-    sampling_size: 100
-    max_age:
-      hours: 2
-  # ratio of machines whose container count is average
-  - platform: history_stats
-    name: startup_containers_history
-    entity_id: binary_sensor.startup_containers_average
-    state: on
-    type: ratio 
-    start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
-    end: '{{ now() }}'
-  ## history of HAL product type
-  - platform: history_stats
-    name: startup_product_ratio_rpi3bp
-    entity_id: sensor.startup_latest_product_type
-    state: 'raspberrypi-3bp'
-    type: ratio
-    start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
-    end: '{{ now() }}'
-  - platform: history_stats
-    name: startup_product_ratio_rpi3b
-    entity_id: sensor.startup_latest_product_type
-    state: 'raspberrypi-3b'
-    type: ratio
-    start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
-    end: '{{ now() }}'
-  - platform: history_stats
-    name: startup_product_ratio_nano
-    entity_id: sensor.startup_latest_product_type
-    state: 'jetson-nano'
-    type: ratio
-    start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
-    end: '{{ now() }}'
-  - platform: history_stats
-    name: startup_product_ratio_tx2
-    entity_id: sensor.startup_latest_product_type
-    state: 'jetson-tx2'
-    type: ratio
-    start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
-    end: '{{ now() }}'
-  - platform: history_stats
-    name: startup_product_ratio_virtualbox
-    entity_id: sensor.startup_latest_product_type
-    state: 'virtualbox'
-    type: ratio
-    start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
-    end: '{{ now() }}'
-  - platform: history_stats
-    name: startup_product_ratio_cloudvm
-    entity_id: sensor.startup_latest_product_type
-    state: 'cloudvm'
-    type: ratio
-    start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
-    end: '{{ now() }}'
-  - platform: history_stats
-    name: startup_product_ratio_other
-    entity_id: sensor.startup_latest_product_type
-    state: 'other'
-    type: ratio
-    start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
-    end: '{{ now() }}'
+        {%- else -%}null{%- endif -%}
+
+
+# client measurement
+- platform: statistics
+  name: startup_measurement_statistics
+  entity_id: sensor.startup_latest_measurement
+  sampling_size: 100
+  max_age:
+    hours: 24
+# client percent
+- platform: statistics
+  name: startup_percent_statistics
+  entity_id: sensor.startup_latest_percent
+  sampling_size: 100
+  max_age:
+    hours: 24
+
+- platform: history_stats
+  name: startup_containers_history
+  entity_id: binary_sensor.startup_containers_average
+  state: on
+  type: ratio 
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+## history of HAL product type
+- platform: history_stats
+  name: startup_product_ratio_rpi3bp
+  entity_id: sensor.startup_latest_product_type
+  state: 'raspberrypi-3bp'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+- platform: history_stats
+  name: startup_product_ratio_rpi3b
+  entity_id: sensor.startup_latest_product_type
+  state: 'raspberrypi-3b'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+- platform: history_stats
+  name: startup_product_ratio_nano
+  entity_id: sensor.startup_latest_product_type
+  state: 'jetson-nano'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+- platform: history_stats
+  name: startup_product_ratio_tx2
+  entity_id: sensor.startup_latest_product_type
+  state: 'jetson-tx2'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+- platform: history_stats
+  name: startup_product_ratio_virtualbox
+  entity_id: sensor.startup_latest_product_type
+  state: 'virtualbox'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+- platform: history_stats
+  name: startup_product_ratio_cloudvm
+  entity_id: sensor.startup_latest_product_type
+  state: 'cloudvm'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+- platform: history_stats
+  name: startup_product_ratio_other
+  entity_id: sensor.startup_latest_product_type
+  state: 'other'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
