@@ -154,8 +154,8 @@ logs:
 ## clean and clean and clean ..
 
 tidy:
-	rm -f $(WEBCAM_CAMERAS) $(WEBCAM_SENSORS) $(WEBCAM_BINARY_SENSORS)
-	rm -f $(HIGHLOW_YAML)
+	@rm -f $(WEBCAM_YAML)
+	@rm -f $(HIGHLOW_YAML)
 
 clean: tidy
 	rm -f motion-addon.json
