@@ -31,8 +31,7 @@ logs:
 
 ## clean and clean and clean ..
 
-clean:
-	docker stop homeassistant
+clean: stop
 	make -C motion clean
 	rm -f .storage/core.restore_state
 
