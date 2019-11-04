@@ -228,11 +228,8 @@
         - counter.motion_detected_counter_${MOTION_CAMERA}
       unit_of_measurement: seconds
       value_template: >-
-          {% if state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','count') != none
-                and state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event') != none
-                and states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.count|int > 0
-                and states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.event.end|int > 0 %}
-            {{ states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.event.end|int }}
+          {% if states.sensor.motion_annotated_date_${MOTION_CAMERA} != none and states.sensor.motion_annotated_date_${MOTION_CAMERA}.state != 'null' %}
+            {{ states.sensor.motion_annotated_date_${MOTION_CAMERA}.state|int }}
           {% else %}null{% endif %}
     # human readable
     motion_detected_when_${MOTION_CAMERA}:
@@ -327,11 +324,9 @@
         - counter.motion_detected_entity_counter_${MOTION_CAMERA}
       unit_of_measurement: seconds
       value_template: >-
-        {% if state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event') != none
-              and states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.count|int > 0
-              and states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.event.end|int > 0 %}
-          {{ states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.event.end|int }}
-        {% else %} null {% endif %}
+        {% if states.sensor.motion_detected_date_${MOTION_CAMERA} != none and states.sensor.motion_detected_date_${MOTION_CAMERA}.state != 'null' %}
+          {{ states.sensor.motion_detected_date_${MOTION_CAMERA}.state|int }}
+        {% else %}null{% endif %}
     # human readable
     motion_detected_entity_when_${MOTION_CAMERA}:
       entity_id:
@@ -415,12 +410,24 @@
 ## count
 - platform: template
   sensors:
+    # count based on loop
+    motion_detected_entity_count_${MOTION_CAMERA}:
+      entity_id:
+        - sensor.motion_detected_entity_loop_${MOTION_CAMERA}
+      unit_of_measurement: entities
+      # use loop count or zero
+      value_template: >-
+        {% if states.sensor.motion_detected_entity_loop_${MOTION_CAMERA} != none
+              and states.sensor.motion_detected_entity_loop_${MOTION_CAMERA}.state != 'null' %}
+          {{ states.sensor.motion_detected_entity_loop_${MOTION_CAMERA}.state|int }}
+        {% else %}null{% endif %}
+    # loop
     motion_detected_entity_loop_${MOTION_CAMERA}:
       entity_id:
-        - counter.motion_detected_counter_${MOTION_CAMERA}
+        - sensor.motion_event_annotated
       value_template: >-
-        {% if states('sensor.motion_event_annotated_${MOTION_CAMERA}') != 'unknown'
-              and states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.count|int is number
+        {% if states.sensor.motion_event_annotated_${MOTION_CAMERA} != none
+              and state_attr('sensor.motion.event_annotated_${MOTION_CAMERA}','count') != none
               and states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.count|int > 0 %}
           {% for detected in states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.detected %}
             {% if detected.entity == states.sensor.motion_detect_entity.state and detected.count|int > 0 %}
@@ -428,17 +435,6 @@
             {% endif %}
           {% endfor %}
         {% else %}0{% endif %}
-    # result of loop
-    motion_detected_entity_count_${MOTION_CAMERA}:
-      entity_id:
-        - sensor.motion_detected_entity_loop_${MOTION_CAMERA}
-      unit_of_measurement: entities
-      # use loop count or zero
-      value_template: >-
-        {% if states('sensor.motion_detected_entity_loop_${MOTION_CAMERA}') != 'unknown'
-              and states.sensor.motion_detected_entity_loop_${MOTION_CAMERA}.state|int is number %}
-          {{ states.sensor.motion_detected_entity_loop_${MOTION_CAMERA}.state|int }}
-        {% else %}null{% endif %}
     # statistics
     motion_detected_entity_count_mean_${MOTION_CAMERA}:
       entity_id:
