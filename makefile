@@ -33,15 +33,13 @@ logs:
 
 clean: stop
 	make -C motion clean
-	rm -f .storage/core.restore_state
 
 realclean: clean
 	rm -fr home-assistant.log
 	rm -fr home-assistant_v2.*
-	rm -fr .storage
-	for i in $(sudo echo /var/lib/docker/containers/*/*.log); do sudo cp /dev/null "$${i}"; done
+	rm -f .storage/core.restore_state
 
 distclean: realclean
-	rm -fr .uuid .HA_VERSION .cloud deps tts
+	rm -fr .uuid .HA_VERSION .cloud deps tts .storage
 
 .phony: all default build run stop logs restart clean realclean distclean $(PACKAGES)

@@ -12,20 +12,50 @@
     - service: counter.increment
       entity_id: counter.motion_detected_counter
 
-- id: motion_detected_snapshot
-  alias: motion_detected_snapshot
-  initial_state: on
+#- id: motion_detected_snapshot
+#  alias: motion_detected_snapshot
+#  initial_state: on
+#  trigger:
+#    platform: state
+#    entity_id: binary_sensor.motion_detected
+#  condition:
+#    - condition: template
+#      value_template: >-
+#        {{ is_state('binary_sensor.motion_detected','on') }}
+#  action:
+#    - service: camera.snapshot
+#      data_template:
+#        filename: >-
+#          {{ '/config/www/images/motion_detected-' + states.sensor.motion_event_annotated.attributes.event.camera + '.jpg' }}
+#        entity_id: >-
+#          {{ 'camera.motion_annotated_' + states.sensor.motion_event_annotated.attributes.event.camera }}
+
+## notify
+
+- id: motion_detected_notify
+  alias: motion_detected_notify
+  initial_state: 'on'
   trigger:
-    platform: state
-    entity_id: binary_sensor.motion_detected
+    - platform: state
+      entity_id: binary_sensor.motion_detected
+    - platform: state
+      entity_id: input_boolean.motion_detected_notify
   condition:
-    - condition: template
-      value_template: >-
-        {{ is_state('binary_sensor.motion_detected','on') }}
+    condition: template
+    value_template: >
+      {{ is_state('input_boolean.motion_detected_notify','on') and is_state('binary_sensor.motion_detected','on') }}
   action:
-    - service: camera.snapshot
+    - service: persistent_notification.create
       data_template:
-        filename: >-
-          {{ '/config/www/images/motion_detected-' + states.sensor.motion_event_annotated.attributes.event.camera + '.jpg' }}
-        entity_id: >-
-          {{ 'camera.motion_annotated_' + states.sensor.motion_event_annotated.attributes.event.camera }}
+        title: >-
+          Detected {{ states.sensor.motion_detect_entity_count.state }} {{ states.sensor.motion_detect_entity.state }}(s)
+          from {{ states.sensor.motion_event_annotated.attributes.event.camera }}
+        notification_id: >
+          detected-{{- states.sensor.motion_event_annotated.attributes.event.camera -}}
+        message: >-
+          Detected {{ states.sensor.motion_detected_count.state }} {{ states.sensor.motion_detect_entity.state }}(s)
+          from {{ states.sensor.motion_event_annotated.attributes.event.camera }}
+          for {{ states.sensor.motion_event_annotated.attributes.event.elapsed }} seconds
+          ({{ states.sensor.motion_event_annotated.attributes.event.images|length }} frames)
+          at {{ states.sensor.motion_event_annotated.attributes.event.start|int|timestamp_custom("%a %b %d @ %I:%M %p") | default(null) }}
+

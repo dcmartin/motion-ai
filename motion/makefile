@@ -5,9 +5,10 @@
 MOTION_TLD := dcmartin.com
 MOTION_GROUP := motion
 
-MOTION_MQTT_HOST := $(MOTION_MQTT_HOST:-mqtt.$(TLD))
-MOTION_MQTT_USERNAME := $(MOTION_MQTT_USERNAME:-username)
-MOTION_MQTT_PASSWORD := $(MOTION_MQTT_PASSWORD:-password)
+MOTION_MQTT_HOST := $(if ${MOTION_MQTT_HOST},${MOTION_MQTT_HOST},mqtt.${MOTION_TLD})
+MOTION_MQTT_USERNAME := $(if ${MOTION_MQTT_USERNAME},${MOTION_MQTT_USERNAME},"username")
+MOTION_MQTT_PASSWORD := $(if ${MOTION_MQTT_PASSWORD},${MOTION_MQTT_PASSWORD},"password")
+MOTION_DEVICE := $(if ${MOTION_DEVICE},${MOTION_DEVICE},$(shell hostname))
 
 MOTION_COUCHDB_HOST := $(MOTION_COUCHDB_HOST:-couchdb.$(TLD))
 MOTION_COUCHDB_USERNAME := $(MOTION_COUCHDB_USERNAME:-username)
@@ -15,34 +16,17 @@ MOTION_COUCHDB_PASSWORD := $(MOTION_COUCHDB_PASSWORD:-password)
 
 ## FTP webcams
 
-WEBCAMS := \
-	backyard \
-	diningroom \
-	dogpond \
-	dogshedfront \
-	dogshedmiddle \
-	dogshed \
-	dogyard \
-	fireplace \
-	foyer \
-	frontdoor \
-	frontwalk \
-	gravelpad \
-	laundry \
-	livingroom \
-	phexterior \
-	pondview \
-	sideyard \
-	upperpathgate \
-	woodshed
+WEBCAMS := $(shell jq -r '.[].name' cameras.json)
 
+WEBCAM_GROUPS := $(shell for C in $(WEBCAMS); do echo group/webcam-$${C}.yaml; done)
 WEBCAM_COUNTERS := $(shell for C in $(WEBCAMS); do echo counter/webcam-$${C}.yaml; done)
 WEBCAM_SENSORS := $(shell for C in $(WEBCAMS); do echo sensor/webcam-$${C}.yaml; done)
 WEBCAM_CAMERAS := $(shell for C in $(WEBCAMS); do echo camera/webcam-$${C}.yaml; done)
 WEBCAM_AUTOMATIONS := $(shell for C in $(WEBCAMS); do echo automation/webcam-$${C}.yaml; done)
 WEBCAM_BINARY_SENSORS := $(shell for C in $(WEBCAMS); do echo binary_sensor/webcam-$${C}.yaml; done)
-WEBCAM_YAML := $(WEBCAM_AUTOMATIONS) $(WEBCAM_CAMERAS) $(WEBCAM_COUNTERS) $(WEBCAM_SENSORS) $(WEBCAM_BINARY_SENSORS) 
+WEBCAM_YAML := $(WEBCAM_AUTOMATIONS) $(WEBCAM_CAMERAS) $(WEBCAM_COUNTERS) $(WEBCAM_SENSORS) $(WEBCAM_BINARY_SENSORS) $(WEBCAM_GROUPS)
 
+WEBCAM_GROUP_TEMPLATE := group.webcam.yaml.tmpl
 WEBCAM_COUNTER_TEMPLATE := counter.webcam.yaml.tmpl
 WEBCAM_SENSOR_TEMPLATE := sensor.webcam.yaml.tmpl
 WEBCAM_CAMERA_TEMPLATE := camera.webcam.yaml.tmpl
@@ -114,42 +98,49 @@ $(WEBCAM_BINARY_SENSORS): $(WEBCAM_BINARY_SENSOR_TEMPLATE) makefile
 	export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
 	export MOTION_TLD="$(MOTION_TLD)" MOTION_GROUP="$(MOTION_GROUP)"; \
 	cat $(WEBCAM_BINARY_SENSOR_TEMPLATE) | envsubst > $@
+
+$(WEBCAM_GROUPS): $(WEBCAM_GROUP_TEMPLATE) makefile
+	@echo "making $@"
+	@export TARGET="$@" PKG="motion"; \
+	export MOTION_CAMERA=$${TARGET%%.*}; \
+	export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
+	export \
+	  MOTION_TLD="$(MOTION_TLD)" \
+	  MOTION_GROUP="$(MOTION_GROUP)" \
+	  MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" cameras.json) \
+	&& cat $(WEBCAM_GROUP_TEMPLATE) | envsubst > $@
  
 ## motion-addon.json
 
 motion-addon.json: motion-addon.json.tmpl makefile
 	@echo "making $@"
 	@export \
-	  MOTION_TLD="$(MOTION_TLD)" \
-	  MOTION_GROUP="$(MOTION_GROUP)" \
-	  MOTION_MQTT_HOST=$(MOTION_MQTT_HOST) \
-	  MOTION_MQTT_USERNAME=$(MOTION_MQTT_USERNAME) \
-	  MOTION_MQTT_PASSWORD=$(MOTION_MQTT_PASSWORD) \
-	  MOTION_COUCHDB_HOST=$(MOTION_COUCHDB_HOST) \
-	  MOTION_COUCHDB_USERNAME=$(MOTION_COUCHDB_USERNAME) \
-	  MOTION_COUCHDB_PASSWORD=$(MOTION_COUCHDB_PASSWORD) \
-	&& \
-	cat motion-addon.json.tmpl | envsubst > motion-addon.json; \
-	for C in $(WEBCAMS); do \
-	  export MOTION_GROUP="$(MOTION_GROUP)" MOTION_CAMERA="$${C}" \
+	    MOTION_TLD="${MOTION_TLD}" \
+	    MOTION_GROUP="${MOTION_GROUP}" \
+	    MOTION_DEVICE="${MOTION_DEVICE}" \
+	    MOTION_MQTT_HOST=${MOTION_MQTT_HOST} \
+	    MOTION_MQTT_USERNAME=${MOTION_MQTT_USERNAME} \
+	    MOTION_MQTT_PASSWORD=${MOTION_MQTT_PASSWORD} \
+	    MOTION_COUCHDB_HOST=${MOTION_COUCHDB_HOST} \
+	    MOTION_COUCHDB_USERNAME=${MOTION_COUCHDB_USERNAME} \
+	    MOTION_COUCHDB_PASSWORD=${MOTION_COUCHDB_PASSWORD} \
+	&& cat motion-addon.json.tmpl | envsubst > motion-addon.json
+	@for C in $(WEBCAMS); do \
+	  export \
+	    MOTION_TLD="${MOTION_TLD}" \
+	    MOTION_GROUP="${MOTION_GROUP}" \
+	    MOTION_DEVICE="${MOTION_DEVICE}" \
+	    MOTION_MQTT_HOST=${MOTION_MQTT_HOST} \
+	    MOTION_MQTT_USERNAME=${MOTION_MQTT_USERNAME} \
+	    MOTION_MQTT_PASSWORD=${MOTION_MQTT_PASSWORD} \
+	    MOTION_COUCHDB_HOST=${MOTION_COUCHDB_HOST} \
+	    MOTION_COUCHDB_USERNAME=${MOTION_COUCHDB_USERNAME} \
+	    MOTION_COUCHDB_PASSWORD=${MOTION_COUCHDB_PASSWORD} \
+	    MOTION_CAMERA="$${C}" \
 	  && \
           jq '.|.cameras+=[ { "name": "'$${C}'", "url": "ftpd:///share/ftp/'$${C}'" } ]' motion-addon.json > motion-addon.json.$$; \
           mv motion-addon.json.$$ motion-addon.json; \
 	done
-
-
-## make up, down, restart, logs
-
-start up: motion
-	docker start homeassistant
-
-stop down:
-	docker stop homeassistant
-
-restart: down up
-
-logs:
-	docker logs -f homeassistant
 
 ## clean and clean and clean ..
 
