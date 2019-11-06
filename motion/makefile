@@ -18,14 +18,16 @@ MOTION_COUCHDB_PASSWORD := $(MOTION_COUCHDB_PASSWORD:-password)
 
 WEBCAMS := $(shell jq -r '.[].name' cameras.json)
 
+WEBCAM_GRAPHS := $(shell for C in $(WEBCAMS); do echo history_graph/webcam-$${C}.yaml; done)
 WEBCAM_GROUPS := $(shell for C in $(WEBCAMS); do echo group/webcam-$${C}.yaml; done)
 WEBCAM_COUNTERS := $(shell for C in $(WEBCAMS); do echo counter/webcam-$${C}.yaml; done)
 WEBCAM_SENSORS := $(shell for C in $(WEBCAMS); do echo sensor/webcam-$${C}.yaml; done)
 WEBCAM_CAMERAS := $(shell for C in $(WEBCAMS); do echo camera/webcam-$${C}.yaml; done)
 WEBCAM_AUTOMATIONS := $(shell for C in $(WEBCAMS); do echo automation/webcam-$${C}.yaml; done)
 WEBCAM_BINARY_SENSORS := $(shell for C in $(WEBCAMS); do echo binary_sensor/webcam-$${C}.yaml; done)
-WEBCAM_YAML := $(WEBCAM_AUTOMATIONS) $(WEBCAM_CAMERAS) $(WEBCAM_COUNTERS) $(WEBCAM_SENSORS) $(WEBCAM_BINARY_SENSORS) $(WEBCAM_GROUPS)
+WEBCAM_YAML := $(WEBCAM_AUTOMATIONS) $(WEBCAM_CAMERAS) $(WEBCAM_COUNTERS) $(WEBCAM_SENSORS) $(WEBCAM_BINARY_SENSORS) $(WEBCAM_GROUPS) $(WEBCAM_GRAPHS)
 
+WEBCAM_GRAPH_TEMPLATE := history_graph.webcam.yaml.tmpl
 WEBCAM_GROUP_TEMPLATE := group.webcam.yaml.tmpl
 WEBCAM_COUNTER_TEMPLATE := counter.webcam.yaml.tmpl
 WEBCAM_SENSOR_TEMPLATE := sensor.webcam.yaml.tmpl
@@ -98,6 +100,14 @@ $(WEBCAM_BINARY_SENSORS): $(WEBCAM_BINARY_SENSOR_TEMPLATE) makefile
 	export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
 	export MOTION_TLD="$(MOTION_TLD)" MOTION_GROUP="$(MOTION_GROUP)"; \
 	cat $(WEBCAM_BINARY_SENSOR_TEMPLATE) | envsubst > $@
+
+$(WEBCAM_GRAPHS): $(WEBCAM_GRAPH_TEMPLATE) makefile
+	@echo "making $@"
+	@export TARGET="$@" PKG="motion"; \
+	export MOTION_CAMERA=$${TARGET%%.*}; \
+	export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
+	export MOTION_TLD="$(MOTION_TLD)" MOTION_GROUP="$(MOTION_GROUP)"; \
+	cat $(WEBCAM_GRAPH_TEMPLATE) | envsubst > $@
 
 $(WEBCAM_GROUPS): $(WEBCAM_GROUP_TEMPLATE) makefile
 	@echo "making $@"
