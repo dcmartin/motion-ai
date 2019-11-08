@@ -2,12 +2,15 @@
 ### ${MOTION_CAMERA} sensors
 ###
 
-## MOTION_CAMERA FOUND - '${MOTION_GROUP}/+/${MOTION_CAMERA}/status/found'
+###
+# found
+###
+
 - platform: mqtt
   name: motion_status_camera_found_${MOTION_CAMERA}
   state_topic: '${MOTION_GROUP}/+/${MOTION_CAMERA}/status/found'
   expire_after: 1
-  force_update: true
+  force_update: false
   json_attributes:
     - device
     - camera
@@ -38,12 +41,15 @@
           {{ states.sensor.motion_status_camera_found_date_${MOTION_CAMERA}.state|int|timestamp_custom("%a %b %d ~ %I:%M %p") }}
         {% else %}null{% endif %} 
 
-## MOTION_CAMERA LOST - '${MOTION_GROUP}/+/${MOTION_CAMERA}/status/lost' 
+###
+# lost
+###
+
 - platform: mqtt
   name: motion_status_camera_lost_${MOTION_CAMERA}
   state_topic: '${MOTION_GROUP}/+/${MOTION_CAMERA}/status/lost'
   expire_after: 1
-  force_update: true
+  force_update: false
   json_attributes:
     - device
     - camera
@@ -112,12 +118,15 @@
   value_template: >
     {% if value_json is defined %}true{% else %}null{% endif %}
 
-## END EVENT
+###
+# end
+###
+
 - platform: mqtt
-  name: motion_end_${MOTION_CAMERA}
+  name: motion_event_end_${MOTION_CAMERA}
   qos: 1
   state_topic: '${MOTION_GROUP}/+/${MOTION_CAMERA}/event/end'
-  expire_after: 1
+  expire_after: 10
   force_update: true
   json_attributes:
     - device
@@ -138,7 +147,7 @@
 - platform: mqtt
   name: motion_event_annotated_${MOTION_CAMERA}
   state_topic: '${MOTION_GROUP}/+/${MOTION_CAMERA}/event/end/+'
-  expire_after: 1
+  expire_after: 10
   force_update: true
   json_attributes:
     - timestamp
@@ -178,6 +187,18 @@
 ## counting
 - platform: template
   sensors:
+    motion_end_counter_${MOTION_CAMERA}:
+      entity_id:
+        - counter.motion_end_counter_${MOTION_CAMERA}
+      unit_of_measurement: count
+      value_template: >
+        {% if states.counter.motion_end_counter_${MOTION_CAMERA} != none %}
+          {{ states.counter.motion_end_counter_${MOTION_CAMERA}.state|int }}
+        {%- else -%}null{%- endif -%}
+
+## counting
+- platform: template
+  sensors:
     motion_annotated_counter_${MOTION_CAMERA}:
       friendly_name: ${MOTION_CAMERA} annotated counter
       entity_id:
@@ -200,7 +221,8 @@
       value_template: >
         {% if states('sensor.motion_annotated_date_${MOTION_CAMERA}') != 'unknown'
               and states('sensor.motion_annotated_date_${MOTION_CAMERA}')|int > 0 %}
-          {{ (now().timestamp()|int) - (states('sensor.motion_annotated_date_${MOTION_CAMERA}')|int) }}
+          {% set ago = now().timestamp()|int - states('sensor.motion_annotated_date_${MOTION_CAMERA}')|int %}
+          {% if ago < 86400 %}{{ ago }}{%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif -%}
     # statistics
     motion_annotated_ago_${MOTION_CAMERA}_mean:
@@ -259,6 +281,80 @@
 - platform: statistics
   name: motion_annotated_ago_${MOTION_CAMERA}_stdev_statistics
   entity_id: sensor.motion_annotated_ago_${MOTION_CAMERA}_stdev
+  sampling_size: 100
+  max_age:
+    hours: 24
+
+## percent
+- platform: template
+  sensors:
+    # percent of motion events which were annotated
+    motion_annotated_percent_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} annotated
+      entity_id:
+        - counter.motion_end_counter_${MOTION_CAMERA}
+        - counter.motion_annotated_counter_${MOTION_CAMERA}
+      unit_of_measurement: '%'
+      value_template: >-
+        {% if states('counter.motion_annotated_counter_${MOTION_CAMERA}')|int > 0 and states('counter.motion_end_counter_${MOTION_CAMERA}')|int > 0 %}
+          {{  ( states.counter.motion_annotated_counter_${MOTION_CAMERA}.state|int / states.counter.motion_end_counter_${MOTION_CAMERA}.state|int ) * 100.0 }}
+        {%- else -%}null{%- endif -%}
+    # derived annotated percent_${MOTION_CAMERA} statistics
+    motion_annotated_percent_${MOTION_CAMERA}_mean:
+      friendly_name: ${MOTION_CAMERA} annotated avg
+      entity_id:
+        - sensor.motion_annotated_percent_${MOTION_CAMERA}_statistics
+      unit_of_measurement: '%'
+      value_template: >-
+        {% if states('sensor.motion_annotated_percent_${MOTION_CAMERA}_statistics') != 'unknown' %}
+          {{ states.sensor.motion_annotated_percent_${MOTION_CAMERA}_statistics.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_annotated_percent_${MOTION_CAMERA}_min_value:
+      friendly_name: ${MOTION_CAMERA} annotated min
+      entity_id:
+        - sensor.motion_annotated_percent_${MOTION_CAMERA}_statistics
+      unit_of_measurement: '%'
+      value_template: >-
+        {% if states('sensor.motion_annotated_percent_${MOTION_CAMERA}_statistics') != 'unknown' %}
+          {{ states.sensor.motion_annotated_percent_${MOTION_CAMERA}_statistics.attributes.min_value|float }}
+        {%- else -%}null{%- endif -%}
+    motion_annotated_percent_${MOTION_CAMERA}_max_value:
+      friendly_name: ${MOTION_CAMERA} annotated max
+      entity_id:
+        - sensor.motion_annotated_percent_${MOTION_CAMERA}_statistics
+      unit_of_measurement: '%'
+      value_template: >-
+        {% if states('sensor.motion_annotated_percent_${MOTION_CAMERA}_statistics') != 'unknown' %}
+          {{ states.sensor.motion_annotated_percent_${MOTION_CAMERA}_statistics.attributes.max_value|float }}
+        {%- else -%}null{%- endif -%}
+    motion_annotated_percent_${MOTION_CAMERA}_stdev:
+      friendly_name: ${MOTION_CAMERA} annotated stdev
+      entity_id:
+        - sensor.motion_annotated_percent_${MOTION_CAMERA}_statistics
+      unit_of_measurement: '%'
+      value_template: >
+        {% if states('sensor.motion_annotated_percent_${MOTION_CAMERA}_statistics') != 'unknown' %}
+          {{ states.sensor.motion_annotated_percent_${MOTION_CAMERA}_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_annotated_percent_${MOTION_CAMERA}_change_rate:
+      friendly_name: ${MOTION_CAMERA} annotated change
+      entity_id:
+        - sensor.motion_annotated_percent_${MOTION_CAMERA}_statistics
+      unit_of_measurement: '%'
+      value_template: >
+        {% if states('sensor.motion_annotated_percent_${MOTION_CAMERA}_statistics') != 'unknown' %}
+          {{ states.sensor.motion_annotated_percent_${MOTION_CAMERA}_statistics.attributes.change_rate|float }}
+        {%- else -%}null{%- endif -%}
+# annotated percent_${MOTION_CAMERA}
+- platform: statistics
+  name: motion_annotated_percent_${MOTION_CAMERA}_statistics
+  entity_id: sensor.motion_annotated_percent_${MOTION_CAMERA}
+  sampling_size: 100
+  max_age:
+    hours: 24
+- platform: statistics
+  name: motion_annotated_percent_${MOTION_CAMERA}_stdev_statistics
+  entity_id: sensor.motion_annotated_percent_${MOTION_CAMERA}_stdev
   sampling_size: 100
   max_age:
     hours: 24
@@ -396,7 +492,7 @@
         {% else %}null{% endif %}
     # human readable
     motion_detected_entity_when_${MOTION_CAMERA}:
-      friendly_name: ${MOTION_CAMERA} detected entity at
+      friendly_name: ${MOTION_CAMERA} identified at
       entity_id:
         - sensor.motion_detected_entity_date_${MOTION_CAMERA}
       value_template: >-
@@ -409,7 +505,7 @@
 - platform: template
   sensors:
     motion_detected_entity_counter_${MOTION_CAMERA}:
-      friendly_name: ${MOTION_CAMERA} detected entity counter
+      friendly_name: ${MOTION_CAMERA} identifications
       entity_id:
         - counter.motion_detected_entity_counter_${MOTION_CAMERA}
       unit_of_measurement: count
@@ -422,7 +518,7 @@
 - platform: template
   sensors:
     motion_detected_entity_ago_${MOTION_CAMERA}:
-      friendly_name: ${MOTION_CAMERA} detected entity ago
+      friendly_name: ${MOTION_CAMERA} identification ago
       entity_id:
         - sensor.motion_detected_entity_date_${MOTION_CAMERA}
         - sun.sun
@@ -434,7 +530,7 @@
           {%- else -%}null{%- endif -%}
     # statistics
     motion_detected_entity_ago_${MOTION_CAMERA}_mean:
-      friendly_name: ${MOTION_CAMERA} detected entity ago avg
+      friendly_name: ${MOTION_CAMERA} identification ago avg
       entity_id:
         - sensor.motion_detected_entity_ago_${MOTION_CAMERA}_statistics
       unit_of_measurement: seconds
@@ -445,7 +541,7 @@
           {%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif -%}
     motion_detected_entity_ago_${MOTION_CAMERA}_min_value:
-      friendly_name: ${MOTION_CAMERA} detected entity ago min
+      friendly_name: ${MOTION_CAMERA} identification ago min
       entity_id:
         - sensor.motion_detected_entity_ago_${MOTION_CAMERA}_statistics
       unit_of_measurement: seconds
@@ -454,7 +550,7 @@
           {{ states.sensor.motion_detected_entity_ago_${MOTION_CAMERA}_statistics.attributes.min_value|int }}
         {%- else -%}null{%- endif -%}
     motion_detected_entity_ago_${MOTION_CAMERA}_max_value:
-      friendly_name: ${MOTION_CAMERA} detected entity ago max
+      friendly_name: ${MOTION_CAMERA} identification ago max
       entity_id:
         - sensor.motion_detected_entity_ago_${MOTION_CAMERA}_statistics
       unit_of_measurement: seconds
@@ -463,7 +559,7 @@
           {{ states.sensor.motion_detected_entity_ago_${MOTION_CAMERA}_statistics.attributes.max_value|int }}
         {%- else -%}null{%- endif -%}
     motion_detected_entity_ago_${MOTION_CAMERA}_stdev:
-      friendly_name: ${MOTION_CAMERA} detected entity ago stdev
+      friendly_name: ${MOTION_CAMERA} identification ago stdev
       entity_id:
         - sensor.motion_detected_entity_ago_${MOTION_CAMERA}_statistics
       unit_of_measurement: seconds
@@ -472,7 +568,7 @@
           {{ states.sensor.motion_detected_entity_ago_${MOTION_CAMERA}_statistics.attributes.standard_deviation|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_entity_ago_${MOTION_CAMERA}_change_rate:
-      friendly_name: ${MOTION_CAMERA} detected entity ago change
+      friendly_name: ${MOTION_CAMERA} identification ago change
       entity_id:
         - sensor.motion_detected_entity_ago_${MOTION_CAMERA}_statistics
       unit_of_measurement: seconds
@@ -499,7 +595,7 @@
   sensors:
     # count based on loop
     motion_detected_entity_count_${MOTION_CAMERA}:
-      friendly_name: ${MOTION_CAMERA} detected entity count
+      friendly_name: ${MOTION_CAMERA} identified
       entity_id:
         - sensor.motion_detected_entity_loop_${MOTION_CAMERA}
       unit_of_measurement: entities
@@ -525,7 +621,7 @@
         {% else %}0{% endif %}
     # statistics
     motion_detected_entity_count_mean_${MOTION_CAMERA}:
-      friendly_name: ${MOTION_CAMERA} detected entity count avg
+      friendly_name: ${MOTION_CAMERA} identified avg
       entity_id:
         - sensor.motion_detected_entity_count_${MOTION_CAMERA}_statistics
       unit_of_measurement: entities
@@ -534,7 +630,7 @@
           {{ states.sensor.motion_detected_entity_count_${MOTION_CAMERA}_statistics.state|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_entity_count_${MOTION_CAMERA}_min_value:
-      friendly_name: ${MOTION_CAMERA} detected entity count min
+      friendly_name: ${MOTION_CAMERA} identified min
       entity_id:
         - sensor.motion_detected_entity_count_${MOTION_CAMERA}_statistics
       unit_of_measurement: entities
@@ -543,7 +639,7 @@
           {{ states.sensor.motion_detected_entity_count_${MOTION_CAMERA}_statistics.attributes.min_value|int }}
         {%- else -%}null{%- endif -%}
     motion_detected_entity_count_${MOTION_CAMERA}_max_value:
-      friendly_name: ${MOTION_CAMERA} detected entity count max
+      friendly_name: ${MOTION_CAMERA} identified max
       entity_id:
         - sensor.motion_detected_entity_count_${MOTION_CAMERA}_statistics
       unit_of_measurement: entities
@@ -552,7 +648,7 @@
           {{ states.sensor.motion_detected_entity_count_${MOTION_CAMERA}_statistics.attributes.max_value|int }}
         {%- else -%}null{%- endif -%}
     motion_detected_entity_count_${MOTION_CAMERA}_stdev:
-      friendly_name: ${MOTION_CAMERA} detected entity count stdev
+      friendly_name: ${MOTION_CAMERA} identified stdev
       entity_id:
         - sensor.motion_detected_entity_count_${MOTION_CAMERA}_statistics
       unit_of_measurement: entities
@@ -561,7 +657,7 @@
           {{ states.sensor.motion_detected_entity_count_${MOTION_CAMERA}_statistics.attributes.standard_deviation|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_entity_count_${MOTION_CAMERA}_change_rate:
-      friendly_name: ${MOTION_CAMERA} detected entity count change
+      friendly_name: ${MOTION_CAMERA} identified change
       entity_id:
         - sensor.motion_detected_entity_count_${MOTION_CAMERA}_statistics
       unit_of_measurement: entities

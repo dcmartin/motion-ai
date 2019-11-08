@@ -16,7 +16,8 @@ MOTION_COUCHDB_PASSWORD := $(MOTION_COUCHDB_PASSWORD:-password)
 
 ## FTP webcams
 
-WEBCAMS := $(shell jq -r '.[].name' cameras.json)
+WEBCAMS_JSON := webcams.json
+WEBCAMS := $(shell jq -r '.[].name' $(WEBCAMS_JSON))
 
 WEBCAM_GRAPHS := $(shell for C in $(WEBCAMS); do echo history_graph/webcam-$${C}.yaml; done)
 WEBCAM_GROUPS := $(shell for C in $(WEBCAMS); do echo group/webcam-$${C}.yaml; done)
@@ -117,7 +118,7 @@ $(WEBCAM_GROUPS): $(WEBCAM_GROUP_TEMPLATE) makefile
 	export \
 	  MOTION_TLD="$(MOTION_TLD)" \
 	  MOTION_GROUP="$(MOTION_GROUP)" \
-	  MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" cameras.json) \
+	  MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)) \
 	&& cat $(WEBCAM_GROUP_TEMPLATE) | envsubst > $@
  
 ## motion-addon.json
