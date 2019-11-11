@@ -22,7 +22,7 @@ run:
 	docker start homeassistant
 
 stop:
-	docker stop homeassistant
+	-docker stop homeassistant
 
 restart: stop all run
 
