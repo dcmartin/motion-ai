@@ -4,46 +4,12 @@
 # Introduction
 This repository contains YAML files for the configuration of the [`horizon.dcmartin.com`](http://horizon.dcmartin.com:8123) site.
 
-This  [HomeAssistant](http://home-assistant.io)  site is a demonstration and proof-of-concept for a variety of [Open Horizon](http://github.com/open-horizon) _edge_ microservices.  The Open Horizon microservices are run as Docker containers on a distributed network across a wide range of computing devices; from [Power9](http://openpowerfoundation.org/) servers to RaspberryPi [Zero W](https://www.raspberrypi.org/products/raspberry-pi-zero-w/) micro-computers.
+This  [Home Assistant](http://home-assistant.io)  site is a demonstration and proof-of-concept for a variety of [Open Horizon](http://github.com/open-horizon) _edge_ microservices.  The Open Horizon microservices are run as Docker containers on a distributed network across a wide range of computing devices; from [Power9](http://openpowerfoundation.org/) servers to RaspberryPi [Zero W](https://www.raspberrypi.org/products/raspberry-pi-zero-w/) micro-computers.
 
 ## What is the "edge"
 The edge of the network is where connectivity is lost and privacy is challenged; extending the services developed for the cloud to these scenarios requires additional considerations for microservices development, notably graceful degradation when services are lost, as well as automated recovery and restart when appropriate.
 
 Available computing in edge scenarios may vary from a single device to multiple varying devices on a local-area-network (LAN), for example _home automation_.  Example use-cases include detecting motion and classifying entities seen and monitoring Internet connectivity.
-
-<hr>
-
-# What is Open Horizon
-Open Horizon is an open source project sponsored by IBM to provide an orchestration mechanism for Docker containers in edge scenarios.  Containers are composed into _services_ which are subsequently packaged into _patterns_ that can be deployed to _nodes_ connected to the _exchange_.  The patterns run by nodes are combinations of services that are designed to interoperate.
-
-## Install Open Horizon
-Installation instructions can be found [here](https://github.com/dcmartin/open-horizon/blob/master/setup/README.md).
-
-### `exchange-api`
-Once installation is complete, the _services_ and _patterns_ can be built and _published_ using the Open Horizon [`exchange-api`](https://github.com/open-horizon/exchange-api/blob/master/README.md) to an _exchange_ -- a server running a specified set of Docker containers, e.g. `http://alpha.edge-fabric.com/v1/`.  Those containers include both  PostgreSQL and MongoDB databases.
-
-### `edge-sync-service`
-The [`edge-sync-service`](https://github.com/open-horizon/edge-sync-service/blob/master/README.md) provides for bi-directional synchonization of binary objects between the server and the devices using the _node_ information in the _exchange_.  The client component is called the `ESS` and the service component is called the `CSS`.  Client and server poll for new objects and data; object data consumers indicate receipt.  A sample service, `esstest`, is available in another [repository](https://github.com/dcmartin/open-horizon/blob/master/esstest/README.md).
-
-### `anax`
-The [`anax`](https://github.com/open-horizon/anax/blob/master/README.md) control application runs on both the client and the server (n.b. as an _agbot_); the client version is installed on a supported device, for example the Raspberry Pi Model 3B+ (n.b. [instructions](https://github.com/dcmartin/open-horizon/blob/master/doc/RPI.md)), and then attempts to reach an _agreement_ with an _agbot_ on the server for the client's requested _pattern_ (e.g. [`yolo2mshubg`](https://github.com/dcmartin/open-horizon/blob/master/yolo2msghub/README.md).
-
-## Use Open Horizon
-After client software installation, the device may be _registered_ to run a specific _pattern_ of services from the exchange.  The pattern specifies one or more services to be deployed to the device and registration records the device as a _node_ in the exchange requesting that pattern of services.
-
-### Example: `yolo2msghub`
-The [`yolo2msghub`](https://github.com/dcmartin/open-horizon/blob/master/yolo2msghub/README.md) [_service_](https://github.com/dcmartin/open-horizon/blob/master/yolo2msghub/service.json) is also defined as a [_pattern_](https://github.com/dcmartin/open-horizon/blob/master/yolo2msghub/pattern.json).  The _service_ is composed of one Docker container deployed as `yolo2msghub`, and four (4) dependencies on `requiredServices`:
-
-+ [`yolo`](https://github.com/dcmartin/open-horizon/blob/master/yolo/README.md) - Provide [YOLO]() image classification service
-+ [`wan`](https://github.com/dcmartin/open-horizon/blob/master/wan/README.md) - Test Internet connectivity
-+ [`hal`](https://github.com/dcmartin/open-horizon/blob/master/hal/README.md) - Inventory device attributes
-+ [`cpu`](https://github.com/dcmartin/open-horizon/blob/master/cpu/README.md) - Calculate CPU utilization percent
-
-Together these five (5) services provide an automated mechanism to capture pictures from a local camera, detect entities of interest (e.g. `person`), and report on presence using the Kafka messaging platform (aka _message hub_).  A sample screen capture (with development mode `on`) is below.
-
-# Sample
-
-![sample.png](samples/sample.png?raw=true "SAMPLE")
 
 <hr>
 
@@ -62,20 +28,27 @@ sudo apt-get update
 sudo apt-get install -y apparmor-utils apt-transport-https avahi-daemon ca-certificates curl dbus jq network-manager socat
 ```
 
-Download the installation script and run it as root, for example:
+Download the installation script (`hassio_install.sh`) and save it, for example:
 
 ```
-curl -sL "https://raw.githubusercontent.com/home-assistant/hassio-installer/master/hassio_install.sh" | sudo bash -s
+curl -sL "https://raw.githubusercontent.com/home-assistant/hassio-installer/master/hassio_install.sh" -o hassio_install.sh
+chmod 755 hassio_install.sh
 ```
 
-&#9995; For **RaspberryPi Model 4** machines, please edit the `hassio_install.sh` script prior to execution and change the parameters for `armv7l`, for example:
+Install using the downloaded script; run script as root and provide a `MACHINE` option for non-x86 devices.  See the table below to help identify the proper machine.
 
+Device|Architecture|MACHINE|comment
+:-------|:-------:|-------|:-------
+RaspberryPi3|armhf|`raspberrypi3`|
+RaspberryPi3b+|armhf|`armhf`|
+RaspberryPi4|armv7|`raspberrypi4`|
+nVidia Jetson Nano|aarch64|`aarch64`|
+
+**For example**:
 ```
-"armv7l")
-        HOMEASSISTANT_DOCKER="$DOCKER_REPO/raspberrypi3-homeassistant"
-        HASSIO_DOCKER="$DOCKER_REPO/armhf-hassio-supervisor"
-    ;;
+sudo ./hassio_install -m armhf
 ```
+
 ## Use Home Assistant
 The default configuration will setup on the localhost using port `8123`; the initial download and installation of the `hassio_supervisor` and `homeassistant` Docker containers may require up to twenty (20) minutes, depending on network connection and host performance.
 
@@ -133,6 +106,20 @@ And when successful the following should appear at the end of the page:
 <img src="samples/addonstore-after.png">
 
 
+## Motion
+Processes video information into motion detection JSON events, multi-frame GIF animations, and one representative frame with entities detected, classified, and annotated (n.b. requires Open Horizon `yolo4motion` service).  This addon is designed to work with a variety of sources, including:
+
++ `3GP` - motion-detecting WebCams (e.g. Linksys WCV80n); received via the `FTP` _addon_
++ `MJPEG` - network accessible cameras providing Motion-JPEG real-time feed
++ `V4L2` - video for LINUX (v2) for direct attach cameras, e.g. Sony Playstation3 Eye camera or RaspberryPi v2
+
+Visit  [`motion`][https://github.com/dcmartin/hassio-addons/tree/master/motion] page for details. 
+
+## YOLO4Motion
+Processes images from the `Motion` addon received via `MQTT` (n.b. [`mqtt`][] addon) through the [`YOLO`][] open source object detection and classification "AI" and publishes results via MQTT.
+
+Visi [`yolo4motion`][https://github.com/dcmartin/hassio-addons/tree/master/yolo4motion]
+
 ## Kafka to MQTT relay for YOLO
 This addon is designed to consume Kafka messages on the topic `yolo2msghub` and produce MQTT messages for consumption by the Home Assistant MQTT broker _addon_.  Visit  [`kafka2mqtt4yolo`](https://github.com/dcmartin/hassio-addons/tree/master/kafka2mqtt4yolo) page for details. 
 
@@ -142,16 +129,38 @@ Collects Kafka messages on topic: `cpu2msghub` and produces MQTT messages for co
 ## Open Horizon Shared SDR
 Collects Kafka messages on topic: `sdr/audio` and produces MQTT messages for consumption by Home Assistant MQTT `sensor` on `sdr2msghub` as `events`;  processes spoken audio through IBM Watson Speech-to-text (STT) and Natual Language Understanding (NLU) to produce sentiment and other AI predictions.  Visit  [`sdr2msghub`](https://github.com/dcmartin/hassio-addons/tree/master/sdr2msghub) page for details. 
 
-## Motion
-Processes video information into motion detection JSON events, multi-frame GIF animations, and one representative frame with entities detected, classified, and annotated (n.b. requires Open Horizon `yolo4motion` service).  This addon is designed to work with a variety of sources, including:
-
-+ `3GP` - motion-detecting WebCams (e.g. Linksys WCV80n); received via the `FTP` _addon_
-+ `MJPEG` - network accessible cameras providing Motion-JPEG real-time feed
-+ `V4L2` - video for LINUX (v2) for direct attach cameras, e.g. Sony Playstation3 Eye camera or RaspberryPi v2
-
-Visit  [`motion`](https://github.com/dcmartin/hassio-addons/tree/master/motion) page for details. 
-
 <hr>
+# What is Open Horizon
+Open Horizon is an open source project sponsored by IBM to provide an orchestration mechanism for Docker containers in edge scenarios.  Containers are composed into _services_ which are subsequently packaged into _patterns_ that can be deployed to _nodes_ connected to the _exchange_.  The patterns run by nodes are combinations of services that are designed to interoperate.
+
+## Install Open Horizon
+Installation instructions can be found [here](https://github.com/dcmartin/open-horizon/blob/master/setup/README.md).
+
+### `exchange-api`
+Once installation is complete, the _services_ and _patterns_ can be built and _published_ using the Open Horizon [`exchange-api`](https://github.com/open-horizon/exchange-api/blob/master/README.md) to an _exchange_ -- a server running a specified set of Docker containers, e.g. `http://alpha.edge-fabric.com/v1/`.  Those containers include both  PostgreSQL and MongoDB databases.
+
+### `edge-sync-service`
+The [`edge-sync-service`](https://github.com/open-horizon/edge-sync-service/blob/master/README.md) provides for bi-directional synchonization of binary objects between the server and the devices using the _node_ information in the _exchange_.  The client component is called the `ESS` and the service component is called the `CSS`.  Client and server poll for new objects and data; object data consumers indicate receipt.  A sample service, `esstest`, is available in another [repository](https://github.com/dcmartin/open-horizon/blob/master/esstest/README.md).
+
+### `anax`
+The [`anax`](https://github.com/open-horizon/anax/blob/master/README.md) control application runs on both the client and the server (n.b. as an _agbot_); the client version is installed on a supported device, for example the Raspberry Pi Model 3B+ (n.b. [instructions](https://github.com/dcmartin/open-horizon/blob/master/doc/RPI.md)), and then attempts to reach an _agreement_ with an _agbot_ on the server for the client's requested _pattern_ (e.g. [`yolo2mshubg`](https://github.com/dcmartin/open-horizon/blob/master/yolo2msghub/README.md).
+
+## Use Open Horizon
+After client software installation, the device may be _registered_ to run a specific _pattern_ of services from the exchange.  The pattern specifies one or more services to be deployed to the device and registration records the device as a _node_ in the exchange requesting that pattern of services.
+
+### Example: `yolo2msghub`
+The [`yolo2msghub`](https://github.com/dcmartin/open-horizon/blob/master/yolo2msghub/README.md) [_service_](https://github.com/dcmartin/open-horizon/blob/master/yolo2msghub/service.json) is also defined as a [_pattern_](https://github.com/dcmartin/open-horizon/blob/master/yolo2msghub/pattern.json).  The _service_ is composed of one Docker container deployed as `yolo2msghub`, and four (4) dependencies on `requiredServices`:
+
++ [`yolo`](https://github.com/dcmartin/open-horizon/blob/master/yolo/README.md) - Provide [YOLO]() image classification service
++ [`wan`](https://github.com/dcmartin/open-horizon/blob/master/wan/README.md) - Test Internet connectivity
++ [`hal`](https://github.com/dcmartin/open-horizon/blob/master/hal/README.md) - Inventory device attributes
++ [`cpu`](https://github.com/dcmartin/open-horizon/blob/master/cpu/README.md) - Calculate CPU utilization percent
+
+Together these five (5) services provide an automated mechanism to capture pictures from a local camera, detect entities of interest (e.g. `person`), and report on presence using the Kafka messaging platform (aka _message hub_).  A sample screen capture (with development mode `on`) is below.
+
+# Sample
+
+![sample.png](samples/sample.png?raw=true "SAMPLE")
 
 # Open Horizon _services_ and _patterns_
 A set of Open Horizon _services_ and _patterns_ is available in another [repository](http://github.com/dcmartin/open-horizon).  Some of the patterns are specified to interoperate with the Home Assistant _addons_, notably the **MQTT broker**, to process messages between services.
