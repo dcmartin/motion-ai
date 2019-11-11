@@ -1,10 +1,11 @@
 # `horizon.dcmartin.com`
 
 
-# Introduction
-This repository contains YAML files for the configuration of the [`horizon.dcmartin.com`](http://horizon.dcmartin.com:8123) site.
+This repository contains YAML files for the configuration of the [Home Assistant](http://home-assistant.io)  site at [`horizon.dcmartin.com`](http://horizon.dcmartin.com:3092) site; **unfortunately this site requires authentication**.  Example below.
 
-This  [Home Assistant](http://home-assistant.io)  site is a demonstration and proof-of-concept for a variety of [Open Horizon](http://github.com/open-horizon) _edge_ microservices.  The Open Horizon microservices are run as Docker containers on a distributed network across a wide range of computing devices; from [Power9](http://openpowerfoundation.org/) servers to RaspberryPi [Zero W](https://www.raspberrypi.org/products/raspberry-pi-zero-w/) micro-computers.
+
+
+This   site is a demonstration and proof-of-concept for a variety of [Open Horizon](http://github.com/open-horizon) _edge_ microservices.  The Open Horizon microservices are run as Docker containers on a distributed network across a wide range of computing devices; from [Power9](http://openpowerfoundation.org/) servers to RaspberryPi [Zero W](https://www.raspberrypi.org/products/raspberry-pi-zero-w/) micro-computers.
 
 ## What is the "edge"
 The edge of the network is where connectivity is lost and privacy is challenged; extending the services developed for the cloud to these scenarios requires additional considerations for microservices development, notably graceful degradation when services are lost, as well as automated recovery and restart when appropriate.
@@ -49,87 +50,50 @@ nVidia Jetson Nano|aarch64|`aarch64`|
 sudo ./hassio_install -m armhf
 ```
 
-## Use Home Assistant
 The default configuration will setup on the localhost using port `8123`; the initial download and installation of the `hassio_supervisor` and `homeassistant` Docker containers may require up to twenty (20) minutes, depending on network connection and host performance.
 
-Once completed, there are several _addons_ which are useful in configuration, management, and functionality.  These include the following:
+# Home-Assistant _addons_
+There are several community _addons_ which are useful in configuration, management, and functionality.  These include the following:
 
-+ `mqtt` - provides a local MQTT broker
++ `mqtt` - provides a local MQTT broker; required to use the `motion` addon
 + `configurator` - provide a Web interface to edit configuration files
 + `dnsmasq` - provide a DNS server to local devices
 
-## Addons
-
-## `mqtt`
-Set up [Mosquitto](https://mosquitto.org/) as MQTT [broker](https://www.home-assistant.io/addons/mosquitto/) known as `core-mosquitto` in Home Assistant.
-
-## `configutator`
-Configure Home Assistant through an integrated Web user-interface; more instructions [here](https://www.home-assistant.io/addons/configurator)
-
-## `dnsmasq`
-If you want to use the Home Assistant [DNS](https://www.home-assistant.io/addons/dnsmasq/) _addon_, the existing DNS resolver for Ubuntu must be disabled.  This method works on Ubuntu Releases 17.04 (Zasty), 17.10 (Artful), 18.04 (Bionic) and 18.10 (Cosmic):
-
-Disable and stop the systemd-resolved service:
-
-```
-sudo systemctl disable systemd-resolved.service
-sudo systemctl stop systemd-resolved
-```
-
-Set DNS to `default`
-
-```
-sudo echo 'dns=default' >> /etc/NetworkManager/NetworkManager.conf
-```
-
-Delete  /etc/resolv.conf
-
-```
-sudo rm /etc/resolv.conf
-```
-
-Restart network-manager
-
-```
-sudo service network-manager restart
-```
-
-## Open Horizon for Hassio `addons`
 Integration between Home Assistant and Open Horizon utilizes both the Home Assistant MQTT broker as well as several custom _addons_, available in another [repository](https://github.com/dcmartin/hassio-addons/blob/master/README.md), which may be installed using the **Hassio** control panel in the Home Assistant Web UI.
 
-These addons are available by specifying the repository in the Hassio "ADD-ON STORE" section, for example:
+These addons are available by specifying the repository in the Hassio "ADD-ON STORE" section, for example adding the repository for this site: [`https://github.com/dcmartin/hassio-addons`](https://github.com/dcmartin/hassio-addons) will be displayed in the `ADD-ON STORE`:
 
-<img src="samples/addonstore-entry.png" width="50%">
+<img src="samples/addonstore-entry.png">
 
 And when successful the following should appear at the end of the page:
 
 <img src="samples/addonstore-after.png">
 
-
-## Motion
-Processes video information into motion detection JSON events, multi-frame GIF animations, and one representative frame with entities detected, classified, and annotated (n.b. requires Open Horizon `yolo4motion` service).  This addon is designed to work with a variety of sources, including:
+## `motion`
+The `motion` add-on processes video information into motion detection JSON events, multi-frame GIF animations, and one representative frame with entities detected, classified, and annotated (n.b. requires Open Horizon `yolo4motion` service).  This addon is designed to work with a variety of sources, including:
 
 + `3GP` - motion-detecting WebCams (e.g. Linksys WCV80n); received via the `FTP` _addon_
 + `MJPEG` - network accessible cameras providing Motion-JPEG real-time feed
 + `V4L2` - video for LINUX (v2) for direct attach cameras, e.g. Sony Playstation3 Eye camera or RaspberryPi v2
 
-Visit  [`motion`][https://github.com/dcmartin/hassio-addons/tree/master/motion] page for details. 
+Visit  [`motion`](https://github.com/dcmartin/hassio-addons/tree/master/motion) page for details. 
 
-## YOLO4Motion
-Processes images from the `Motion` addon received via `MQTT` (n.b. [`mqtt`][] addon) through the [`YOLO`][] open source object detection and classification "AI" and publishes results via MQTT.
+## `yolo4motion`
+Processes images from the `motion` addon received via MQTT through the [**YOLO**](https://pjreddie.com/darknet/yolo/) open source object detection and classification deep convolutional neural network (DCNN) and publishes results via MQTT.
 
-Visi [`yolo4motion`][https://github.com/dcmartin/hassio-addons/tree/master/yolo4motion]
+Visit [`yolo4motion`](https://github.com/dcmartin/hassio-addons/tree/master/yolo4motion) page for details. 
 
-## Kafka to MQTT relay for YOLO
-This addon is designed to consume Kafka messages on the topic `yolo2msghub` and produce MQTT messages for consumption by the Home Assistant MQTT broker _addon_.  Visit  [`kafka2mqtt4yolo`](https://github.com/dcmartin/hassio-addons/tree/master/kafka2mqtt4yolo) page for details. 
+## `kafka2mqtt4yolo `
+The Kafka to MQTT relay for YOLO addon is designed to consume Kafka messages on the topic `yolo2msghub` and produce MQTT messages for consumption by the Home Assistant MQTT broker _addon_.  Visit  [`kafka2mqtt4yolo`](https://github.com/dcmartin/hassio-addons/tree/master/kafka2mqtt4yolo) page for details. 
 
-## Open Horizon Shared GPU and GPS
+## `cpu2msghub`
 Collects Kafka messages on topic: `cpu2msghub` and produces MQTT messages for consumption by Home Assistant MQTT `sensor` on `cpu2msghub` topic as `events`.  Visit  [`cpu2msghub`](https://github.com/dcmartin/hassio-addons/tree/master/cpu2msghub) page for details. 
 
-## Open Horizon Shared SDR
+## `sdr2msghub`
 Collects Kafka messages on topic: `sdr/audio` and produces MQTT messages for consumption by Home Assistant MQTT `sensor` on `sdr2msghub` as `events`;  processes spoken audio through IBM Watson Speech-to-text (STT) and Natual Language Understanding (NLU) to produce sentiment and other AI predictions.  Visit  [`sdr2msghub`](https://github.com/dcmartin/hassio-addons/tree/master/sdr2msghub) page for details. 
 
 <hr>
+
 # What is Open Horizon
 Open Horizon is an open source project sponsored by IBM to provide an orchestration mechanism for Docker containers in edge scenarios.  Containers are composed into _services_ which are subsequently packaged into _patterns_ that can be deployed to _nodes_ connected to the _exchange_.  The patterns run by nodes are combinations of services that are designed to interoperate.
 
