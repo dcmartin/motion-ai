@@ -61,7 +61,7 @@ TARGETS := build all
 ${TARGETS}: makefile
 	for P in ${PACKAGES}; do ${MAKE} -C $${P} $@; done
 
-run:
+run: configuration.yaml secrets.yaml
 	docker start homeassistant
 
 stop:
