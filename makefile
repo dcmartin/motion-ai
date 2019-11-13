@@ -41,11 +41,11 @@ EDGEX_URL := $(if $(wildcard EDGEX_URL),$(shell cat EDGEX_URL),http://edgex.$(DO
 CONSUL_URL := $(if $(wildcard CONSUL_URL),$(shell cat CONSUL_URL),http://consul.$(DOMAIN_NAME):8500/ui)
 
 # open-horizon
-EXCHANGE_URL := $(if $(wildcard EXCHANGE_URL),$(shell cat EXCHANGE_URL),http://exchange.$(DOMAIN_NAME):3090/)
+EXCHANGE_URL := $(if $(wildcard EXCHANGE_URL),$(shell cat EXCHANGE_URL),http://exchange.$(DOMAIN_NAME):3090)
 EXCHANGE_ORG := $(if $(wildcard EXCHANGE_ORG),$(shell cat EXCHANGE_ORG),$(shell whoami))
 EXCHANGE_ORG_ADMIN := $(if $(wildcard EXCHANGE_ORG_ADMIN),$(shell cat EXCHANGE_ORG_ADMIN),$(shell whoami))
 EXCHANGE_APIKEY := $(if $(wildcard EXCHANGE_APIKEY),$(shell cat EXCHANGE_APIKEY),$(shell read -p "Specify EXCHANGE_APIKEY: " && echo $${REPLY}))
-HZNMONITOR_URL := $(if $(wildcard HZNMONITOR_URL),$(shell cat HZNMONITOR_URL),http://hznmonitor.$(DOMAIN_NAME):3094/)
+HZNMONITOR_URL := $(if $(wildcard HZNMONITOR_URL),$(shell cat HZNMONITOR_URL),http://hznmonitor.$(DOMAIN_NAME):3094)
 
 # grafana
 GRAFANA_URL := $(if $(wildcard GRAFANA_URL),$(shell cat GRAFANA_URL),http://grafana.$(DOMAIN_NAME):3000)
