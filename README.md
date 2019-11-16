@@ -12,10 +12,10 @@ Available computing in edge scenarios may vary from a single device to multiple 
 
 <hr>
 
-# A What is Home Assistant
+# A - What is Home Assistant
 Open source home automation that puts local control and privacy first. Powered by a worldwide community of tinkerers and DIY enthusiasts. Perfect to run on a [Raspberry Pi](https://en.wikipedia.org/wiki/Raspberry_Pi) or a local server.   HomeAssistant include _addon_ Docker containers  from the HomeAssistant [community](https://github.com/hassio-addons/repository/blob/master/README.md).
 
-## A.1 Install Home Assistant
+## A.1 - Install Home Assistant
 
 For details information on installing Home Assistant, please refer to the [documentation](https://www.home-assistant.io/hassio/installation/).
 
@@ -71,6 +71,15 @@ Install pre-requisites for Home Assistant, for example:
 % sudo apt upgrade -qq -y
 % sudo apt install -y software-properties-common apparmor-utils apt-transport-https avahi-daemon ca-certificates curl dbus jq socat
 ```
+
+Install [Docker](http://docker.com) using the script from `get.docker.com`:
+
+```
+% curl -sL get.docker.com > getdocker.sh
+% chmod 755 getdocker.sh 
+% sudo ./getdocker.sh 
+```
+
 ### Step 5
 Download the installation script (`hassio_install.sh`) and save it, and enable execution; for example:
 
@@ -94,11 +103,27 @@ nVidia Jetson Nano|ARM Cortex-A57|`aarch64`|
 sudo ./hassio_install -m raspberrypi3
 ```
 
-The default configuration will setup on the localhost using port `8123`.
+Resulting (hopefully) successfully, for example:
 
-The download and installation of the `hassio_supervisor` and `homeassistant` Docker containers may require up to twenty (20) minutes, depending on network connection and host performance.
+```
+[Warning] No NetworkManager support on host.
+[Info] Install supervisor Docker container
+[Info] Install supervisor startup scripts
+Created symlink /etc/systemd/system/multi-user.target.wants/hassio-supervisor.service → /etc/systemd/system/hassio-supervisor.service.
+[Info] Install AppArmor scripts
+Created symlink /etc/systemd/system/multi-user.target.wants/hassio-apparmor.service → /etc/systemd/system/hassio-apparmor.service.
+[Info] Run Hass.io
+```
 
-# A.2  Home-Assistant _addons_
+The download and installation of the `hassio_supervisor` and `homeassistant` Docker containers may require up to twenty (20) minutes, depending on network connection and host performance.  The default configuration will setup on the localhost using port `8123`.
+
+#### Install support applications
+
+```
+sudo apt install -qq -y git make build-essential
+```
+
+# A.2 - Home-Assistant _addons_
 There are several community _addons_ which are useful in configuration, management, and functionality.  These include the following:
 
 + `mqtt` - provides a local MQTT broker; **required to use the `motion` addon**
@@ -107,7 +132,6 @@ There are several community _addons_ which are useful in configuration, manageme
 
 These addons and many other are available from the **ADD-ON** store in Home Assistant.
 
-## A.2.1 `dcmartin` _addons_
 Integration between Home Assistant and Open Horizon utilizes both the Home Assistant MQTT broker as well as several custom _addons_, available in another [repository](https://github.com/dcmartin/hassio-addons/blob/master/README.md), which may be installed using the **Hassio** control panel in the Home Assistant Web UI.
 
 These addons are available by specifying the repository in the Hassio "ADD-ON STORE" section, for example adding the repository for this site: [`https://github.com/dcmartin/hassio-addons`](https://github.com/dcmartin/hassio-addons) will be displayed in the `ADD-ON STORE`:
@@ -118,7 +142,7 @@ And when successful the following should appear at the end of the page:
 
 <img src="samples/addonstore-after.png">
 
-## `motion`
+### A.2.1 - `motion`
 The `motion` add-on processes video information into motion detection JSON events, multi-frame GIF animations, and one representative frame with entities detected, classified, and annotated (n.b. requires Open Horizon `yolo4motion` service).  This addon is designed to work with a variety of sources, including:
 
 + `3GP` - motion-detecting WebCams (e.g. Linksys WCV80n); received via the `FTP` community _addon_
@@ -127,30 +151,46 @@ The `motion` add-on processes video information into motion detection JSON event
 
 Visit  [`motion`](https://github.com/dcmartin/hassio-addons/tree/master/motion) page for details. 
 
-## `yolo4motion`
+### A.2.2 - `yolo4motion`
 Processes images from the `motion` addon received via MQTT through the [**YOLO**](https://pjreddie.com/darknet/yolo/) open source object detection and classification deep convolutional neural network (DCNN) and publishes results via MQTT.
 
 Visit [`yolo4motion`](https://github.com/dcmartin/hassio-addons/tree/master/yolo4motion) page for details. 
 
-## `kafka2mqtt4yolo `
+### A.2.3 - `kafka2mqtt4yolo `
 The Kafka to MQTT relay for YOLO addon is designed to consume Kafka messages on the topic `yolo2msghub` and produce MQTT messages for consumption by the Home Assistant MQTT broker _addon_.  Visit  [`kafka2mqtt4yolo`](https://github.com/dcmartin/hassio-addons/tree/master/kafka2mqtt4yolo) page for details. 
 
-## `cpu2msghub`
+### A.2.4 - `cpu2msghub`
 Collects Kafka messages on topic: `cpu2msghub` and produces MQTT messages for consumption by Home Assistant MQTT `sensor` on `cpu2msghub` topic as `events`.  Visit  [`cpu2msghub`](https://github.com/dcmartin/hassio-addons/tree/master/cpu2msghub) page for details. 
 
-## `sdr2msghub`
+### A.2.5 - `sdr2msghub`
 Collects Kafka messages on topic: `sdr/audio` and produces MQTT messages for consumption by Home Assistant MQTT `sensor` on `sdr2msghub` as `events`;  processes spoken audio through IBM Watson Speech-to-text (STT) and Natual Language Understanding (NLU) to produce sentiment and other AI predictions.  Visit  [`sdr2msghub`](https://github.com/dcmartin/hassio-addons/tree/master/sdr2msghub) page for details. 
 
-<hr>
-## A.2.2 Community _addons_
+### A.2.6 - `mqtt`
+Set up [Mosquitto](https://mosquitto.org/) as MQTT [broker](https://www.home-assistant.io/addons/mosquitto/) known as `core-mosquitto` in Home Assistant.  For example:
 
-## `mqtt`
-Set up [Mosquitto](https://mosquitto.org/) as MQTT [broker](https://www.home-assistant.io/addons/mosquitto/) known as `core-mosquitto` in Home Assistant.
+```
+{
+  "logins": [
+    {
+      "username": "username",
+      "password": "password"
+    }
+  ],
+  "anonymous": false,
+  "customize": {
+    "active": false,
+    "folder": "mosquitto"
+  },
+  "certfile": "fullchain.pem",
+  "keyfile": "privkey.pem",
+  "require_certificate": false
+}
+```
 
-## `configurator`
+### A.2.7 - `configurator`
 Configure Home Assistant through an integrated Web user-interface; more instructions [here](https://www.home-assistant.io/addons/configurator)
 
-## `dnsmasq`
+### A.2.8 - `dnsmasq`
 If you want to use the Home Assistant [DNS](https://www.home-assistant.io/addons/dnsmasq/) _addon_, the existing DNS resolver for Ubuntu must be disabled.  This method works on Ubuntu Releases 17.04 (Zasty), 17.10 (Artful), 18.04 (Bionic) and 18.10 (Cosmic):
 
 Disable and stop the systemd-resolved service:
