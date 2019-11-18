@@ -1,0 +1,160 @@
+###
+### YOLO2MSGHUB (from automation/yolo2msghub/)
+###
+
+- id: yolo2msghub_counter
+  alias: yolo2msghub_counter
+  initial_state: !secret yolo2msghub_automations
+  trigger:
+    platform: state
+    entity_id: sensor.yolo2msghub_event
+  condition:
+    - condition: template
+      value_template: >
+        {{ states.binary_sensor.yolo2msghub_state.state == 'on' }}
+  action:
+    - service: counter.increment
+      entity_id: counter.yolo2msghub_counter
+
+- id: yolo2msghub_client_low
+  alias: yolo2msghub_client_low
+  initial_state: !secret yolo2msghub_automations
+  trigger:
+    platform: state
+    entity_id: binary_sensor.yolo2msghub_client_low
+  condition:
+    - condition: template
+      value_template: >
+        {{ states.binary_sensor.yolo2msghub_client_low.state == 'on' }}
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >
+          Activity low at
+          {{ states.sensor.yolo2msghub_event.attributes.yolo2msghub.date | int | timestamp_custom("%a %b %d %I:%M %p") }}
+        notification_id: yolo2msghub_client_low
+        message: >
+          Current: {{ states.sensor.yolo2msghub_client_count.state }} clients; 
+          average {{ states.sensor.yolo2msghub_client_count_mean.state }} clients;
+          stdev {{ states.sensor.yolo2msghub_client_count_statistics_mean.attributes.standard_deviation }} clients
+    - service: mqtt.publish
+      data_template:
+        topic: 'status/yolo2msghub_clients/download'
+        retain: false
+        payload: >
+          {{ states.sensor.yolo2msghub_client_count_statistics_mean.attributes }}
+
+- id: yolo2msghub_client_low_dismiss
+  alias: yolo2msghub_client_low_dismiss
+  initial_state: !secret yolo2msghub_automations
+  trigger:
+    platform: state
+    entity_id: binary_sensor.yolo2msghub_client_low
+  condition:
+    - condition: template
+      value_template: >
+        {{ states.binary_sensor.yolo2msghub_client_low.state == 'off' }}
+  action:
+    - service: persistent_notification.dismiss
+      data_template:
+        notification_id: yolo2msghub_client_low
+
+- id: yolo2msghub_client_high
+  alias: yolo2msghub_client_high
+  initial_state: !secret yolo2msghub_automations
+  trigger:
+    platform: state
+    entity_id: binary_sensor.yolo2msghub_client_high
+  condition:
+    - condition: template
+      value_template: >
+        {{ states.binary_sensor.yolo2msghub_client_high.state == 'on' }}
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >
+          Activity high at
+          {{ states.sensor.yolo2msghub_event.attributes.yolo2msghub.date | int | timestamp_custom("%a %b %d %I:%M %p") }}
+        notification_id: yolo2msghub_client_high
+        message: >
+          Current: {{ states.sensor.yolo2msghub_client_count.state }} clients; 
+          average {{ states.sensor.yolo2msghub_client_count_mean.state }} clients;
+          stdev {{ states.sensor.yolo2msghub_client_count_statistics_mean.attributes.standard_deviation }} clients
+    - service: mqtt.publish
+      data_template:
+        topic: 'status/yolo2msghub_clients/download'
+        retain: false
+        payload: >
+          {{ states.sensor.yolo2msghub_client_count_statistics_mean.attributes }}
+
+- id: yolo2msghub_client_high_dismiss
+  alias: yolo2msghub_client_high_dismiss
+  initial_state: !secret yolo2msghub_automations
+  trigger:
+    platform: state
+    entity_id: binary_sensor.yolo2msghub_client_high
+  condition:
+    - condition: template
+      value_template: >
+        {{ states.binary_sensor.yolo2msghub_client_high.state == 'off' }}
+  action:
+    - service: persistent_notification.dismiss
+      data_template:
+        notification_id: yolo2msghub_client_high
+
+- id: yolo2msghub_client_low_persistent
+  alias: yolo2msghub_client_low_persistent
+  initial_state: !secret yolo2msghub_automations
+  trigger:
+    platform: state
+    entity_id: binary_sensor.yolo2msghub_client_low_persistent
+  condition:
+    - condition: template
+      value_template: >
+        {{ states.binary_sensor.yolo2msghub_client_low_persistent.state == 'on' }}
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >
+          Activity decreasing at
+          {{ states.sensor.yolo2msghub_event.attributes.yolo2msghub.date | int | timestamp_custom("%a %b %d %I:%M %p") }}
+        notification_id: yolo2msghub_client_low
+        message: >
+          Current: {{ states.sensor.yolo2msghub_client_count.state }} clients; 
+          average {{ states.sensor.yolo2msghub_client_count_mean.state }} clients;
+          average stdev {{ states.sensor.yolo2msghub_client_count_stdev_mean.state }} clients
+    - service: mqtt.publish
+      data_template:
+        topic: 'status/yolo2msghub_clients/download/stdev'
+        retain: false
+        payload: >
+          {{ states.sensor.yolo2msghub_client_count_stdev_mean.attributes }}
+
+- id: yolo2msghub_client_high_persistent
+  alias: yolo2msghub_client_high_persistent
+  initial_state: !secret yolo2msghub_automations
+  trigger:
+    platform: state
+    entity_id: binary_sensor.yolo2msghub_client_high_persistent
+  condition:
+    - condition: template
+      value_template: >
+        {{ states.binary_sensor.yolo2msghub_client_high_persistent.state == 'on' }}
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >
+          Activity increasing at
+          {{ states.sensor.yolo2msghub_event.attributes.yolo2msghub.date | int | timestamp_custom("%a %b %d %I:%M %p") }}
+        notification_id: yolo2msghub_client_high
+        message: >
+          Current: {{ states.sensor.yolo2msghub_client_count.state }} clients; 
+          average {{ states.sensor.yolo2msghub_client_count_mean.state }} clients;
+          average stdev {{ states.sensor.yolo2msghub_client_count_stdev_mean.state }} clients
+    - service: mqtt.publish
+      data_template:
+        topic: 'status/yolo2msghub_clients/download/stdev'
+        retain: false
+        payload: >
+          {{ states.sensor.yolo2msghub_client_count_stdev_mean.attributes }}
+
