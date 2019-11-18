@@ -3,19 +3,25 @@
 ###
 
 PACKAGES := motion 
-#	exchange \
 #	internet \
-#	hznmonitor \
-#	hznsetup \
 #	sdr2msghub \
 #	startup \
-#	yolo2msghub 
+#	yolo2msghub \
+#	exchange \
+#	hznmonitor \
+#	hznsetup
+
+# automation(s)
+AUTOMATION_internet := $(if $(wildcard AUTOMATION_internet),$(shell cat AUTOMATION_internet),$(shell echo "++ WARN: AUTOMATION_internet unset; default: off" > /dev/stderr && echo "off"))
+AUTOMATION_startup := $(if $(wildcard AUTOMATION_startup),$(shell cat AUTOMATION_startup),$(shell echo "++ WARN: AUTOMATION_startup unset; default: off" > /dev/stderr && echo "off"))
+AUTOMATION_sdr2msghub := $(if $(wildcard AUTOMATION_sdr2msghub),$(shell cat AUTOMATION_sdr2msghub),$(shell echo "++ WARN: AUTOMATION_sdr2msghub unset; default: off" > /dev/stderr && echo "off"))
+AUTOMATION_yolo2msghub := $(if $(wildcard AUTOMATION_yolo2msghub),$(shell cat AUTOMATION_yolo2msghub),$(shell echo "++ WARN: AUTOMATION_yolo2msghub unset; default: off" > /dev/stderr && echo "off"))
 
 # domain
 DOMAIN_NAME := $(if $(wildcard DOMAIN_NAME),$(shell cat DOMAIN_NAME),$(shell echo "++ WARN: DOMAIN_NAME unset; default: local" > /dev/stderr && echo "local"))
 
 # host
-HOST_NAME := $(if ${HOST_NAME},${HOST_NAME},$(shell hostname -f))
+HOST_NAME := $(if $(wildcard HOST_NAME),$(shell cat HOST_NAME),$(shell echo "++ WARN: HOST_NAME unset; default: $$(hostname -f)" > /dev/stderr && echo "$$(hostname -f)"))
 HOST_IPADDR := $(if $(wildcard HOST_IPADDR),$(shell cat HOST_IPADDR),$(shell echo "++ WARN: HOST_IPADDR unset; default: 127.0.0.1" > /dev/stderr && echo "127.0.0.1"))
 HOST_NETWORK := $(shell export HOST_IPADDR=$(HOST_IPADDR) && echo $${HOST_IPADDR%.*}.0)
 HOST_NETWORK_MASK := 24
@@ -44,12 +50,14 @@ COUCHDB_URL := $(if $(wildcard COUCHDB_URL),$(shell cat COUCHDB_URL),http://couc
 EDGEX_URL := $(if $(wildcard EDGEX_URL),$(shell cat EDGEX_URL),http://edgex.$(DOMAIN_NAME):4000)
 CONSUL_URL := $(if $(wildcard CONSUL_URL),$(shell cat CONSUL_URL),http://consul.$(DOMAIN_NAME):8500/ui)
 
-# open-horizon
-EXCHANGE_URL := $(if $(wildcard EXCHANGE_URL),$(shell cat EXCHANGE_URL),http://exchange.$(DOMAIN_NAME):3090)
-EXCHANGE_ORG := $(if $(wildcard EXCHANGE_ORG),$(shell cat EXCHANGE_ORG),$(shell whoami))
-EXCHANGE_ORG_ADMIN := $(if $(wildcard EXCHANGE_ORG_ADMIN),$(shell cat EXCHANGE_ORG_ADMIN),${EXCHANGE_ORG})
+## open-horizon
+EXCHANGE_URL := $(if $(wildcard EXCHANGE_URL),$(shell cat EXCHANGE_URL),$(shell echo "-- INFO: EXCHANGE_URL unset; default: http://exchange.$(DOMAIN_NAME):3090" && echo "http://exchange.$(DOMAIN_NAME):3090"))
+EXCHANGE_ORG := $(if $(wildcard EXCHANGE_ORG),$(shell cat EXCHANGE_ORG),$(shell echo "-- INFO: EXCHANGE_ORG unset; default: $$(whoami)" && echo "$$(whoami)"))
+EXCHANGE_ORG_ADMIN := $(if $(wildcard EXCHANGE_ORG_ADMIN),$(shell cat EXCHANGE_ORG_ADMIN),$(shell echo "-- INFO: EXCHANGE_ORG unset; default: ${EXCHANGE_ORG}" && echo "${EXCHANGE_ORG}"))
 EXCHANGE_APIKEY := $(if $(wildcard EXCHANGE_APIKEY),$(shell cat EXCHANGE_APIKEY),$(shell read -p "Specify EXCHANGE_APIKEY: " && echo $${REPLY} | tee EXCHANGE_APIKEY))
-HZNMONITOR_URL := $(if $(wildcard HZNMONITOR_URL),$(shell cat HZNMONITOR_URL),http://hznmonitor.$(DOMAIN_NAME):3094)
+
+# hznmonitor
+HZNMONITOR_URL := $(if $(wildcard HZNMONITOR_URL),$(shell cat HZNMONITOR_URL),$(shell echo "-- INFO: EXCHANGE_ORG unset; default: http://hznmonitor.$(DOMAIN_NAME):3094" && echo "http://hznmonitor.$(DOMAIN_NAME):3094"))
 
 # grafana
 GRAFANA_URL := $(if $(wildcard GRAFANA_URL),$(shell cat GRAFANA_URL),http://grafana.$(DOMAIN_NAME):3000)
@@ -79,6 +87,10 @@ logs:
 secrets.yaml: secrets.yaml.tmpl makefile
 	@echo "making $@"
 	@export \
+	  AUTOMATION_internet="$(AUTOMATION_internet)" \
+	  AUTOMATION_startup="$(AUTOMATION_startup)" \
+	  AUTOMATION_sdr2msghub="$(AUTOMATION_sdr2msghub)" \
+	  AUTOMATION_yolo2msghub="$(AUTOMATION_yolo2msghub)" \
 	  HOST_NAME="$(HOST_NAME)" \
 	  HOST_IPADDR="$(HOST_IPADDR)" \
 	  HOST_NETWORK="$(HOST_NETWORK)" \
