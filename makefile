@@ -19,7 +19,7 @@ HOST_NAME := $(if ${HOST_NAME},${HOST_NAME},$(shell hostname -f))
 HOST_IPADDR := $(if $(wildcard HOST_IPADDR),$(shell cat HOST_IPADDR),$(shell echo "++ WARN: HOST_IPADDR unset; default: 127.0.0.1" > /dev/stderr && echo "127.0.0.1"))
 HOST_NETWORK := $(shell export HOST_IPADDR=$(HOST_IPADDR) && echo $${HOST_IPADDR%.*}.0)
 HOST_NETWORK_MASK := 24
-HOST_PORT := $(if $(wildcard HOST_PORT),$(shell cat HOST_PORT),$(shell echo "-- INFO: HOST_PORT unset; default: 3092" > /dev/stderr && echo "3092"))
+HOST_PORT := $(if $(wildcard HOST_PORT),$(shell cat HOST_PORT),$(shell echo "-- INFO: HOST_PORT unset; default: 3092" > /dev/stderr && echo "8123"))
 
 # MQTT
 MQTT_HOST := $(if $(wildcard MQTT_HOST),$(shell cat MQTT_HOST),$(shell echo "-- INFO: MQTT_HOST unset; default: core-mosquitto" > /dev/stderr && echo "core-mosquitto"))
