@@ -1,0 +1,165 @@
+###
+### INTERNET
+###
+
+- id: internet_test_count
+  alias: internet_test_count
+  initial_state: !secret internet_automations
+  trigger:
+    platform: state
+    entity_id: sensor.internet_test
+  condition:
+    - condition: template
+      value_template: >
+        {{ states.binary_sensor.internet_test_state.state == 'on' }}
+  action:
+    - service: counter.increment
+      entity_id: counter.internet_test_counter
+
+- id: internet_slow
+  alias: internet_slow
+  initial_state: !secret internet_automations
+  trigger:
+    platform: state
+    entity_id: binary_sensor.internet_slow
+  condition:
+    - condition: template
+      value_template: >
+        {{ states.binary_sensor.internet_slow.state == 'on' }}
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >
+          Internet slow at
+          {{ states.sensor.internet_test.attributes.date | int | timestamp_custom("%a %b %d %I:%M %p") }}
+        notification_id: internet_slow
+        message: >
+          Current: {{ states.sensor.internet_test_receive.state }} Mbps; 
+          average {{ states.sensor.internet_receive_mean.state }} Mbps;
+          stdev {{ states.sensor.internet_receive_statistics_mean.attributes.standard_deviation }} Mbps
+    - service: mqtt.publish
+      data_template:
+        topic: 'status/internet/download'
+        retain: false
+        payload: >
+          {{ states.sensor.internet_receive_statistics_mean.attributes }}
+
+- id: internet_slow_dismiss
+  alias: internet_slow_dismiss
+  initial_state: !secret internet_automations
+  trigger:
+    platform: state
+    entity_id: binary_sensor.internet_slow
+  condition:
+    - condition: template
+      value_template: >
+        {{ states.binary_sensor.internet_slow.state == 'off' }}
+  action:
+    - service: persistent_notification.dismiss
+      data_template:
+        notification_id: internet_slow
+
+- id: internet_fast
+  alias: internet_fast
+  initial_state: !secret internet_automations
+  trigger:
+    platform: state
+    entity_id: binary_sensor.internet_fast
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ states.binary_sensor.internet_fast.state == 'on' }}
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >
+          Internet fast at
+          {{ states.sensor.internet_test.attributes.date | int | timestamp_custom("%a %b %d %I:%M %p") }}
+        notification_id: internet_fast
+        message: >
+          Current: {{ states.sensor.internet_test_receive.state }} Mbps; 
+          average {{ states.sensor.internet_receive_mean.state }} Mbps;
+          stdev {{ states.sensor.internet_receive_statistics_mean.attributes.standard_deviation }} Mbps
+    - service: mqtt.publish
+      data_template:
+        topic: 'status/internet/download'
+        retain: false
+        payload: >
+          {{ states.sensor.internet_receive_statistics_mean.attributes }}
+
+- id: internet_fast_dismiss
+  alias: internet_fast_dismiss
+  initial_state: !secret internet_automations
+  trigger:
+    platform: state
+    entity_id: binary_sensor.internet_fast
+  condition:
+    - condition: template
+      value_template: >
+        {{ states.binary_sensor.internet_fast.state == 'off' }}
+  action:
+    - service: persistent_notification.dismiss
+      data_template:
+        notification_id: internet_fast
+
+- id: internet_slow_persistent
+  alias: internet_slow_persistent
+  initial_state: !secret internet_automations
+  trigger:
+    platform: state
+    entity_id: binary_sensor.internet_slow_persistent
+  condition:
+    - condition: template
+      value_template: >
+        {{ states.binary_sensor.internet_slow_persistent.state == 'on' }}
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >
+          Internet slowing at
+          {{ states.sensor.internet_test.attributes.date | int | timestamp_custom("%a %b %d %I:%M %p") }}
+        notification_id: internet_slow
+        message: >
+          Current: {{ states.sensor.internet_test_receive.state }} Mbps; 
+          average {{ states.sensor.internet_receive_mean.state }} Mbps;
+          average stdev {{ states.sensor.internet_receive_stdev_mean.state }} Mbps
+    - service: mqtt.publish
+      data_template:
+        topic: 'status/internet/download/stdev'
+        retain: false
+        payload: >
+          {{ states.sensor.internet_receive_stdev_mean.attributes }}
+
+- id: internet_fast_persistent
+  alias: internet_fast_persistent
+  initial_state: !secret internet_automations
+  trigger:
+    platform: state
+    entity_id: binary_sensor.internet_fast_persistent
+  condition:
+    - condition: template
+      value_template: >
+        {{ states.binary_sensor.internet_fast_persistent.state == 'on' }}
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >
+          Internet improving at
+          {{ states.sensor.internet_test.attributes.date | int | timestamp_custom("%a %b %d %I:%M %p") }}
+        notification_id: internet_fast
+        message: >
+          Current: {{ states.sensor.internet_test_receive.state }} Mbps; 
+          average {{ states.sensor.internet_receive_mean.state }} Mbps;
+          average stdev {{ states.sensor.internet_receive_stdev_mean.state }} Mbps
+    - service: mqtt.publish
+      data_template:
+        topic: 'status/internet/download/stdev'
+        retain: false
+        payload: >
+          {{ states.sensor.internet_receive_stdev_mean.attributes }}
+
