@@ -84,7 +84,7 @@ $(HIGHLOW_YAML): $(HIGHLOW_TEMPLATE) makefile
 
 ## WEBCAM targets
 
-$(WEBCAM_CAMERAS): $(WEBCAM_CAMERA_TEMPLATE) makefile
+$(WEBCAM_CAMERAS): $(WEBCAM_CAMERA_TEMPLATE) makefile ${WEBCAMS_JSON}
 	@echo "making $@"
 	@export TARGET="$@"; \
 	  export MOTION_CAMERA=$${TARGET%%.*}; \
@@ -99,7 +99,7 @@ $(WEBCAM_CAMERAS): $(WEBCAM_CAMERA_TEMPLATE) makefile
 	  export MOTION_CAMERA_PASSWORD="$${VAL}"; \
 	  cat $(WEBCAM_CAMERA_TEMPLATE) | envsubst > $@
 
-$(WEBCAM_AUTOMATIONS): $(WEBCAM_AUTOMATION_TEMPLATE) makefile
+$(WEBCAM_AUTOMATIONS): $(WEBCAM_AUTOMATION_TEMPLATE) makefile ${WEBCAMS_JSON}
 	@echo "making $@"
 	@export TARGET="$@"; \
 	  export MOTION_CAMERA=$${TARGET%%.*}; \
@@ -107,7 +107,7 @@ $(WEBCAM_AUTOMATIONS): $(WEBCAM_AUTOMATION_TEMPLATE) makefile
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
 	  cat $(WEBCAM_AUTOMATION_TEMPLATE) | envsubst > $@
 
-$(WEBCAM_BINARY_SENSORS): $(WEBCAM_BINARY_SENSOR_TEMPLATE) makefile
+$(WEBCAM_BINARY_SENSORS): $(WEBCAM_BINARY_SENSOR_TEMPLATE) makefile ${WEBCAMS_JSON}
 	@echo "making $@"
 	@export TARGET="$@"; \
 	  export MOTION_CAMERA=$${TARGET%%.*}; \
@@ -115,7 +115,7 @@ $(WEBCAM_BINARY_SENSORS): $(WEBCAM_BINARY_SENSOR_TEMPLATE) makefile
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
 	  cat $(WEBCAM_BINARY_SENSOR_TEMPLATE) | envsubst > $@
 
-$(WEBCAM_COUNTERS): $(WEBCAM_COUNTER_TEMPLATE) makefile
+$(WEBCAM_COUNTERS): $(WEBCAM_COUNTER_TEMPLATE) makefile ${WEBCAMS_JSON}
 	@echo "making $@"
 	@export TARGET="$@"; \
 	  export MOTION_CAMERA=$${TARGET%%.*}; \
@@ -123,7 +123,7 @@ $(WEBCAM_COUNTERS): $(WEBCAM_COUNTER_TEMPLATE) makefile
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
 	  cat $(WEBCAM_COUNTER_TEMPLATE) | envsubst > $@
 
-$(WEBCAM_DEVICE_TRACKERS): $(WEBCAM_DEVICE_TRACKER_TEMPLATE) makefile
+$(WEBCAM_DEVICE_TRACKERS): $(WEBCAM_DEVICE_TRACKER_TEMPLATE) makefile ${WEBCAMS_JSON}
 	@echo "making $@"
 	@export TARGET="$@"; \
 	  export MOTION_CAMERA=$${TARGET%%.*}; \
@@ -131,7 +131,7 @@ $(WEBCAM_DEVICE_TRACKERS): $(WEBCAM_DEVICE_TRACKER_TEMPLATE) makefile
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
 	  cat $(WEBCAM_DEVICE_TRACKER_TEMPLATE) | envsubst > $@
 
-$(WEBCAM_GRAPHS): $(WEBCAM_GRAPH_TEMPLATE) makefile
+$(WEBCAM_GRAPHS): $(WEBCAM_GRAPH_TEMPLATE) makefile ${WEBCAMS_JSON}
 	@echo "making $@"
 	@export TARGET="$@"; \
 	  export MOTION_CAMERA=$${TARGET%%.*}; \
@@ -139,7 +139,7 @@ $(WEBCAM_GRAPHS): $(WEBCAM_GRAPH_TEMPLATE) makefile
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
 	  cat $(WEBCAM_GRAPH_TEMPLATE) | envsubst > $@
 
-$(WEBCAM_GROUPS): $(WEBCAM_GROUP_TEMPLATE) makefile
+$(WEBCAM_GROUPS): $(WEBCAM_GROUP_TEMPLATE) makefile ${WEBCAMS_JSON}
 	@echo "making $@"
 	@export TARGET="$@"; \
 	  export MOTION_CAMERA=$${TARGET%%.*}; \
@@ -148,7 +148,7 @@ $(WEBCAM_GROUPS): $(WEBCAM_GROUP_TEMPLATE) makefile
 	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
 	  cat $(WEBCAM_GROUP_TEMPLATE) | envsubst > $@
 
-$(WEBCAM_SENSORS): $(WEBCAM_SENSOR_TEMPLATE) makefile
+$(WEBCAM_SENSORS): $(WEBCAM_SENSOR_TEMPLATE) makefile ${WEBCAMS_JSON}
 	@echo "making $@"
 	@export TARGET="$@"; \
 	  export MOTION_CAMERA=$${TARGET%%.*}; \
@@ -158,7 +158,7 @@ $(WEBCAM_SENSORS): $(WEBCAM_SENSOR_TEMPLATE) makefile
 
 ## motion-addon.json
 
-motion-addon.json: motion-addon.json.tmpl makefile
+motion-addon.json: motion-addon.json.tmpl makefile ${WEBCAMS_JSON}
 	@echo "making $@"
 	@export \
 	   MOTION_TLD="${MOTION_TLD}" \
