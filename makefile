@@ -25,20 +25,20 @@ HOST_NAME := $(if $(wildcard HOST_NAME),$(shell cat HOST_NAME),$(shell echo "++ 
 HOST_IPADDR := $(if $(wildcard HOST_IPADDR),$(shell cat HOST_IPADDR),$(shell echo "++ WARN: HOST_IPADDR unset; default: 127.0.0.1" > /dev/stderr && echo "127.0.0.1"))
 HOST_NETWORK := $(shell export HOST_IPADDR=$(HOST_IPADDR) && echo $${HOST_IPADDR%.*}.0)
 HOST_NETWORK_MASK := 24
-HOST_PORT := $(if $(wildcard HOST_PORT),$(shell cat HOST_PORT),$(shell echo "-- INFO: HOST_PORT unset; default: 3092" > /dev/stderr && echo "8123"))
+HOST_PORT := $(if $(wildcard HOST_PORT),$(shell cat HOST_PORT),$(shell echo "++ WARN: HOST_PORT unset; default: 3092" > /dev/stderr && echo "8123"))
 
 # MQTT
-MQTT_HOST := $(if $(wildcard MQTT_HOST),$(shell cat MQTT_HOST),$(shell echo "-- INFO: MQTT_HOST unset; default: core-mosquitto" > /dev/stderr && echo "core-mosquitto"))
-MQTT_PORT := $(if $(wildcard MQTT_PORT),$(shell cat MQTT_PORT),$(shell echo "-- INFO: MQTT_PORT unset; default: 1883" > /dev/stderr && echo "1883"))
-MQTT_USERNAME := $(if $(wildcard MQTT_USERNAME),$(shell cat MQTT_USERNAME),$(shell echo "-- INFO: MQTT_USERNAME unset; default: username" > /dev/stderr && echo "username"))
-MQTT_PASSWORD := $(if $(wildcard MQTT_PASSWORD),$(shell cat MQTT_PASSWORD),$(shell echo "-- INFO: MQTT_PASSWORD unset; default: password" > /dev/stderr && echo "password"))
+MQTT_HOST := $(if $(wildcard MQTT_HOST),$(shell cat MQTT_HOST),$(shell echo "++ WARN: MQTT_HOST unset; default: core-mosquitto" > /dev/stderr && echo "core-mosquitto"))
+MQTT_PORT := $(if $(wildcard MQTT_PORT),$(shell cat MQTT_PORT),$(shell echo "++ WARN: MQTT_PORT unset; default: 1883" > /dev/stderr && echo "1883"))
+MQTT_USERNAME := $(if $(wildcard MQTT_USERNAME),$(shell cat MQTT_USERNAME),$(shell echo "++ WARN: MQTT_USERNAME unset; default: username" > /dev/stderr && echo "username"))
+MQTT_PASSWORD := $(if $(wildcard MQTT_PASSWORD),$(shell cat MQTT_PASSWORD),$(shell echo "++ WARN: MQTT_PASSWORD unset; default: password" > /dev/stderr && echo "password"))
 
 # webcam
 WEBCAM_USERNAME := $(if $(wildcard WEBCAM_USERNAME),$(shell cat WEBCAM_USERNAME),$(shell echo "++ WARN: WEBCAM_USERNAME unset; default: $$(whoami)" > /dev/stderr && echo "$$(whoami)"))
 WEBCAM_PASSWORD := $(if $(wildcard WEBCAM_PASSWORD),$(shell cat WEBCAM_PASSWORD),$(shell read -p "Specify WEBCAM_PASSWORD: " && echo $${REPLY} | tee WEBCAM_PASSWORD))
 
 # netdata
-NETDATA_URL := $(if $(wildcard NETDATA_URL),$(shell cat NETDATA_URL),$(shell echo "-- INFO: NETDATA_URL unset; default: http://${HOST_IPADDR}:19999/" > /dev/stderr && echo "http://${HOST_IPADDR}:19999/"))
+NETDATA_URL := $(if $(wildcard NETDATA_URL),$(shell cat NETDATA_URL),$(shell echo "++ WARN: NETDATA_URL unset; default: http://${HOST_IPADDR}:19999/" > /dev/stderr && echo "http://${HOST_IPADDR}:19999/"))
 
 # nVidia DIGITS
 DIGITS_URL := $(if $(wildcard DIGITS_URL),$(shell cat DIGITS_URL),http://digits.$(DOMAIN_NAME):5000/)
@@ -51,13 +51,13 @@ EDGEX_URL := $(if $(wildcard EDGEX_URL),$(shell cat EDGEX_URL),http://edgex.$(DO
 CONSUL_URL := $(if $(wildcard CONSUL_URL),$(shell cat CONSUL_URL),http://consul.$(DOMAIN_NAME):8500/ui)
 
 ## open-horizon
-EXCHANGE_URL := $(if $(wildcard EXCHANGE_URL),$(shell cat EXCHANGE_URL),$(shell echo "-- INFO: EXCHANGE_URL unset; default: http://exchange.$(DOMAIN_NAME):3090" && echo "http://exchange.$(DOMAIN_NAME):3090"))
-EXCHANGE_ORG := $(if $(wildcard EXCHANGE_ORG),$(shell cat EXCHANGE_ORG),$(shell echo "-- INFO: EXCHANGE_ORG unset; default: $$(whoami)" && echo "$$(whoami)"))
-EXCHANGE_ORG_ADMIN := $(if $(wildcard EXCHANGE_ORG_ADMIN),$(shell cat EXCHANGE_ORG_ADMIN),$(shell echo "-- INFO: EXCHANGE_ORG unset; default: ${EXCHANGE_ORG}" && echo "${EXCHANGE_ORG}"))
-EXCHANGE_APIKEY := $(if $(wildcard EXCHANGE_APIKEY),$(shell cat EXCHANGE_APIKEY),$(shell read -p "Specify EXCHANGE_APIKEY: " && echo $${REPLY} | tee EXCHANGE_APIKEY))
+EXCHANGE_URL := $(if $(wildcard EXCHANGE_URL),$(shell cat EXCHANGE_URL),$(shell echo "++ WARN: EXCHANGE_URL unset; default: http://exchange.$(DOMAIN_NAME):3090" > /dev/stderr && echo "http://exchange.$(DOMAIN_NAME):3090"))
+EXCHANGE_ORG := $(if $(wildcard EXCHANGE_ORG),$(shell cat EXCHANGE_ORG),$(shell echo "++ WARN: EXCHANGE_ORG unset; default: $$(whoami)" > /dev/stderr && echo "$$(whoami)"))
+EXCHANGE_ORG_ADMIN := $(if $(wildcard EXCHANGE_ORG_ADMIN),$(shell cat EXCHANGE_ORG_ADMIN),$(shell echo "++ WARN: EXCHANGE_ORG_ADMIN unset; default: ${EXCHANGE_ORG}" > /dev/stderr && echo "${EXCHANGE_ORG}"))
+EXCHANGE_APIKEY := $(if $(wildcard EXCHANGE_APIKEY),$(shell cat EXCHANGE_APIKEY),$(shell read -p "Specify EXCHANGE_APIKEY: " > /dev/stderr && echo $${REPLY} | tee EXCHANGE_APIKEY))
 
 # hznmonitor
-HZNMONITOR_URL := $(if $(wildcard HZNMONITOR_URL),$(shell cat HZNMONITOR_URL),$(shell echo "-- INFO: EXCHANGE_ORG unset; default: http://hznmonitor.$(DOMAIN_NAME):3094" && echo "http://hznmonitor.$(DOMAIN_NAME):3094"))
+HZNMONITOR_URL := $(if $(wildcard HZNMONITOR_URL),$(shell cat HZNMONITOR_URL),$(shell echo "++ WARN: HZNMONITOR_URL unset; default: http://hznmonitor.$(DOMAIN_NAME):3094" > /dev/stderr && echo "http://hznmonitor.$(DOMAIN_NAME):3094"))
 
 # grafana
 GRAFANA_URL := $(if $(wildcard GRAFANA_URL),$(shell cat GRAFANA_URL),http://grafana.$(DOMAIN_NAME):3000)
