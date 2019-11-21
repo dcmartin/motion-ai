@@ -13,6 +13,9 @@ PACKAGES := motion
 #	hznmonitor \
 #	hznsetup
 
+# logging
+LOGGER_DEFAULT := $(if $(wildcard LOGGER_DEFAULT),$(shell v=$$(cat LOGGER_DEFAULT) && echo "-- INFO: LOGGER_DEFAULT: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="info" && echo "++ WARN: LOGGER_DEFAULT unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+
 # automation(s)
 AUTOMATION_internet := $(if $(wildcard AUTOMATION_internet),$(shell v=$$(cat AUTOMATION_internet) && echo "-- INFO: AUTOMATION_internet: $${v}" > /dev/stderr && echo "$${v}"),$(shell echo "++ WARN: AUTOMATION_internet unset; default: off" > /dev/stderr && echo "off"))
 AUTOMATION_startup := $(if $(wildcard AUTOMATION_startup),$(shell v=$$(cat AUTOMATION_startup) && echo "-- INFO: AUTOMATION_startup: $${v}" > /dev/stderr && echo "$${v}"),$(shell echo "++ WARN: AUTOMATION_startup unset; default: off" > /dev/stderr && echo "off"))
@@ -117,12 +120,14 @@ secrets.yaml: secrets.yaml.tmpl makefile
 	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
 	  WEBCAM_USERNAME="$(WEBCAM_USERNAME)" \
 	  WEBCAM_PASSWORD="$(WEBCAM_PASSWORD)" \
+	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
 	&& cat secrets.yaml.tmpl | envsubst > $@
 
 ## clean and clean and clean ..
 
 clean: stop
 	make -C motion clean
+	-rm -f secrets.yaml
 
 realclean: clean
 	rm -f known_devices.yaml
