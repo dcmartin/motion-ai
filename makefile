@@ -40,7 +40,7 @@ MQTT_PASSWORD := $(if $(wildcard MQTT_PASSWORD),$(shell v=$$(cat MQTT_PASSWORD) 
 
 # webcam
 WEBCAM_USERNAME := $(if $(wildcard WEBCAM_USERNAME),$(shell v=$$(cat WEBCAM_USERNAME) && echo "-- INFO: WEBCAM_USERNAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(whoami) && echo "++ WARN: WEBCAM_USERNAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
-WEBCAM_PASSWORD := $(if $(wildcard WEBCAM_PASSWORD),$(shell v=$$(cat WEBCAM_PASSWORD) && echo "-- INFO: WEBCAM_PASSWORD: $${v}" > /dev/stderr && echo "$${v}"),$(shell read -p "Specify WEBCAM_PASSWORD: " && echo $$${REPLY} | tee WEBCAM_PASSWORD))
+WEBCAM_PASSWORD := $(if $(wildcard WEBCAM_PASSWORD),$(shell v=$$(cat WEBCAM_PASSWORD) && echo "-- INFO: WEBCAM_PASSWORD: $${v}" > /dev/stderr && echo "$${v}"),$(shell read -p "Specify WEBCAM_PASSWORD: " && echo $${REPLY} | tee WEBCAM_PASSWORD))
 
 # netdata
 NETDATA_URL := $(if $(wildcard NETDATA_URL),$(shell v=$$(cat NETDATA_URL) && echo "-- INFO: NETDATA_URL: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="http://${HOST_IPADDR}:19999/" && echo "++ WARN: NETDATA_URL unset; default: $${v}" > /dev/stderr && echo "$${v}"))
@@ -59,7 +59,7 @@ CONSUL_URL := $(if $(wildcard CONSUL_URL),$(shell v=$$(cat CONSUL_URL) && echo "
 EXCHANGE_URL := $(if $(wildcard EXCHANGE_URL),$(shell v=$$(cat EXCHANGE_URL) && echo "-- INFO: EXCHANGE_URL: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="http://exchange.$(DOMAIN_NAME):3090" && echo "++ WARN: EXCHANGE_URL unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 EXCHANGE_ORG := $(if $(wildcard EXCHANGE_ORG),$(shell v=$$(cat EXCHANGE_ORG) && echo "-- INFO: EXCHANGE_ORG: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(whoami) && echo "++ WARN: EXCHANGE_ORG unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 EXCHANGE_ORG_ADMIN := $(if $(wildcard EXCHANGE_ORG_ADMIN),$(shell v=$$(cat EXCHANGE_ORG_ADMIN) && echo "-- INFO: EXCHANGE_ORG_ADMIN: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="${EXCHANGE_ORG}" && echo "++ WARN: EXCHANGE_ORG_ADMIN unset; default: $${v}" > /dev/stderr && echo "$${v}"))
-EXCHANGE_APIKEY := $(if $(wildcard EXCHANGE_APIKEY),$(shell v=$$(cat EXCHANGE_APIKEY) && echo "-- INFO: EXCHANGE_APIKEY: $${v}" > /dev/stderr && echo "$${v}"),$(shell read -p "Specify EXCHANGE_APIKEY: " > /dev/stderr && echo $$${REPLY} | tee EXCHANGE_APIKEY))
+EXCHANGE_APIKEY := $(if $(wildcard EXCHANGE_APIKEY),$(shell v=$$(cat EXCHANGE_APIKEY) && echo "-- INFO: EXCHANGE_APIKEY: $${v}" > /dev/stderr && echo "$${v}"),$(shell read -p "Specify EXCHANGE_APIKEY: " > /dev/stderr && echo $${REPLY} | tee EXCHANGE_APIKEY))
 
 # hznmonitor
 HZNMONITOR_URL := $(if $(wildcard HZNMONITOR_URL),$(shell v=$$(cat HZNMONITOR_URL) && echo "-- INFO: HZNMONITOR_URL: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="http://hznmonitor.$(DOMAIN_NAME):3094" && echo "++ WARN: HZNMONITOR_URL unset; default: $${v}" > /dev/stderr && echo "$${v}"))
@@ -71,7 +71,17 @@ GRAFANA_URL := $(if $(wildcard GRAFANA_URL),$(shell v=$$(cat GRAFANA_URL) && ech
 INFLUXDB_HOST := $(if $(wildcard INFLUXDB_HOST),$(shell v=$$(cat INFLUXDB_HOST) && echo "-- INFO: INFLUXDB_HOST: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="influxdb.$(DOMAIN_NAME)" && echo "++ WARN: INFLUXDB_HOST unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 INFLUXDB_PASSWORD := $(if $(wildcard INFLUXDB_PASSWORD),$(shell v=$$(cat INFLUXDB_PASSWORD) && echo "-- INFO: INFLUXDB_PASSWORD: $${v}" > /dev/stderr && echo "$${v}"),$(shell read -p "Specify INFLUXDB_PASSWORD: " && echo "$${REPLY}" | tee INFLUXDB_PASSWORD))
 
-default: all run
+## directories for output files from scripts
+MOTION_DIRS := camera/motion group/motion counter/motion sensor/motion automation/motion device_tracker/motion history_graph/motion
+
+###
+### TARGETS
+###
+
+default: $(MOTION_DIRS) all run
+
+$(MOTION_DIRS):
+	-mkdir -p $@
 
 TARGETS := build all
 
