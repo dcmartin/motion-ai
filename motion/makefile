@@ -2,6 +2,8 @@
 ### makefile
 ###
 
+SHELL := /bin/bash
+
 ## TOP-LEVEL
 MOTION_TLD := dcmartin.com
 MOTION_GROUP := motion

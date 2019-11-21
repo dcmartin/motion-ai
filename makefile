@@ -2,6 +2,8 @@
 ### makefile
 ###
 
+SHELL := /bin/bash
+
 PACKAGES := motion 
 #	internet \
 #	sdr2msghub \
@@ -12,59 +14,59 @@ PACKAGES := motion
 #	hznsetup
 
 # automation(s)
-AUTOMATION_internet := $(if $(wildcard AUTOMATION_internet),$(shell cat AUTOMATION_internet),$(shell echo "++ WARN: AUTOMATION_internet unset; default: off" > /dev/stderr && echo "off"))
-AUTOMATION_startup := $(if $(wildcard AUTOMATION_startup),$(shell cat AUTOMATION_startup),$(shell echo "++ WARN: AUTOMATION_startup unset; default: off" > /dev/stderr && echo "off"))
-AUTOMATION_sdr2msghub := $(if $(wildcard AUTOMATION_sdr2msghub),$(shell cat AUTOMATION_sdr2msghub),$(shell echo "++ WARN: AUTOMATION_sdr2msghub unset; default: off" > /dev/stderr && echo "off"))
-AUTOMATION_yolo2msghub := $(if $(wildcard AUTOMATION_yolo2msghub),$(shell cat AUTOMATION_yolo2msghub),$(shell echo "++ WARN: AUTOMATION_yolo2msghub unset; default: off" > /dev/stderr && echo "off"))
+AUTOMATION_internet := $(if $(wildcard AUTOMATION_internet),$(shell v=$$(cat AUTOMATION_internet) && echo "-- INFO: AUTOMATION_internet: $${v}" > /dev/stderr && echo "$${v}"),$(shell echo "++ WARN: AUTOMATION_internet unset; default: off" > /dev/stderr && echo "off"))
+AUTOMATION_startup := $(if $(wildcard AUTOMATION_startup),$(shell v=$$(cat AUTOMATION_startup) && echo "-- INFO: AUTOMATION_startup: $${v}" > /dev/stderr && echo "$${v}"),$(shell echo "++ WARN: AUTOMATION_startup unset; default: off" > /dev/stderr && echo "off"))
+AUTOMATION_sdr2msghub := $(if $(wildcard AUTOMATION_sdr2msghub),$(shell v=$$(cat AUTOMATION_sdr2msghub) &&  echo "-- INFO: AUTOMATION_sdr2msghub: $${v}" > /dev/stderr && echo "$${v}"),$(shell echo "++ WARN: AUTOMATION_sdr2msghub unset; default: off" > /dev/stderr && echo "off"))
+AUTOMATION_yolo2msghub := $(if $(wildcard AUTOMATION_yolo2msghub),$(shell v=$$(cat AUTOMATION_yolo2msghub) && echo "-- INFO: AUTOMATION_yolo2msghub: $${v}" > /dev/stderr && echo "$${v}"),$(shell echo "++ WARN: AUTOMATION_yolo2msghub unset; default: off" > /dev/stderr && echo "off"))
 
 # domain
-DOMAIN_NAME := $(if $(wildcard DOMAIN_NAME),$(shell cat DOMAIN_NAME),$(shell echo "++ WARN: DOMAIN_NAME unset; default: local" > /dev/stderr && echo "local"))
+DOMAIN_NAME := $(if $(wildcard DOMAIN_NAME),$(shell v=$$(cat DOMAIN_NAME) && echo "-- INFO: DOMAIN_NAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="local" && echo "++ WARN: DOMAIN_NAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 # host
-HOST_NAME := $(if $(wildcard HOST_NAME),$(shell cat HOST_NAME),$(shell echo "++ WARN: HOST_NAME unset; default: $$(hostname -f)" > /dev/stderr && echo "$$(hostname -f)"))
-HOST_IPADDR := $(if $(wildcard HOST_IPADDR),$(shell cat HOST_IPADDR),$(shell echo "++ WARN: HOST_IPADDR unset; default: 127.0.0.1" > /dev/stderr && echo "127.0.0.1"))
+HOST_NAME := $(if $(wildcard HOST_NAME),$(shell v=$$(cat HOST_NAME) && echo "-- INFO: HOST_NAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(hostname -f) && echo "++ WARN: HOST_NAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+HOST_IPADDR := $(if $(wildcard HOST_IPADDR),$(shell v=$$(cat HOST_IPADDR) && echo "-- INFO: HOST_IPADDR: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="127.0.0.1" && echo "++ WARN: HOST_IPADDR unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 HOST_NETWORK := $(shell export HOST_IPADDR=$(HOST_IPADDR) && echo $${HOST_IPADDR%.*}.0)
+HOST_PORT := $(if $(wildcard HOST_PORT),$(shell v=$$(cat HOST_PORT) && echo "-- INFO: HOST_PORT: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="8123" && echo "++ WARN: HOST_PORT unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 HOST_NETWORK_MASK := 24
-HOST_PORT := $(if $(wildcard HOST_PORT),$(shell cat HOST_PORT),$(shell echo "++ WARN: HOST_PORT unset; default: 8123" > /dev/stderr && echo "8123"))
 
 # MQTT
-MQTT_HOST := $(if $(wildcard MQTT_HOST),$(shell cat MQTT_HOST),$(shell echo "++ WARN: MQTT_HOST unset; default: core-mosquitto" > /dev/stderr && echo "core-mosquitto"))
-MQTT_PORT := $(if $(wildcard MQTT_PORT),$(shell cat MQTT_PORT),$(shell echo "++ WARN: MQTT_PORT unset; default: 1883" > /dev/stderr && echo "1883"))
-MQTT_USERNAME := $(if $(wildcard MQTT_USERNAME),$(shell cat MQTT_USERNAME),$(shell echo "++ WARN: MQTT_USERNAME unset; default: username" > /dev/stderr && echo "username"))
-MQTT_PASSWORD := $(if $(wildcard MQTT_PASSWORD),$(shell cat MQTT_PASSWORD),$(shell echo "++ WARN: MQTT_PASSWORD unset; default: password" > /dev/stderr && echo "password"))
+MQTT_HOST := $(if $(wildcard MQTT_HOST),$(shell v=$$(cat MQTT_HOST) && echo "-- INFO: MQTT_HOST: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="core-mosquitto" && echo "++ WARN: MQTT_HOST unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MQTT_PORT := $(if $(wildcard MQTT_PORT),$(shell v=$$(cat MQTT_PORT) && echo "-- INFO: MQTT_PORT: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="1883" && echo "++ WARN: MQTT_PORT unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MQTT_USERNAME := $(if $(wildcard MQTT_USERNAME),$(shell v=$$(cat MQTT_USERNAME) && echo "-- INFO: MQTT_USERNAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="username" && echo "++ WARN: MQTT_USERNAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MQTT_PASSWORD := $(if $(wildcard MQTT_PASSWORD),$(shell v=$$(cat MQTT_PASSWORD) && echo "-- INFO: MQTT_PASSWORD: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="password" && echo "++ WARN: MQTT_PASSWORD unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 # webcam
-WEBCAM_USERNAME := $(if $(wildcard WEBCAM_USERNAME),$(shell cat WEBCAM_USERNAME),$(shell echo "++ WARN: WEBCAM_USERNAME unset; default: $$(whoami)" > /dev/stderr && echo "$$(whoami)"))
-WEBCAM_PASSWORD := $(if $(wildcard WEBCAM_PASSWORD),$(shell cat WEBCAM_PASSWORD),$(shell read -p "Specify WEBCAM_PASSWORD: " && echo $${REPLY} | tee WEBCAM_PASSWORD))
+WEBCAM_USERNAME := $(if $(wildcard WEBCAM_USERNAME),$(shell v=$$(cat WEBCAM_USERNAME) && echo "-- INFO: WEBCAM_USERNAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(whoami) && echo "++ WARN: WEBCAM_USERNAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+WEBCAM_PASSWORD := $(if $(wildcard WEBCAM_PASSWORD),$(shell v=$$(cat WEBCAM_PASSWORD) && echo "-- INFO: WEBCAM_PASSWORD: $${v}" > /dev/stderr && echo "$${v}"),$(shell read -p "Specify WEBCAM_PASSWORD: " && echo $$${REPLY} | tee WEBCAM_PASSWORD))
 
 # netdata
-NETDATA_URL := $(if $(wildcard NETDATA_URL),$(shell cat NETDATA_URL),$(shell echo "++ WARN: NETDATA_URL unset; default: http://${HOST_IPADDR}:19999/" > /dev/stderr && echo "http://${HOST_IPADDR}:19999/"))
+NETDATA_URL := $(if $(wildcard NETDATA_URL),$(shell v=$$(cat NETDATA_URL) && echo "-- INFO: NETDATA_URL: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="http://${HOST_IPADDR}:19999/" && echo "++ WARN: NETDATA_URL unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 # nVidia DIGITS
-DIGITS_URL := $(if $(wildcard DIGITS_URL),$(shell cat DIGITS_URL),http://digits.$(DOMAIN_NAME):5000/)
+DIGITS_URL := $(if $(wildcard DIGITS_URL),$(shell v=$$(cat DIGITS_URL) && echo "-- INFO: DIGITS_URL: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="http://digits.$(DOMAIN_NAME):5000/" && echo "++ WARN: DIGITS_URL unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 # couchdb
-COUCHDB_URL := $(if $(wildcard COUCHDB_URL),$(shell cat COUCHDB_URL),http://couchdb.$(DOMAIN_NAME):5984/_utils)
+COUCHDB_URL := $(if $(wildcard COUCHDB_URL),$(shell v=$$(cat COUCHDB_URL) && echo "-- INFO: COUCHDB_URL: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="http://couchdb.$(DOMAIN_NAME):5984/_utils" && echo "++ WARN: COUCHDB_URL unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 # edgex
-EDGEX_URL := $(if $(wildcard EDGEX_URL),$(shell cat EDGEX_URL),http://edgex.$(DOMAIN_NAME):4000)
-CONSUL_URL := $(if $(wildcard CONSUL_URL),$(shell cat CONSUL_URL),http://consul.$(DOMAIN_NAME):8500/ui)
+EDGEX_URL := $(if $(wildcard EDGEX_URL),$(shell v=$$(cat EDGEX_URL) && echo "-- INFO: EDGEX_URL: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="http://edgex.$(DOMAIN_NAME):4000" && echo "++ WARN: EDGEX_URL unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+CONSUL_URL := $(if $(wildcard CONSUL_URL),$(shell v=$$(cat CONSUL_URL) && echo "-- INFO: CONSUL_URL: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="http://consul.$(DOMAIN_NAME):8500/ui" && echo "++ WARN: CONSUL_URL unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 ## open-horizon
-EXCHANGE_URL := $(if $(wildcard EXCHANGE_URL),$(shell cat EXCHANGE_URL),$(shell echo "++ WARN: EXCHANGE_URL unset; default: http://exchange.$(DOMAIN_NAME):3090" > /dev/stderr && echo "http://exchange.$(DOMAIN_NAME):3090"))
-EXCHANGE_ORG := $(if $(wildcard EXCHANGE_ORG),$(shell cat EXCHANGE_ORG),$(shell echo "++ WARN: EXCHANGE_ORG unset; default: $$(whoami)" > /dev/stderr && echo "$$(whoami)"))
-EXCHANGE_ORG_ADMIN := $(if $(wildcard EXCHANGE_ORG_ADMIN),$(shell cat EXCHANGE_ORG_ADMIN),$(shell echo "++ WARN: EXCHANGE_ORG_ADMIN unset; default: ${EXCHANGE_ORG}" > /dev/stderr && echo "${EXCHANGE_ORG}"))
-EXCHANGE_APIKEY := $(if $(wildcard EXCHANGE_APIKEY),$(shell cat EXCHANGE_APIKEY),$(shell read -p "Specify EXCHANGE_APIKEY: " > /dev/stderr && echo $${REPLY} | tee EXCHANGE_APIKEY))
+EXCHANGE_URL := $(if $(wildcard EXCHANGE_URL),$(shell v=$$(cat EXCHANGE_URL) && echo "-- INFO: EXCHANGE_URL: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="http://exchange.$(DOMAIN_NAME):3090" && echo "++ WARN: EXCHANGE_URL unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+EXCHANGE_ORG := $(if $(wildcard EXCHANGE_ORG),$(shell v=$$(cat EXCHANGE_ORG) && echo "-- INFO: EXCHANGE_ORG: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(whoami) && echo "++ WARN: EXCHANGE_ORG unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+EXCHANGE_ORG_ADMIN := $(if $(wildcard EXCHANGE_ORG_ADMIN),$(shell v=$$(cat EXCHANGE_ORG_ADMIN) && echo "-- INFO: EXCHANGE_ORG_ADMIN: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="${EXCHANGE_ORG}" && echo "++ WARN: EXCHANGE_ORG_ADMIN unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+EXCHANGE_APIKEY := $(if $(wildcard EXCHANGE_APIKEY),$(shell v=$$(cat EXCHANGE_APIKEY) && echo "-- INFO: EXCHANGE_APIKEY: $${v}" > /dev/stderr && echo "$${v}"),$(shell read -p "Specify EXCHANGE_APIKEY: " > /dev/stderr && echo $$${REPLY} | tee EXCHANGE_APIKEY))
 
 # hznmonitor
-HZNMONITOR_URL := $(if $(wildcard HZNMONITOR_URL),$(shell cat HZNMONITOR_URL),$(shell echo "++ WARN: HZNMONITOR_URL unset; default: http://hznmonitor.$(DOMAIN_NAME):3094" > /dev/stderr && echo "http://hznmonitor.$(DOMAIN_NAME):3094"))
+HZNMONITOR_URL := $(if $(wildcard HZNMONITOR_URL),$(shell v=$$(cat HZNMONITOR_URL) && echo "-- INFO: HZNMONITOR_URL: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="http://hznmonitor.$(DOMAIN_NAME):3094" && echo "++ WARN: HZNMONITOR_URL unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 # grafana
-GRAFANA_URL := $(if $(wildcard GRAFANA_URL),$(shell cat GRAFANA_URL),http://grafana.$(DOMAIN_NAME):3000)
+GRAFANA_URL := $(if $(wildcard GRAFANA_URL),$(shell v=$$(cat GRAFANA_URL) && echo "-- INFO: GRAFANA_URL: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="http://grafana.$(DOMAIN_NAME):3000" && echo "++ WARN: GRAFANA_URL unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 # influxdb
-INFLUXDB_HOST := $(if $(wildcard INFLUXDB_HOST),$(shell cat INFLUXDB_HOST),influxdb.$(DOMAIN_NAME))
-INFLUXDB_PASSWORD := $(if $(wildcard INFLUXDB_PASSWORD),$(shell cat INFLUXDB_PASSWORD),ask4it)
+INFLUXDB_HOST := $(if $(wildcard INFLUXDB_HOST),$(shell v=$$(cat INFLUXDB_HOST) && echo "-- INFO: INFLUXDB_HOST: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="influxdb.$(DOMAIN_NAME)" && echo "++ WARN: INFLUXDB_HOST unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+INFLUXDB_PASSWORD := $(if $(wildcard INFLUXDB_PASSWORD),$(shell v=$$(cat INFLUXDB_PASSWORD) && echo "-- INFO: INFLUXDB_PASSWORD: $${v}" > /dev/stderr && echo "$${v}"),$(shell read -p "Specify INFLUXDB_PASSWORD: " && echo "$${REPLY}" | tee INFLUXDB_PASSWORD))
 
 default: all run
 
