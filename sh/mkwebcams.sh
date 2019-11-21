@@ -34,8 +34,8 @@ for WID in ${WEBCAM_BINARY_SENSORS}; do
   done
 done
 
-## CAMERAS
-WEBCAM_IMAGES='motion_end motion_annotated motion_detected motion_detected_entity motion_animated motion_live'
+## EVENTS
+WEBCAM_IMAGES='motion_end motion_annotated motion_detected motion_detected_entity'
 
 for WID in ${WEBCAM_IMAGES}; do
   echo "#"
@@ -45,5 +45,19 @@ for WID in ${WEBCAM_IMAGES}; do
   echo "  entities:"
   for C in ${WEBCAMS}; do
     echo "    - camera.${WID}_image_${C}"
+  done
+done
+
+## DIRECT
+WEBCAM_IMAGES='motion_event_animated motion_live'
+
+for WID in ${WEBCAM_IMAGES}; do
+  echo "#"
+  echo "${WID}_images:"
+  echo "  name: ${WID}_images"
+  echo "  control: hidden"
+  echo "  entities:"
+  for C in ${WEBCAMS}; do
+    echo "    - camera.${WID}_${C}"
   done
 done
