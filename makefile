@@ -99,7 +99,7 @@ restart: stop all run
 logs:
 	docker logs -f homeassistant
 
-secrets.yaml: secrets.yaml.tmpl makefile
+secrets.yaml: secrets.yaml.tmpl makefile $(PWD)
 	@echo "making $@"
 	@export \
 	  AUTOMATION_internet="$(AUTOMATION_internet)" \
