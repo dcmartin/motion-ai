@@ -179,6 +179,11 @@ motion-addon.json: motion-addon.json.tmpl makefile ${WEBCAMS_JSON}
           mv motion-addon.json.$$ motion-addon.json; \
 	done
 
+## group/webcams.yaml
+
+group/webcams.yaml: ${WEBCAMS_JSON}
+	./sh/mkwebcams.sh ${WEBCAMS_JSON} > $@
+
 ## clean and clean and clean ..
 
 tidy:

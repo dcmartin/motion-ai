@@ -100,7 +100,7 @@ nVidia Jetson Nano|ARM Cortex-A57|`aarch64`|
 **For example**:
 
 ```
-sudo ./hassio_install -m raspberrypi3
+sudo ./hassio_install.sh -m raspberrypi3
 ```
 
 Resulting (hopefully) successfully, for example:
