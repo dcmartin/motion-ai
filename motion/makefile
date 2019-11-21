@@ -69,7 +69,7 @@ HIGHLOW_YAML := $(shell for S in $(HIGHLOW_SENSORS); do for I in $(HIGHLOW_ITEMS
 
 default: all
 
-all:  $(WEBCAM_YAML) $(HIGHLOW_YAML) motion-addon.json
+all:  $(WEBCAM_YAML) $(HIGHLOW_YAML) motion-addon.json group/webcams.yaml
 
 ## HIGHLOW targets
 
@@ -181,8 +181,9 @@ motion-addon.json: motion-addon.json.tmpl makefile ${WEBCAMS_JSON}
 
 ## group/webcams.yaml
 
-group/webcams.yaml: ${WEBCAMS_JSON}
-	./sh/mkwebcams.sh ${WEBCAMS_JSON} > $@
+group/webcams.yaml: ${WEBCAMS_JSON} makefile ./sh/mkwebcams.sh
+	@echo "making $@"
+	@./sh/mkwebcams.sh ${WEBCAMS_JSON} > $@
 
 ## clean and clean and clean ..
 
