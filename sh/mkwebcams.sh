@@ -6,9 +6,10 @@
 
 WEBCAMS=$(jq -r '.[].name' ${1:-webcams.json})
 
-WEBCAM_GROUP_IDS='motion_annotated_ago motion_annotated_counter motion_annotated_images motion_annotated_percent motion_annotated motion_detected_ago motion_detected_counter motion_detected_entity_ago motion_detected_entity_counter motion_detected_entity_images motion_detected_entity motion_detected'
+## SENSORS
+WEBCAM_SENSORS='motion_annotated_ago motion_annotated_counter motion_annotated_percent motion_detected_ago motion_detected_counter motion_detected_entity_ago motion_detected_entity_counter'
 
-for WID in ${WEBCAM_GROUP_IDS}; do
+for WID in ${WEBCAM_SENSORS}; do
   echo "#"
   echo "${WID}_webcams:"
   echo "  name: ${WID}_webcams"
@@ -19,15 +20,30 @@ for WID in ${WEBCAM_GROUP_IDS}; do
   done
 done
 
-IMAGE_GROUP_IDS='motion_camera motion_detected motion_animated motion_live'
+## BINARY_SENSORS
+WEBCAM_BINARY_SENSORS='motion_end motion_annotated motion_detected motion_detected_entity'
 
-for WID in ${IMAGE_GROUP_IDS}; do
+for WID in ${WEBCAM_BINARY_SENSORS}; do
+  echo "#"
+  echo "${WID}_webcams:"
+  echo "  name: ${WID}_webcams"
+  echo "  control: hidden"
+  echo "  entities:"
+  for C in ${WEBCAMS}; do
+    echo "    - binary_sensor.${WID}_${C}"
+  done
+done
+
+## CAMERAS
+WEBCAM_IMAGES='motion_end motion_annotated motion_detected motion_detected_entity motion_animated motion_live'
+
+for WID in ${WEBCAM_IMAGES}; do
   echo "#"
   echo "${WID}_images:"
   echo "  name: ${WID}_images"
   echo "  control: hidden"
   echo "  entities:"
   for C in ${WEBCAMS}; do
-    echo "    - camera.${WID}_${C}"
+    echo "    - camera.${WID}_image_${C}"
   done
 done
