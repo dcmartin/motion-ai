@@ -95,7 +95,7 @@ Device|Architecture|MACHINE|comment
 :-------|:-------:|-------|:-------
 RaspberryPi3|ARM Cortex-A53 |`raspberrypi3`|
 RaspberryPi4| ARM Cortex-A72|`raspberrypi4`|
-nVidia Jetson Nano|ARM Cortex-A57|`aarch64`|
+nVidia Jetson Nano|ARM Cortex-A57|`qemuarm-64`|
 
 **For example**:
 
