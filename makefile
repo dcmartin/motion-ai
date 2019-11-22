@@ -28,8 +28,9 @@ DOMAIN_NAME := $(if $(wildcard DOMAIN_NAME),$(shell v=$$(cat DOMAIN_NAME) && ech
 # host
 HOST_NAME := $(if $(wildcard HOST_NAME),$(shell v=$$(cat HOST_NAME) && echo "-- INFO: HOST_NAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(hostname -f) && echo "++ WARN: HOST_NAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 HOST_IPADDR := $(if $(wildcard HOST_IPADDR),$(shell v=$$(cat HOST_IPADDR) && echo "-- INFO: HOST_IPADDR: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="127.0.0.1" && echo "++ WARN: HOST_IPADDR unset; default: $${v}" > /dev/stderr && echo "$${v}"))
-HOST_NETWORK := $(shell export HOST_IPADDR=$(HOST_IPADDR) && echo $${HOST_IPADDR%.*}.0)
 HOST_PORT := $(if $(wildcard HOST_PORT),$(shell v=$$(cat HOST_PORT) && echo "-- INFO: HOST_PORT: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="8123" && echo "++ WARN: HOST_PORT unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+HOST_THEME := $(if $(wildcard HOST_THEME),$(shell v=$$(cat HOST_THEME) && echo "-- INFO: HOST_THEME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="default" && echo "++ WARN: HOST_THEME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+HOST_NETWORK := $(shell export HOST_IPADDR=$(HOST_IPADDR) && echo $${HOST_IPADDR%.*}.0)
 HOST_NETWORK_MASK := 24
 
 # MQTT
@@ -111,6 +112,7 @@ secrets.yaml: secrets.yaml.tmpl makefile $(PWD)
 	  HOST_NETWORK="$(HOST_NETWORK)" \
 	  HOST_NETWORK_MASK="$(HOST_NETWORK_MASK)" \
 	  HOST_PORT="$(HOST_PORT)" \
+	  HOST_THEME="$(HOST_THEME)" \
 	  HZNMONITOR_URL="$(HZNMONITOR_URL)" \
 	  CONSUL_URL="$(CONSUL_URL)" \
 	  COUCHDB_URL="$(COUCHDB_URL)" \
