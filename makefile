@@ -4,15 +4,6 @@
 
 SHELL := /bin/bash
 
-PACKAGES := motion 
-#	internet \
-#	sdr2msghub \
-#	startup \
-#	yolo2msghub \
-#	exchange \
-#	hznmonitor \
-#	hznsetup
-
 # logging
 LOGGER_DEFAULT := $(if $(wildcard LOGGER_DEFAULT),$(shell v=$$(cat LOGGER_DEFAULT) && echo "-- INFO: LOGGER_DEFAULT: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="warn" && echo "++ WARN: LOGGER_DEFAULT unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
@@ -72,24 +63,32 @@ GRAFANA_URL := $(if $(wildcard GRAFANA_URL),$(shell v=$$(cat GRAFANA_URL) && ech
 INFLUXDB_HOST := $(if $(wildcard INFLUXDB_HOST),$(shell v=$$(cat INFLUXDB_HOST) && echo "-- INFO: INFLUXDB_HOST: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="influxdb.$(DOMAIN_NAME)" && echo "++ WARN: INFLUXDB_HOST unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 INFLUXDB_PASSWORD := $(if $(wildcard INFLUXDB_PASSWORD),$(shell v=$$(cat INFLUXDB_PASSWORD) && echo "-- INFO: INFLUXDB_PASSWORD: $${v}" > /dev/stderr && echo "$${v}"),$(shell read -p "Specify INFLUXDB_PASSWORD: " && echo "$${REPLY}" | tee INFLUXDB_PASSWORD))
 
-## directories for output files from scripts
-MOTION_DIRS := camera/motion group/motion counter/motion sensor/motion automation/motion device_tracker/motion history_graph/motion
 
 ###
 ### TARGETS
 ###
 
-default: $(MOTION_DIRS) all
+## subdirectories containing addition makefile
+# internet sdr2msghub startup yolo2msghub exchange hznmonitor hznsetup 
+PACKAGES := motion
+
+## directories for output files from scripts
+MOTION_DIRS := camera/motion group/motion counter/motion sensor/motion automation/motion device_tracker/motion history_graph/motion
+
+default: all
+
+all: motion/webcams.json $(MOTION_DIRS) $(PACKAGES) secrets.yaml
+
+motion/webcams.json:
+	@echo "Please create $(PWD)/$@ from example template: $(PWD)/$@.tmpl"
 
 $(MOTION_DIRS):
 	-mkdir -p $@
 
-TARGETS := build all
+$(PACKAGES): makefile
+	@for P in $(PACKAGES); do ${MAKE} -C $${P}; done
 
-${TARGETS}: makefile
-	@for P in ${PACKAGES}; do ${MAKE} -C $${P} $@; done
-
-run: all configuration.yaml secrets.yaml motion/webcams.json
+run: all configuration.yaml 
 	docker start homeassistant
 
 stop:
