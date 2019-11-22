@@ -86,7 +86,8 @@ $(MOTION_DIRS):
 	-mkdir -p $@
 
 $(PACKAGES): makefile
-	@for P in $(PACKAGES); do ${MAKE} -C $${P}; done
+	@echo "making $@"
+	@${MAKE} -C $@
 
 run: all configuration.yaml 
 	docker start homeassistant
@@ -137,7 +138,8 @@ secrets.yaml: secrets.yaml.tmpl makefile $(PWD)
 ## clean and clean and clean ..
 
 clean: stop
-	make -C motion clean
+	@echo "making $@"
+	@${MAKE} -C motion clean
 	-rm -f secrets.yaml
 
 realclean: clean
@@ -149,4 +151,4 @@ realclean: clean
 distclean: realclean
 	rm -fr .uuid .HA_VERSION .cloud deps tts .storage
 
-.phony: all default build run stop logs restart clean realclean distclean $(PACKAGES)
+.PHONY: all default build run stop logs restart clean realclean distclean $(PACKAGES)
