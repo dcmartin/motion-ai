@@ -14,7 +14,7 @@ PACKAGES := motion
 #	hznsetup
 
 # logging
-LOGGER_DEFAULT := $(if $(wildcard LOGGER_DEFAULT),$(shell v=$$(cat LOGGER_DEFAULT) && echo "-- INFO: LOGGER_DEFAULT: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="info" && echo "++ WARN: LOGGER_DEFAULT unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+LOGGER_DEFAULT := $(if $(wildcard LOGGER_DEFAULT),$(shell v=$$(cat LOGGER_DEFAULT) && echo "-- INFO: LOGGER_DEFAULT: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="warn" && echo "++ WARN: LOGGER_DEFAULT unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 # automation(s)
 AUTOMATION_internet := $(if $(wildcard AUTOMATION_internet),$(shell v=$$(cat AUTOMATION_internet) && echo "-- INFO: AUTOMATION_internet: $${v}" > /dev/stderr && echo "$${v}"),$(shell echo "++ WARN: AUTOMATION_internet unset; default: off" > /dev/stderr && echo "off"))
@@ -79,7 +79,7 @@ MOTION_DIRS := camera/motion group/motion counter/motion sensor/motion automatio
 ### TARGETS
 ###
 
-default: $(MOTION_DIRS) all run
+default: $(MOTION_DIRS) all
 
 $(MOTION_DIRS):
 	-mkdir -p $@
@@ -89,13 +89,13 @@ TARGETS := build all
 ${TARGETS}: makefile
 	@for P in ${PACKAGES}; do ${MAKE} -C $${P} $@; done
 
-run: configuration.yaml secrets.yaml
+run: all configuration.yaml secrets.yaml motion/webcams.json
 	docker start homeassistant
 
 stop:
 	-docker stop homeassistant
 
-restart: stop all run
+restart: stop run
 
 logs:
 	docker logs -f homeassistant
