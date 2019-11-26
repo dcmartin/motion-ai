@@ -92,6 +92,7 @@ $(WEBCAM_CAMERAS): $(WEBCAM_CAMERA_TEMPLATE) makefile ${WEBCAMS_JSON}
 	  export MOTION_CAMERA=$${TARGET%%.*}; \
 	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
+	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
 	  export MOTION_CAMERA_MJPEG=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.mjpeg_url" $(WEBCAMS_JSON)); \
 	  export MOTION_CAMERA_STILL=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.still_image_url" $(WEBCAMS_JSON)); \
@@ -107,6 +108,7 @@ $(WEBCAM_AUTOMATIONS): $(WEBCAM_AUTOMATION_TEMPLATE) makefile ${WEBCAMS_JSON}
 	  export MOTION_CAMERA=$${TARGET%%.*}; \
 	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
+	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	  cat $(WEBCAM_AUTOMATION_TEMPLATE) | envsubst > $@
 
 $(WEBCAM_BINARY_SENSORS): $(WEBCAM_BINARY_SENSOR_TEMPLATE) makefile ${WEBCAMS_JSON}
@@ -115,6 +117,7 @@ $(WEBCAM_BINARY_SENSORS): $(WEBCAM_BINARY_SENSOR_TEMPLATE) makefile ${WEBCAMS_JS
 	  export MOTION_CAMERA=$${TARGET%%.*}; \
 	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
+	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	  cat $(WEBCAM_BINARY_SENSOR_TEMPLATE) | envsubst > $@
 
 $(WEBCAM_COUNTERS): $(WEBCAM_COUNTER_TEMPLATE) makefile ${WEBCAMS_JSON}
@@ -123,6 +126,7 @@ $(WEBCAM_COUNTERS): $(WEBCAM_COUNTER_TEMPLATE) makefile ${WEBCAMS_JSON}
 	  export MOTION_CAMERA=$${TARGET%%.*}; \
 	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
+	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	  cat $(WEBCAM_COUNTER_TEMPLATE) | envsubst > $@
 
 $(WEBCAM_DEVICE_TRACKERS): $(WEBCAM_DEVICE_TRACKER_TEMPLATE) makefile ${WEBCAMS_JSON}
@@ -131,6 +135,7 @@ $(WEBCAM_DEVICE_TRACKERS): $(WEBCAM_DEVICE_TRACKER_TEMPLATE) makefile ${WEBCAMS_
 	  export MOTION_CAMERA=$${TARGET%%.*}; \
 	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
+	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	  cat $(WEBCAM_DEVICE_TRACKER_TEMPLATE) | envsubst > $@
 
 $(WEBCAM_GRAPHS): $(WEBCAM_GRAPH_TEMPLATE) makefile ${WEBCAMS_JSON}
@@ -139,6 +144,7 @@ $(WEBCAM_GRAPHS): $(WEBCAM_GRAPH_TEMPLATE) makefile ${WEBCAMS_JSON}
 	  export MOTION_CAMERA=$${TARGET%%.*}; \
 	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
+	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	  cat $(WEBCAM_GRAPH_TEMPLATE) | envsubst > $@
 
 $(WEBCAM_GROUPS): $(WEBCAM_GROUP_TEMPLATE) makefile ${WEBCAMS_JSON}
@@ -147,6 +153,7 @@ $(WEBCAM_GROUPS): $(WEBCAM_GROUP_TEMPLATE) makefile ${WEBCAMS_JSON}
 	  export MOTION_CAMERA=$${TARGET%%.*}; \
 	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
+	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
 	  cat $(WEBCAM_GROUP_TEMPLATE) | envsubst > $@
 
@@ -156,6 +163,7 @@ $(WEBCAM_SENSORS): $(WEBCAM_SENSOR_TEMPLATE) makefile ${WEBCAMS_JSON}
 	  export MOTION_CAMERA=$${TARGET%%.*}; \
 	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
+	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	  cat $(WEBCAM_SENSOR_TEMPLATE) | envsubst > $@
 
 ## motion-addon.json

@@ -141,12 +141,13 @@ clean: stop
 	@echo "making $@"
 	@${MAKE} -C motion clean
 	-rm -f secrets.yaml
+	-rm -f .storage/lovelace 
+	-rm -f .storage/core.restore_state
 
 realclean: clean
 	rm -f known_devices.yaml
 	rm -fr home-assistant.log
 	rm -fr home-assistant_v2.*
-	rm -f .storage/core.restore_state
 
 distclean: realclean
 	rm -fr .uuid .HA_VERSION .cloud deps tts .storage
