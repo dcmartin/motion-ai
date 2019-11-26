@@ -4,7 +4,7 @@
 
 - platform: mqtt
   name: motion_event_annotated
-  state_topic: 'motion/+/+/event/end/+'
+  state_topic: '+/+/+/event/end/+'
   qos: 2
   expire_after: 1
   force_update: True
@@ -55,8 +55,8 @@
       entity_id:
         - sensor.motion_annotated_date
       value_template: >-
-        {% if states.sensor.motion_annotated_date != none and states.sensor.motion_annotated_date.state != 'null' %}
-          {{ states.sensor.motion_annotated_date.state|int|timestamp_custom("%a %b %d ~ %I:%M %p") }}
+        {% if states('sensor.motion_annotated_date')|int > 0 %}
+          {{ states('sensor.motion_annotated_date')|int|timestamp_custom("%a %b %d ~ %I:%M %p") }}
         {% else %}null{% endif %}
 
     # ago
@@ -471,19 +471,21 @@
     motion_annotated_picture:
       friendly_name: Annotated picture
       entity_id:
-        - counter.motion_annotated_counter
+        - camera.motion_event_annotated
       value_template: >-
-          {% if states.sensor.motion_event_annotated != none and state_attr('sensor.motion_event_annotated','event') != none %}
-            {% set camera = states.sensor.motion_event_annotated.attributes.event.camera %}
-            {% if states.input_boolean.motion_snapshot != none and states.input_boolean.motion_snapshot.state == 'on' %}
-              {{ states.sensor.motion_base_url.state + '/local/images/motion_annotated-' + camera + '.jpg' }}
+        {% set bu = states('sensor.motion_base_url') %}
+        {% if bu != 'unknown' %}
+          {% if states('input_boolean.motion_snapshot') == 'on' %}
+            {{ bu + '/local/images/motion_annotated.jpg' }}
+          {% else %}
+            {% set ep = state_attr('camera.motion_event_annotated','entity_picture') %}
+            {% if ep != 'unknown' and ep != 'null' %}
+              {{ bu + ep }}
             {% else %}
-              {% set ep = state_attr('camera.motion_event_annotated_' + camera,'entity_picture') %}
-              {% if  ep != none and ep != 'null' and ep != 'unknown' %}
-                {{ states.sensor.motion_base_url.state + ep }}
-              {% else %}{{ states('sensor.motion_nosignal_picture') }}{% endif %}
+              {{ states('sensor.motion_nosignal_picture') }}
             {% endif %}
-          {% else %}{{ states('sensor.motion_testsignal_picture') }}{% endif %}
+          {% endif %}
+        {% else %}null{% endif %}
 
 ## statistics
 
