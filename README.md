@@ -64,28 +64,39 @@ and check to make sure that only the key(s) you wanted were added.
 ```
 
 ### Step 4
-Install pre-requisites for Home Assistant, for example:
+Install pre-requisites for Home Assistant, including:
+
++ `software-properties-common`
++ `apparmor-utils`
++ `apt-transport-https`
++ `avahi-daemon`
++ `ca-certificates`
++ `curl`
++ `dbus`
++ `jq`
++ `socat`
++ `network-manager`
 
 ```
-% sudo apt update -qq -y
-% sudo apt upgrade -qq -y
-% sudo apt install -y software-properties-common apparmor-utils apt-transport-https avahi-daemon ca-certificates curl dbus jq socat
+sudo apt update -qq -y
+sudo apt upgrade -qq -y
+sudo apt install -y software-properties-common apparmor-utils apt-transport-https avahi-daemon ca-certificates curl dbus jq socat network-manager
 ```
 
 Install [Docker](http://docker.com) using the script from `get.docker.com`:
 
 ```
-% curl -sL get.docker.com > getdocker.sh
-% chmod 755 getdocker.sh 
-% sudo ./getdocker.sh 
+curl -sL get.docker.com > getdocker.sh
+chmod 755 getdocker.sh 
+sudo ./getdocker.sh 
 ```
 
 ### Step 5
 Download the installation script (`hassio_install.sh`) and save it, and enable execution; for example:
 
 ```
-% curl -sL "https://raw.githubusercontent.com/home-assistant/hassio-installer/master/hassio_install.sh" -o hassio_install.sh
-% chmod 755 hassio_install.sh
+curl -sL "https://raw.githubusercontent.com/home-assistant/hassio-installer/master/hassio_install.sh" -o hassio_install.sh
+chmod 755 hassio_install.sh
 ```
 
 ### Step 6
