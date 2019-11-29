@@ -64,7 +64,7 @@ and check to make sure that only the key(s) you wanted were added.
 ```
 
 ### Step 4
-Install pre-requisites for Home Assistant, including:
+Access the target device using `ssh` and install pre-requisites for Home Assistant, including:
 
 + `software-properties-common`
 + `apparmor-utils`
@@ -75,7 +75,7 @@ Install pre-requisites for Home Assistant, including:
 + `dbus`
 + `jq`
 + `socat`
-+ `network-manager`
++ `network-manager` _(optional)_
 
 ```
 sudo apt update -qq -y
@@ -83,6 +83,22 @@ sudo apt upgrade -qq -y
 sudo apt install -y software-properties-common apparmor-utils apt-transport-https avahi-daemon ca-certificates curl dbus jq socat network-manager
 ```
 
+If `network-manager` is installed, disable the MAC address randomization; create the file:
+
+```
+/etc/NetworkManager/conf.d/100-disable-wifi-mac-randomization.conf
+```
+
+With the following content:
+
+```
+[connection]
+wifi.mac-address-randomization=1
+[device]
+wifi.scan-rand-mac-address=no
+```
+
+### Step 5
 Install [Docker](http://docker.com) using the script from `get.docker.com`:
 
 ```
@@ -91,7 +107,7 @@ chmod 755 getdocker.sh
 sudo ./getdocker.sh 
 ```
 
-### Step 5
+### Step 6
 Download the installation script (`hassio_install.sh`) and save it, and enable execution; for example:
 
 ```
@@ -99,7 +115,7 @@ curl -sL "https://raw.githubusercontent.com/home-assistant/hassio-installer/mast
 chmod 755 hassio_install.sh
 ```
 
-### Step 6
+### Step 7
 Install using the downloaded script; run script as root and provide a `MACHINE` option for non-x86 devices.  See the table below to help identify the proper machine.
 
 Device|Architecture|MACHINE|comment
@@ -128,18 +144,219 @@ Created symlink /etc/systemd/system/multi-user.target.wants/hassio-apparmor.serv
 
 The download and installation of the `hassio_supervisor` and `homeassistant` Docker containers may require up to twenty (20) minutes, depending on network connection and host performance.  The default configuration will setup on the localhost using port `8123`.
 
-#### Install support applications
+For more information refer to the [installation instructions](https://www.home-assistant.io/hassio/installation/#alternative-install-on-a-generic-linux-host).
+
+### A.1.1 - `mqtt`
+Set up [Mosquitto](https://mosquitto.org/) as MQTT [broker](https://www.home-assistant.io/addons/mosquitto/) known as `core-mosquitto` in Home Assistant.  For example:
+
+```
+{
+  "logins": [
+    {
+      "username": "username",
+      "password": "password"
+    }
+  ],
+  "anonymous": false,
+  "customize": {
+    "active": false,
+    "folder": "mosquitto"
+  },
+  "certfile": "fullchain.pem",
+  "keyfile": "privkey.pem",
+  "require_certificate": false
+}
+```
+
+## A.2 Static IP
+To use static IP addresses, change the `/etc/network/interfaces` file, for example to configure a RaspberryPi with both wired (`eth0`) and wireless (`wlan0`) networking (presuming host is also running `dnsmasq` addon):
+
+```
+auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet static
+address 192.168.1.50
+gateway 192.168.1.1
+netmask 24
+
+auto wlan0 
+iface wlan0 inet static
+address 192.168.1.51
+gateway 192.168.1.1
+netmask 24
+
+dns-nameservers 192.168.1.50 1.1.1.1 9.9.9.9 8.8.8.8 8.8.4.4
+```
+
+## A.3 Site setup
+
+### Step 1
+To utilize additional capabilities in this repository there are some additional applications required:
 
 ```
 sudo apt install -qq -y git make build-essential
 ```
 
+### Step 2
+Copy the contents of this repository into a temporary directory, e.g. `/tmp/config`:
+
+```
+git clone http://github.com/dcmartin/horizon.dcmartin.com /tmp/config
+cd /tmp/config
+```
+
+### Step 3
+Move the contents of the repository into the HomeAssistant configuration directory:
+
+```
+sudo mv .??* * /usr/share/hassio/homeassistant
+sudo chown -R $(whoami) /usr/share/hassio/homeassistant
+```
+
+
+### Step 4
+Create the `motion/webcams.json` file with details on the camera(s) attached.  Those details include:
+
++ `name` : a unique name for the camera (e.g. `kitchencam`)
++ `mjpeg_url` : location of "live" motion JPEG stream from camera
++ `device` : _(optional)_ specifies the local V4L2 device
++ `username` and `password` : credentials for access via the `mjpeg_url`
++ `icon` : specified (mostly) from the [Material Design Icons](https://materialdesignicons.com/) selection.
+
+#### Local camera
+For example for an attached camera on `/dev/video0` named `kitchencam` using the icon `stove`:
+
+```
+[
+  {
+    "name": "kitchencam",
+    "device": "/dev/video0",
+    "mjpeg_url": "http://127.0.0.1:8090/1",
+    "still_image_url": "http://127.0.0.1:8090/1",
+    "icon": "stove",
+    "username": "username",
+    "password": "password"
+  }
+]   
+```
+
+#### Network camera
+For network cameras that provide motion JPEG streaming, the `url` provides direct access; the `mjpeg_url` may be either the same, or may utilize the local streaming port (n.b. `8090`) and camera (n.b. `/1`).
+
+```
+[
+  {
+    "name": "pondlive",
+    "url": "http://192.168.1.174/img/video.mjpeg",
+    "mjpeg_url": "http://127.0.0.1:8090/1",
+    "still_image_url": "",
+    "icon": "waves",
+    "username": "!secret webcam-username",
+    "password": "!secret webcam-password"
+  }
+]
+```
+
+#### FTP camera
+For network cameras that deposit video via FTP to the local `ftp` addon, the configuration below indicates the `url` with `ftpd` specified as protocol; the `username` and `password` apply the the `mjpeg_url` for access to the camera (n.b. direct, not through the `motion` port).
+
+```
+[
+  {
+    "name": "backyard",
+    "url": "ftpd:///share/ftp/backyard",
+    "mjpeg_url": "http://192.168.1.183/img/video.mjpeg",
+    "still_image_url": "http://192.168.1.183/img/snapshot.cgi",
+    "icon": "texture-box",
+    "username": "!secret webcam-username",
+    "password": "!secret webcam-password"
+  },
+  ...
+]
+```
+
+### Step 5
+Build the configuration files using the `make` command:
+
+```
+cd /usr/share/hassio/homeassistant
+```
+
+Specify control variables appropriate for environment:
+
+```
+echo '$(domainname)' > DOMAIN_NAME
+echo $(hostname -I | awk '{ print $1 }') > HOST_IPADDR
+echo $(hostname -f) > HOST_NAME
+echo 'whocares' > EXCHANGE_APIKEY
+echo $(whoami) > EXCHANGE_ORG
+echo 'username' > WEBCAM_USERNAME
+echo 'password' > WEBCAM_PASSWORD
+echo 'username' > MQTT_USERNAME
+echo 'password' > MQTT_PASSWORD
+```
+
+### Step 6
+Remove the default `configuration.yaml` and link (or copy) the template provided:
+
+```
+rm configuration.yaml
+ln -s configuration.yaml.tmpl configuration.yaml
+```
+
+### Step 7
+Build the YAML configuration files based on the environment and the `motion/webcams.json` file and restart the Home Assistant server:
+
+```
+make restart
+```
+
+The results include both `WARN` and `INFO` for environment specified:
+
+```
+++ WARN: LOGGER_DEFAULT unset; default: warn
+++ WARN: AUTOMATION_internet unset; default: off
+++ WARN: AUTOMATION_startup unset; default: off
+++ WARN: AUTOMATION_sdr2msghub unset; default: off
+++ WARN: AUTOMATION_yolo2msghub unset; default: off
+-- INFO: DOMAIN_NAME: dcmartin.com
+++ WARN: HOST_NAME unset; default: pi3-2
+-- INFO: HOST_IPADDR: 192.168.1.72
+-- INFO: HOST_PORT: 80
+-- INFO: HOST_THEME: green
+++ WARN: MQTT_HOST unset; default: core-mosquitto
+++ WARN: MQTT_PORT unset; default: 1883
+++ WARN: MQTT_USERNAME unset; default: username
+++ WARN: MQTT_PASSWORD unset; default: password
+++ WARN: WEBCAM_USERNAME unset; default: dcmartin
+-- INFO: WEBCAM_PASSWORD: username
+++ WARN: NETDATA_URL unset; default: http://192.168.1.72:19999/
+++ WARN: DIGITS_URL unset; default: http://digits.dcmartin.com:5000/
+++ WARN: COUCHDB_URL unset; default: http://couchdb.dcmartin.com:5984/_utils
+++ WARN: EDGEX_URL unset; default: http://edgex.dcmartin.com:4000
+++ WARN: CONSUL_URL unset; default: http://consul.dcmartin.com:8500/ui
+++ WARN: EXCHANGE_URL unset; default: http://exchange.dcmartin.com:3090
+++ WARN: EXCHANGE_ORG unset; default: dcmartin
+++ WARN: EXCHANGE_ORG_ADMIN unset; default: dcmartin
+-- INFO: EXCHANGE_APIKEY: whocares
+++ WARN: HZNMONITOR_URL unset; default: http://hznmonitor.dcmartin.com:3094
+++ WARN: GRAFANA_URL unset; default: http://grafana.dcmartin.com:3000
+++ WARN: INFLUXDB_HOST unset; default: influxdb.dcmartin.com
+-- INFO: INFLUXDB_PASSWORD: ask4it
+making motion
+make[1]: Entering directory '/usr/share/hassio/homeassistant/motion'
+make[1]: Nothing to be done for 'default'.
+make[1]: Leaving directory '/usr/share/hassio/homeassistant/motion'
+making secrets.yaml
+```
+
+
 # A.2 - Home-Assistant _addons_
 There are several community _addons_ which are useful in configuration, management, and functionality.  These include the following:
 
 + `mqtt` - provides a local MQTT broker; **required to use the `motion` addon**
-+ `configurator` - provide a Web interface to edit configuration files
-+ `dnsmasq` - provide a DNS server to local devices
 
 These addons and many other are available from the **ADD-ON** store in Home Assistant.
 
@@ -176,27 +393,7 @@ Collects Kafka messages on topic: `cpu2msghub` and produces MQTT messages for co
 ### A.2.5 - `sdr2msghub`
 Collects Kafka messages on topic: `sdr/audio` and produces MQTT messages for consumption by Home Assistant MQTT `sensor` on `sdr2msghub` as `events`;  processes spoken audio through IBM Watson Speech-to-text (STT) and Natual Language Understanding (NLU) to produce sentiment and other AI predictions.  Visit  [`sdr2msghub`](https://github.com/dcmartin/hassio-addons/tree/master/sdr2msghub) page for details. 
 
-### A.2.6 - `mqtt`
-Set up [Mosquitto](https://mosquitto.org/) as MQTT [broker](https://www.home-assistant.io/addons/mosquitto/) known as `core-mosquitto` in Home Assistant.  For example:
 
-```
-{
-  "logins": [
-    {
-      "username": "username",
-      "password": "password"
-    }
-  ],
-  "anonymous": false,
-  "customize": {
-    "active": false,
-    "folder": "mosquitto"
-  },
-  "certfile": "fullchain.pem",
-  "keyfile": "privkey.pem",
-  "require_certificate": false
-}
-```
 
 ### A.2.7 - `configurator`
 Configure Home Assistant through an integrated Web user-interface; more instructions [here](https://www.home-assistant.io/addons/configurator)
