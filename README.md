@@ -168,7 +168,16 @@ Set up [Mosquitto](https://mosquitto.org/) as MQTT [broker](https://www.home-ass
 }
 ```
 
-## A.2 Static IP
+### A.1.2 - USB camera with VirtualBox _(optional)_
+If using a VirtualBox Ubuntu LINUX environment a local camera, either built-in or USB attached, may be utilized.  In addition to configuring VirtualBox with its _extension pack_, the camera should be mapped into the VM through the VirtualBox **Ports** interface for USB devices.
+
+Then install the extension pack into the LINUX environment:
+
+```
+sudo apt install virtualbox-ext-pack
+```
+
+### A.1.3 - Static IP _(optional)_
 To use static IP addresses, change the `/etc/network/interfaces` file, for example to configure a RaspberryPi with both wired (`eth0`) and wireless (`wlan0`) networking (presuming host is also running `dnsmasq` addon):
 
 ```
