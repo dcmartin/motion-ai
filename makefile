@@ -31,7 +31,7 @@ MQTT_USERNAME := $(if $(wildcard MQTT_USERNAME),$(shell v=$$(cat MQTT_USERNAME) 
 MQTT_PASSWORD := $(if $(wildcard MQTT_PASSWORD),$(shell v=$$(cat MQTT_PASSWORD) && echo "-- INFO: MQTT_PASSWORD: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="password" && echo "++ WARN: MQTT_PASSWORD unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 # webcam
-WEBCAM_USERNAME := $(if $(wildcard WEBCAM_USERNAME),$(shell v=$$(cat WEBCAM_USERNAME) && echo "-- INFO: WEBCAM_USERNAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(whoami) && echo "++ WARN: WEBCAM_USERNAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+WEBCAM_USERNAME := $(if $(wildcard WEBCAM_USERNAME),$(shell v=$$(cat WEBCAM_USERNAME) && echo "-- INFO: WEBCAM_USERNAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="username" && echo "++ WARN: WEBCAM_USERNAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 WEBCAM_PASSWORD := $(if $(wildcard WEBCAM_PASSWORD),$(shell v=$$(cat WEBCAM_PASSWORD) && echo "-- INFO: WEBCAM_PASSWORD: $${v}" > /dev/stderr && echo "$${v}"),$(shell read -p "Specify WEBCAM_PASSWORD: " && echo $${REPLY} | tee WEBCAM_PASSWORD))
 
 # netdata
