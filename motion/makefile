@@ -7,7 +7,7 @@ SHELL := /bin/bash
 ## TOP-LEVEL
 MOTION_TLD := dcmartin.com
 MOTION_GROUP := motion
-MOTION_DEVICE := $(if ${MOTION_DEVICE},${MOTION_DEVICE},$(shell hostname))
+MOTION_DEVICE ?= $(if $(wildcard MOTION_DEVICE),$(shell cat MOTION_DEVICE),$(shell hostname))
 
 ## MQTT
 MOTION_MQTT_HOST := $(if ${MOTION_MQTT_HOST},${MOTION_MQTT_HOST},mqtt.${MOTION_TLD})
@@ -65,13 +65,33 @@ HIGHLOW_TEMPLATE := binary_sensor.highlow.yaml.tmpl
 # HIGHLOW yaml
 HIGHLOW_YAML := $(shell for S in $(HIGHLOW_SENSORS); do for I in $(HIGHLOW_ITEMS); do echo "binary_sensor/highlow-$${S}_$${I}.yaml"; done; done)
 
+# TEMPLATES
+
+MOTION_YAML := sensor/end.yaml sensor/annotated.yaml camera/end.yaml camera/annotated.yaml
+
 ###
 ### targets
 ###
 
 default: all
 
-all:  $(WEBCAM_YAML) $(HIGHLOW_YAML) motion-addon.json group/webcams.yaml
+all:  $(MOTION_YAML) $(WEBCAM_YAML) $(HIGHLOW_YAML) motion-addon.json group/webcams.yaml
+
+# TEMPLATES
+
+camera/%.yaml : camera/%.yaml.tmpl
+	@echo "Making $@"
+	@export \
+	  MOTION_GROUP="$(MOTION_GROUP)" \
+	  MOTION_DEVICE="$(MOTION_DEVICE)" \
+	  && cat $< | envsubst > $@
+
+sensor/%.yaml : sensor/%.yaml.tmpl
+	@echo "Making $@"
+	@export \
+	  MOTION_GROUP="$(MOTION_GROUP)" \
+	  MOTION_DEVICE="$(MOTION_DEVICE)" \
+	  && cat $< | envsubst > $@
 
 ## HIGHLOW targets
 
@@ -89,8 +109,8 @@ $(HIGHLOW_YAML): $(HIGHLOW_TEMPLATE) makefile
 $(WEBCAM_CAMERAS): $(WEBCAM_CAMERA_TEMPLATE) makefile ${WEBCAMS_JSON}
 	@echo "making $@"
 	@export TARGET="$@"; \
-	  export MOTION_CAMERA=$${TARGET%%.*}; \
-	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
+	  export MOTION_CAMERA="$${TARGET%%.*}"; \
+	  export MOTION_CAMERA="$${MOTION_CAMERA##*-}"; \
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
 	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
@@ -105,8 +125,8 @@ $(WEBCAM_CAMERAS): $(WEBCAM_CAMERA_TEMPLATE) makefile ${WEBCAMS_JSON}
 $(WEBCAM_AUTOMATIONS): $(WEBCAM_AUTOMATION_TEMPLATE) makefile ${WEBCAMS_JSON}
 	@echo "making $@"
 	@export TARGET="$@"; \
-	  export MOTION_CAMERA=$${TARGET%%.*}; \
-	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
+	  export MOTION_CAMERA="$${TARGET%%.*}"; \
+	  export MOTION_CAMERA="$${MOTION_CAMERA##*-}"; \
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
 	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	  cat $(WEBCAM_AUTOMATION_TEMPLATE) | envsubst > $@
@@ -114,8 +134,8 @@ $(WEBCAM_AUTOMATIONS): $(WEBCAM_AUTOMATION_TEMPLATE) makefile ${WEBCAMS_JSON}
 $(WEBCAM_BINARY_SENSORS): $(WEBCAM_BINARY_SENSOR_TEMPLATE) makefile ${WEBCAMS_JSON}
 	@echo "making $@"
 	@export TARGET="$@"; \
-	  export MOTION_CAMERA=$${TARGET%%.*}; \
-	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
+	  export MOTION_CAMERA="$${TARGET%%.*}"; \
+	  export MOTION_CAMERA="$${MOTION_CAMERA##*-}"; \
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
 	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	  cat $(WEBCAM_BINARY_SENSOR_TEMPLATE) | envsubst > $@
@@ -200,6 +220,7 @@ group/webcams.yaml: ${WEBCAMS_JSON} makefile ./sh/mkwebcams.sh
 tidy:
 	-rm -f $(WEBCAM_YAML) */webcam-*
 	-rm -f $(HIGHLOW_YAML) */highlow-*
+	-rm -f $(MOTION_YAML)
 
 clean: tidy
 	-rm -f motion-addon.json
