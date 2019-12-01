@@ -144,10 +144,13 @@ clean: stop
 	-rm -f .storage/lovelace 
 	-rm -f .storage/core.restore_state
 
-realclean: clean
+realclean: clean logclean
 	rm -f known_devices.yaml
 	rm -fr home-assistant.log
 	rm -fr home-assistant_v2.*
+
+logclean:
+	@for i in $$(sudo find "/var/lib/docker/containers" -name "*.log" -print); do echo "Cleaning $${i}" && sudo cp /dev/null $${i}; done
 
 distclean: realclean
 	rm -fr .uuid .HA_VERSION .cloud deps tts .storage
