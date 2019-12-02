@@ -199,7 +199,19 @@ netmask 24
 dns-nameservers 192.168.1.50 1.1.1.1 9.9.9.9 8.8.8.8 8.8.4.4
 ```
 
-## A.3 Site setup
+### A.1.4 - Increase swap _(optional)_
+To accomodate running Home Assistant and its components in addition to the `motion` and `YOLO` software, the size of the swap file should be increased.  It is recommended to increase from the default 100 Mbytes to either 512 megabytes or one (1) gigabyte (i.e. 1024 megabytes).
+
+```
+sudo systemctl stop docker
+sudo dphys-swapfile swapoff
+SWAPSIZE=1024
+sudo sed -i "s/CONF_SWAPSIZE=.*/CONF_SWAPSIZE=${SWAPSIZE}/" /etc/dphys-swapfile
+sudo dphys-swapfile swapoon
+sudo systemctl start docker
+```
+
+## A.2 Site setup
 
 ### Step 1
 To utilize additional capabilities in this repository there are some additional applications required:
@@ -361,8 +373,7 @@ make[1]: Leaving directory '/usr/share/hassio/homeassistant/motion'
 making secrets.yaml
 ```
 
-
-# A.2 - Home-Assistant _addons_
+# A.3 - Home-Assistant _addons_
 There are several community _addons_ which are useful in configuration, management, and functionality.  These include the following:
 
 + `mqtt` - provides a local MQTT broker; **required to use the `motion` addon**
@@ -379,7 +390,7 @@ And when successful the following should appear at the end of the page:
 
 <img src="samples/addonstore-after.png">
 
-### A.2.1 - `motion`
+### A.3.1 - `motion`
 The `motion` add-on processes video information into motion detection JSON events, multi-frame GIF animations, and one representative frame with entities detected, classified, and annotated (n.b. requires Open Horizon `yolo4motion` service).  This addon is designed to work with a variety of sources, including:
 
 + `3GP` - motion-detecting WebCams (e.g. Linksys WCV80n); received via the `FTP` community _addon_
@@ -388,26 +399,26 @@ The `motion` add-on processes video information into motion detection JSON event
 
 Visit  [`motion`](https://github.com/dcmartin/hassio-addons/tree/master/motion) page for details. 
 
-### A.2.2 - `yolo4motion`
+### A.3.2 - `yolo4motion`
 Processes images from the `motion` addon received via MQTT through the [**YOLO**](https://pjreddie.com/darknet/yolo/) open source object detection and classification deep convolutional neural network (DCNN) and publishes results via MQTT.
 
 Visit [`yolo4motion`](https://github.com/dcmartin/hassio-addons/tree/master/yolo4motion) page for details. 
 
-### A.2.3 - `kafka2mqtt4yolo `
+### A.3.3 - `kafka2mqtt4yolo `
 The Kafka to MQTT relay for YOLO addon is designed to consume Kafka messages on the topic `yolo2msghub` and produce MQTT messages for consumption by the Home Assistant MQTT broker _addon_.  Visit  [`kafka2mqtt4yolo`](https://github.com/dcmartin/hassio-addons/tree/master/kafka2mqtt4yolo) page for details. 
 
-### A.2.4 - `cpu2msghub`
+### A.3.4 - `cpu2msghub`
 Collects Kafka messages on topic: `cpu2msghub` and produces MQTT messages for consumption by Home Assistant MQTT `sensor` on `cpu2msghub` topic as `events`.  Visit  [`cpu2msghub`](https://github.com/dcmartin/hassio-addons/tree/master/cpu2msghub) page for details. 
 
-### A.2.5 - `sdr2msghub`
+### A.3.5 - `sdr2msghub`
 Collects Kafka messages on topic: `sdr/audio` and produces MQTT messages for consumption by Home Assistant MQTT `sensor` on `sdr2msghub` as `events`;  processes spoken audio through IBM Watson Speech-to-text (STT) and Natual Language Understanding (NLU) to produce sentiment and other AI predictions.  Visit  [`sdr2msghub`](https://github.com/dcmartin/hassio-addons/tree/master/sdr2msghub) page for details. 
 
 
 
-### A.2.7 - `configurator`
+### A.3.7 - `configurator`
 Configure Home Assistant through an integrated Web user-interface; more instructions [here](https://www.home-assistant.io/addons/configurator)
 
-### A.2.8 - `dnsmasq`
+### A.3.8 - `dnsmasq`
 If you want to use the Home Assistant [DNS](https://www.home-assistant.io/addons/dnsmasq/) _addon_, the existing DNS resolver for Ubuntu must be disabled.  This method works on Ubuntu Releases 17.04 (Zasty), 17.10 (Artful), 18.04 (Bionic) and 18.10 (Cosmic):
 
 Disable and stop the systemd-resolved service:
