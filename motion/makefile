@@ -79,14 +79,14 @@ all:  $(MOTION_YAML) $(WEBCAM_YAML) $(HIGHLOW_YAML) motion-addon.json group/webc
 
 # TEMPLATES
 
-camera/%.yaml : camera/%.yaml.tmpl
+camera/%.yaml : camera.%.yaml.tmpl
 	@echo "Making $@"
 	@export \
 	  MOTION_GROUP="$(MOTION_GROUP)" \
 	  MOTION_DEVICE="$(MOTION_DEVICE)" \
 	  && cat $< | envsubst > $@
 
-sensor/%.yaml : sensor/%.yaml.tmpl
+sensor/%.yaml : sensor.%.yaml.tmpl
 	@echo "Making $@"
 	@export \
 	  MOTION_GROUP="$(MOTION_GROUP)" \
