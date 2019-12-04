@@ -1,4 +1,4 @@
-# `horizon.dcmartin.com`
+# &#128064; `horizon.dcmartin.com`
 
 
 This repository contains YAML files for the configuration of the [Home Assistant](http://home-assistant.io)  site at [`horizon.dcmartin.com`](http://horizon.dcmartin.com:3092) site; **unfortunately this site requires authentication**.  
