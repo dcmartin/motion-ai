@@ -137,14 +137,14 @@ secrets.yaml: secrets.yaml.tmpl makefile $(PWD)
 
 ## clean and clean and clean ..
 
-clean: stop
+clean: stop logclean
 	@echo "making $@"
 	@${MAKE} -C motion clean
 	-rm -f secrets.yaml
 	-rm -f .storage/lovelace 
 	-rm -f .storage/core.restore_state
 
-realclean: clean logclean
+realclean: clean
 	rm -f known_devices.yaml
 	rm -fr home-assistant.log
 	rm -fr home-assistant_v2.*
