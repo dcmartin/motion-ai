@@ -1,4 +1,4 @@
-# `horizon.dcmartin.com`
+# &#128064; `horizon.dcmartin.com`
 
 
 This repository contains YAML files for the configuration of the [Home Assistant](http://home-assistant.io)  site at [`horizon.dcmartin.com`](http://horizon.dcmartin.com:3092) site; **unfortunately this site requires authentication**.  
@@ -207,7 +207,7 @@ sudo systemctl stop docker
 sudo dphys-swapfile swapoff
 SWAPSIZE=1024
 sudo sed -i "s/CONF_SWAPSIZE=.*/CONF_SWAPSIZE=${SWAPSIZE}/" /etc/dphys-swapfile
-sudo dphys-swapfile swapoon
+sudo dphys-swapfile swapon
 sudo systemctl start docker
 ```
 
