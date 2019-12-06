@@ -1,0 +1,260 @@
+###
+### configuration.yaml
+###
+
+homeassistant:
+  name: !secret ha-name
+  unit_system: imperial
+  time_zone: !secret ha-timezone
+  customize: !include customize.yaml
+
+http:
+  server_port: !secret ha-port
+  base_url: !secret ha-url
+  cors_allowed_origins:
+    - https://google.com
+    - https://www.home-assistant.io
+    - http://cdn.clustrmaps.com
+
+## FAVICON
+#favicon:
+#  title: !secret ha-name
+#  icon_path: /local/favicons/
+
+## DEFAULT
+
+mobile_app:
+system_health:
+hassio:
+cloud:
+config:
+map:
+sun:
+python_script:
+
+frontend:
+  javascript_version: latest
+  themes: !include_dir_merge_named themes
+  extra_html_url:
+    - http://clustrmaps.com/map_v2.png?cl=ffffff&w=a&t=n&d=xr2Q2vt76X42HBH3uchXdk6LOOAJDVqAySTTK3bDWsM
+
+updater:
+  reporting: no
+  include_used_components: false
+
+###
+### INFLUX
+###
+
+influxdb:
+  host: !secret influxdb-host
+  port: 8086
+  database: homeassistant
+  username: homeassistant
+  password: !secret influxdb-password
+  max_retries: 3
+  default_measurement: state
+
+###
+### MQTT
+###
+
+mqtt:
+  broker: !secret mqtt-broker
+  port: !secret mqtt-port
+  username: !secret mqtt-username
+  password: !secret mqtt-password
+
+###
+### LOGGER component
+###
+
+logger:
+  default: !secret logger-default
+  logs:
+    homeassistant.core: !secret logger-core
+    homeassistant.setup: !secret logger-setup
+    homeassistant.loader: !secret logger-loader
+    homeassistant.components: !secret logger-components
+    homeassistant.components.sensor: !secret logger-sensor
+    homeassistant.components.camera: !secret logger-camera
+    homeassistant.components.automation: !secret logger-automation
+    homeassistant.components.template.binary_sensor: !secret logger-template-binary_sensor
+    homeassistant.components.template.sensor: !secret logger-template-sensor
+    homeassistant.components.mqtt.sensor: !secret logger-mqtt-sensor
+    homeassistant.components.recorder: !secret logger-recorder
+    homeassistant.components.recorder.util: !secret logger-recorder-util
+    homeassistant.components.statistics.sensor: !secret logger-statistics-sensor
+    homeassistant.components.device_tracker: info
+    homeassistant.components.websocket_api.http.connection: fatal
+
+###
+### RECORDER, HISTORY, LOGBOOK components
+###
+
+recorder: !include recorder.yaml
+history: !include history.yaml
+logbook: !include logbook.yaml
+
+###
+### PRIMARY components
+###
+
+input_boolean: !include input_booleans.yaml
+input_text: !include input_texts.yaml
+input_select: !include input_selects.yaml
+input_number: !include input_numbers.yaml
+
+## history_graphs
+history_graph: !include_dir_merge_named history_graph
+
+## groups
+group: !include_dir_merge_named group
+
+## automations
+automation: !include_dir_merge_list automation
+
+## counters
+counter: !include_dir_merge_named counter
+
+## WEBLINKS
+weblink: !include weblinks.yaml
+
+###
+### PANEL
+###
+      
+panel_iframe:
+  netdata:
+    title: NetData
+    icon: mdi:speedometer
+    url: !secret netdata-url
+  hznmonitor:
+    title: HZN monitor
+    icon: mdi:factory
+    url: !secret hznmonitor-url
+  edgex:
+    title: EdgeX
+    icon: mdi:mixer
+    url: !secret edgex-url
+  digits:
+    title: DIGITS
+    icon: mdi:fingerprint
+    url: !secret digits-url
+  grafana:
+    title: Grafana
+    icon: mdi:graphql
+    url: !secret grafana-url
+  couchdb:
+    title: CouchDB
+    icon: mdi:sofa
+    url: !secret couchdb-url
+  consul:
+    title: Consul
+    icon: mdi:passport
+    url: !secret consul-url
+
+###
+### HOST
+###
+
+sensor host_wan_ip:
+  - platform: rest
+    name: host_wan_ipexternalip
+    resource: http://ip.jsontest.com
+    value_template: >
+      {%- if value_json is defined -%}
+        {{ value_json.ip | default(null) }}
+      {%- else -%}null{%- endif -%}
+
+sensor host_lan_ip:
+  - platform: command_line
+    command: echo '{"date":'$(date "+%s")',"hostname":"'$(hostname)'","ipv4":"'$(ip addr | egrep "global" | sed "s/.* \([0-9\.]*\)\/.*/\1/" | head -1)'"}'
+    name: host_lan_ip
+    scan_interval: 14400
+    command_timeout: 30
+    json_attributes:
+      - date
+      - hostname
+      - ipv4
+    value_template: >
+      {%- if value_json is defined -%}
+        {{ value_json.date | int | timestamp_custom("%a %b %d @ %I:%M %p") }}
+      {%- else -%}null{%- endif -%}
+
+sensor host_uname:
+  - platform: command_line
+    name: host_uname
+    command: echo '{"date":'$(date "+%s")',"hardware":"'$(uname -m)'","nodename":"'$(uname -n)'","processor":"'$(uname -p)'","os_release":"'$(uname -r)'","os_name":"'$(uname -s)'","os_version":"'$(uname -v)'"}'
+    scan_interval: 14400
+    command_timeout: 30
+    json_attributes:
+      - date
+      - hardware
+      - nodename
+      - os_release
+      - os_name
+      - os_version
+    value_template: >
+      {%- if value_json is defined -%}
+        {{ value_json.date | int | timestamp_custom("%a %b %d @ %I:%M %p") }}
+      {%- else -%}null{%- endif -%}
+
+###
+### MOTION
+###
+
+sensor motion: !include_dir_merge_list motion/sensor/
+binary_sensor motion: !include_dir_merge_list motion/binary_sensor/
+camera motion: !include_dir_merge_list motion/camera/
+device_tracker motion: !include_dir_merge_list motion/device_tracker/
+
+###
+### INTERNET TEST
+###
+
+sensor internet: !include_dir_merge_list internet/sensor/
+binary_sensor internet: !include_dir_merge_list internet/binary_sensor/
+
+###
+### EXCHANGE
+###
+
+sensor exchange: !include_dir_merge_list exchange/sensor/
+binary_sensor exchange: !include_dir_merge_list exchange/binary_sensor/
+
+###
+### STARTUP
+###
+
+sensor startup: !include_dir_merge_list startup/sensor/
+binary_sensor startup: !include_dir_merge_list startup/binary_sensor/
+
+###
+### YOLO2MSGHUB
+###
+
+sensor yolo2msghub: !include_dir_merge_list yolo2msghub/sensor/
+binary_sensor yolo2msghub: !include_dir_merge_list yolo2msghub/binary_sensor/
+camera yolo2msghub: !include_dir_merge_list yolo2msghub/camera/
+
+###
+### SDR2MSGHUB
+###
+
+sensor sdr2msghub: !include_dir_merge_list sdr2msghub/sensor/
+binary_sensor sdr2msghub: !include_dir_merge_list sdr2msghub/binary_sensor/
+
+###
+### HZNMONITOR
+###
+
+sensor hznmonitor: !include_dir_merge_list hznmonitor/sensor/
+binary_sensor hznmonitor: !include_dir_merge_list hznmonitor/binary_sensor/
+
+###
+### HZNSETUP
+###
+
+sensor hznsetup: !include_dir_merge_list hznsetup/sensor/
+binary_sensor hznsetup: !include_dir_merge_list hznsetup/binary_sensor/
