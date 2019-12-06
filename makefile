@@ -87,7 +87,13 @@ $(MOTION_DIRS):
 
 $(PACKAGES): makefile
 	@echo "making $@"
-	@${MAKE} -C $@
+	@export \
+	  HOST_NAME="$(HOST_NAME)" \
+	  MQTT_HOST="$(MQTT_HOST)" \
+	  MQTT_PORT="$(MQTT_PORT)" \
+	  MQTT_USERNAME="$(MQTT_USERNAME)" \
+	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
+	  && ${MAKE} -C $@
 
 run: all configuration.yaml 
 	docker start homeassistant

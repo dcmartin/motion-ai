@@ -211,6 +211,39 @@ sudo dphys-swapfile swapon
 sudo systemctl start docker
 ```
 
+## A.1.4 - Automatic desktop login
+If using a RaspberryPi with a connected display the device may be configured to automatically log into the device and start the graphical user interface (GUI).
+
+The first step is installing the desktop manager:
+
+```
+sudo apt install -qq -y lightdm
+```
+
+Second step is to run the `raspi-config` program from the command-line and configure the system to boot to desktop GUI:
+
+```
+sudo raspi-config
+```
+
+Navigate through the screens; first selecting option `3. Boot Options`:
+
+<img src="samples/raspi-config-1.png">
+
+Then option `B1 Desktop / CLI`:
+
+<img src="samples/raspi-config-2.png">
+
+Finally, select option `B4 Desktop Autologin Desktop GUI` with the utilized account (e.g. `dcmartin`):
+
+<img src="samples/raspi-config-3.png">
+
+Select `<OK>` and exit the `rasp-config` application.  Then reboot the computer:
+
+```
+sudo reboot
+```
+
 ## A.2 Site setup
 
 ### Step 1
