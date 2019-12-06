@@ -8,7 +8,7 @@
 
 - platform: mqtt
   name: motion_status_camera_found_${MOTION_CAMERA}
-  state_topic: '${MOTION_GROUP}/+/${MOTION_CAMERA}/status/found'
+  state_topic: '${MOTION_GROUP}/${MOTION_CLIENT}/${MOTION_CAMERA}/status/found'
   expire_after: 86400
   force_update: true
   json_attributes:
@@ -47,7 +47,7 @@
 
 - platform: mqtt
   name: motion_status_camera_lost_${MOTION_CAMERA}
-  state_topic: '${MOTION_GROUP}/+/${MOTION_CAMERA}/status/lost'
+  state_topic: '${MOTION_GROUP}/${MOTION_CLIENT}/${MOTION_CAMERA}/status/lost'
   expire_after: 86400
   force_update: true
   json_attributes:
@@ -80,11 +80,11 @@
           {{ states.sensor.motion_status_camera_lost_date_${MOTION_CAMERA}.state|int|timestamp_custom("%a %b %d ~ %I:%M %p") }}
         {% else %}null{% endif %} 
 
-## EVENT IMAGE - ${MOTION_GROUP}/+/${MOTION_CAMERA}/event/image
+## EVENT IMAGE - ${MOTION_GROUP}/${MOTION_CLIENT}/${MOTION_CAMERA}/event/image
 - platform: mqtt
   name: motion_image_${MOTION_CAMERA}
   qos: 1
-  state_topic: '${MOTION_GROUP}/+/${MOTION_CAMERA}/event/image'
+  state_topic: '${MOTION_GROUP}/${MOTION_CLIENT}/${MOTION_CAMERA}/event/image'
   expire_after: 1
   force_update: true
   json_attributes:
@@ -107,7 +107,7 @@
 - platform: mqtt
   name: motion_start_${MOTION_CAMERA}
   qos: 1
-  state_topic: '${MOTION_GROUP}/+/${MOTION_CAMERA}/event/start'
+  state_topic: '${MOTION_GROUP}/${MOTION_CLIENT}/${MOTION_CAMERA}/event/start'
   expire_after: 15
   force_update: true
   json_attributes:
@@ -125,7 +125,7 @@
 - platform: mqtt
   name: motion_event_end_${MOTION_CAMERA}
   qos: 2
-  state_topic: '${MOTION_GROUP}/+/${MOTION_CAMERA}/event/end'
+  state_topic: '${MOTION_GROUP}/${MOTION_CLIENT}/${MOTION_CAMERA}/event/end'
   expire_after: 45
   force_update: True
   json_attributes:
@@ -146,7 +146,7 @@
 ## event_annotated
 - platform: mqtt
   name: motion_event_annotated_${MOTION_CAMERA}
-  state_topic: '${MOTION_GROUP}/+/${MOTION_CAMERA}/event/end/+'
+  state_topic: '${MOTION_GROUP}/${MOTION_CLIENT}/${MOTION_CAMERA}/event/end/+'
   expire_after: 45
   force_update: true
   json_attributes:
@@ -823,19 +823,21 @@
   sensors:
     motion_detected_picture_${MOTION_CAMERA}:
       entity_id:
-        - sensor.motion_annotated_picture_${MOTION_CAMERA}
+        - camera.motion_event_annotated_${MOTION_CAMERA}
       value_template: >-
-        {% if states('binary_sensor.motion_detected_${MOTION_CAMERA}') == 'on' %}
+        {% set count = states('sensor.motion_annotatedd_count_${MOTION_CAMERA}')|int %}
+        {% set bu = states('sensor.motion_base_url') %}
+        {% if bu != 'unknown' and count > 0 %}
           {% if states('input_boolean.motion_snapshot') == 'on' %}
-            {% set s = states.sensor.motion_base_url.state + '/local/images/motion_detected-${MOTION_CAMERA}.jpg' %}
+            {% set s = bu + '/local/images/motion_detected-${MOTION_CAMERA}.jpg' %}
           {% else %}
-            {% set s = states('sensor.motion_annotated_picture_${MOTION_CAMERA}') %}
-          {% endif %}
-          {% if s == none or s == 'unknown' or s == 'null' or s|length < 1 %}
-            {% set s = states('sensor.motion_detected_picture_${MOTION_CAMERA}') %}
+            {% set ep = state_attr('camera.motion_event_annotated_${MOTION_CAMERA}','entity_picture') %}
+            {% if ep != none and ep != 'unknown' and ep != 'null' and ep|length > 0 %}
+              {% set s = bu + ep %}
+            {% endif %}
           {% endif %}
         {% endif %}
-        {% if s != none and s != 'unknown' and s != 'null' and s|length > 0 %}
+        {% if s is defined and s != none and s != 'unknown' and s != 'null' and s|length > 0 %}
           {{ s }}
         {% else %}
           {{ states('sensor.motion_nosignal_picture') }}
@@ -846,19 +848,21 @@
     motion_detected_entity_picture_${MOTION_CAMERA}:
       friendly_name: Detected entity picture
       entity_id:
-        - sensor.motion_detected_picture_${MOTION_CAMERA}
+        - camera.motion_event_annotated_${MOTION_CAMERA}
       value_template: >-
-        {% if states('binary_sensor.motion_detected_entity_${MOTION_CAMERA}') == 'on' %}
+        {% set count = states('sensor.motion_detected_entity_count_${MOTION_CAMERA}')|int %}
+        {% set bu = states('sensor.motion_base_url') %}
+        {% if bu != 'unknown' and count > 0 %}
           {% if states('input_boolean.motion_snapshot') == 'on' %}
-            {% set s = states.sensor.motion_base_url.state + '/local/images/motion_detected_entity-${MOTION_CAMERA}.jpg' %}
+            {% set s = bu + '/local/images/motion_detected_entity-${MOTION_CAMERA}.jpg' %}
           {% else %}
-            {% set s = states('sensor.motion_detected_picture_${MOTION_CAMERA}') %}
-          {% endif %}
-          {% if s == none or s == 'unknown' or s == 'null' or s|length < 1 %}
-            {% set s = states('sensor.motion_detected_entity_picture_${MOTION_CAMERA}') %}
+            {% set ep = state_attr('camera.motion_event_annotated_${MOTION_CAMERA}','entity_picture') %}
+            {% if ep != none and ep != 'unknown' and ep != 'null' and ep|length > 0 %}
+              {% set s = bu + ep %}
+            {% endif %}
           {% endif %}
         {% endif %}
-        {% if s != none and s != 'unknown' and s != 'null' and s|length > 0 %}
+        {% if s is defined and s != none and s != 'unknown' and s != 'null' and s|length > 0 %}
           {{ s }}
         {% else %}
           {{ states('sensor.motion_nosignal_picture') }}
