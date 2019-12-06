@@ -7,12 +7,14 @@ SHELL := /bin/bash
 ## TOP-LEVEL
 MOTION_TLD := dcmartin.com
 MOTION_GROUP := motion
-MOTION_DEVICE ?= $(if $(wildcard MOTION_DEVICE),$(shell cat MOTION_DEVICE),$(shell hostname))
+MOTION_DEVICE := $(if $(MOTION_DEVICE),$(shell v=$(MOTION_DEVICE) && echo "-- INFO: MOTION_DEVICE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=${HOST_NAME} && echo "++ WARN: MOTION_DEVICE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MOTION_CLIENT := $(if $(wildcard MOTION_CLIENT),$(shell v=$$(cat MOTION_CLIENT) && echo "-- INFO: MOTION_CLIENT: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=${MOTION_DEVICE} && echo "++ WARN: MOTION_CLIENT unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 ## MQTT
-MOTION_MQTT_HOST := $(if ${MOTION_MQTT_HOST},${MOTION_MQTT_HOST},mqtt.${MOTION_TLD})
-MOTION_MQTT_USERNAME := $(if ${MOTION_MQTT_USERNAME},${MOTION_MQTT_USERNAME},"username")
-MOTION_MQTT_PASSWORD := $(if ${MOTION_MQTT_PASSWORD},${MOTION_MQTT_PASSWORD},"password")
+MQTT_HOST := $(if $(MQTT_HOST),$(shell v=$(MQTT_HOST) && echo "-- INFO: MQTT_HOST: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=mqtt.${MOTION_TLD} && echo "++ WARN: MQTT_HOST unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MQTT_PORT := $(if $(MQTT_PORT),$(shell v=$(MQTT_PORT) && echo "-- INFO: MQTT_PORT: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='1883' && echo "++ WARN: MQTT_PORT unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MQTT_USERNAME := $(if $(MQTT_USERNAME),$(shell v=$(MQTT_USERNAME) && echo "-- INFO: MQTT_USERNAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='username' && echo "++ WARN: MQTT_USERNAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MQTT_PASSWORD := $(if $(MQTT_PASSWORD),$(shell v=$(MQTT_PASSWORD) && echo "-- INFO: MQTT_PASSWORD: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='password' && echo "++ WARN: MQTT_PASSWORD unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 ## COUCHDB
 MOTION_COUCHDB_HOST := $(MOTION_COUCHDB_HOST:-couchdb.$(MOTION_TLD))
@@ -67,7 +69,16 @@ HIGHLOW_YAML := $(shell for S in $(HIGHLOW_SENSORS); do for I in $(HIGHLOW_ITEMS
 
 # TEMPLATES
 
-MOTION_YAML := sensor/end.yaml sensor/annotated.yaml camera/end.yaml camera/annotated.yaml
+MOTION_YAML := \
+	sensor/image.yaml \
+	sensor/start.yaml \
+	sensor/end.yaml \
+	sensor/annotated.yaml \
+	sensor/device_start.yaml \
+	sensor/camera_lost.yaml \
+	sensor/camera_found.yaml \
+	camera/end.yaml \
+	camera/annotated.yaml
 
 ###
 ### targets
@@ -84,6 +95,7 @@ camera/%.yaml : camera.%.yaml.tmpl
 	@export \
 	  MOTION_GROUP="$(MOTION_GROUP)" \
 	  MOTION_DEVICE="$(MOTION_DEVICE)" \
+	  MOTION_CLIENT="${MOTION_CLIENT}" \
 	  && cat $< | envsubst > $@
 
 sensor/%.yaml : sensor.%.yaml.tmpl
@@ -91,6 +103,7 @@ sensor/%.yaml : sensor.%.yaml.tmpl
 	@export \
 	  MOTION_GROUP="$(MOTION_GROUP)" \
 	  MOTION_DEVICE="$(MOTION_DEVICE)" \
+	  MOTION_CLIENT="${MOTION_CLIENT}" \
 	  && cat $< | envsubst > $@
 
 ## HIGHLOW targets
@@ -113,6 +126,7 @@ $(WEBCAM_CAMERAS): $(WEBCAM_CAMERA_TEMPLATE) makefile ${WEBCAMS_JSON}
 	  export MOTION_CAMERA="$${MOTION_CAMERA##*-}"; \
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
 	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
 	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
 	  export MOTION_CAMERA_MJPEG=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.mjpeg_url" $(WEBCAMS_JSON)); \
 	  export MOTION_CAMERA_STILL=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.still_image_url" $(WEBCAMS_JSON)); \
@@ -129,6 +143,7 @@ $(WEBCAM_AUTOMATIONS): $(WEBCAM_AUTOMATION_TEMPLATE) makefile ${WEBCAMS_JSON}
 	  export MOTION_CAMERA="$${MOTION_CAMERA##*-}"; \
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
 	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
 	  cat $(WEBCAM_AUTOMATION_TEMPLATE) | envsubst > $@
 
 $(WEBCAM_BINARY_SENSORS): $(WEBCAM_BINARY_SENSOR_TEMPLATE) makefile ${WEBCAMS_JSON}
@@ -138,6 +153,7 @@ $(WEBCAM_BINARY_SENSORS): $(WEBCAM_BINARY_SENSOR_TEMPLATE) makefile ${WEBCAMS_JS
 	  export MOTION_CAMERA="$${MOTION_CAMERA##*-}"; \
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
 	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
 	  cat $(WEBCAM_BINARY_SENSOR_TEMPLATE) | envsubst > $@
 
 $(WEBCAM_COUNTERS): $(WEBCAM_COUNTER_TEMPLATE) makefile ${WEBCAMS_JSON}
@@ -147,6 +163,7 @@ $(WEBCAM_COUNTERS): $(WEBCAM_COUNTER_TEMPLATE) makefile ${WEBCAMS_JSON}
 	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
 	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
 	  cat $(WEBCAM_COUNTER_TEMPLATE) | envsubst > $@
 
 $(WEBCAM_DEVICE_TRACKERS): $(WEBCAM_DEVICE_TRACKER_TEMPLATE) makefile ${WEBCAMS_JSON}
@@ -156,6 +173,7 @@ $(WEBCAM_DEVICE_TRACKERS): $(WEBCAM_DEVICE_TRACKER_TEMPLATE) makefile ${WEBCAMS_
 	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
 	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
 	  cat $(WEBCAM_DEVICE_TRACKER_TEMPLATE) | envsubst > $@
 
 $(WEBCAM_GRAPHS): $(WEBCAM_GRAPH_TEMPLATE) makefile ${WEBCAMS_JSON}
@@ -165,6 +183,7 @@ $(WEBCAM_GRAPHS): $(WEBCAM_GRAPH_TEMPLATE) makefile ${WEBCAMS_JSON}
 	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
 	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
 	  cat $(WEBCAM_GRAPH_TEMPLATE) | envsubst > $@
 
 $(WEBCAM_GROUPS): $(WEBCAM_GROUP_TEMPLATE) makefile ${WEBCAMS_JSON}
@@ -174,6 +193,7 @@ $(WEBCAM_GROUPS): $(WEBCAM_GROUP_TEMPLATE) makefile ${WEBCAMS_JSON}
 	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
 	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
 	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
 	  cat $(WEBCAM_GROUP_TEMPLATE) | envsubst > $@
 
@@ -184,6 +204,7 @@ $(WEBCAM_SENSORS): $(WEBCAM_SENSOR_TEMPLATE) makefile ${WEBCAMS_JSON}
 	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
 	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
 	  cat $(WEBCAM_SENSOR_TEMPLATE) | envsubst > $@
 
 ## motion-addon.json
@@ -194,9 +215,11 @@ motion-addon.json: motion-addon.json.tmpl makefile ${WEBCAMS_JSON}
 	   MOTION_TLD="${MOTION_TLD}" \
 	   MOTION_GROUP="${MOTION_GROUP}" \
 	   MOTION_DEVICE="${MOTION_DEVICE}" \
-	   MOTION_MQTT_HOST=${MOTION_MQTT_HOST} \
-	   MOTION_MQTT_USERNAME=${MOTION_MQTT_USERNAME} \
-	   MOTION_MQTT_PASSWORD=${MOTION_MQTT_PASSWORD} \
+	   MOTION_CLIENT="${MOTION_CLIENT}" \
+	   MQTT_HOST=${MQTT_HOST} \
+	   MQTT_PORT=${MQTT_PORT} \
+	   MQTT_USERNAME=${MQTT_USERNAME} \
+	   MQTT_PASSWORD=${MQTT_PASSWORD} \
 	   MOTION_COUCHDB_HOST=${MOTION_COUCHDB_HOST} \
 	   MOTION_COUCHDB_USERNAME=${MOTION_COUCHDB_USERNAME} \
 	   MOTION_COUCHDB_PASSWORD=${MOTION_COUCHDB_PASSWORD} \
