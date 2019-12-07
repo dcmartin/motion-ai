@@ -17,7 +17,7 @@ AUTOMATION_yolo2msghub := $(if $(wildcard AUTOMATION_yolo2msghub),$(shell v=$$(c
 DOMAIN_NAME := $(if $(wildcard DOMAIN_NAME),$(shell v=$$(cat DOMAIN_NAME) && echo "-- INFO: DOMAIN_NAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="local" && echo "++ WARN: DOMAIN_NAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 # host
-HOST_NAME := $(if $(wildcard HOST_NAME),$(shell v=$$(cat HOST_NAME) && echo "-- INFO: HOST_NAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(hostname -f) && echo "++ WARN: HOST_NAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+HOST_NAME := $(if $(wildcard HOST_NAME),$(shell v=$$(cat HOST_NAME) && echo "-- INFO: HOST_NAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(hostname -f) && v=$${v%%.*} && echo "++ WARN: HOST_NAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 HOST_IPADDR := $(if $(wildcard HOST_IPADDR),$(shell v=$$(cat HOST_IPADDR) && echo "-- INFO: HOST_IPADDR: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="127.0.0.1" && echo "++ WARN: HOST_IPADDR unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 HOST_PORT := $(if $(wildcard HOST_PORT),$(shell v=$$(cat HOST_PORT) && echo "-- INFO: HOST_PORT: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="8123" && echo "++ WARN: HOST_PORT unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 HOST_THEME := $(if $(wildcard HOST_THEME),$(shell v=$$(cat HOST_THEME) && echo "-- INFO: HOST_THEME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="default" && echo "++ WARN: HOST_THEME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
