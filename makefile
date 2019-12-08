@@ -12,6 +12,7 @@ AUTOMATION_internet := $(if $(wildcard AUTOMATION_internet),$(shell v=$$(cat AUT
 AUTOMATION_startup := $(if $(wildcard AUTOMATION_startup),$(shell v=$$(cat AUTOMATION_startup) && echo "-- INFO: AUTOMATION_startup: $${v}" > /dev/stderr && echo "$${v}"),$(shell echo "++ WARN: AUTOMATION_startup unset; default: off" > /dev/stderr && echo "off"))
 AUTOMATION_sdr2msghub := $(if $(wildcard AUTOMATION_sdr2msghub),$(shell v=$$(cat AUTOMATION_sdr2msghub) &&  echo "-- INFO: AUTOMATION_sdr2msghub: $${v}" > /dev/stderr && echo "$${v}"),$(shell echo "++ WARN: AUTOMATION_sdr2msghub unset; default: off" > /dev/stderr && echo "off"))
 AUTOMATION_yolo2msghub := $(if $(wildcard AUTOMATION_yolo2msghub),$(shell v=$$(cat AUTOMATION_yolo2msghub) && echo "-- INFO: AUTOMATION_yolo2msghub: $${v}" > /dev/stderr && echo "$${v}"),$(shell echo "++ WARN: AUTOMATION_yolo2msghub unset; default: off" > /dev/stderr && echo "off"))
+AUTOMATION_highlow := $(if $(wildcard AUTOMATION_highlow),$(shell v=$$(cat AUTOMATION_highlow) && echo "-- INFO: AUTOMATION_highlow: $${v}" > /dev/stderr && echo "$${v}"),$(shell echo "++ WARN: AUTOMATION_highlow unset; default: off" > /dev/stderr && echo "off"))
 
 # domain
 DOMAIN_NAME := $(if $(wildcard DOMAIN_NAME),$(shell v=$$(cat DOMAIN_NAME) && echo "-- INFO: DOMAIN_NAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="local" && echo "++ WARN: DOMAIN_NAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
@@ -113,6 +114,7 @@ secrets.yaml: secrets.yaml.tmpl makefile $(PWD)
 	  AUTOMATION_startup="$(AUTOMATION_startup)" \
 	  AUTOMATION_sdr2msghub="$(AUTOMATION_sdr2msghub)" \
 	  AUTOMATION_yolo2msghub="$(AUTOMATION_yolo2msghub)" \
+	  AUTOMATION_highlow="$(AUTOMATION_highlow)" \
 	  HOST_NAME="$(HOST_NAME)" \
 	  HOST_IPADDR="$(HOST_IPADDR)" \
 	  HOST_NETWORK="$(HOST_NETWORK)" \

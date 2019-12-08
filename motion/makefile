@@ -21,7 +21,10 @@ MOTION_COUCHDB_HOST := $(MOTION_COUCHDB_HOST:-couchdb.$(MOTION_TLD))
 MOTION_COUCHDB_USERNAME := $(MOTION_COUCHDB_USERNAME:-username)
 MOTION_COUCHDB_PASSWORD := $(MOTION_COUCHDB_PASSWORD:-password)
 
-## WEBCAMS
+##
+## WEBCAM
+##
+
 WEBCAMS_JSON := webcams.json
 WEBCAMS := $(shell jq -r '.[].name' $(WEBCAMS_JSON))
 
@@ -55,17 +58,23 @@ WEBCAM_YAML := \
 	$(WEBCAM_GROUPS) \
 	$(WEBCAM_SENSORS)
 
+##
 ## HIGHLOW
+##
+
+# entity's items to track
+HIGHLOW_ENTITYS := image end annotated detected detected_entity
 HIGHLOW_ITEMS := count ago
 
-# HIGHLOW components
-HIGHLOW_SENSORS := image end annotated detected detected_entity
-
 # HIGHLOW templates
-HIGHLOW_TEMPLATE := binary_sensor.highlow.yaml.tmpl
+HIGHLOW_BINARY_SENSOR_TEMPLATE := binary_sensor.highlow.yaml.tmpl
+HIGHLOW_AUTOMATION_TEMPLATE := automation.highlow.yaml.tmpl
 
 # HIGHLOW yaml
-HIGHLOW_YAML := $(shell for S in $(HIGHLOW_SENSORS); do for I in $(HIGHLOW_ITEMS); do echo "binary_sensor/highlow-$${S}_$${I}.yaml"; done; done)
+HIGHLOW_BINARY_SENSORS := $(shell for S in $(HIGHLOW_ENTITYS); do for I in $(HIGHLOW_ITEMS); do echo "binary_sensor/highlow-$${S}_$${I}.yaml"; done; done)
+HIGHLOW_AUTOMATIONS := $(shell for S in $(HIGHLOW_ENTITYS); do for I in $(HIGHLOW_ITEMS); do echo "automation/highlow-$${S}_$${I}.yaml"; done; done)
+
+HIGHLOW_YAML := ${HIGHLOW_BINARY_SENSORS} # ${HIGHLOW_AUTOMATIONS}
 
 # TEMPLATES
 
@@ -86,7 +95,7 @@ MOTION_YAML := \
 
 default: all
 
-all:  $(MOTION_YAML) $(WEBCAM_YAML) $(HIGHLOW_YAML) motion-addon.json group/webcams.yaml
+all:  $(MOTION_YAML) $(WEBCAM_YAML) $(HIGHLOW_BINARY_SENSORS) motion-addon.json group/webcams.yaml
 
 # TEMPLATES
 
@@ -108,14 +117,23 @@ sensor/%.yaml : sensor.%.yaml.tmpl
 
 ## HIGHLOW targets
 
-$(HIGHLOW_YAML): $(HIGHLOW_TEMPLATE) makefile
+$(HIGHLOW_BINARY_SENSORS): $(HIGHLOW_BINARY_SENSOR_TEMPLATE) makefile
 	@echo "making $@"
 	@export TARGET="$@" PKG="motion"; \
 	export ITEM=$${TARGET##*_}; \
 	export ITEM=$${ITEM%%.*}; \
 	export SENSOR=$${TARGET%%_$${TARGET##*_}}; \
 	export SENSOR=$${SENSOR##*-}; \
-	cat $(HIGHLOW_TEMPLATE) | envsubst > $@
+	cat $(HIGHLOW_BINARY_SENSOR_TEMPLATE) | envsubst > $@
+
+$(HIGHLOW_AUTOMATIONS): $(HIGHLOW_AUTOMATION_TEMPLATE) makefile
+	@echo "making $@"
+	@export TARGET="$@" PKG="motion"; \
+	export ITEM=$${TARGET##*_}; \
+	export ITEM=$${ITEM%%.*}; \
+	export SENSOR=$${TARGET%%_$${TARGET##*_}}; \
+	export SENSOR=$${SENSOR##*-}; \
+	cat $(HIGHLOW_AUTOMATION_TEMPLATE) | envsubst > $@
 
 ## WEBCAM targets
 
