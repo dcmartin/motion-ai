@@ -64,6 +64,8 @@ GRAFANA_URL := $(if $(wildcard GRAFANA_URL),$(shell v=$$(cat GRAFANA_URL) && ech
 INFLUXDB_HOST := $(if $(wildcard INFLUXDB_HOST),$(shell v=$$(cat INFLUXDB_HOST) && echo "-- INFO: INFLUXDB_HOST: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="influxdb.$(DOMAIN_NAME)" && echo "++ WARN: INFLUXDB_HOST unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 INFLUXDB_PASSWORD := $(if $(wildcard INFLUXDB_PASSWORD),$(shell v=$$(cat INFLUXDB_PASSWORD) && echo "-- INFO: INFLUXDB_PASSWORD: $${v}" > /dev/stderr && echo "$${v}"),$(shell read -p "Specify INFLUXDB_PASSWORD: " && echo "$${REPLY}" | tee INFLUXDB_PASSWORD))
 
+# scan interval for speedtest
+INTERNET_SCAN_INTERVAL := $(if $(wildcard INTERNET_SCAN_INTERVAL),$(shell v=$$(cat INTERNET_SCAN_INTERVAL) && echo "-- INFO: INTERNET_SCAN_INTERVAL: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="14400" && echo "++ WARN: INTERNET_SCAN_INTERVAL unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 ###
 ### TARGETS
@@ -134,6 +136,7 @@ secrets.yaml: secrets.yaml.tmpl makefile $(PWD)
 	  NETDATA_URL="$(NETDATA_URL)" \
 	  INFLUXDB_HOST="$(INFLUXDB_HOST)" \
 	  INFLUXDB_PASSWORD="$(INFLUXDB_PASSWORD)" \
+	  INTERNET_SCAN_INTERVAL="$(INTERNET_SCAN_INTERVAL)" \
 	  MQTT_HOST="$(MQTT_HOST)" \
 	  MQTT_PORT="$(MQTT_PORT)" \
 	  MQTT_USERNAME="$(MQTT_USERNAME)" \
