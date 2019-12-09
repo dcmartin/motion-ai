@@ -1,0 +1,181 @@
+###
+## automation.highlow.yaml.tmpl
+###
+
+###
+### highlow automation (low, high, low_persistent, high_persistent)
+###
+### Example:
+###  - PKG="${PKG}"
+###  - SENSOR="${SENSOR}"
+###  - ITEM="${ITEM}"
+###  + Produces:
+###     > automation.${PKG}_${SENSOR}_${ITEM}_count_low
+###     > automation.${PKG}_${SENSOR}_${ITEM}_count_high
+###     > automation.${PKG}_${SENSOR}_${ITEM}_count_low_persistent
+###     > automation.${PKG}_${SENSOR}_${ITEM}_count_high_persistent
+###
+### External dependencies:
+###  - sensor.${PKG}_${SENSOR}_$(ITEM} (platform: template)
+###  - sensor.${PKG}_${SENSOR}_$(ITEM}_statistics (platform: statistics)
+###
+### Control dependencies:
+###  - input_number.${PKG}_${SENSOR}_$(ITEM}_deviation
+###
+
+- id: ${PKG}_${SENSOR}_${ITEM}_counter
+  alias: ${PKG}_${SENSOR}_${ITEM}_counter
+  initial_state: !secret highlow-automations
+  trigger:
+    platform: state
+    entity_id: sensor.${PKG}_${SENSOR}_${ITEM}_event
+  condition:
+    - condition: template
+      value_template: >
+        {{ states.binary_sensor.${PKG}_${SENSOR}_${ITEM}_state.state == 'on' }}
+  action:
+    - service: counter.increment
+      entity_id: counter.${PKG}_${SENSOR}_${ITEM}_counter
+
+- id: ${PKG}_${SENSOR}_${ITEM}_low
+  alias: ${PKG}_${SENSOR}_${ITEM}_low
+  initial_state: !secret highlow-automations
+  trigger:
+    platform: state
+    entity_id: binary_sensor.${PKG}_${SENSOR}_${ITEM}_low
+  condition:
+    - condition: template
+      value_template: >
+        {{ states.binary_sensor.${PKG}_${SENSOR}_${ITEM}_low.state == 'on' }}
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >
+          ${PKG}_${SENSOR}_${ITEM} activity low at
+          {{ states.sensor.${PKG}_${SENSOR}_${ITEM}_event.attributes.${PKG}_${SENSOR}_${ITEM}.date | int | timestamp_custom("%a %b %d %I:%M %p") }}
+        notification_id: ${PKG}_${SENSOR}_${ITEM}_low
+        message: >
+          Current: {{ states.sensor.${PKG}_${SENSOR}_${ITEM}_count.state }} clients; 
+          average {{ states.sensor.${PKG}_${SENSOR}_${ITEM}_count_mean.state }} clients;
+          stdev {{ states.sensor.${PKG}_${SENSOR}_${ITEM}_count_statistics_mean.attributes.standard_deviation }} clients
+    - service: mqtt.publish
+      data_template:
+        topic: 'status/${PKG}_${SENSOR}_${ITEM}_clients/download'
+        retain: false
+        payload: >
+          {{ states.sensor.${PKG}_${SENSOR}_${ITEM}_count_statistics_mean.attributes }}
+
+- id: ${PKG}_${SENSOR}_${ITEM}_low_dismiss
+  alias: ${PKG}_${SENSOR}_${ITEM}_low_dismiss
+  initial_state: !secret highlow-automations
+  trigger:
+    platform: state
+    entity_id: binary_sensor.${PKG}_${SENSOR}_${ITEM}_low
+  condition:
+    - condition: template
+      value_template: >
+        {{ states.binary_sensor.${PKG}_${SENSOR}_${ITEM}_low.state == 'off' }}
+  action:
+    - service: persistent_notification.dismiss
+      data_template:
+        notification_id: ${PKG}_${SENSOR}_${ITEM}_low
+
+- id: ${PKG}_${SENSOR}_${ITEM}_high
+  alias: ${PKG}_${SENSOR}_${ITEM}_high
+  initial_state: !secret highlow-automations
+  trigger:
+    platform: state
+    entity_id: binary_sensor.${PKG}_${SENSOR}_${ITEM}_high
+  condition:
+    - condition: template
+      value_template: >
+        {{ states.binary_sensor.${PKG}_${SENSOR}_${ITEM}_high.state == 'on' }}
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >
+          ${PKG}_${SENSOR}_${ITEM} activity high at
+          {{ states.sensor.${PKG}_${SENSOR}_${ITEM}_event.attributes.${PKG}_${SENSOR}_${ITEM}.date | int | timestamp_custom("%a %b %d %I:%M %p") }}
+        notification_id: ${PKG}_${SENSOR}_${ITEM}_high
+        message: >
+          Current: {{ states.sensor.${PKG}_${SENSOR}_${ITEM}_count.state }} clients; 
+          average {{ states.sensor.${PKG}_${SENSOR}_${ITEM}_count_mean.state }} clients;
+          stdev {{ states.sensor.${PKG}_${SENSOR}_${ITEM}_count_statistics_mean.attributes.standard_deviation }} clients
+    - service: mqtt.publish
+      data_template:
+        topic: 'status/${PKG}_${SENSOR}_${ITEM}_clients/download'
+        retain: false
+        payload: >
+          {{ states.sensor.${PKG}_${SENSOR}_${ITEM}_count_statistics_mean.attributes }}
+
+- id: ${PKG}_${SENSOR}_${ITEM}_high_dismiss
+  alias: ${PKG}_${SENSOR}_${ITEM}_high_dismiss
+  initial_state: !secret highlow-automations
+  trigger:
+    platform: state
+    entity_id: binary_sensor.${PKG}_${SENSOR}_${ITEM}_high
+  condition:
+    - condition: template
+      value_template: >
+        {{ states.binary_sensor.${PKG}_${SENSOR}_${ITEM}_high.state == 'off' }}
+  action:
+    - service: persistent_notification.dismiss
+      data_template:
+        notification_id: ${PKG}_${SENSOR}_${ITEM}_high
+
+- id: ${PKG}_${SENSOR}_${ITEM}_low_persistent
+  alias: ${PKG}_${SENSOR}_${ITEM}_low_persistent
+  initial_state: !secret highlow-automations
+  trigger:
+    platform: state
+    entity_id: binary_sensor.${PKG}_${SENSOR}_${ITEM}_low_persistent
+  condition:
+    - condition: template
+      value_template: >
+        {{ states.binary_sensor.${PKG}_${SENSOR}_${ITEM}_low_persistent.state == 'on' }}
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >
+          ${PKG}_${SENSOR}_${ITEM} activity decreasing at
+          {{ states.sensor.${PKG}_${SENSOR}_${ITEM}_event.attributes.${PKG}_${SENSOR}_${ITEM}.date | int | timestamp_custom("%a %b %d %I:%M %p") }}
+        notification_id: ${PKG}_${SENSOR}_${ITEM}_low
+        message: >
+          Current: {{ states.sensor.${PKG}_${SENSOR}_${ITEM}_count.state }} clients; 
+          average {{ states.sensor.${PKG}_${SENSOR}_${ITEM}_count_mean.state }} clients;
+          average stdev {{ states.sensor.${PKG}_${SENSOR}_${ITEM}_count_stdev_mean.state }} clients
+    - service: mqtt.publish
+      data_template:
+        topic: 'status/${PKG}_${SENSOR}_${ITEM}_clients/download/stdev'
+        retain: false
+        payload: >
+          {{ states.sensor.${PKG}_${SENSOR}_${ITEM}_count_stdev_mean.attributes }}
+
+- id: ${PKG}_${SENSOR}_${ITEM}_high_persistent
+  alias: ${PKG}_${SENSOR}_${ITEM}_high_persistent
+  initial_state: !secret highlow-automations
+  trigger:
+    platform: state
+    entity_id: binary_sensor.${PKG}_${SENSOR}_${ITEM}_high_persistent
+  condition:
+    - condition: template
+      value_template: >
+        {{ states.binary_sensor.${PKG}_${SENSOR}_${ITEM}_high_persistent.state == 'on' }}
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >
+          ${PKG}_${SENSOR}_${ITEM} activity increasing at
+          {{ states.sensor.${PKG}_${SENSOR}_${ITEM}_event.attributes.${PKG}_${SENSOR}_${ITEM}.date | int | timestamp_custom("%a %b %d %I:%M %p") }}
+        notification_id: ${PKG}_${SENSOR}_${ITEM}_high
+        message: >
+          Current: {{ states.sensor.${PKG}_${SENSOR}_${ITEM}_count.state }} clients; 
+          average {{ states.sensor.${PKG}_${SENSOR}_${ITEM}_count_mean.state }} clients;
+          average stdev {{ states.sensor.${PKG}_${SENSOR}_${ITEM}_count_stdev_mean.state }} clients
+    - service: mqtt.publish
+      data_template:
+        topic: 'status/${PKG}_${SENSOR}_${ITEM}_clients/download/stdev'
+        retain: false
+        payload: >
+          {{ states.sensor.${PKG}_${SENSOR}_${ITEM}_count_stdev_mean.attributes }}
+
