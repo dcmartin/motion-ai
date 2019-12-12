@@ -95,7 +95,7 @@ MOTION_YAML := \
 
 default: all
 
-all:  $(MOTION_YAML) $(WEBCAM_YAML) $(HIGHLOW_BINARY_SENSORS) motion-addon.json group/webcams.yaml
+all:  $(MOTION_YAML) $(WEBCAM_YAML) $(HIGHLOW_BINARY_SENSORS) motion-addon.json group/webcams.yaml history_graph/webcams.yaml
 
 # TEMPLATES
 
@@ -250,11 +250,17 @@ motion-addon.json: motion-addon.json.tmpl makefile ${WEBCAMS_JSON}
           mv motion-addon.json.$$ motion-addon.json; \
 	done
 
-## group/webcams.yaml
+## group/webcams.yaml 
 
-group/webcams.yaml: ${WEBCAMS_JSON} makefile ./sh/mkwebcams.sh
+group/webcams.yaml: ${WEBCAMS_JSON} makefile ./sh/mkwebcam-group.sh
 	@echo "making $@"
-	@./sh/mkwebcams.sh ${WEBCAMS_JSON} > $@
+	@./sh/mkwebcam-group.sh ${WEBCAMS_JSON} > $@
+
+## history_graph/webcams.yaml
+
+history_graph/webcams.yaml: ${WEBCAMS_JSON} makefile ./sh/mkwebcam-history_graph.sh
+	@echo "making $@"
+	@./sh/mkwebcam-history_graph.sh ${WEBCAMS_JSON} > $@
 
 ## clean and clean and clean ..
 
