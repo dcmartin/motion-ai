@@ -19,45 +19,48 @@
   value_template: >
     {% if value_json is defined %}True{% else %}False{% endif %}
 
-## sensors for annotated (event)
+## human readable status
 - platform: template
   sensors:
-
-    ## human readable status
     motion_annotated_status:
-      friendly_name: Looked
+      friendly_name: Annotated
       entity_id:
+        - sensor.motion_annotated_when
+        - sensor.motion_annotated_camera
+        - sensor.motion_annotated_device
         - sensor.motion_annotated_counter
         - sensor.motion_annotated_count
-        - sensor.motion_annotated_device
-        - sensor.motion_annotated_camera
-        - sensor.motion_annotated_when
+        - sensor.motion_annotated_entity_list
+        - sensor.motion_annotated_ago
       value_template: >-
-        Annotated 
-        {% if states.sensor.motion_annotated_count != none and states.sensor.motion_annotated_count.state != 'null' %}
-          {{ states.sensor.motion_annotated_count.state|int }} entities
-        {% else %} nothing {% endif %}
-        from {{ states('sensor.motion_annotated_device') -}}/{{- states('sensor.motion_annotated_camera') }} 
+        {% set count = states('sensor.motion_annotated_count')|int %}
+        {% set saw = states('sensor.motion_annotated_entity_list') %}
+        {% set device = states('sensor.motion_annotated_device') %}
+        {% set camera = states('sensor.motion_annotated_camera') %}
+        {% set ago = states('sensor.motion_annotated_ago')|int %}
+        {% set when = states('sensor.motion_annotated_when') %}
+        {% if count > 0 %}{{ count }} entity(s): {{ saw -}};{% else %}nothing;{% endif %}
+        {{ device -}}/{{- camera }};
+        {{ when }}; {{ ago }} second(s) ago
 
-    ## timing
+## timing
+- platform: template
+  sensors:
     motion_annotated_date:
       entity_id:
-        - sensor.motion_event_annotated
+        - counter.motion_annotated_counter
       unit_of_measurement: seconds
       value_template: >-
-        {% if state_attr('sensor.motion_event_annotated','date') != none 
-              and states.sensor.motion_event_annotated.attributes.date|int > 0 %}
-          {{ states.sensor.motion_event_annotated.attributes.date|int }}
-        {% else %} null {% endif %}
+        {% set date = states.sensor.motion_event_annotated.attributes.event.date|int %}
+        {% if date > 0 %} {{ date }} {% else %} null {% endif %}
     # human readable
     motion_annotated_when:
       friendly_name: Annotated at
       entity_id:
         - sensor.motion_annotated_date
       value_template: >-
-        {% if states('sensor.motion_annotated_date')|int > 0 %}
-          {{ states('sensor.motion_annotated_date')|int|timestamp_custom("%a %b %d ~ %I:%M %p") }}
-        {% else %}null{% endif %}
+        {% set s = states('sensor.motion_annotated_date')|int %}
+        {% if s > 0 %} {{ s|timestamp_custom("%a %b %d ~ %I:%M %p") }} {% else %}never{% endif %}
 
     # ago
     motion_annotated_ago:
@@ -258,7 +261,7 @@
 - platform: template
   sensors:
     motion_annotated_counter:
-      friendly_name: Annotated counter
+      friendly_name: Total annotations
       entity_id:
         - counter.motion_annotated_counter
       unit_of_measurement: count
@@ -492,15 +495,17 @@
     motion_annotated_picture:
       friendly_name: Annotated picture
       entity_id:
+        - sensor.motion_annotated_counter
+        - sensor.motion_annotated_camera
         - camera.motion_event_annotated
       value_template: >-
         {% set bu = states('sensor.motion_base_url') %}
-        {% if bu != 'unknown' %}
+        {% set c = states('sensor.motion_annotated_camera') %}
+        {% if bu != 'unknown' and c != 'unknown' and c != 'null'  %}
           {% if states('input_boolean.motion_snapshot') == 'on' %}
-            {{ bu + '/local/images/motion_annotated.jpg' }}
+            {{ bu + '/local/images/motion_annotated-' + c + '.jpg' }}
           {% else %}
-            {% set c = states.sensor.motion_event_annotated.attributes.event.camera %}
-            {% set ep = state_attr('camera.motion_event_annotated','entity_picture') %}
+            {% set ep = state_attr('camera.motion_event_annotated' + '_' + c,'entity_picture') %}
             {% if ep != 'unknown' and ep != 'null' %}
               {{ bu + ep }}
             {% else %}

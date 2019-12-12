@@ -6,25 +6,23 @@
 - platform: template
   sensors:
     motion_detected_entity_status:
-      friendly_name: Entity detected
+      friendly_name: Found
       entity_id:
-        - sensor.motion_detected_entity_count
-        - sensor.motion_detected_entity_camera
+        - counter.motion_detected_entity_counter
+        - sensor.motion_detected_entity_ago
         - sensor.motion_detected_entity_device
+        - sensor.motion_detected_entity_camera
+        - sensor.motion_detected_entity_when
+        - sensor.motion_detected_entity_count
       value_template: >-
-        Detected
-         {% if states.sensor.motion_detected_entity_count != none 
-               and states.sensor.motion_detected_entity_camera != none 
-               and states.sensor.motion_detected_entity_device != none 
-               and states.sensor.motion_detected_entity_camera.state != 'null'
-               and states.sensor.motion_detected_entity_device.state != 'null'
-               and states.sensor.motion_detected_entity_count.state|int > 0 %}
-           {{ states.sensor.motion_detected_entity_count.state|int }}
-           {{ states.sensor.motion_detect_entity.state -}}(s)
-           from {{ states.sensor.motion_detected_entity_device.state -}}/{{- states.sensor.motion_detected_entity_camera.state }}
-         {% else %}
-           no {{ states.sensor.motion_detect_entity.state -}}(s)
-         {% endif %}
+        {% set count = states('sensor.motion_detected_entity_count')|int %}
+        {% set device = states('sensor.motion_detected_entity_device') %}
+        {% set camera = states('sensor.motion_detected_entity_camera') %}
+        {% set ago = states('sensor.motion_detected_entity_ago') %}
+        {% set when = states('sensor.motion_detected_entity_when') %}
+        {% if count > 0 %} {{ count }} {% else %}zero{% endif %} {{ states('sensor.motion_detect_entity') -}}(s);
+        {{ device -}}/{{- camera }};
+        {{ when }}; {{ ago }} second(s) ago
 
 ## timing
 - platform: template
@@ -34,7 +32,7 @@
         - counter.motion_detected_entity_counter
       unit_of_measurement: seconds
       value_template: >-
-        {% set date = states('sensor.motion_detected_date')|int %}
+        {% set date = states('sensor.motion_annotated_date')|int %}
         {% if date > 0 %}{{ date }}{% else %}null{% endif %}
     # human readable
     motion_detected_entity_when:
@@ -43,7 +41,7 @@
         - sensor.motion_detected_entity_date
       value_template: >-
         {% set date = states('sensor.motion_detected_entity_date')|int %}
-        {% if date > 0 %} {{ date|timestamp_custom("%a %b %d ~ %I:%M %p") }} {% else %}null{% endif %}
+        {% if date > 0 %} {{ date|timestamp_custom("%a %b %d ~ %I:%M %p") }} {% else %}never{% endif %}
 
     # ago
 - platform: template
@@ -168,7 +166,7 @@
 - platform: template
   sensors:
     motion_detected_entity_counter:
-      friendly_name: Detected entity counter
+      friendly_name: Total found
       entity_id:
         - counter.motion_detected_entity_counter
       unit_of_measurement: count
@@ -379,22 +377,20 @@
     motion_detected_entity_picture:
       friendly_name: Detected entity picture
       entity_id:
-        - sensor.motion_detected_picture
+        - sensor.motion_detected_entity_counter
+        - sensor.motion_detected_entity_camera
+        - sensor.motion_detected_entity_date
       value_template: >-
-        {% set count = states('sensor.motion_annotated_entity_count')|int %}
-        {% if count > 0 %}
+        {% set camera = states('sensor.motion_detected_entity_camera') %}
+        {% if camera != none and camera != 'unknown' and camera != 'null' and camera|length > 0 %}
           {% if states('input_boolean.motion_snapshot') == 'on' %}
             {% set bu = states('sensor.motion_base_url') %}
-            {% set camera = states('sensor.motion_detected_entity_camera') %}
-            {% if camera != none and camera != 'unknown' and camera != 'null' and camera|length > 0
-                  and bu != none and bu != 'unknown' and bu != 'null' and bu|length > 0 %}
+            {% if bu != none and bu != 'unknown' and bu != 'null' and bu|length > 0 %}
               {% set s = bu + '/local/images/motion_detected_entity-' + camera + '.jpg' %}
             {% endif %}
           {% else %}
-            {% set s = states('sensor.motion_detected_picture') %}
+            {% set s = states('sensor.motion_detected_picture' + '_' + camera ) %}
           {% endif %}
-        {% else %}
-          {% set s = states('sensor.motion_detected_entity_picture') %}
         {% endif %}
         {% if s is defined and s != none and s != 'unknown' and s != 'null' and s|length > 0 %}
           {{ s }}
