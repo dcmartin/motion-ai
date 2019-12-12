@@ -80,9 +80,30 @@
           {{ states.sensor.motion_status_camera_lost_date_${MOTION_CAMERA}.state|int|timestamp_custom("%a %b %d ~ %I:%M %p") }}
         {% else %}null{% endif %} 
 
-## EVENT IMAGE - ${MOTION_GROUP}/${MOTION_CLIENT}/${MOTION_CAMERA}/event/image
+###
+# start event
+###
+
 - platform: mqtt
-  name: motion_image_${MOTION_CAMERA}
+  name: motion_event_start_${MOTION_CAMERA}
+  qos: 1
+  state_topic: '${MOTION_GROUP}/${MOTION_CLIENT}/${MOTION_CAMERA}/event/start'
+  expire_after: 15
+  force_update: true
+  json_attributes:
+    - device
+    - camera
+    - event
+    - start
+  value_template: >
+    {% if value_json is defined %}True{% else %}False{% endif %}
+
+###
+# image event
+###
+
+- platform: mqtt
+  name: motion_event_image_${MOTION_CAMERA}
   qos: 1
   state_topic: '${MOTION_GROUP}/${MOTION_CLIENT}/${MOTION_CAMERA}/event/image'
   expire_after: 1
@@ -103,23 +124,8 @@
   value_template: >
     {% if value_json is defined %}True{% else %}False{% endif %}
 
-## START EVENT
-- platform: mqtt
-  name: motion_start_${MOTION_CAMERA}
-  qos: 1
-  state_topic: '${MOTION_GROUP}/${MOTION_CLIENT}/${MOTION_CAMERA}/event/start'
-  expire_after: 15
-  force_update: true
-  json_attributes:
-    - device
-    - camera
-    - event
-    - start
-  value_template: >
-    {% if value_json is defined %}True{% else %}False{% endif %}
-
 ###
-# end
+# end event
 ###
 
 - platform: mqtt
@@ -139,9 +145,9 @@
   value_template: >
     {% if value_json is defined %}True{% else %}False{% endif %}
 
+## status
 - platform: template
   sensors:
-    ## status
     motion_end_status_${MOTION_CAMERA}:
       friendly_name: ${MOTION_CAMERA} movement
       entity_id:
@@ -167,8 +173,10 @@
         - sensor.motion_event_end_${MOTION_CAMERA}
       unit_of_measurement: seconds
       value_template: >-
-        {% set date = states.sensor.motion_event_end_${MOTION_CAMERA}.attributes.end|int %}
-        {% if date > 0 %}{{ date }} {% else %}null{% endif %}
+        {% if state_attr('sensor.motion_event_end_${MOTION_CAMERA}','end') != 'none' %}
+          {% set date = states.sensor.motion_event_end_${MOTION_CAMERA}.attributes.end|int %}
+          {% if date > 0 %}{{ date }}{% else %}null{% endif %}
+        {% else %}null{% endif %}
     motion_end_when_${MOTION_CAMERA}:
       friendly_name: ${MOTION_CAMERA} end
       entity_id:
@@ -279,8 +287,10 @@
         - sensor.motion_event_annotated_${MOTION_CAMERA}
       unit_of_measurement: seconds
       value_template: >-
-        {% set date = states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.event.end|int %}
-        {% if date > 0 %}{{ date }} {% else %}null{% endif %}
+        {% if state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','end') != 'none' %}
+          {% set date = states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.end|int %}
+          {% if date > 0 %}{{ date }}{% else %}null{% endif %}
+        {% else %}null{% endif %}
     # human readable
     motion_annotated_when_${MOTION_CAMERA}:
       friendly_name: ${MOTION_CAMERA} annotated
@@ -310,7 +320,7 @@
           {{ states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.camera }}
         {% else %} null {% endif %}
 
-## entity counter
+## entity counting
 - platform: template
   sensors:
     motion_annotated_count_${MOTION_CAMERA}:
@@ -351,7 +361,7 @@
           {% endfor %}
         {% else %}null{% endif %}
 
-## counting
+## annotation counter
 - platform: template
   sensors:
     motion_annotated_counter_${MOTION_CAMERA}:
