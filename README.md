@@ -17,7 +17,7 @@ Open source home automation that puts local control and privacy first. Powered b
 To utilize additional capabilities in this repository there are some additional applications required:
 
 ```
-sudo apt install -qq -y git make build-essential
+sudo apt install -qq -y git make build-essential jq bc curl
 ```
 
 ## Step 2
