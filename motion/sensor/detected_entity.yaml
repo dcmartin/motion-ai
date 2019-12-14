@@ -28,8 +28,10 @@
         - counter.motion_detected_entity_counter
       unit_of_measurement: seconds
       value_template: >-
-        {% set date = states('sensor.motion_annotated_date')|int %}
-        {% if date > 0 %}{{ date }}{% else %}null{% endif %}
+        {% if states.sensor.motion_event_annotated != none and state_attr('sensor.motion_event_annotated','event') != none %}
+          {% set date = states.sensor.motion_event_annotated.attributes.event.end|int %}
+          {% if date > 0 %}{{ date }}{% else %}null{% endif %}
+        {% else %}null{% endif %}
     # human readable
     motion_detected_entity_when:
       friendly_name: Detected entity at
@@ -217,7 +219,7 @@
           {{ states.sensor.motion_detected_entity_counter_statistics.attributes.change_rate|float }}
         {%- else -%}null{%- endif -%}
 
-    ## percent of detected which contain detect_entity
+## percent of annotated which contain detect_entity
 - platform: template
   sensors:
     motion_detected_entity_percent:
@@ -229,9 +231,9 @@
       value_template: >-
         {% if states.sensor.motion_detected_entity_counter != none
               and states.sensor.motion_detected_entity_counter.state != 'null'
-              and states.sensor.motion_detected_counter != none
-              and states.sensor.motion_detected_counter.state|int > 0 %}
-          {{ ( states.sensor.motion_detected_entity_counter.state|int / states.sensor.motion_detected_counter.state|int ) * 100.0 }}
+              and states.sensor.motion_annotated_counter != none
+              and states.sensor.motion_annotated_counter.state|int > 0 %}
+          {{ ( states.sensor.motion_detected_entity_counter.state|int / states.sensor.motion_annotated_counter.state|int ) * 100.0 }}
         {%- else -%}null{%- endif -%}
     # statistics
     motion_detected_entity_percent_mean:
@@ -376,7 +378,7 @@
         - counter.motion_detected_entity_counter
       value_template: >-
         {% set bu = states('sensor.motion_base_url') %}
-        {% if state_attr('sensor.motion_event_annotated','event')|lower != 'none' %}
+        {% if state_attr('sensor.motion_event_annotated','event')|lower != none %}
           {% set c = states.sensor.motion_event_annotated.attributes.event.camera %}
         {% endif %}
         {% if bu != 'unknown' and c is defined %}
@@ -384,7 +386,7 @@
             {{ bu + '/local/images/motion_detected_entity-' + c + '.jpg' }}
           {% else %}
             {% set ep = state_attr('camera.motion_event_annotated' + '_' + c,'entity_picture') %}
-            {% if ep|lower != 'none' and ep != 'null' and ep|length > 0 %}
+            {% if ep|lower != none and ep != 'null' and ep|length > 0 %}
               {{ bu + ep }}
             {% else %}
               {{ states('sensor.motion_nosignal_picture') }}
