@@ -376,26 +376,30 @@
     motion_detected_entity_picture:
       friendly_name: Detected entity picture
       entity_id:
-        - sensor.motion_detected_entity_count
-        - sensor.motion_detected_entity_camera
+        - sensor.motion_detected_entity_counter
       value_template: >-
-        {% if states('sensor.motion_detected_entity_count')|int > 0 %}
-          {% set c = states('sensor.motion_detected_entity_camera') %}
-          {% set bu = states('sensor.motion_base_url') %}
-          {% if bu != 'unknown' and c != none and c != 'unknown' and c|length > 0 %} 
+        {% set e = state_attr('sensor.motion_event_annotated','event') %}
+        {% if e != none and e != 'unknown' and e|length > 0 %}
+          {% set c = e.camera %}
+          {% if c != none and c != 'unknown' and c|length > 0 and states('sensor.motion_annotated_entity_count_' + c)|int > 0 %}
             {% if states('input_boolean.motion_snapshot') == 'on' %}
-              {% set p = bu + '/local/images/motion_detected_entity-' + c + '.jpg' %}
+              {% set bu = states('sensor.motion_base_url') %}
+              {% if bu != 'unknown' %}
+                {% set p = bu + '/local/images/motion_detected_entity-' + c + '.jpg' %}
+              {% else %}
+                {% set p = states('sensor.motion_testsignal_picture') %}
+              {% endif %}
             {% else %}
-              {% set ep = state_attr('camera.motion_annotated_picture_' + c,'entity_picture') %}
-              {% if ep|lower != none and ep != 'null' and ep|length > 0 %}
-                {% set p = bu + ep %}
+              {% set ap = states('sensor.motion_annotated_picture_' + c) %}
+              {% if ap|lower != none and ap != 'null' and ap|length > 0 %}
+                {% set p = ap %}
               {% else %}
                 {% set p = states('sensor.motion_noisesignal_picture') %}
               {% endif %}
             {% endif %}
+          {% else %}
+            {% set p = states('sensor.motion_detected_entity_picture') %}
           {% endif %}
-        {% else %}
-          {% set p = states('sensor.motion_detected_entity_picture') %}
         {% endif %}
         {% if p is defined and p != none and p != 'unknown' and p != 'null' and p|length > 0 %}
           {{ p }}
