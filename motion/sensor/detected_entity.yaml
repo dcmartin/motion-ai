@@ -29,7 +29,7 @@
         - counter.motion_detected_entity_counter
       unit_of_measurement: seconds
       value_template: >-
-        {% if states.sensor.motion_event_annotated != none and state_attr('sensor.motion_event_annotated','event') != none %}
+        {% if states.sensor.motion_event_annotated|lower != 'none' and state_attr('sensor.motion_event_annotated','event')|lower != 'none' %}
           {% set date = states.sensor.motion_event_annotated.attributes.event.end|int %}
           {% if date > 0 %}{{ date }}{% else %}null{% endif %}
         {% else %}null{% endif %}
@@ -110,8 +110,8 @@
         - sensor.motion_detected_entity_counter
       unit_of_measurement: seconds
       value_template: >
-        {% if states.sensor.motion_event_annotated != none
-              and state_attr('sensor.motion_event_annotated','event') != none %}
+        {% if states.sensor.motion_event_annotated|lower != 'none'
+              and state_attr('sensor.motion_event_annotated','event')|lower != 'none' %}
           {{ states.sensor.motion_event_annotated.attributes.event.elapsed|int }}
         {% else %}null{% endif %}
     # statistics
@@ -230,9 +230,9 @@
         - sensor.motion_annotated_counter
       unit_of_measurement: '%'
       value_template: >-
-        {% if states.sensor.motion_detected_entity_counter != none
+        {% if states.sensor.motion_detected_entity_counter|lower != 'none'
               and states.sensor.motion_detected_entity_counter.state != 'null'
-              and states.sensor.motion_annotated_counter != none
+              and states.sensor.motion_annotated_counter|lower != 'none'
               and states.sensor.motion_annotated_counter.state|int > 0 %}
           {{ ( states.sensor.motion_detected_entity_counter.state|int / states.sensor.motion_annotated_counter.state|int ) * 100.0 }}
         {%- else -%}null{%- endif -%}
@@ -292,8 +292,8 @@
         - counter.motion_detected_entity_counter
       unit_of_measurement: entities
       value_template: >-
-        {% if states.sensor.motion_event_annotated != none
-              and state_attr('sensor.motion_event_annotated','detected') != none
+        {% if states.sensor.motion_event_annotated|lower != 'none'
+              and state_attr('sensor.motion_event_annotated','detected')|lower != 'none'
               and states.sensor.motion_event_annotated.attributes.count|int > 0 %}
           {% for detected in states.sensor.motion_event_annotated.attributes.detected %}
             {% if detected.entity == states.sensor.motion_detect_entity.state and detected.count|int > 0 %}
@@ -357,7 +357,7 @@
       entity_id:
         - sensor.motion_detected_entity_counter
       value_template: >-
-          {% if states.sensor.motion_event_annotated != none and state_attr('sensor.motion_event_annotated','event') != none %}
+          {% if states.sensor.motion_event_annotated|lower != 'none' and state_attr('sensor.motion_event_annotated','event')|lower != 'none' %}
             {{ states.sensor.motion_event_annotated.attributes.event.device }}
           {% else %}null{% endif %}
     # camera
@@ -366,7 +366,7 @@
       entity_id:
         - sensor.motion_detected_entity_counter
       value_template: >-
-          {% if states.sensor.motion_event_annotated != none and state_attr('sensor.motion_event_annotated','event') != none %}
+          {% if states.sensor.motion_event_annotated|lower != 'none' and state_attr('sensor.motion_event_annotated','event')|lower != 'none' %}
             {{ states.sensor.motion_event_annotated.attributes.event.camera }}
           {% else %}null{% endif %}
 
@@ -379,9 +379,9 @@
         - sensor.motion_detected_entity_counter
       value_template: >-
         {% set e = state_attr('sensor.motion_event_annotated','event') %}
-        {% if e != none and e != 'unknown' and e|length > 0 %}
+        {% if e|lower != 'none' and e != 'unknown' and e|length > 0 %}
           {% set c = e.camera %}
-          {% if c != none and c != 'unknown' and c|length > 0 and states('sensor.motion_annotated_entity_count_' + c)|int > 0 %}
+          {% if c|lower != 'none' and c != 'unknown' and c|length > 0 and states('sensor.motion_annotated_entity_count_' + c)|int > 0 %}
             {% if states('input_boolean.motion_snapshot') == 'on' %}
               {% set bu = states('sensor.motion_base_url') %}
               {% if bu != 'unknown' %}
@@ -391,7 +391,7 @@
               {% endif %}
             {% else %}
               {% set ap = states('sensor.motion_annotated_picture_' + c) %}
-              {% if ap|lower != none and ap != 'null' and ap|length > 0 %}
+              {% if ap|lower|lower != 'none' and ap != 'null' and ap|length > 0 %}
                 {% set p = ap %}
               {% else %}
                 {% set p = states('sensor.motion_noisesignal_picture') %}
@@ -401,7 +401,7 @@
             {% set p = states('sensor.motion_detected_entity_picture') %}
           {% endif %}
         {% endif %}
-        {% if p is defined and p != none and p != 'unknown' and p != 'null' and p|length > 0 %}
+        {% if p is defined and p|lower != 'none' and p != 'unknown' and p != 'null' and p|length > 0 %}
           {{ p }}
         {% else %}
            {{ states('sensor.motion_nosignal_picture') }}
@@ -479,20 +479,57 @@
   max_age:
     hours: 24
 
-## history_stats
+###
+### variable detection; produce array of booleans
+###
 
-#- platform: history_stats
-#  name: motion_detected_entity_count_today
-#  entity_id: binary_sensor.motion_detected_entity
-#  state: 'on'
-#  type: count
-#  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
-#  end: '{{ now() }}'
-#
-#- platform: history_stats
-#  name: motion_detected_entity_ratio_today
-#  entity_id: binary_sensor.motion_detected_entity
-#  state: 'on'
-#  type: ratio
-#  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
-#  end: '{{ now() }}'
+- platform: template
+  sensors:
+    motion_detected_animal:
+      entity_id:
+        - binary_sensor.motion_detected
+        - sensor.motion_detected_ago
+      value_template: >-
+        {% if states.sensor.motion_event_annotated|lower != 'none'
+              and state_attr('sensor.motion_event_annotated','detected')|lower != 'none'
+              and states.sensor.motion_event_annotated.attributes.count|int > 0 %}
+          {% for detected in states.sensor.motion_event_annotated.attributes.detected %}
+            {%- if loop.first -%}[{%- else -%},{%- endif -%}
+            {% if detected.entity in state_attr('input_select.motion_detect_animal','options') %}{{ detected.count }}{% else %}0{% endif %}
+            {%- if loop.last -%}]{%- endif -%}
+          {% endfor %}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_detected_vehicle:
+      entity_id:
+        - binary_sensor.motion_detected
+        - sensor.motion_detected_ago
+      value_template: >-
+        {% if states.sensor.motion_event_annotated|lower != 'none'
+              and state_attr('sensor.motion_event_annotated','detected')|lower != 'none'
+              and states.sensor.motion_event_annotated.attributes.count|int > 0 %}
+          {% for detected in states.sensor.motion_event_annotated.attributes.detected %}
+            {%- if loop.first -%}[{%- else -%},{%- endif -%}
+            {% if detected.entity in state_attr('input_select.motion_detect_vehicle','options') %}{{ detected.count }}{% else %}0{% endif %}
+            {%- if loop.last -%}]{%- endif -%}
+          {% endfor %}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_detected_person:
+      entity_id:
+        - binary_sensor.motion_detected
+        - sensor.motion_detected_ago
+      value_template: >-
+        {% if states.sensor.motion_event_annotated|lower != 'none'
+              and state_attr('sensor.motion_event_annotated','detected')|lower != 'none'
+              and states.sensor.motion_event_annotated.attributes.count|int > 0 %}
+          {% for detected in states.sensor.motion_event_annotated.attributes.detected %}
+            {%- if loop.first -%}[{%- else -%},{%- endif -%}
+            {% if detected.entity in state_attr('input_select.motion_detect_person','options') %}{{ detected.count }}{% else %}0{% endif %}
+            {%- if loop.last -%}]{%- endif -%}
+          {% endfor %}
+        {% else %}null{% endif %}
