@@ -136,6 +136,6 @@ The download and installation of the `hassio_supervisor` and `homeassistant` Doc
 
 The default configuration will setup on the localhost using port `8123`.   While the system is starting, the Web site will display the following:
 
-<img src="samples/starting.png" width="50%">
+<img src="samples/hassio-starting-up.png" width="50%">
 
 For more information refer to the [installation instructions](https://www.home-assistant.io/hassio/installation/#alternative-install-on-a-generic-linux-host).
