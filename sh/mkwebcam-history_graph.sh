@@ -7,8 +7,8 @@
 WEBCAMS=$(jq -r '.[].name' ${1:-webcams.json})
 
 WEBCAM_EVENTS='detected_entity detected annotated'
-WEBCAM_ATTRIBUTES='ago percent delay'
-WEBCAM_MEASURES='actual mean stdev'
+WEBCAM_ATTRIBUTES='ago counter percent delay'
+WEBCAM_MEASURES='actual mean stdev stdev_statistics stdev_change'
 
 echo "###"
 echo "## history_grsph/webcams.yaml"
