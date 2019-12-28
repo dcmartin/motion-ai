@@ -9,6 +9,7 @@
       friendly_name: Found
       entity_id:
         - sensor.motion_detected_entity_counter
+        - sensor.motion_detected_entity_count
         - sensor.motion_detected_entity_device
         - sensor.motion_detected_entity_camera
         - sensor.motion_detected_entity_when
@@ -381,6 +382,32 @@
             {{ states.sensor.motion_event_annotated.attributes.event.camera }}
           {% else %}null{% endif %}
 
+# snapshot
+- platform: template
+  sensors:
+    motion_detected_entity_snapshot:
+      friendly_name: Detected entity snapshot
+      entity_id:
+        - sensor.motion_detected_entity_counter
+      value_template: >-
+        {% set e = state_attr('sensor.motion_event_annotated','event') %}
+        {% if e|lower != 'none' and e != 'unknown' and e|length > 0 %}
+          {% set c = e.camera %}
+          {% if c|lower != 'none' and c != 'unknown' and c|length > 0 and states('sensor.motion_detected_entity_count_' + c)|int > 0 %}
+            {% set bu = states('sensor.motion_base_url') %}
+            {% if bu != 'unknown' %}
+              {% set p = bu + '/local/images/motion_detected_entity-' + c + '.jpg' %}
+            {% else %}
+              {% set p = states('sensor.motion_testsignal_picture') %}
+            {% endif %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined and p|lower != 'none' and p != 'unknown' and p != 'null' and p|length > 0 %}
+          {{ p }}
+        {% else %}
+           {{ states('sensor.motion_nosignal_picture') }}
+        {% endif %}
+
 # picture
 - platform: template
   sensors:
@@ -394,20 +421,11 @@
         {% if e|lower != 'none' and e != 'unknown' and e|length > 0 %}
           {% set c = e.camera %}
           {% if c|lower != 'none' and c != 'unknown' and c|length > 0 and states('sensor.motion_detected_entity_count_' + c)|int > 0 %}
-            {% if states('input_boolean.motion_snapshot') == 'on' %}
-              {% set bu = states('sensor.motion_base_url') %}
-              {% if bu != 'unknown' %}
-                {% set p = bu + '/local/images/motion_detected_entity-' + c + '.jpg' %}
-              {% else %}
-                {% set p = states('sensor.motion_testsignal_picture') %}
-              {% endif %}
+            {% set ap = states('sensor.motion_annotated_picture_' + c) %}
+            {% if ap|lower|lower != 'none' and ap != 'null' and ap|length > 0 %}
+              {% set p = ap %}
             {% else %}
-              {% set ap = states('sensor.motion_annotated_picture_' + c) %}
-              {% if ap|lower|lower != 'none' and ap != 'null' and ap|length > 0 %}
-                {% set p = ap %}
-              {% else %}
-                {% set p = states('sensor.motion_noisesignal_picture') %}
-              {% endif %}
+              {% set p = states('sensor.motion_noisesignal_picture') %}
             {% endif %}
           {% else %}
             {% set p = states('sensor.motion_detected_entity_picture') %}
