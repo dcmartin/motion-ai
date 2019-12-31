@@ -44,7 +44,7 @@ for WID in ${WEBCAM_IMAGES}; do
   echo "  control: hidden"
   echo "  entities:"
   for C in ${WEBCAMS}; do
-    echo "    - camera.${WID}_picture_${C}"
+    echo "    - camera.${WID}_snapshot_${C}"
   done
 done
 
