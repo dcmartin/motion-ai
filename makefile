@@ -104,7 +104,7 @@ run: all configuration.yaml
 stop:
 	-docker stop homeassistant
 
-restart: stop run
+restart: stop tidy logclean run
 
 logs:
 	docker logs -f homeassistant
@@ -148,9 +148,12 @@ secrets.yaml: secrets.yaml.tmpl makefile $(PWD)
 
 ## clean and clean and clean ..
 
-clean: stop logclean
+tidy: 
 	@echo "making $@"
 	@${MAKE} -C motion clean
+
+clean: stop logclean tidy
+	@echo "making $@"
 	-rm -f secrets.yaml
 	-rm -f .storage/lovelace 
 	-rm -f .storage/core.restore_state
