@@ -7,8 +7,8 @@
 WEBCAMS=$(jq -r '.[].name' ${1:-webcams.json})
 
 
-WEBCAM_EVENTS='detected_entity' # 'detected_entity detected annotated'
-WEBCAM_ATTRIBUTES='ago counter percent delay'
+WEBCAM_EVENTS='detected_entity annotated' # 'detected_entity detected_entity detected annotated'
+WEBCAM_ATTRIBUTES='ago counter percent delay complete'
 WEBCAM_MEASURES='actual mean stdev change'
 
 echo "###"
