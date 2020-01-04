@@ -11,8 +11,8 @@ WEBCAM_SENSORS='motion_annotated_ago motion_annotated_counter motion_annotated_p
 
 for WID in ${WEBCAM_SENSORS}; do
   echo "#"
-  echo "${WID}_webcams:"
-  echo "  name: ${WID}_webcams"
+  echo "${WID}:"
+  echo "  name: ${WID}"
   echo "  control: hidden"
   echo "  entities:"
   for C in ${WEBCAMS}; do
@@ -25,8 +25,8 @@ WEBCAM_BINARY_SENSORS='motion_end motion_annotated motion_detected motion_detect
 
 for WID in ${WEBCAM_BINARY_SENSORS}; do
   echo "#"
-  echo "${WID}_webcams:"
-  echo "  name: ${WID}_webcams"
+  echo "${WID}:"
+  echo "  name: ${WID}"
   echo "  control: hidden"
   echo "  entities:"
   for C in ${WEBCAMS}; do
@@ -34,7 +34,7 @@ for WID in ${WEBCAM_BINARY_SENSORS}; do
   done
 done
 
-## EVENTS
+## SNAPSHOTS
 WEBCAM_IMAGES='motion_end motion_annotated motion_detected motion_detected_entity'
 
 for WID in ${WEBCAM_IMAGES}; do
@@ -48,7 +48,7 @@ for WID in ${WEBCAM_IMAGES}; do
   done
 done
 
-## DIRECT
+## CAMERAS
 WEBCAM_IMAGES='motion_event_animated motion_live'
 
 for WID in ${WEBCAM_IMAGES}; do
