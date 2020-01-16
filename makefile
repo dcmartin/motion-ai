@@ -35,6 +35,9 @@ MQTT_PASSWORD := $(if $(wildcard MQTT_PASSWORD),$(shell v=$$(cat MQTT_PASSWORD) 
 WEBCAM_USERNAME := $(if $(wildcard WEBCAM_USERNAME),$(shell v=$$(cat WEBCAM_USERNAME) && echo "-- INFO: WEBCAM_USERNAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="username" && echo "++ WARN: WEBCAM_USERNAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 WEBCAM_PASSWORD := $(if $(wildcard WEBCAM_PASSWORD),$(shell v=$$(cat WEBCAM_PASSWORD) && echo "-- INFO: WEBCAM_PASSWORD: $${v}" > /dev/stderr && echo "$${v}"),$(shell read -p "Specify WEBCAM_PASSWORD: " && echo $${REPLY} | tee WEBCAM_PASSWORD))
 
+WYZECAM_USERNAME := $(if $(wildcard WYZECAM_USERNAME),$(shell v=$$(cat WYZECAM_USERNAME) && echo "-- INFO: WYZECAM_USERNAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="username" && echo "++ WARN: WYZECAM_USERNAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+WYZECAM_PASSWORD := $(if $(wildcard WYZECAM_PASSWORD),$(shell v=$$(cat WYZECAM_PASSWORD) && echo "-- INFO: WYZECAM_PASSWORD: $${v}" > /dev/stderr && echo "$${v}"),$(shell read -p "Specify WYZECAM_PASSWORD: " && echo $${REPLY} | tee WYZECAM_PASSWORD))
+
 # netdata
 NETDATA_URL := $(if $(wildcard NETDATA_URL),$(shell v=$$(cat NETDATA_URL) && echo "-- INFO: NETDATA_URL: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="http://${HOST_IPADDR}:19999/" && echo "++ WARN: NETDATA_URL unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
@@ -66,6 +69,7 @@ INFLUXDB_PASSWORD := $(if $(wildcard INFLUXDB_PASSWORD),$(shell v=$$(cat INFLUXD
 
 # scan interval for speedtest
 INTERNET_SCAN_INTERVAL := $(if $(wildcard INTERNET_SCAN_INTERVAL),$(shell v=$$(cat INTERNET_SCAN_INTERVAL) && echo "-- INFO: INTERNET_SCAN_INTERVAL: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="14400" && echo "++ WARN: INTERNET_SCAN_INTERVAL unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+INTRANET_SCAN_INTERVAL := $(if $(wildcard INTRANET_SCAN_INTERVAL),$(shell v=$$(cat INTRANET_SCAN_INTERVAL) && echo "-- INFO: INTRANET_SCAN_INTERVAL: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="1800" && echo "++ WARN: INTRANET_SCAN_INTERVAL unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 ###
 ### TARGETS
@@ -137,12 +141,15 @@ secrets.yaml: secrets.yaml.tmpl makefile $(PWD)
 	  INFLUXDB_HOST="$(INFLUXDB_HOST)" \
 	  INFLUXDB_PASSWORD="$(INFLUXDB_PASSWORD)" \
 	  INTERNET_SCAN_INTERVAL="$(INTERNET_SCAN_INTERVAL)" \
+	  INTRANET_SCAN_INTERVAL="$(INTRANET_SCAN_INTERVAL)" \
 	  MQTT_HOST="$(MQTT_HOST)" \
 	  MQTT_PORT="$(MQTT_PORT)" \
 	  MQTT_USERNAME="$(MQTT_USERNAME)" \
 	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
 	  WEBCAM_USERNAME="$(WEBCAM_USERNAME)" \
 	  WEBCAM_PASSWORD="$(WEBCAM_PASSWORD)" \
+	  WYZECAM_USERNAME="$(WYZECAM_USERNAME)" \
+	  WYZECAM_PASSWORD="$(WYZECAM_PASSWORD)" \
 	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
 	&& cat secrets.yaml.tmpl | envsubst > $@
 
