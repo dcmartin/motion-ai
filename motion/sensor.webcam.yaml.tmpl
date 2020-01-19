@@ -31,6 +31,9 @@
               and states.sensor.motion_status_camera_found_${MOTION_CAMERA}.attributes.date|int > 0 %}
           {{ states.sensor.motion_status_camera_found_${MOTION_CAMERA}.attributes.date|int }}
         {% else %}{{ now().timestamp()|int }}{% endif %}
+
+- platform: template
+  sensors:
     motion_status_camera_found_when_${MOTION_CAMERA}:
       friendly_name: ${MOTION_CAMERA} found
       entity_id:
@@ -70,6 +73,9 @@
               and states.sensor.motion_status_camera_lost_${MOTION_CAMERA}.attributes.date|int > 0 %}
           {{ states.sensor.motion_status_camera_lost_${MOTION_CAMERA}.attributes.date|int }}
         {% else %}{{ now().timestamp()|int }}{% endif %}
+
+- platform: template
+  sensors:
     motion_status_camera_lost_when_${MOTION_CAMERA}:
       friendly_name: ${MOTION_CAMERA} lost
       entity_id:
@@ -88,7 +94,7 @@
   name: motion_event_start_${MOTION_CAMERA}
   qos: 1
   state_topic: '${MOTION_GROUP}/${MOTION_CLIENT}/${MOTION_CAMERA}/event/start'
-  expire_after: 10
+  expire_after: 30
   force_update: true
   json_attributes:
     - device
@@ -132,7 +138,7 @@
   name: motion_event_end_${MOTION_CAMERA}
   qos: 2
   state_topic: '${MOTION_GROUP}/${MOTION_CLIENT}/${MOTION_CAMERA}/event/end'
-  expire_after: 30
+  expire_after: 60
   force_update: True
   json_attributes:
     - device
@@ -159,38 +165,6 @@
         {% if elapsed > 0 %} {{ elapsed }} {% else %} zero {% endif %} second(s);
         {{ ago }} second(s) ago
 
-## timing
-- platform: template
-  sensors:
-    motion_end_date_${MOTION_CAMERA}:
-      entity_id:
-        - sensor.motion_event_end_${MOTION_CAMERA}
-      unit_of_measurement: seconds
-      value_template: >-
-        {% if states.sensor.motion_event_end_${MOTION_CAMERA}|lower != 'none' and state_attr('sensor.motion_event_end_${MOTION_CAMERA}','end')|lower != 'none' %}
-          {% set date = states.sensor.motion_event_end_${MOTION_CAMERA}.attributes.end|int %}
-          {% if date > 0 %}{{ date }}{% else %}null{% endif %}
-        {% else %}null{% endif %}
-    motion_end_when_${MOTION_CAMERA}:
-      friendly_name: ${MOTION_CAMERA} end
-      entity_id:
-        - sensor.motion_end_date_${MOTION_CAMERA}
-      value_template: >-
-        {% set date = states('sensor.motion_detected_date_${MOTION_CAMERA}')|int %}
-        {% if date > 0 %} {{ date|timestamp_custom("%a %b %d ~ %I:%M %p") }} {% else %}never{% endif %}
-    motion_end_ago_${MOTION_CAMERA}:
-      friendly_name: ${MOTION_CAMERA} end ago
-      entity_id:
-        - sensor.motion_end_date_${MOTION_CAMERA}
-        - sun.sun
-      unit_of_measurement: seconds
-      value_template: >
-        {% set s = states('sensor.motion_end_date_${MOTION_CAMERA}')|int %}
-        {% if s >  0 %}
-          {% set s = now().timestamp()|int - s %}
-          {% if s <  86400 %}{{ s }}{%- else -%}null{%- endif -%}
-        {%- else -%}null{%- endif -%}
-
 ## counting
 - platform: template
   sensors:
@@ -204,12 +178,50 @@
           {{ states.counter.motion_end_counter_${MOTION_CAMERA}.state|int }}
         {%- else -%}null{%- endif -%}
 
-## attributes
+## timing
+- platform: template
+  sensors:
+    motion_end_date_${MOTION_CAMERA}:
+      entity_id:
+        - sensor.motion_end_counter_${MOTION_CAMERA}
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states.sensor.motion_event_end_${MOTION_CAMERA}|lower != 'none' and state_attr('sensor.motion_event_end_${MOTION_CAMERA}','end')|lower != 'none' %}
+          {% set date = states.sensor.motion_event_end_${MOTION_CAMERA}.attributes.end|int %}
+          {% if date > 0 %}{{ date }}{% else %}null{% endif %}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_end_when_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} end
+      entity_id:
+        - sensor.motion_end_date_${MOTION_CAMERA}
+      value_template: >-
+        {% set date = states('sensor.motion_end_date_${MOTION_CAMERA}')|int %}
+        {% if date > 0 %} {{ date|timestamp_custom("%a %b %d ~ %I:%M %p") }} {% else %}never{% endif %}
+
+- platform: template
+  sensors:
+    motion_end_ago_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} end ago
+      entity_id:
+        - sensor.motion_end_date_${MOTION_CAMERA}
+        - sensor.time
+      unit_of_measurement: seconds
+      value_template: >
+        {% set s = states('sensor.motion_end_date_${MOTION_CAMERA}')|int %}
+        {% if s >  0 %}
+          {% set s = now().timestamp()|int - s %}
+          {% if s <  86400 %}{{ s }}{%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+
+## elapsed
 - platform: template
   sensors:
     motion_end_elapsed_${MOTION_CAMERA}:
       entity_id:
-        - sensor.motion_event_end_${MOTION_CAMERA}
+        - sensor.motion_end_counter_${MOTION_CAMERA}
       value_template: >
         {% if states.sensor.motion_event_end_${MOTION_CAMERA}|lower != 'none'
               and state_attr('sensor.motion_event_end_${MOTION_CAMERA}','elapsed')|lower != 'none' %}
@@ -224,7 +236,7 @@
 - platform: mqtt
   name: motion_event_annotated_${MOTION_CAMERA}
   state_topic: '${MOTION_GROUP}/${MOTION_CLIENT}/${MOTION_CAMERA}/event/end/+'
-  expire_after: 30
+  expire_after: 60
   force_update: true
   json_attributes:
     - timestamp
@@ -249,23 +261,102 @@
         {% set count = states('sensor.motion_annotated_count_${MOTION_CAMERA}')|int %}
         {% set saw = states('sensor.motion_annotated_list_${MOTION_CAMERA}') %}
         {% set ago = states('sensor.motion_annotated_ago_${MOTION_CAMERA}')|int %}
+        {% set delay = states('sensor.motion_annotated_delay_${MOTION_CAMERA}')|int %}
+        {% set when = states('sensor.motion_annotated_when_${MOTION_CAMERA}') %}
         {% if count > 0 %}{{ count }} entity(s): {{ saw -}};{% else %}nothing;{% endif %}
-        {{ ago }} second(s) ago
+        {{ when }}; delay: {{ delay }}; {{ ago }} second(s) ago
 
-## timing
+## count
+- platform: template
+  sensors:
+    motion_annotated_count_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} annotated count
+      entity_id:
+        - counter.motion_annotated_counter_${MOTION_CAMERA}
+      unit_of_measurement: entities
+      value_template: >
+        {% if state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','count') is not none %}
+          {{ state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','count')|int }}
+        {% else %}null{% endif %}
+
+## entity_count_loop
+- platform: template
+  sensors:
+    motion_annotated_entity_count_loop_${MOTION_CAMERA}:
+      entity_id:
+        - sensor.motion_annotated_count_${MOTION_CAMERA}
+      unit_of_measurement: entities
+      value_template: >-
+        {% set camera = '${MOTION_CAMERA}' %}
+        {% set count = states('sensor.motion_annotated_count_' + camera)|int %}
+        {% if count > 0 %}
+          {% set s = states('sensor.motion_detect_entity') %}
+          {% for detected in state_attr('sensor.motion_event_annotated_' + camera,'detected') %}
+            {% if detected.entity == s or s == 'all' %}
+              {{ detected.count|int }}
+            {% endif %}
+          {% endfor %}
+        {% else %}null{% endif %}
+
+## entity_count
+- platform: template
+  sensors:
+    motion_annotated_entity_count_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} annotated entity count
+      entity_id:
+        - sensor.motion_annotated_entity_count_loop_${MOTION_CAMERA}
+      unit_of_measurement: entities
+      value_template: >-
+        {{ states('sensor.motion_annotated_entity_count_loop_${MOTION_CAMERA}')|int }}
+
+## annotated_list
+- platform: template
+  sensors:
+    motion_annotated_list_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} annotated entity list
+      entity_id:
+        - counter.motion_annotated_counter_${MOTION_CAMERA}
+      value_template: >-
+        {% set camera = '${MOTION_CAMERA}' %}
+        {% set count = state_attr('sensor.motion_event_annotated_' + camera,'count') %}
+        {% set array = state_attr('sensor.motion_event_annotated_' + camera,'detected') %}
+        {% if count > 0 and array is not none %}
+          {% for detected in array %}
+            {%- if loop.first -%}{%- else -%},{%- endif -%}
+            {{- detected.entity -}}
+          {% endfor %}
+        {% else %}null{% endif %}
+
+## counter
+- platform: template
+  sensors:
+    motion_annotated_counter_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} annotated counter
+      entity_id:
+        - sensor.motion_annotated_entity_count_${MOTION_CAMERA}
+      unit_of_measurement: count
+      value_template: >
+        {% if states('counter.motion_annotated_counter_${MOTION_CAMERA}') != 'unknown' %}
+          {{ states('counter.motion_annotated_counter_${MOTION_CAMERA}')|int }}
+        {%- else -%}null{%- endif -%}
+
+## date
 - platform: template
   sensors:
     # date
     motion_annotated_date_${MOTION_CAMERA}:
       entity_id:
-        - sensor.motion_event_annotated_${MOTION_CAMERA}
+        - sensor.motion_annotated_count_${MOTION_CAMERA}
       unit_of_measurement: seconds
       value_template: >-
-        {% if states.sensor.motion_event_annotated_${MOTION_CAMERA}|lower != 'none' and state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event')|lower != 'none' %}
+        {% if  state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event') is not none %}
           {% set date = states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.event.end|int %}
           {% if date > 0 %}{{ date }}{% else %}null{% endif %}
         {% else %}null{% endif %}
-    # human readable
+
+## when
+- platform: template
+  sensors:
     motion_annotated_when_${MOTION_CAMERA}:
       friendly_name: ${MOTION_CAMERA} annotated
       entity_id:
@@ -274,69 +365,6 @@
         {% set date = states('sensor.motion_annotated_date_${MOTION_CAMERA}')|int %}
         {% if date > 0 %} {{ date|timestamp_custom("%a %b %d ~ %I:%M %p") }} {% else %}never{% endif %}
 
-###
-## count
-###
-
-- platform: template
-  sensors:
-    motion_annotated_count_${MOTION_CAMERA}:
-      friendly_name: ${MOTION_CAMERA} annotated count
-      entity_id:
-        - sensor.motion_event_annotated_${MOTION_CAMERA}
-      unit_of_measurement: entities
-      value_template: >
-        {% if state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','count')|lower != 'none' %}
-          {{ state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','count')|int }}
-        {% else %}null{% endif %}
-    motion_annotated_entity_count_${MOTION_CAMERA}:
-      friendly_name: ${MOTION_CAMERA} annotated entity count
-      entity_id:
-        - sensor.motion_annotated_entity_count_loop_${MOTION_CAMERA}
-      unit_of_measurement: entities
-      value_template: >-
-        {{ states('sensor.motion_annotated_entity_count_loop_${MOTION_CAMERA}')|int }}
-    motion_annotated_entity_count_loop_${MOTION_CAMERA}:
-      entity_id:
-        - sensor.motion_event_annotated_${MOTION_CAMERA}
-      unit_of_measurement: entities
-      value_template: >-
-        {% if states.sensor.motion_event_annotated_${MOTION_CAMERA}|lower != 'none'
-              and state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','detected')|lower != 'none'
-              and states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.count|int > 0 %}
-          {% for detected in states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.detected %}
-            {% if detected.entity == states.sensor.motion_detect_entity.state and detected.count|int > 0 %}
-              {{ detected.count }}
-            {% endif %}
-          {% endfor %}
-        {% else %}null{% endif %}
-    motion_annotated_list_${MOTION_CAMERA}:
-      friendly_name: ${MOTION_CAMERA} annotated entity list
-      entity_id:
-        - sensor.motion_event_annotated_${MOTION_CAMERA}
-      value_template: >-
-        {% if states.sensor.motion_event_annotated_${MOTION_CAMERA}|lower != 'none'
-              and state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','count')|lower != 'none'
-              and states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.count|int > 0 %}
-          {% for detected in states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.detected %}
-            {%- if loop.first -%}{%- else -%},{%- endif -%}
-            {{- detected.entity -}}
-          {% endfor %}
-        {% else %}null{% endif %}
-
-## annotation counter
-- platform: template
-  sensors:
-    motion_annotated_counter_${MOTION_CAMERA}:
-      friendly_name: ${MOTION_CAMERA} annotated counter
-      entity_id:
-        - counter.motion_annotated_counter_${MOTION_CAMERA}
-      unit_of_measurement: count
-      value_template: >
-        {% if states('counter.motion_annotated_counter_${MOTION_CAMERA}') != 'unknown' %}
-          {{ states('counter.motion_annotated_counter_${MOTION_CAMERA}')|int }}
-        {%- else -%}null{%- endif -%}
-
 ## ago
 - platform: template
   sensors:
@@ -344,7 +372,7 @@
       friendly_name: ${MOTION_CAMERA} annotated ago
       entity_id:
         - sensor.motion_annotated_date_${MOTION_CAMERA}
-        - sun.sun
+        - sensor.time
       unit_of_measurement: seconds
       value_template: >
         {% set s = states('sensor.motion_annotated_date_${MOTION_CAMERA}')|int %}
@@ -352,7 +380,39 @@
           {% set s = now().timestamp()|int - s %}
           {% if s <  86400 %}{{ s }}{%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif -%}
-    # statistics
+
+## percent
+- platform: template
+  sensors:
+    motion_annotated_percent_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} annotated percent
+      entity_id:
+        - sensor.motion_end_counter_${MOTION_CAMERA}
+        - sensor.motion_annotated_counter_${MOTION_CAMERA}
+      unit_of_measurement: '%'
+      value_template: >-
+        {% if states('sensor.motion_annotated_counter_${MOTION_CAMERA}')|int > 0 and states('sensor.motion_end_counter_${MOTION_CAMERA}')|int > 0 %}
+          {{  ( states.sensor.motion_annotated_counter_${MOTION_CAMERA}.state|int / states.sensor.motion_end_counter_${MOTION_CAMERA}.state|int ) * 100.0 }}
+        {%- else -%}null{%- endif -%}
+
+## delay 
+- platform: template
+  sensors:
+    motion_annotated_delay_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} delay 
+      entity_id:
+        - sensor.motion_annotated_date_${MOTION_CAMERA}
+      unit_of_measurement: seconds
+      value_template: >
+        {{ now().timestamp()|int - states('sensor.motion_annotated_date_${MOTION_CAMERA}')|int }}
+
+###
+# statistics
+###
+
+## ago
+- platform: template
+  sensors:
     motion_annotated_ago_${MOTION_CAMERA}_mean:
       friendly_name: ${MOTION_CAMERA} annotated ago avg
       entity_id:
@@ -398,34 +458,10 @@
         {% if states.sensor.motion_annotated_ago_${MOTION_CAMERA}_statistics|lower != 'none' %}
           {{ states.sensor.motion_annotated_ago_${MOTION_CAMERA}_statistics.attributes.change|float }}
         {%- else -%}null{%- endif -%}
-# statistics
-- platform: statistics
-  name: motion_annotated_ago_${MOTION_CAMERA}_statistics
-  entity_id: sensor.motion_annotated_ago_${MOTION_CAMERA}
-  sampling_size: 1000
-  max_age:
-    hours: 72
-
-- platform: statistics
-  name: motion_annotated_ago_${MOTION_CAMERA}_stdev_statistics
-  entity_id: sensor.motion_annotated_ago_${MOTION_CAMERA}_stdev
-  sampling_size: 1000
-  max_age:
-    hours: 72
 
 ## percent
 - platform: template
   sensors:
-    motion_annotated_percent_${MOTION_CAMERA}:
-      friendly_name: ${MOTION_CAMERA} annotated percent
-      entity_id:
-        - counter.motion_end_counter_${MOTION_CAMERA}
-        - counter.motion_annotated_counter_${MOTION_CAMERA}
-      unit_of_measurement: '%'
-      value_template: >-
-        {% if states('counter.motion_annotated_counter_${MOTION_CAMERA}')|int > 0 and states('counter.motion_end_counter_${MOTION_CAMERA}')|int > 0 %}
-          {{  ( states.counter.motion_annotated_counter_${MOTION_CAMERA}.state|int / states.counter.motion_end_counter_${MOTION_CAMERA}.state|int ) * 100.0 }}
-        {%- else -%}null{%- endif -%}
     motion_annotated_percent_${MOTION_CAMERA}_mean:
       friendly_name: ${MOTION_CAMERA} annotated percent avg
       entity_id:
@@ -471,33 +507,10 @@
         {% if states('sensor.motion_annotated_percent_${MOTION_CAMERA}_statistics') != 'unknown' %}
           {{ states.sensor.motion_annotated_percent_${MOTION_CAMERA}_statistics.attributes.change|float }}
         {%- else -%}null{%- endif -%}
-#
-- platform: statistics
-  name: motion_annotated_percent_${MOTION_CAMERA}_statistics
-  entity_id: sensor.motion_annotated_percent_${MOTION_CAMERA}
-  sampling_size: 1000
-  max_age:
-    hours: 72
-- platform: statistics
-  name: motion_annotated_percent_${MOTION_CAMERA}_stdev_statistics
-  entity_id: sensor.motion_annotated_percent_${MOTION_CAMERA}_stdev
-  sampling_size: 1000
-  max_age:
-    hours: 72
 
 ## delay 
 - platform: template
   sensors:
-    motion_annotated_delay_${MOTION_CAMERA}:
-      friendly_name: ${MOTION_CAMERA} delay 
-      entity_id:
-        - sensor.motion_event_annotated_${MOTION_CAMERA}
-      unit_of_measurement: seconds
-      value_template: >
-        {% if states.sensor.motion_event_annotated_${MOTION_CAMERA}|lower != 'none' and state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event')|lower != 'none' %}
-          {{ now().timestamp()|int - states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.event.date|int }}
-        {% else %}null{% endif %}
-    # statistics
     motion_annotated_delay_${MOTION_CAMERA}_mean:
       friendly_name: ${MOTION_CAMERA} delay avg
       entity_id:
@@ -543,7 +556,38 @@
         {% if states('sensor.motion_annotated_delay_${MOTION_CAMERA}_statistics') != 'unknown' %}
           {{ states.sensor.motion_annotated_delay_${MOTION_CAMERA}_statistics.attributes.change|float }}
         {%- else -%}null{%- endif -%}
-#
+
+## statistics
+
+# ago
+- platform: statistics
+  name: motion_annotated_ago_${MOTION_CAMERA}_statistics
+  entity_id: sensor.motion_annotated_ago_${MOTION_CAMERA}
+  sampling_size: 1000
+  max_age:
+    hours: 72
+- platform: statistics
+  name: motion_annotated_ago_${MOTION_CAMERA}_stdev_statistics
+  entity_id: sensor.motion_annotated_ago_${MOTION_CAMERA}_stdev
+  sampling_size: 1000
+  max_age:
+    hours: 72
+
+# percent
+- platform: statistics
+  name: motion_annotated_percent_${MOTION_CAMERA}_statistics
+  entity_id: sensor.motion_annotated_percent_${MOTION_CAMERA}
+  sampling_size: 1000
+  max_age:
+    hours: 72
+- platform: statistics
+  name: motion_annotated_percent_${MOTION_CAMERA}_stdev_statistics
+  entity_id: sensor.motion_annotated_percent_${MOTION_CAMERA}_stdev
+  sampling_size: 1000
+  max_age:
+    hours: 72
+
+# delay
 - platform: statistics
   name: motion_annotated_delay_${MOTION_CAMERA}_statistics
   entity_id: sensor.motion_annotated_delay_${MOTION_CAMERA}
@@ -565,17 +609,26 @@
 - platform: template
   sensors:
     motion_detected_status_${MOTION_CAMERA}:
-      friendly_name: ${MOTION_CAMERA} seen
+      friendly_name: ${MOTION_CAMERA} Seen
       entity_id:
-        - sensor.motion_detected_counter_${MOTION_CAMERA}
+        - sensor.motion_detected_when_${MOTION_CAMERA}
       value_template: >-
-        {% set e = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event') %}
-        {% set c = e.camera %}
-        {% set n = states('sensor.motion_annotated_count_' + c)|int %}
-        {% set t = states('sensor.motion_annotated_date_' + c)|int %}
-        {% if n > 0 %}{% set what = states('sensor.motion_detected_list_' + c) %}{% else %}{% set what = 'nothing' %}{% endif %}
-        {% if t > 0 %}{% set when = t|timestamp_custom("%a %b %d ~ %I:%M %p") %}{% else %}{% set when = 'never' %}{% endif %}
-        {{ n }} entities: {{ what }}; from {{ c }} at {{ when }}
+        {% set when = states('sensor.motion_detected_when_${MOTION_CAMERA}') %}
+        {% set count = states('sensor.motion_detected_count_${MOTION_CAMERA}')|int %}
+        {% set what = states('sensor.motion_detected_list_${MOTION_CAMERA}') %}
+        {{ count }} entities: {{ what -}}; {{ when }}
+
+## count
+- platform: template
+  sensors:
+    # count
+    motion_detected_count_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} detected count
+      entity_id:
+        - binary_sensor.motion_detected_${MOTION_CAMERA}
+      unit_of_measurement: entities
+      value_template: >-
+        {{ states('sensor.motion_annotated_count_${MOTION_CAMERA}')|int }}
 
 ## counter
 - platform: template
@@ -583,43 +636,28 @@
     motion_detected_counter_${MOTION_CAMERA}:
       friendly_name: ${MOTION_CAMERA} detected counter
       entity_id:
-        - sensor.motion_detected_list_${MOTION_CAMERA}
+        - sensor.motion_detected_count_${MOTION_CAMERA}
       unit_of_measurement: count
       value_template: >
         {% if states('counter.motion_detected_counter_${MOTION_CAMERA}') != 'unknown' %}
           {{ states('counter.motion_detected_counter_${MOTION_CAMERA}')|int }}
         {%- else -%}null{%- endif -%}
 
-- platform: template
-  sensors:
-    motion_detected_list_${MOTION_CAMERA}:
-      friendly_name: ${MOTION_CAMERA} entity list
-      entity_id:
-        - counter.motion_detected_counter_${MOTION_CAMERA}
-      value_template: >-
-        {% if states.sensor.motion_event_annotated_${MOTION_CAMERA}|lower != 'none'
-              and state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','count') != 'unknown'
-              and state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','count')|int > 0 %}
-          {% for detected in states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.detected %}
-           {%- if loop.first -%}{%- else -%},{%- endif -%}
-           {{- detected.entity -}}
-          {% endfor %}
-        {% else %}null{% endif %}
-
-## timing
+## date
 - platform: template
   sensors:
     motion_detected_date_${MOTION_CAMERA}:
-      friendly_name: ${MOTION_CAMERA} date
+      friendly_name: ${MOTION_CAMERA} detected date
       entity_id:
         - sensor.motion_detected_counter_${MOTION_CAMERA}
       unit_of_measurement: seconds
       value_template: >-
-        {% if states.sensor.motion_event_annotated_${MOTION_CAMERA}|lower != 'none' and state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event')|lower != 'none' %}
-          {% set date = states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.event.end|int %}
-          {% if date > 0 %}{{ date }}{% else %}null{% endif %}
-        {% else %}null{% endif %}
-    # human readable
+        {% set date = states('sensor.motion_annotated_date_${MOTION_CAMERA}')|int %}
+        {% if date > 0 %}{{ date }}{% else %}null{% endif %}
+
+## when
+- platform: template
+  sensors:
     motion_detected_when_${MOTION_CAMERA}:
       friendly_name: ${MOTION_CAMERA} detected at
       entity_id:
@@ -635,7 +673,7 @@
       friendly_name: ${MOTION_CAMERA} seen ago
       entity_id:
         - sensor.motion_detected_date_${MOTION_CAMERA}
-        - sun.sun
+        - sensor.time
       unit_of_measurement: seconds
       value_template: >
         {% set s = states('sensor.motion_detected_date_${MOTION_CAMERA}')|int %}
@@ -643,7 +681,38 @@
           {% set s = now().timestamp()|int - s %}
           {% if s <  86400 %}{{ s }}{%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif -%}
-    # statistics
+
+## list
+- platform: template
+  sensors:
+    motion_detected_list_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} entity list
+      entity_id:
+        - sensor.motion_detected_count_${MOTION_CAMERA}
+      value_template: >-
+        {{ states('sensor.motion_annotated_list_${MOTION_CAMERA}') }}
+
+## percent
+- platform: template
+  sensors:
+    motion_detected_percent_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} seen
+      entity_id:
+        - sensor.motion_annotated_counter_${MOTION_CAMERA}
+        - sensor.motion_detected_counter_${MOTION_CAMERA}
+      unit_of_measurement: '%'
+      value_template: >-
+        {% if states('sensor.motion_detected_counter_${MOTION_CAMERA}')|int > 0 and states('sensor.motion_annotated_counter_${MOTION_CAMERA}')|int > 0 %}
+          {{  ( states.sensor.motion_detected_counter_${MOTION_CAMERA}.state|int / states.sensor.motion_annotated_counter_${MOTION_CAMERA}.state|int ) * 100.0 }}
+        {%- else -%}null{%- endif -%}
+
+###
+## statistics
+###
+
+## ago
+- platform: template
+  sensors:
     motion_detected_ago_${MOTION_CAMERA}_mean:
       friendly_name: ${MOTION_CAMERA} seen ago avg
       entity_id:
@@ -691,36 +760,8 @@
         {% if states.sensor.motion_detected_ago_${MOTION_CAMERA}_statistics|lower != 'none' %}
           {{ states.sensor.motion_detected_ago_${MOTION_CAMERA}_statistics.attributes.change|float }}
         {%- else -%}null{%- endif -%}
-# statistics
-- platform: statistics
-  name: motion_detected_ago_${MOTION_CAMERA}_statistics
-  entity_id: sensor.motion_detected_ago_${MOTION_CAMERA}
-  sampling_size: 1000
-  max_age:
-    hours: 72
-- platform: statistics
-  name: motion_detected_ago_${MOTION_CAMERA}_stdev_statistics
-  entity_id: sensor.motion_detected_ago_${MOTION_CAMERA}_stdev
-  sampling_size: 1000
-  max_age:
-    hours: 72
 
-###
 ## count
-###
-
-- platform: template
-  sensors:
-    # count
-    motion_detected_count_${MOTION_CAMERA}:
-      friendly_name: ${MOTION_CAMERA} seen
-      entity_id:
-        - sensor.motion_detected_counter_${MOTION_CAMERA}
-      unit_of_measurement: entities
-      value_template: >-
-        {{ states('sensor.motion_annotated_count_${MOTION_CAMERA}')|int }}
-
-# statistics
 - platform: template
   sensors:
     motion_detected_count_mean_${MOTION_CAMERA}:
@@ -768,32 +809,10 @@
         {% if states('sensor.motion_detected_count_${MOTION_CAMERA}_statistics') != 'unknown' %}
           {{ states.sensor.motion_detected_count_${MOTION_CAMERA}_statistics.attributes.change|float }}
         {%- else -%}null{%- endif -%}
-- platform: statistics
-  name: motion_detected_count_${MOTION_CAMERA}_statistics
-  entity_id: sensor.motion_detected_count_${MOTION_CAMERA}
-  sampling_size: 1000
-  max_age:
-    hours: 72
-- platform: statistics
-  name: motion_detected_count_${MOTION_CAMERA}_stdev_statistics
-  entity_id: sensor.motion_detected_count_${MOTION_CAMERA}_stdev
-  sampling_size: 1000
-  max_age:
-    hours: 72
 
 ## percent
 - platform: template
   sensors:
-    motion_detected_percent_${MOTION_CAMERA}:
-      friendly_name: ${MOTION_CAMERA} seen
-      entity_id:
-        - counter.motion_annotated_counter_${MOTION_CAMERA}
-        - counter.motion_detected_counter_${MOTION_CAMERA}
-      unit_of_measurement: '%'
-      value_template: >-
-        {% if states('counter.motion_detected_counter_${MOTION_CAMERA}')|int > 0 and states('counter.motion_annotated_counter_${MOTION_CAMERA}')|int > 0 %}
-          {{  ( states.counter.motion_detected_counter_${MOTION_CAMERA}.state|int / states.counter.motion_annotated_counter_${MOTION_CAMERA}.state|int ) * 100.0 }}
-        {%- else -%}null{%- endif -%}
     motion_detected_percent_${MOTION_CAMERA}_mean:
       friendly_name: ${MOTION_CAMERA} seen avg
       entity_id:
@@ -839,7 +858,38 @@
         {% if states('sensor.motion_detected_percent_${MOTION_CAMERA}_statistics') != 'unknown' %}
           {{ states.sensor.motion_detected_percent_${MOTION_CAMERA}_statistics.attributes.change|float }}
         {%- else -%}null{%- endif -%}
-#
+
+## statistics
+
+# ago
+- platform: statistics
+  name: motion_detected_ago_${MOTION_CAMERA}_statistics
+  entity_id: sensor.motion_detected_ago_${MOTION_CAMERA}
+  sampling_size: 1000
+  max_age:
+    hours: 72
+- platform: statistics
+  name: motion_detected_ago_${MOTION_CAMERA}_stdev_statistics
+  entity_id: sensor.motion_detected_ago_${MOTION_CAMERA}_stdev
+  sampling_size: 1000
+  max_age:
+    hours: 72
+
+# count
+- platform: statistics
+  name: motion_detected_count_${MOTION_CAMERA}_statistics
+  entity_id: sensor.motion_detected_count_${MOTION_CAMERA}
+  sampling_size: 1000
+  max_age:
+    hours: 72
+- platform: statistics
+  name: motion_detected_count_${MOTION_CAMERA}_stdev_statistics
+  entity_id: sensor.motion_detected_count_${MOTION_CAMERA}_stdev
+  sampling_size: 1000
+  max_age:
+    hours: 72
+
+# percent
 - platform: statistics
   name: motion_detected_percent_${MOTION_CAMERA}_statistics
   entity_id: sensor.motion_detected_percent_${MOTION_CAMERA}
@@ -863,51 +913,94 @@
     motion_detected_entity_status_${MOTION_CAMERA}:
       friendly_name: ${MOTION_CAMERA} found
       entity_id:
-        - sensor.motion_detected_entity_counter_${MOTION_CAMERA}
+        - sensor.motion_detected_entity_when_${MOTION_CAMERA}
       value_template: >-
-        {% set n = states('sensor.motion_detected_entity_count_${MOTION_CAMERA}')|int %}
-        {% if n > 0 %}
-          {% set what = n|string + ' ' + states('sensor.motion_detect_entity') + '(s)' %}
-        {% else %}
-          {% set what = 'nothing' %}
-        {% endif %}
-        {% set t = states('sensor.motion_annotated_date_${MOTION_CAMERA}')|int %}
-        {% if t > 0 %}{% set when = t|timestamp_custom("%a %b %d ~ %I:%M %p") %}{% else %}{% set when = 'never' %}{% endif %}
-        {{ what }}; from {{ c }} at {{ when }}
+        {% set count = states('sensor.motion_detected_entity_count_${MOTION_CAMERA}')|int %}
+        {% set what = states('sensor.motion_detect_entity') %}
+        {% set when = states('sensor.motion_detected_entity_when_${MOTION_CAMERA}') %}
+        {{ count }} {{ what -}}(s); {{ when }}
 
-## counter
-- platform: template
-  sensors:
-    motion_detected_entity_counter_${MOTION_CAMERA}:
-      friendly_name: ${MOTION_CAMERA} detected entity counter
-      entity_id:
-        - sensor.motion_detected_entity_count_${MOTION_CAMERA}
-      unit_of_measurement: count
-      value_template: >
-        {% if states('counter.motion_detected_entity_counter_${MOTION_CAMERA}') != 'unknown' %}
-          {{ states('counter.motion_detected_entity_counter_${MOTION_CAMERA}')|int }}
-        {%- else -%}null{%- endif -%}
-
-###
 ## count
-###
-
 - platform: template
   sensors:
     motion_detected_entity_count_${MOTION_CAMERA}:
       friendly_name: ${MOTION_CAMERA} found
       unit_of_measurement: entities
       entity_id:
-        - counter.motion_detected_counter_${MOTION_CAMERA}
+        - binary_sensor.motion_detected_entity_${MOTION_CAMERA}
       value_template: >-
-        {% if states.sensor.motion_event_annotated_${MOTION_CAMERA}|lower != 'none'
-              and state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','count') != 'unknown'
-              and state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','count')|int > 0 %}
-          {% for detected in states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.detected %}
-            {% if detected.entity == states('sensor.motion_detect_entity') %}{{ detected.count }}{% endif %}
-          {% endfor %}
-        {% else %}0{% endif %}
+        {{ states('sensor.motion_annotated_entity_count_${MOTION_CAMERA}')|int }}
+
+## counter
+- platform: template
+  sensors:
+    motion_detected_entity_counter_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} found counter
+      entity_id:
+        - sensor.motion_detected_entity_when_${MOTION_CAMERA}
+      unit_of_measurement: count
+      value_template: >
+        {% if states('counter.motion_detected_entity_counter_${MOTION_CAMERA}') != 'unknown' %}
+          {{ states('counter.motion_detected_entity_counter_${MOTION_CAMERA}')|int }}
+        {%- else -%}null{%- endif -%}
+
+## date
+- platform: template
+  sensors:
+    motion_detected_entity_date_${MOTION_CAMERA}:
+      entity_id:
+        - sensor.motion_detected_entity_count_${MOTION_CAMERA}
+      unit_of_measurement: seconds
+      value_template: >-
+        {% set date = states('sensor.motion_annotated_date_${MOTION_CAMERA}')|int %}
+        {% if date > 0 %}{{ date }}{% else %}null{% endif %}
+
+## when - human readable
+- platform: template
+  sensors:
+    motion_detected_entity_when_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} identified at
+      entity_id:
+        - sensor.motion_detected_entity_date_${MOTION_CAMERA}
+      value_template: >-
+        {% set date = states('sensor.motion_detected_entity_date_${MOTION_CAMERA}')|int %}
+        {% if date > 0 %}{{ date|timestamp_custom("%a %b %d ~ %I:%M %p") }}{% else %}never{% endif %}
+
+## ago
+- platform: template
+  sensors:
+    motion_detected_entity_ago_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} found ago
+      entity_id:
+        - sensor.motion_detected_entity_date_${MOTION_CAMERA}
+        - sensor.time
+      unit_of_measurement: seconds
+      value_template: >
+        {% set s = states('sensor.motion_detected_entity_date_${MOTION_CAMERA}')|int %}
+        {% if s >  0 %}
+          {% set s = now().timestamp()|int - s %}
+          {% if s <  86400 %}{{ s }}{% else %}null{% endif %}
+        {%- else -%}null{%- endif -%}
+
+## percent
+- platform: template
+  sensors:
+    motion_detected_entity_percent_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} found
+      entity_id:
+        - sensor.motion_annotated_counter_${MOTION_CAMERA}
+        - sensor.motion_detected_entity_counter_${MOTION_CAMERA}
+      unit_of_measurement: '%'
+      value_template: >-
+        {% if states('sensor.motion_detected_entity_counter_${MOTION_CAMERA}')|int > 0 and states('sensor.motion_annotated_counter_${MOTION_CAMERA}')|int > 0 %}
+          {{ states('sensor.motion_detected_entity_counter_${MOTION_CAMERA}')|int / states('sensor.motion_annotated_counter_${MOTION_CAMERA}')|int * 100.0 }}
+        {%- else -%}null{%- endif -%}
+
+###
 # statistics
+###
+
+## count
 - platform: template
   sensors:
     motion_detected_entity_count_mean_${MOTION_CAMERA}:
@@ -955,41 +1048,8 @@
         {% if states('sensor.motion_detected_entity_count_${MOTION_CAMERA}_statistics') != 'unknown' %}
           {{ states.sensor.motion_detected_entity_count_${MOTION_CAMERA}_statistics.attributes.change|float }}
         {%- else -%}null{%- endif -%}
-- platform: statistics
-  name: motion_detected_entity_count_${MOTION_CAMERA}_statistics
-  entity_id: sensor.motion_detected_entity_count_${MOTION_CAMERA}
-  sampling_size: 1000
-  max_age:
-    hours: 72
-- platform: statistics
-  name: motion_detected_entity_count_${MOTION_CAMERA}_stdev_statistics
-  entity_id: sensor.motion_detected_entity_count_${MOTION_CAMERA}_stdev
-  sampling_size: 1000
-  max_age:
-    hours: 72
 
-## timing
-- platform: template
-  sensors:
-    motion_detected_entity_date_${MOTION_CAMERA}:
-      entity_id:
-        - sensor.motion_detected_entity_counter_${MOTION_CAMERA}
-      unit_of_measurement: seconds
-      value_template: >-
-        {% if states.sensor.motion_event_annotated_${MOTION_CAMERA}|lower != 'none' and state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event')|lower != 'none' %}
-          {% set date = states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.event.end|int %}
-          {% if date > 0 %}{{ date }}{% else %}null{% endif %}
-        {% else %}null{% endif %}
-    # human readable
-    motion_detected_entity_when_${MOTION_CAMERA}:
-      friendly_name: ${MOTION_CAMERA} identified at
-      entity_id:
-        - sensor.motion_detected_entity_date_${MOTION_CAMERA}
-      value_template: >-
-        {% set date = states('sensor.motion_detected_entity_date_${MOTION_CAMERA}')|int %}
-        {% if date > 0 %}{{ date|timestamp_custom("%a %b %d ~ %I:%M %p") }}{% else %}never{% endif %}
-
-# statistics
+## counter
 - platform: template
   sensors:
     motion_detected_entity_counter_${MOTION_CAMERA}_mean:
@@ -1048,39 +1108,8 @@
         {% if states.sensor.motion_detected_entity_counter_${MOTION_CAMERA}_stdev_statistics|lower != 'none' %}
           {{ states.sensor.motion_detected_entity_counter_${MOTION_CAMERA}_stdev_statistics.attributes.change|float }}
         {%- else -%}null{%- endif -%}
-- platform: statistics
-  name: motion_detected_entity_counter_${MOTION_CAMERA}_statistics
-  entity_id: sensor.motion_detected_entity_counter_${MOTION_CAMERA}
-  sampling_size: 1000
-  max_age:
-    hours: 72
-- platform: statistics
-  name: motion_detected_entity_counter_${MOTION_CAMERA}_stdev_statistics
-  entity_id: sensor.motion_detected_entity_counter_${MOTION_CAMERA}_stdev
-  sampling_size: 1000
-  max_age:
-    hours: 72
 
-###
 ## ago
-###
-
-- platform: template
-  sensors:
-    motion_detected_entity_ago_${MOTION_CAMERA}:
-      friendly_name: ${MOTION_CAMERA} found ago
-      entity_id:
-        - sensor.motion_detected_entity_date_${MOTION_CAMERA}
-        - sun.sun
-      unit_of_measurement: seconds
-      value_template: >
-        {% set s = states('sensor.motion_detected_entity_date_${MOTION_CAMERA}')|int %}
-        {% if s >  0 %}
-          {% set s = now().timestamp()|int - s %}
-          {% if s <  86400 %}{{ s }}{% else %}null{% endif %}
-        {%- else -%}null{%- endif -%}
-
-# statistics
 - platform: template
   sensors:
     motion_detected_entity_ago_${MOTION_CAMERA}_mean:
@@ -1139,37 +1168,8 @@
         {% if states.sensor.motion_detected_entity_ago_${MOTION_CAMERA}_stdev_statistics|lower != 'none' %}
           {{ states.sensor.motion_detected_entity_ago_${MOTION_CAMERA}_stdev_statistics.attributes.change|float }}
         {%- else -%}null{%- endif -%}
-- platform: statistics
-  name: motion_detected_entity_ago_${MOTION_CAMERA}_statistics
-  entity_id: sensor.motion_detected_entity_ago_${MOTION_CAMERA}
-  sampling_size: 1000
-  max_age:
-    hours: 72
-- platform: statistics
-  name: motion_detected_entity_ago_${MOTION_CAMERA}_stdev_statistics
-  entity_id: sensor.motion_detected_entity_ago_${MOTION_CAMERA}_stdev
-  sampling_size: 1000
-  max_age:
-    hours: 72
 
-###
 ## percent
-###
-
-- platform: template
-  sensors:
-    motion_detected_entity_percent_${MOTION_CAMERA}:
-      friendly_name: ${MOTION_CAMERA} found
-      entity_id:
-        - counter.motion_annotated_counter_${MOTION_CAMERA}
-        - counter.motion_detected_entity_counter_${MOTION_CAMERA}
-      unit_of_measurement: '%'
-      value_template: >-
-        {% if states('counter.motion_detected_entity_counter_${MOTION_CAMERA}')|int > 0 and states('counter.motion_annotated_counter_${MOTION_CAMERA}')|int > 0 %}
-          {{  ( states.counter.motion_detected_entity_counter_${MOTION_CAMERA}.state|int / states.counter.motion_annotated_counter_${MOTION_CAMERA}.state|int ) * 100.0 }}
-        {%- else -%}null{%- endif -%}
-
-# percent statistics
 - platform: template
   sensors:
     motion_detected_entity_percent_${MOTION_CAMERA}_mean:
@@ -1217,6 +1217,52 @@
         {% if states('sensor.motion_detected_entity_percent_${MOTION_CAMERA}_statistics') != 'unknown' %}
           {{ states.sensor.motion_detected_entity_percent_${MOTION_CAMERA}_statistics.attributes.change|float }}
         {%- else -%}null{%- endif -%}
+
+## statistics
+
+# count
+- platform: statistics
+  name: motion_detected_entity_count_${MOTION_CAMERA}_statistics
+  entity_id: sensor.motion_detected_entity_count_${MOTION_CAMERA}
+  sampling_size: 1000
+  max_age:
+    hours: 72
+- platform: statistics
+  name: motion_detected_entity_count_${MOTION_CAMERA}_stdev_statistics
+  entity_id: sensor.motion_detected_entity_count_${MOTION_CAMERA}_stdev
+  sampling_size: 1000
+  max_age:
+    hours: 72
+
+# counter
+- platform: statistics
+  name: motion_detected_entity_counter_${MOTION_CAMERA}_statistics
+  entity_id: sensor.motion_detected_entity_counter_${MOTION_CAMERA}
+  sampling_size: 1000
+  max_age:
+    hours: 72
+- platform: statistics
+  name: motion_detected_entity_counter_${MOTION_CAMERA}_stdev_statistics
+  entity_id: sensor.motion_detected_entity_counter_${MOTION_CAMERA}_stdev
+  sampling_size: 1000
+  max_age:
+    hours: 72
+
+# ago
+- platform: statistics
+  name: motion_detected_entity_ago_${MOTION_CAMERA}_statistics
+  entity_id: sensor.motion_detected_entity_ago_${MOTION_CAMERA}
+  sampling_size: 1000
+  max_age:
+    hours: 72
+- platform: statistics
+  name: motion_detected_entity_ago_${MOTION_CAMERA}_stdev_statistics
+  entity_id: sensor.motion_detected_entity_ago_${MOTION_CAMERA}_stdev
+  sampling_size: 1000
+  max_age:
+    hours: 72
+
+# percent
 - platform: statistics
   name: motion_detected_entity_percent_${MOTION_CAMERA}_statistics
   entity_id: sensor.motion_detected_entity_percent_${MOTION_CAMERA}
@@ -1286,17 +1332,17 @@
   sensors:
     motion_end_picture_${MOTION_CAMERA}:
       entity_id:
-        - sensor.motion_end_counter_${MOTION_CAMERA}
+        - sensor.motion_event_end_${MOTION_CAMERA}
         - camera.motion_event_end_${MOTION_CAMERA}
       value_template: >-
         {% set bu = states('sensor.motion_base_url') %}
         {% set ep = state_attr('camera.motion_event_end_${MOTION_CAMERA}','entity_picture') %}
-        {% if ep != 'unknown' and ep != 'null' and ep|length > 0 and bu != 'unknown' %}
+        {% if ep is not none and ep != 'unknown' and ep != 'null' and bu != 'unknown' %}
           {% set p = bu + ep %}
         {% else %}
           {% set p = states('sensor.motion_testsignal_picture') %}
         {% endif %}
-        {% if p is defined and p|lower != 'none' and p != 'unknown' and p != 'null' and p|length > 0 %}
+        {% if p is defined and p is not none and p != 'unknown' and p != 'null' %}
           {{ p }}
         {% else %}
            {{ states('sensor.motion_nosignal_picture') }}
@@ -1306,51 +1352,40 @@
   sensors:
     motion_annotated_picture_${MOTION_CAMERA}:
       entity_id:
-        - sensor.motion_annotated_counter_${MOTION_CAMERA}
+        - sensor.motion_event_annotated_${MOTION_CAMERA}
         - camera.motion_event_annotated_${MOTION_CAMERA}
       value_template: >-
         {% set bu = states('sensor.motion_base_url') %}
         {% set ep = state_attr('camera.motion_event_annotated_${MOTION_CAMERA}','entity_picture') %}
-        {% if ep != 'unknown' and ep != 'null' and ep|length > 0 and bu != 'unknown' %}
+        {% if ep is not none and ep != 'unknown' and ep != 'null' and bu != 'unknown' %}
           {% set p = bu + ep %}
         {% else %}
           {% set p = states('sensor.motion_testsignal_picture') %}
         {% endif %}
-        {% if p is defined and p|lower != 'none' and p != 'unknown' and p != 'null' and p|length > 0 %}
+        {% if p is defined and p is not none and p != 'unknown' and p != 'null' %}
           {{ p }}
         {% else %}
            {{ states('sensor.motion_nosignal_picture') }}
         {% endif %}
 
-# picture
 - platform: template
   sensors:
     motion_detected_picture_${MOTION_CAMERA}:
       friendly_name: ${MOTION_CAMERA} detected picture
       entity_id:
-        - sensor.motion_detected_counter_${MOTION_CAMERA}
         - sensor.motion_annotated_picture_${MOTION_CAMERA}
+        - sensor.motion_detected_counter_${MOTION_CAMERA}
       value_template: >-
-        {% set c = '${MOTION_CAMERA}' %}
-        {% set n = states('sensor.motion_annotated_count_' + c)|int %}
+        {% set n = states('sensor.motion_annotated_count_${MOTION_CAMERA}')|int %}
         {% if n > 0 %}
-          {#
-          {% set bu = states('sensor.motion_base_url') %}
-          {% set ep = state_attr('camera.motion_event_annotated_' + c,'entity_picture') %}
-          {% if ep != 'unknown' and ep != 'null' and ep|length > 0 and bu != 'unknown' %}
-            {% set p = bu + ep %}
-          {% else %}
-            {% set p = states('sensor.motion_testsignal_picture') %}
-          {% endif %}
-          #}
           {% set p = states('sensor.motion_annotated_picture_${MOTION_CAMERA}') %}
         {% else %}
           {% set p = states('sensor.motion_detected_picture_${MOTION_CAMERA}') %}
         {% endif %}
-        {% if p is defined and p|lower != 'none' and p != 'unknown' and p != 'null' and p|length > 0 %}
+        {% if p is not none and p != 'unknown' and p != 'null' %}
           {{ p }}
         {% else %}
-           {{ states('sensor.motion_nosignal_picture') }}
+          {{ states('sensor.motion_nosignal_picture') }}
         {% endif %}
 
 - platform: template
@@ -1358,26 +1393,16 @@
     motion_detected_entity_picture_${MOTION_CAMERA}:
       friendly_name: ${MOTION_CAMERA} detected entity picture
       entity_id:
-        - sensor.motion_detected_entity_counter_${MOTION_CAMERA}
         - sensor.motion_detected_picture_${MOTION_CAMERA}
+        - sensor.motion_detected_entity_counter_${MOTION_CAMERA}
       value_template: >-
-        {% set c = '${MOTION_CAMERA}' %}
-        {% set n = states('sensor.motion_annotated_entity_count_' + c)|int %}
+        {% set n = states('sensor.motion_annotated_entity_count_${MOTION_CAMERA}')|int %}
         {% if n > 0 %}
-          {#
-          {% set bu = states('sensor.motion_base_url') %}
-          {% set ep = state_attr('camera.motion_event_annotated_' + c,'entity_picture') %}
-          {% if ep != 'unknown' and ep != 'null' and ep|length > 0 and bu != 'unknown' %}
-            {% set p = bu + ep %}
-          {% else %}
-            {% set p = states('sensor.motion_testsignal_picture') %}
-          {% endif %}
-          #}
-          {% set p = states('sensor.motion_detected_picture_${MOTION_CAMERA}') %}
+          {% set p = states('sensor.motion_annotated_picture_${MOTION_CAMERA}') %}
         {% else %}
           {% set p = states('sensor.motion_detected_entity_picture_${MOTION_CAMERA}') %}
         {% endif %}
-        {% if p is defined and p|lower != 'none' and p != 'unknown' and p != 'null' and p|length > 0 %}
+        {% if p is not none and p != 'unknown' and p != 'null' %}
           {{ p }}
         {% else %}
            {{ states('sensor.motion_nosignal_picture') }}
@@ -1448,6 +1473,8 @@
         {% if states('sensor.motion_detected_entity_complete_${MOTION_CAMERA}_statistics') != 'unknown' %}
           {{ states.sensor.motion_detected_entity_complete_${MOTION_CAMERA}_statistics.attributes.change|float }}
         {%- else -%}null{%- endif -%}
+
+# statistics
 - platform: statistics
   name: motion_detected_entity_complete_${MOTION_CAMERA}_statistics
   entity_id: sensor.motion_detected_entity_complete_${MOTION_CAMERA}
