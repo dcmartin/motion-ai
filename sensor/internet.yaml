@@ -1,0 +1,190 @@
+###
+## sensor/internet.yaml
+###
+
+- platform: command_line
+  command: speedtest --json | jq '.date='$(date +%s)'|.latitude=(.client.lat|tonumber)|.longitude=(.client.lon|tonumber)'
+  name: internet_link
+  scan_interval: !secret internet-scan-interval
+  command_timeout: 60
+  json_attributes:
+    - server
+    - latitude
+    - longitude
+    - bytes_sent
+    - bytes_received
+    - client 
+    - date
+    - timestamp
+    - ping
+    - download
+    - upload 
+  value_template: >
+    {%- if value_json is defined -%}
+      {{ value_json.date | timestamp_custom("%a %b %d @ %I:%M %p") }}
+    {%- else -%}null{%- endif -%}
+- platform: template
+  sensors:
+    internet_receive:
+      entity_id:
+        - sensor.internet_link
+      unit_of_measurement: Mbps
+      value_template: >
+        {% if states.sensor.internet_link.attributes.download is defined and states.sensor.internet_link.attributes.download != null %}
+          {{ '%0.2f' | format(states.sensor.internet_link.attributes.download / 1000000.0) }}
+        {%- else -%}null{%- endif -%}
+    internet_send:
+      entity_id:
+        - sensor.internet_link
+      unit_of_measurement: Mbps
+      value_template: >
+        {% if states.sensor.internet_link.attributes.upload is defined and states.sensor.internet_link.attributes.upload != null %}
+          {{ '%0.2f' | format(states.sensor.internet_link.attributes.upload / 1000000.0) }}
+        {%- else -%}null{%- endif -%}
+    internet_receive_mean:
+      entity_id:
+        - sensor.internet_receive_statistics
+      unit_of_measurement: Mbps
+      value_template: >
+        {% if states.sensor.internet_receive_statistics is defined %}
+          {{ states.sensor.internet_receive_statistics.state }}
+        {%- else -%}null{%- endif -%}
+    internet_receive_min_value:
+      entity_id:
+        - sensor.internet_receive_statistics
+      unit_of_measurement: Mbps
+      value_template: >
+        {% if states.sensor.internet_receive_statistics is defined %}
+          {{ states.sensor.internet_receive_statistics.attributes.min_value }}
+        {%- else -%}null{%- endif -%}
+    internet_receive_max_value:
+      entity_id:
+        - sensor.internet_receive_statistics
+      unit_of_measurement: Mbps
+      value_template: >
+        {% if states.sensor.internet_receive_statistics is defined %}
+          {{ states.sensor.internet_receive_statistics.attributes.max_value }}
+        {%- else -%}null{%- endif -%}
+    internet_receive_standard_deviation:
+      entity_id:
+        - sensor.internet_receive_statistics
+      unit_of_measurement: Mbps
+      value_template: >
+        {% if states.sensor.internet_receive_statistics is defined %}
+          {{ states.sensor.internet_receive_statistics.attributes.standard_deviation }}
+        {%- else -%}null{%- endif -%}
+    internet_send_mean:
+      entity_id:
+        - sensor.internet_send_statistics
+      unit_of_measurement: Mbps
+      value_template: >
+        {% if states.sensor.internet_send_statistics is defined %}
+          {{ states.sensor.internet_send_statistics.state }}
+        {%- else -%}null{%- endif -%}
+    internet_send_min_value:
+      entity_id:
+        - sensor.internet_send_statistics
+      unit_of_measurement: Mbps
+      value_template: >
+        {% if states.sensor.internet_send_statistics is defined %}
+          {{ states.sensor.internet_send_statistics.attributes.min_value }}
+        {%- else -%}null{%- endif -%}
+    internet_send_max_value:
+      entity_id:
+        - sensor.internet_send_statistics
+      unit_of_measurement: Mbps
+      value_template: >
+        {% if states.sensor.internet_send_statistics is defined %}
+          {{ states.sensor.internet_send_statistics.attributes.max_value }}
+        {%- else -%}null{%- endif -%}
+    internet_send_standard_deviation:
+      entity_id:
+        - sensor.internet_send_statistics
+      unit_of_measurement: Mbps
+      value_template: >
+        {% if states.sensor.internet_send_statistics is defined %}
+          {{ states.sensor.internet_send_statistics.attributes.standard_deviation }}
+        {%- else -%}null{%- endif -%}
+    internet_state:
+      entity_id:
+        - sensor.internet_ago
+      value_template: >
+        {% if states.sensor.internet_ago.state|int > 30 %}False{% else %}True{% endif %}
+    internet_ago:
+      entity_id:
+        - sensor.internet_link
+        - sun.sun
+      unit_of_measurement: seconds
+      value_template: '{{ (now().timestamp()|int) - (states.sensor.internet_link.attributes.date|int) }}'
+    internet_count:
+      entity_id:
+        - sensor.internet_counter
+      unit_of_measurement: tests
+      value_template: >
+        {% if states.sensor.internet_counter is defined %}
+          {{ states.sensor.internet_counter.state }}
+        {%- else -%}null{%- endif -%}
+    internet_slow_count:
+      entity_id:
+        - sensor.internet_slow_counter
+      unit_of_measurement: tests
+      value_template: >
+        {% if states.sensor.internet_slow_counter is defined %}
+          {{ states.sensor.internet_slow_counter.state }}
+        {%- else -%}null{%- endif -%}
+    internet_fast_count:
+      entity_id:
+        - sensor.internet_fast_counter
+      unit_of_measurement: tests
+      value_template: >
+        {% if states.sensor.internet_fast_counter is defined %}
+          {{ states.sensor.internet_fast_counter.state }}
+        {%- else -%}null{%- endif -%}
+
+- platform: statistics
+  entity_id: sensor.internet_send
+  name: internet_send_statistics
+  sampling_size: 20
+  max_age:
+    hours: 24
+- platform: statistics
+  entity_id: sensor.internet_receive
+  name: internet_receive_statistics
+  sampling_size: 20
+  max_age:
+    hours: 24
+- platform: statistics
+  entity_id: sensor.internet_send_standard_deviation
+  name: internet_send_stdev
+  sampling_size: 120
+  max_age:
+    hours: 24
+- platform: statistics
+  entity_id: sensor.internet_receive_standard_deviation
+  name: internet_receive_stdev
+  sampling_size: 120
+  max_age:
+    hours: 24
+
+- platform: history_stats
+  name: internet_counter
+  entity_id: binary_sensor.internet_state
+  state: 'on'
+  type: count
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+- platform: history_stats
+  name: internet_slow_counter
+  entity_id: binary_sensor.internet_slow
+  state: 'on'
+  type: count
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+- platform: history_stats
+  name: internet_fast_counter
+  entity_id: binary_sensor.internet_fast
+  state: 'on'
+  type: count
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
