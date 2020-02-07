@@ -6,8 +6,24 @@
         - input_number.homeassistant_port
         - input_select.homeassistant_url
       value_template: >-
-        {% if states.input_select.homeassistant_url.state|string == 'local' %}
-          {{ 'http://' + states.sensor.host_lan_ip.attributes.ipv4 + ':' + states.input_number.homeassistant_port.state|int|string }}
-        {% elif states.input_select.homeassistant_url.state|string == 'remote' %}
-          {{ states.sensor.homeassistant_url.state }}
-        {% else %}null{% endif %}
+        {% set type = states('input_select.homeassistant_url') %}
+        {% set port = states('input_number.homeassistant_port') %}
+        {% set lan = state_attr('sensor.host_lan_ip','ipv4') %}
+        {% set wan = state_attr('sensor.host_wan_ip','ipv4') %}
+        {% set url = states('sensor.homeassistant_url') %}
+        {% if type is not none and port is not none %}
+          {% if type == 'local' and lan is not none %}
+            {% set p = 'http://' + lan + ':' + port|int|string %}
+          {% elif type == 'remote' and wan is not none %}
+            {% set p = 'http://' + wan + ':' + port|int|string %}
+          {% endif %}
+        {% endif %}
+        {% if p is  defined %}
+          {{ p }}
+        {% elif url is not none %}
+           {{ url }}
+        {% elif port is not none %}
+           http://localhost:{{- port }}
+        {% else %}
+           http://localhost
+        {% endif %}
