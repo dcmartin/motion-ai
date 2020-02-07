@@ -71,7 +71,7 @@ if [ -s "${DHCPD_CONF}" ]; then
   echo "$(date '+%T') INFO $0 $$ -- over-writing existing ${DHCPD_CONF}"
 fi
 echo 'denyinterfaces wlan0' > "${DHCPD_CONF}"
-echo 'denyinterfaces eth0' > "${DHCPD_CONF}"
+echo 'denyinterfaces eth0' >> "${DHCPD_CONF}"
 echo 'interface wlan0' > "${DHCPD_CONF}"
 echo '  static ip_address=192.168.0.1/24' >> "${DHCPD_CONF}"
 echo '  nohook wpa_supplicant' >> "${DHCPD_CONF}"
