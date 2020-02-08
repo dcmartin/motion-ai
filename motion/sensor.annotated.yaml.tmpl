@@ -29,7 +29,7 @@
     motion_annotated_status:
       friendly_name: Annotated
       entity_id:
-        - sensor.motion_annotated_list
+        - sensor.motion_annotated_counter
         - sensor.motion_annotated_ago
       value_template: >-
         {% set entities = states('sensor.motion_annotated_list') %}
@@ -81,7 +81,7 @@
     motion_annotated_counter:
       friendly_name: Total annotations
       entity_id:
-        - sensor.motion_annotated_count
+        - sensor.motion_annotated_entity_count
       unit_of_measurement: count
       value_template: >
         {% if states('counter.motion_annotated_counter') != 'unknown' %}
@@ -111,7 +111,7 @@
       value_template: >-
         {% set s = states('sensor.motion_annotated_date')|int %}
         {% if s > 0 %}
-          {% set n = now().timestamp() %}
+          {% set n = utcnow().timestamp() %}
           {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}; {{ (n|int-s)|int }} ago
         {% else %}never{% endif %}
 
@@ -229,7 +229,7 @@
   sensors:
     motion_annotated_snapshot:
       entity_id:
-        - sensor.motion_annotated_picture
+        - counter.motion_annotated_counter
       value_template: >-
         {% set c = states('sensor.motion_annotated_camera') %}
         {% if c is not none and c != 'unknown' %}
@@ -257,13 +257,13 @@
         - sensor.motion_annotated_counter
       value_template: >-
         {% set e = state_attr('sensor.motion_event_annotated','event') %}
-        {% if e is defined and e|lower != 'none' and e != 'unknown' and e|length > 0 %}
+        {% if e is not none and e|lower != 'unknown' and e|length > 0 %}
           {% set c = e.camera %}
-          {% if c is defined and c|lower != 'none' and c != 'unknown' and c|length > 0 %}
+          {% if c is not none and c|lower != 'unknown' and c|length > 0 %}
             {% set bu = states('sensor.motion_base_url') %}
-            {# set ep = state_attr('camera.motion_event_annotated_' + c,'entity_picture') #}
-            {% set ep = state_attr('camera.motion_event_annotated','entity_picture') %}
-            {% if ep != 'unknown' and ep != 'null' and ep|length > 0 and bu != 'unknown' %}
+            {# set ep = state_attr('camera.motion_event_annotated','entity_picture') #}
+            {% set ep = state_attr('camera.motion_event_annotated_' + c,'entity_picture') %}
+            {% if ep is not none and bu is not none and ep|lower != 'unknown' and ep|length > 0 and bu|lower != 'unknown' %}
               {% set p = bu + ep %}
             {% else %}
               {% set p = states('sensor.motion_testsignal_picture') %}
@@ -271,6 +271,8 @@
           {% else %}
             {% set p = states('sensor.motion_noisesignal_picture') %}
           {% endif %}
+        {% else %}
+          {% set p = states('sensor.motion_testsignal_picture') %}
         {% endif %}
         {% if p is defined and p|lower != 'none' and p != 'unknown' and p != 'null' and p|length > 0 %}
           {{ p }}
