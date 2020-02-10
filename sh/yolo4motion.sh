@@ -1,35 +1,49 @@
 #!/bin/bash
 
+# calculated
 BUILD_ARCH=$(uname -m | sed -e 's/aarch64.*/arm64/' -e 's/x86_64.*/amd64/' -e 's/armv.*/arm/')
 
-SERVICE='{"name":"'${SERVICE_NAME:-yolomotion}'","arch":"'${ARCH:-${BUILD_ARCH}}'","ports":{"service":'${SERVICE_PORT:-80}',"host":'${HOST_PORT:-4662}'}}'
-MOTION='{"client":"'${MOTION_CLIENT:-${MOTION_DEVICE:-$(hostname)}}'","camera":"'${MOTION_CAMERA:-+}'"}'
+# parameters
+SERVICE='{"label":"'${SERVICE_LABEL:-yolo4motion}'","id":"com.github.dcmartin.open-horizon.yolo4motion","version":"'${SERVICE_VERSION:-0.1.0}'","arch":"'${SERVICE_ARCH:-${BUILD_ARCH}}'","ports":{"service":'${SERVICE_PORT:-80}',"host":'${HOST_PORT:-4662}'}}'
+MOTION='{"group":"'${MOTION_GROUP:-motion}'","client":"'${MOTION_CLIENT:-${MOTION_DEVICE:-$(hostname)}}'","camera":"'${MOTION_CAMERA:-+}'"}'
 MQTT='{"host":"'${MQTT_HOST:-127.0.0.1}'","port":'${MQTT_PORT:-1883}',"username":"'${MQTT_USERNAME:-username}'","password":"'${MQTT_PASSWORD:-password}'"}'
 
-THIS=$(echo "${SERVICE:-null}" | jq -r '.name')
-
-echo "Removing any existing container: ${THIS}" &> /dev/stderr
-docker rm -f ${THIS} &> /dev/null
-
+# notify
 echo 'SERVICE: '$(echo "${SERVICE}" | jq -c '.') &> /dev/stderr
 echo 'MOTION: '$(echo "${MOTION}" | jq -c '.') &> /dev/stderr
 echo 'MQTT: '$(echo "${MQTT}" | jq -c '.') &> /dev/stderr
-echo "Starting new container: ${THIS}" &> /dev/stderr
 
+# specify
+LABEL=$(echo "${SERVICE:-null}" | jq -r '.label')
+ARCH=$(echo "${SERVICE:-null}" | jq -r '.arch')
+VERS=$(echo "${SERVICE:-null}" | jq -r '.version')
+ID=$(echo "${SERVICE:-null}" | jq -r '.id')
+EXT_PORT=$(echo "${SERVICE}" | jq -r '.ports.host')
+INT_PORT=$(echo "${SERVICE}" | jq -r '.ports.service') 
+
+# container name
+NAME=${SERVICE_NAME:-${LABEL}}
+
+# cleanup
+echo "Removing any existing container: ${LABEL}" &> /dev/stderr
+docker rm -f ${NAME} &> /dev/null
+
+# start up
+echo "Starting new container: ${NAME}; id: ${ID}; architecture: ${ARCH}; version: ${VERS}; host: ${EXT_PORT}; service: ${INT_PORT}" &> /dev/stderr
 CID=$(docker run -d \
   --privileged \
-  --name ${THIS} \
+  --name ${NAME} \
   --mount type=tmpfs,destination=/tmpfs,tmpfs-size=81920000,tmpfs-mode=1777 \
-  --publish=$(echo "${SERVICE}" | jq -r '.ports.host'):$(echo "${SERVICE}" | jq -r '.ports.service') \
+  --publish=${EXT_PORT}:${INT_PORT} \
   --restart=unless-stopped \
-  -e SERVICE_LABEL=yolo4motion \
-  -e SERVICE_VERSION=0.1.0 \
-  -e SERVICE_PORT=$(echo "${SERVICE}" | jq -r '.ports.service') \
+  -e SERVICE_LABEL=${LABEL} \
+  -e SERVICE_VERS=${VERS} \
+  -e SERVICE_PORT=${INT_PORT} \
   -e MQTT_HOST=$(echo "${MQTT}" | jq -r '.host') \
   -e MQTT_PORT=$(echo "${MQTT}" | jq -r '.port') \
   -e MQTT_USERNAME=$(echo "${MQTT}" | jq -r '.username') \
   -e MQTT_PASSWORD=$(echo "${MQTT}" | jq -r '.password') \
-  -e MOTION_GROUP=${MOTION_GROUP:-motion} \
+  -e MOTION_GROUP=$(echo "${MOTION}" | jq -r '.group') \
   -e MOTION_CLIENT=$(echo "${MOTION}" | jq -r '.client') \
   -e YOLO4MOTION_CAMERA=$(echo "${MOTION}" | jq -r '.camera') \
   -e YOLO4MOTION_TOPIC_EVENT=event/end \
@@ -44,10 +58,11 @@ CID=$(docker run -d \
   -e LOG_LEVEL=info \
   -e LOGTO=/dev/stderr \
   -e DEBUG=false \
-  dcmartin/${BUILD_ARCH}_com.github.dcmartin.open-horizon.yolo4motion:0.1.0 2> /dev/stderr)
+  "dcmartin/${ARCH}_${ID}:${VERS}" 2> /dev/stderr)
 
+# report
 if [ "${CID:-null}" != 'null' ]; then
-  echo 'Container '${THIS}' started; status: "curl http://localhost:'$(echo "${SERVICE}" | jq -r '.ports.host')'"; id: '"${CID}" &> /dev/stderr
+  echo 'Container '${LABEL}' started; status: "curl http://localhost:'$(echo "${SERVICE}" | jq -r '.ports.host')'"; id: '"${CID}" &> /dev/stderr
 else
-  echo "Container ${THIS} failed" &> /dev/stderr
+  echo "Container ${LABEL} failed" &> /dev/stderr
 fi
