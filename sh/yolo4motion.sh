@@ -4,7 +4,7 @@
 BUILD_ARCH=$(uname -m | sed -e 's/aarch64.*/arm64/' -e 's/x86_64.*/amd64/' -e 's/armv.*/arm/')
 
 # parameters
-SERVICE='{"label":"'${SERVICE_LABEL:-yolo4motion}'","id":"com.github.dcmartin.open-horizon.yolo4motion","version":"'${SERVICE_VERSION:-0.1.0}'","arch":"'${SERVICE_ARCH:-${BUILD_ARCH}}'","ports":{"service":'${SERVICE_PORT:-80}',"host":'${HOST_PORT:-4662}'}}'
+SERVICE='{"label":"yolo4motion","id":"com.github.dcmartin.open-horizon.yolo4motion","version":"'${SERVICE_VERSION:-0.1.0}'","arch":"'${SERVICE_ARCH:-${BUILD_ARCH}}'","ports":{"service":'${SERVICE_PORT:-80}',"host":'${HOST_PORT:-4662}'}}'
 MOTION='{"group":"'${MOTION_GROUP:-motion}'","client":"'${MOTION_CLIENT:-${MOTION_DEVICE:-$(hostname)}}'","camera":"'${MOTION_CAMERA:-+}'"}'
 MQTT='{"host":"'${MQTT_HOST:-127.0.0.1}'","port":'${MQTT_PORT:-1883}',"username":"'${MQTT_USERNAME:-username}'","password":"'${MQTT_PASSWORD:-password}'"}'
 
