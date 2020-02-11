@@ -428,7 +428,6 @@
   value_template: >
     {% if value_json is defined %}True{% else %}False{% endif %}
 
-## status
 - platform: template
   sensors:
     motion_annotated_status_${MOTION_CAMERA}:
@@ -438,12 +437,16 @@
         - sensor.motion_annotated_ago_${MOTION_CAMERA}
       value_template: >-
         {% set count = states('sensor.motion_annotated_count_${MOTION_CAMERA}')|int %}
-        {% set saw = states('sensor.motion_annotated_list_${MOTION_CAMERA}') %}
-        {% set ago = states('sensor.motion_annotated_ago_${MOTION_CAMERA}')|int %}
+        {% set entity_count = states('sensor.motion_annotated_entity_count_${MOTION_CAMERA}')|int %}
+        {% set entities = states('sensor.motion_annotated_list_${MOTION_CAMERA}') %}
+        {% set elapsed = states('sensor.motion_annotated_elapsed_${MOTION_CAMERA}')|int %}
+        {% set end = states('sensor.motion_annotated_date_${MOTION_CAMERA}')|int %}
         {% set delay = states('sensor.motion_annotated_delay_${MOTION_CAMERA}')|int %}
-        {% set when = states('sensor.motion_annotated_when_${MOTION_CAMERA}') %}
-        {% if count > 0 %}{{ count }} entity(s): {{ saw -}};{% else %}nothing;{% endif %}
-        {{ when }}; delay: {{ delay }}; {{ ago }} second(s) ago
+        {% set ago = states('sensor.motion_annotated_ago_${MOTION_CAMERA}')|int %}
+        {% if elapsed > 0 %} {{ elapsed }} {% else %} zero {% endif %} second(s);
+        {% if count > 0 %}{{ count }} detected: {{ entities -}}; {{ entity_count }} entity(s);{% else %}nothing;{% endif %}
+        {{ device -}}/{{- camera }};
+        {{ ago }} second(s) ago
 
 ## count
 - platform: template
@@ -474,18 +477,19 @@
   sensors:
     motion_annotated_entity_count_loop_${MOTION_CAMERA}:
       entity_id:
-        - sensor.motion_annotated_count_${MOTION_CAMERA}
+        - counter.motion_annotated_counter_${MOTION_CAMERA}
       unit_of_measurement: entities
       value_template: >-
-        {% set camera = '${MOTION_CAMERA}' %}
-        {% set count = states('sensor.motion_annotated_count_' + camera)|int %}
-        {% if count > 0 %}
-          {% set s = states('sensor.motion_detect_entity') %}
-          {% for detected in state_attr('sensor.motion_event_annotated_' + camera,'detected') %}
-            {% if detected.entity == s or s == 'all' %}
-              {{ detected.count|int }}
-            {% endif %}
-          {% endfor %}
+        {% set count = states('sensor.motion_annotated_count_${MOTION_CAMERA}') %}
+        {% if count is not none and count|lower != 'unknown' and count != 'null' %}
+          {% set count = count|int %}
+          {% set detected = states('sensor.motion_annotated_detected_${MOTION_CAMERA}') %}
+          {% if detected is not none and detected|lower != 'unknown' and detected|length > 0 %}
+            {% set s = states('sensor.motion_detect_entity') %}
+            {% for d in detected %}
+              {% if d.entity == s or s == 'all' %} {{ d.count|int }} {% endif %}
+            {% endfor %}
+          {% else %}0{% endif %}
         {% else %}null{% endif %}
 
 ## annotated_list
