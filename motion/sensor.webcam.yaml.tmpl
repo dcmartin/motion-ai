@@ -3,13 +3,37 @@
 ###
 
 ###
+# lost/found
+###
+
+- platform: template
+  sensors:
+    motion_status_camera_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} status
+      entity_id:
+        - binary_sensor.motion_status_camera_${MOTION_CAMERA}
+      value_template: >-
+        {% set status= states('sensor.motion_status_camera_${MOTION_CAMERA}') %}
+        {% if status == 'off' %}
+          {% set status = 'lost' %}
+          {% set s = states('sensor.motion_status_camera_lost_date_${MOTION_CAMERA}') %}
+          {% if s is none or s == 'null' %}{% set s = utcnow().timestamp()|int %}{% else %}{% set s = s|int %}{% endif %}
+        {% else %}
+          {% set status = 'found' %}
+          {% set s = states('sensor.motion_status_camera_found_date_${MOTION_CAMERA}') %}
+          {% if s is none or s == 'null' %}{% set s = utcnow().timestamp()|int %}{% else %}{% set s = s|int %}{% endif %}
+        {% endif %}
+        {% set n = utcnow().timestamp()|int %}
+        Camera ${MOTION_CAMERA} {{ status -}}; {{ s|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}; {{ (n-s) }} ago
+
+###
 # found
 ###
 
 - platform: mqtt
   name: motion_status_camera_found_${MOTION_CAMERA}
   state_topic: '${MOTION_GROUP}/${MOTION_CLIENT}/${MOTION_CAMERA}/status/found'
-  expire_after: 86400
+  expire_after: 10
   force_update: true
   json_attributes:
     - device
@@ -35,7 +59,7 @@
 - platform: template
   sensors:
     motion_status_camera_found_when_${MOTION_CAMERA}:
-      friendly_name: ${MOTION_CAMERA} found
+      friendly_name: ${MOTION_CAMERA} found at
       entity_id:
         - sensor.motion_status_camera_found_date_${MOTION_CAMERA}
       value_template: >-
@@ -46,6 +70,80 @@
           {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}; {{ (n|int-s)|int }} ago
         {% else %}null{% endif %} 
 
+## counter
+- platform: template
+  sensors:
+    motion_status_camera_found_counter_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} found counter
+      entity_id:
+        - sensor.motion_status_camera_found_counter_${MOTION_CAMERA}
+      unit_of_measurement: count
+      value_template: >
+        {% if states('counter.motion_status_camera_found_counter_${MOTION_CAMERA}') != 'unknown' %}
+          {{ states('counter.motion_status_camera_found_counter_${MOTION_CAMERA}')|int }}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_status_camera_found_counter_mean_${MOTION_CAMERA}:
+      friendly_name: status_camera_found counter ${MOTION_CAMERA} avg
+      entity_id:
+        - sensor.motion_status_camera_found_counter_statistics
+      unit_of_measurement: count
+      value_template: >-
+        {% if states('sensor.motion_status_camera_found_counter_${MOTION_CAMERA}_statistics') != 'unknown' %}
+          {{ states.sensor.motion_status_camera_found_counter_${MOTION_CAMERA}_statistics.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_status_camera_found_counter_min_value_${MOTION_CAMERA}:
+      friendly_name: status_camera_found counter min
+      entity_id:
+        - sensor.motion_status_camera_found_counter_${MOTION_CAMERA}_statistics
+      unit_of_measurement: count
+      value_template: >-
+        {% if states('sensor.motion_status_camera_found_counter_${MOTION_CAMERA}_statistics') != 'unknown' %}
+          {{ states.sensor.motion_status_camera_found_counter_${MOTION_CAMERA}_statistics.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_status_camera_found_counter_max_value_${MOTION_CAMERA}:
+      friendly_name: status_camera_found counter max
+      entity_id:
+        - sensor.motion_status_camera_found_counter_${MOTION_CAMERA}_statistics
+      unit_of_measurement: count
+      value_template: >-
+        {% if states('sensor.motion_status_camera_found_counter_statistics') != 'unknown' %}
+          {{ states.sensor.motion_status_camera_found_counter_${MOTION_CAMERA}_statistics.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_status_camera_found_counter_stdev_${MOTION_CAMERA}:
+      friendly_name: status_camera_found counter stdev
+      entity_id:
+        - sensor.motion_status_camera_found_counter_${MOTION_CAMERA}_statistics
+      unit_of_measurement: count
+      value_template: >
+        {% if states('sensor.motion_status_camera_found_counter_statistics') != 'unknown' %}
+          {{ states.sensor.motion_status_camera_found_counter_${MOTION_CAMERA}_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_status_camera_found_counter_change_${MOTION_CAMERA}:
+      friendly_name: status_camera_found counter change
+      entity_id:
+        - sensor.motion_status_camera_found_counter_${MOTION_CAMERA}_statistics
+      unit_of_measurement: count
+      value_template: >
+        {% if states('sensor.motion_status_camera_found_counter_statistics') != 'unknown' %}
+          {{ states.sensor.motion_status_camera_found_counter_statistics.attributes.change|float }}
+        {%- else -%}null{%- endif -%}
+
+- platform: statistics
+  name: motion_status_camera_found_counter_${MOTION_CAMERA}_statistics
+  entity_id: sensor.motion_status_camera_found_counter_${MOTION_CAMERA}
+  sampling_size: 1000
+  max_age:
+    hours: 72
+- platform: statistics
+  name: motion_status_camera_found_counter_stdev_${MOTION_CAMERA}_statistics
+  entity_id: sensor.motion_status_camera_found_counter_stdev_${MOTION_CAMERA}
+  sampling_size: 1000
+  max_age:
+    hours: 72
+
 ###
 # lost
 ###
@@ -53,7 +151,7 @@
 - platform: mqtt
   name: motion_status_camera_lost_${MOTION_CAMERA}
   state_topic: '${MOTION_GROUP}/${MOTION_CLIENT}/${MOTION_CAMERA}/status/lost'
-  expire_after: 86400
+  expire_after: 10
   force_update: true
   json_attributes:
     - device
@@ -63,7 +161,6 @@
   value_template: >
     {% if value_json is defined %}True{% else %}False{% endif %}
 
-## dates
 - platform: template
   sensors:
     motion_status_camera_lost_date_${MOTION_CAMERA}:
@@ -79,7 +176,7 @@
 - platform: template
   sensors:
     motion_status_camera_lost_when_${MOTION_CAMERA}:
-      friendly_name: ${MOTION_CAMERA} lost
+      friendly_name: ${MOTION_CAMERA} lost at
       entity_id:
         - sensor.motion_status_camera_lost_date_${MOTION_CAMERA}
       value_template: >-
@@ -90,6 +187,80 @@
           {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}; {{ (n|int-s)|int }} ago
         {% else %}null{% endif %} 
 
+## counter
+- platform: template
+  sensors:
+    motion_status_camera_lost_counter_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} lost counter
+      entity_id:
+        - sensor.motion_status_camera_lost_counter_${MOTION_CAMERA}
+      unit_of_measurement: count
+      value_template: >
+        {% if states('counter.motion_status_camera_lost_counter_${MOTION_CAMERA}') != 'unknown' %}
+          {{ states('counter.motion_status_camera_lost_counter_${MOTION_CAMERA}')|int }}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_status_camera_lost_counter_mean_${MOTION_CAMERA}:
+      friendly_name: status_camera_lost counter ${MOTION_CAMERA} avg
+      entity_id:
+        - sensor.motion_status_camera_lost_counter_statistics
+      unit_of_measurement: count
+      value_template: >-
+        {% if states('sensor.motion_status_camera_lost_counter_${MOTION_CAMERA}_statistics') != 'unknown' %}
+          {{ states.sensor.motion_status_camera_lost_counter_${MOTION_CAMERA}_statistics.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_status_camera_lost_counter_min_value_${MOTION_CAMERA}:
+      friendly_name: status_camera_lost counter min
+      entity_id:
+        - sensor.motion_status_camera_lost_counter_${MOTION_CAMERA}_statistics
+      unit_of_measurement: count
+      value_template: >-
+        {% if states('sensor.motion_status_camera_lost_counter_${MOTION_CAMERA}_statistics') != 'unknown' %}
+          {{ states.sensor.motion_status_camera_lost_counter_${MOTION_CAMERA}_statistics.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_status_camera_lost_counter_max_value_${MOTION_CAMERA}:
+      friendly_name: status_camera_lost counter max
+      entity_id:
+        - sensor.motion_status_camera_lost_counter_${MOTION_CAMERA}_statistics
+      unit_of_measurement: count
+      value_template: >-
+        {% if states('sensor.motion_status_camera_lost_counter_statistics') != 'unknown' %}
+          {{ states.sensor.motion_status_camera_lost_counter_${MOTION_CAMERA}_statistics.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_status_camera_lost_counter_stdev_${MOTION_CAMERA}:
+      friendly_name: status_camera_lost counter stdev
+      entity_id:
+        - sensor.motion_status_camera_lost_counter_${MOTION_CAMERA}_statistics
+      unit_of_measurement: count
+      value_template: >
+        {% if states('sensor.motion_status_camera_lost_counter_statistics') != 'unknown' %}
+          {{ states.sensor.motion_status_camera_lost_counter_${MOTION_CAMERA}_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_status_camera_lost_counter_change_${MOTION_CAMERA}:
+      friendly_name: status_camera_lost counter change
+      entity_id:
+        - sensor.motion_status_camera_lost_counter_${MOTION_CAMERA}_statistics
+      unit_of_measurement: count
+      value_template: >
+        {% if states('sensor.motion_status_camera_lost_counter_statistics') != 'unknown' %}
+          {{ states.sensor.motion_status_camera_lost_counter_statistics.attributes.change|float }}
+        {%- else -%}null{%- endif -%}
+
+- platform: statistics
+  name: motion_status_camera_lost_counter_${MOTION_CAMERA}_statistics
+  entity_id: sensor.motion_status_camera_lost_counter_${MOTION_CAMERA}
+  sampling_size: 1000
+  max_age:
+    hours: 72
+- platform: statistics
+  name: motion_status_camera_lost_counter_stdev_${MOTION_CAMERA}_statistics
+  entity_id: sensor.motion_status_camera_lost_counter_stdev_${MOTION_CAMERA}
+  sampling_size: 1000
+  max_age:
+    hours: 72
+
 ###
 # start event
 ###
@@ -98,7 +269,7 @@
   name: motion_event_start_${MOTION_CAMERA}
   qos: 1
   state_topic: '${MOTION_GROUP}/${MOTION_CLIENT}/${MOTION_CAMERA}/event/start'
-  expire_after: 30
+  expire_after: 10
   force_update: true
   json_attributes:
     - device

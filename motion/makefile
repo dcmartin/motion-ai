@@ -84,8 +84,8 @@ MOTION_YAML := \
 	sensor/end.yaml \
 	sensor/annotated.yaml \
 	sensor/device_start.yaml \
-	sensor/camera_lost.yaml \
-	sensor/camera_found.yaml \
+	sensor/lost.yaml \
+	sensor/found.yaml \
 	camera/end.yaml \
 	camera/annotated.yaml
 
