@@ -21,7 +21,7 @@ for WID in ${WEBCAM_SENSORS}; do
 done
 
 ## BINARY_SENSORS
-WEBCAM_BINARY_SENSORS='motion_end motion_annotated motion_detected motion_detected_entity'
+WEBCAM_BINARY_SENSORS='motion_status_camera motion_end motion_annotated motion_detected motion_detected_entity'
 
 for WID in ${WEBCAM_BINARY_SENSORS}; do
   echo "#"
