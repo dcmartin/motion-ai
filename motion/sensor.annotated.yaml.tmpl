@@ -32,20 +32,17 @@
         - sensor.motion_annotated_when
         - sensor.motion_annotated_ago
       value_template: >-
+        {% set count = states('sensor.motion_annotated_count')|int %}
+        {% set entity_count = states('sensor.motion_annotated_entity_count')|int %}
         {% set entities = states('sensor.motion_annotated_list') %}
-        {% set count = state_attr('sensor.motion_event_annotated','count')|int %}
-        {% set event = state_attr('sensor.motion_event_annotated','event') %}
-        {% if event is not none and event != 'null' %}
-          {% set device = event.device %}
-          {% set camera = event.camera %}
-          {% set elapsed = event.elapsed %}
-          {% set end = event.end %}
-          {% set ago = utcnow().timestamp()|int - end %}
-          {% if elapsed > 0 %} {{ elapsed }} {% else %} zero {% endif %} second(s);
-          {% if count > 0 %}{{ count }} entity(s): {{ entities -}};{% else %}nothing;{% endif %}
-          {{ device -}}/{{- camera }};
-          {{ ago }} second(s) ago
-        {% else %}No status{% endif %}
+        {% set elapsed = states('sensor.motion_annotated_elapsed')|int %}
+        {% set end = states('sensor.motion_annotated_date')|int %}
+        {% set delay = states('sensor.motion_annotated_delay')|int %}
+        {% set ago = states('sensor.motion_annotated_ago')|int %}
+        {% if elapsed > 0 %} {{ elapsed }} {% else %} zero {% endif %} second(s);
+        {% if count > 0 %}{{ count }} detected: {{ entities -}}; {{ entity_count }} entity(s);{% else %}nothing;{% endif %}
+        {{ device -}}/{{- camera }};
+        {{ ago }} second(s) ago
 
 ## count
 - platform: template
@@ -66,17 +63,19 @@
   sensors:
     motion_annotated_entity_count_loop:
       entity_id:
-        - sensor.motion_annotated_count
+        - counter.motion_annotated_counter
       unit_of_measurement: entities
       value_template: >-
-        {% set count = states('sensor.motion_annotated_count')|int %}
-        {% if count > 0 %}
-          {% set s = states('sensor.motion_detect_entity') %}
-          {% for detected in state_attr('sensor.motion_event_annotated','detected') %}
-            {% if detected.entity == s or s == 'all' %}
-              {{ detected.count|int }}
-            {% endif %}
-          {% endfor %}
+        {% set count = states('sensor.motion_annotated_count') %}
+        {% if count is not none and count|lower != 'unknown' and count != 'null' %}
+          {% set count = count|int %}
+          {% set detected = states('sensor.motion_annotated_detected') %}
+          {% if detected is not none and detected|lower != 'unknown' and detected|length > 0 %}
+            {% set s = states('sensor.motion_detect_entity') %}
+            {% for d in detected %}
+              {% if d.entity == s or s == 'all' %} {{ d.count|int }} {% endif %}
+            {% endfor %}
+          {% else %}0{% endif %}
         {% else %}null{% endif %}
 
 ## entity_count
