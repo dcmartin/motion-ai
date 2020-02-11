@@ -26,6 +26,7 @@ for E in ${WEBCAM_EVENTS}; do
       echo "  hours_to_show: 24"
       echo "  refresh: 30"
       echo "  entities:"
+      echo "      - sensor.motion_${E}_${A}${MM}"
       for C in ${WEBCAMS}; do
         echo "    - sensor.motion_${E}_${A}_${C}${MM}"
       done
