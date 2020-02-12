@@ -19,7 +19,7 @@
         {% set what = states('sensor.motion_annotated_list') %}
         {{ count }} {{ what }}; from {{ device -}}/{{- camera }} at {{ when -}}; {{ ago }} seconds ago
 
-## entity count
+## count
 - platform: template
   sensors:
     motion_detected_count:
@@ -29,6 +29,33 @@
       unit_of_measurement: entities
       value_template: >-
         {{ states('sensor.motion_annotated_count')|int }}
+
+## entity count
+- platform: template
+  sensors:
+    motion_detected_count_entity:
+      friendly_name: Detected entities
+      entity_id:
+        - sensor.motion_detected_count_entity_loop
+      unit_of_measurement: entities
+      value_template: >-
+        {{ states('sensor.motion_detected_count_entity_loop')|int }}
+
+## count_entity loop 
+- platform: template
+  sensors:
+    motion_detected_count_entity_loop:
+      entity_id:
+        - counter.motion_detected_counter
+      unit_of_measurement: entities
+      value_template: >-
+        {% set detected = state_attr('sensor.motion_event_annotated','detected') %}
+        {% if detected is not none and detected|lower != 'unknown' and detected|length > 0 %}
+          {% set s = states('sensor.motion_detect_entity') %}
+          {% for d in detected %}
+            {% if d.entity == s or s == 'all' %} {{ d.count|int }} {% endif %}
+          {% endfor %}
+        {% else %}0{% endif %}
 
 ## counter
 - platform: template
@@ -103,6 +130,16 @@
           {% set s = utcnow().timestamp()|int - s %}
           {% if s < 86400 %}{{ s }}{%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif -%}
+
+## detected
+- platform: template
+  sensors:
+    motion_detected_array:
+      friendly_name: Detected array
+      entity_id:
+        - counter.motion_detected_counter
+      value_template: >-
+        {{ states('sensor.motion_annotated_detected') }}
 
 ## detected_list
 - platform: template
