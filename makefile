@@ -18,7 +18,7 @@ AUTOMATION_yolo2msghub := $(if $(wildcard AUTOMATION_yolo2msghub),$(shell v=$$(c
 AUTOMATION_highlow := $(if $(wildcard AUTOMATION_highlow),$(shell v=$$(cat AUTOMATION_highlow) && echo "** SPECIFIED: AUTOMATION_highlow: $${v}" > /dev/stderr && echo "$${v}"),$(shell echo "!! UNSPECIFIED: AUTOMATION_highlow unset; default: off" > /dev/stderr && echo "off"))
 
 # domain
-DOMAIN_NAME := $(if $(wildcard DOMAIN_NAME),$(shell v=$$(cat DOMAIN_NAME) && echo "** SPECIFIED: DOMAIN_NAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="local" && echo "!! UNSPECIFIED: DOMAIN_NAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+DOMAIN_NAME := $(if $(wildcard DOMAIN_NAME),$(shell v=$$(cat DOMAIN_NAME) && echo "** SPECIFIED: DOMAIN_NAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(domainname) && v=$${v:-local} && echo "!! UNSPECIFIED: DOMAIN_NAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 # host
 HOST_NAME := $(if $(wildcard HOST_NAME),$(shell v=$$(cat HOST_NAME) && echo "** SPECIFIED: HOST_NAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(hostname -f) && v=$${v%%.*} && echo "!! UNSPECIFIED: HOST_NAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
@@ -103,6 +103,7 @@ $(MOTION_DIRS):
 $(PACKAGES): makefile
 	@echo "making $@"
 	@export \
+	  DOMAIN_NAME="$(DOMAIN_NAME)" \
 	  HOST_NAME="$(HOST_NAME)" \
 	  MQTT_HOST="$(MQTT_HOST)" \
 	  MQTT_PORT="$(MQTT_PORT)" \
