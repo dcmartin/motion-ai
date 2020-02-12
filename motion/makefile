@@ -5,19 +5,19 @@
 SHELL := /bin/bash
 
 ## TOP-LEVEL
-MOTION_TLD := dcmartin.com
-MOTION_GROUP ?= motion
+DOMAIN_NAME := $(if $(DOMAIN_NAME),$(shell v=$(DOMAIN_NAME) && echo "-- INFO: DOMAIN_NAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(domainname) && v=$${v:-local}  && echo "++ WARN: DOMAIN_NAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MOTION_GROUP := $(if $(MOTION_GROUP),$(shell v=$(MOTION_GROUP) && echo "-- INFO: MOTION_GROUP: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(echo "motion") && echo "++ WARN: MOTION_GROUP unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MOTION_DEVICE := $(if $(MOTION_DEVICE),$(shell v=$(MOTION_DEVICE) && echo "-- INFO: MOTION_DEVICE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(echo "$${HOST_NAME:-$$(hostname)}" | sed 's/[\#+ \/]/_/g') && echo "++ WARN: MOTION_DEVICE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MOTION_CLIENT := $(if $(MOTION_CLIENT),$(shell v=$(MOTION_CLIENT) && echo "-- INFO: MOTION_CLIENT: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(echo "$${HOST_NAME:-$$(hostname)}" | sed 's/[\#+ \/]/_/g') && echo "++ WARN: MOTION_CLIENT unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 ## MQTT
-MQTT_HOST := $(if $(MQTT_HOST),$(shell v=$(MQTT_HOST) && echo "-- INFO: MQTT_HOST: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=mqtt.${MOTION_TLD} && echo "++ WARN: MQTT_HOST unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MQTT_HOST := $(if $(MQTT_HOST),$(shell v=$(MQTT_HOST) && echo "-- INFO: MQTT_HOST: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=mqtt.${DOMAIN_NAME} && echo "++ WARN: MQTT_HOST unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MQTT_PORT := $(if $(MQTT_PORT),$(shell v=$(MQTT_PORT) && echo "-- INFO: MQTT_PORT: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='1883' && echo "++ WARN: MQTT_PORT unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MQTT_USERNAME := $(if $(MQTT_USERNAME),$(shell v=$(MQTT_USERNAME) && echo "-- INFO: MQTT_USERNAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='username' && echo "++ WARN: MQTT_USERNAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MQTT_PASSWORD := $(if $(MQTT_PASSWORD),$(shell v=$(MQTT_PASSWORD) && echo "-- INFO: MQTT_PASSWORD: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='password' && echo "++ WARN: MQTT_PASSWORD unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 ## COUCHDB
-MOTION_COUCHDB_HOST := $(MOTION_COUCHDB_HOST:-couchdb.$(MOTION_TLD))
+MOTION_COUCHDB_HOST := $(MOTION_COUCHDB_HOST:-couchdb.$(DOMAIN_NAME))
 MOTION_COUCHDB_USERNAME := $(MOTION_COUCHDB_USERNAME:-username)
 MOTION_COUCHDB_PASSWORD := $(MOTION_COUCHDB_PASSWORD:-password)
 
@@ -230,7 +230,7 @@ $(WEBCAM_SENSORS): $(WEBCAM_SENSOR_TEMPLATE) makefile ${WEBCAMS_JSON}
 motion-addon.json: motion-addon.json.tmpl makefile ${WEBCAMS_JSON}
 	@echo "making $@"
 	@export \
-	   MOTION_TLD="${MOTION_TLD}" \
+	   DOMAIN_NAME="${DOMAIN_NAME}" \
 	   MOTION_GROUP="${MOTION_GROUP}" \
 	   MOTION_DEVICE="${MOTION_DEVICE}" \
 	   MOTION_CLIENT="${MOTION_CLIENT}" \
