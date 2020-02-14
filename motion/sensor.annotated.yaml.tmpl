@@ -55,12 +55,26 @@
       friendly_name: Annotated count
       entity_id:
         - sensor.motion_event_annotated
+        - sensor.motion_annotated_ago
       unit_of_measurement: entities
       value_template: >
-        {% set n = state_attr('sensor.motion_event_annotated','count') %}
-        {% if n is not none and n|lower != 'unknown' %}
-          {{ n|int }}
+        {% if states('sensor.motion_annotated_ago')|int < states('input_number.motion_annotated_ago')|int %}
+          {{ state_attr('sensor.motion_event_annotated','count')|int }}
         {% else %}null{% endif %}
+
+## entity_count
+- platform: template
+  sensors:
+    motion_annotated_entity_count:
+      friendly_name: Annotated entity count
+      entity_id:
+        - sensor.motion_annotated_entity_count_loop
+        - sensor.motion_annotated_ago
+      unit_of_measurement: entities
+      value_template: >-
+        {% if states('sensor.motion_annotated_ago')|int < states('input_number.motion_annotated_ago')|int %}
+          {{ states('sensor.motion_annotated_entity_count_loop')|int }}
+        {%- else -%}null{%- endif -%}
 
 ## entity_count_loop
 - platform: template
@@ -77,17 +91,6 @@
             {% if d.entity == s or s == 'all' %} {{ d.count|int }} {% endif %}
           {% endfor %}
         {% else %}0{% endif %}
-
-## entity_count
-- platform: template
-  sensors:
-    motion_annotated_entity_count:
-      friendly_name: Annotated entity count
-      entity_id:
-        - sensor.motion_annotated_entity_count_loop
-      unit_of_measurement: entities
-      value_template: >-
-        {{ states('sensor.motion_annotated_entity_count_loop')|int }}
 
 ## counter
 - platform: template
@@ -271,15 +274,15 @@
     motion_annotated_picture:
       entity_id:
         - camera.motion_event_annotated
-        - sensor.motion_annotated_counter
+        - counter.motion_annotated_counter
       value_template: >-
         {% set e = state_attr('sensor.motion_event_annotated','event') %}
         {% if e is not none and e|lower != 'unknown' and e|length > 0 %}
           {% set c = e.camera %}
           {% if c is not none and c|lower != 'unknown' and c|length > 0 %}
             {% set bu = states('sensor.motion_base_url') %}
-            {# set ep = state_attr('camera.motion_event_annotated','entity_picture') #}
-            {% set ep = state_attr('camera.motion_event_annotated_' + c,'entity_picture') %}
+            {% set ep = state_attr('camera.motion_event_annotated','entity_picture') %}
+            {# set ep = state_attr('camera.motion_event_annotated_' + c,'entity_picture') #}
             {% if ep is not none and bu is not none and ep|lower != 'unknown' and ep|length > 0 and bu|lower != 'unknown' %}
               {% set p = bu + ep %}
             {% else %}
@@ -288,8 +291,6 @@
           {% else %}
             {% set p = states('sensor.motion_noisesignal_picture') %}
           {% endif %}
-        {% else %}
-          {% set p = states('sensor.motion_testsignal_picture') %}
         {% endif %}
         {% if p is defined and p|lower != 'none' and p != 'unknown' and p != 'null' and p|length > 0 %}
           {{ p }}
