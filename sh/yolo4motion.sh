@@ -5,14 +5,16 @@ BUILD_ARCH=$(uname -m | sed -e 's/aarch64.*/arm64/' -e 's/x86_64.*/amd64/' -e 's
 
 # parameters
 SERVICE='{"label":"yolo4motion","id":"com.github.dcmartin.open-horizon.yolo4motion","version":"'${SERVICE_VERSION:-0.1.0}'","arch":"'${SERVICE_ARCH:-${BUILD_ARCH}}'","ports":{"service":'${SERVICE_PORT:-80}',"host":'${HOST_PORT:-4662}'}}'
-MOTION='{"group":"'${MOTION_GROUP:-motion}'","client":"'${MOTION_CLIENT:-${MOTION_DEVICE:-$(hostname)}}'","camera":"'${MOTION_CAMERA:-+}'"}'
+MOTION='{"group":"'${MOTION_GROUP:-motion}'","client":"'${MOTION_CLIENT:-+}'","camera":"'${MOTION_CAMERA:-+}'"}'
 MQTT='{"host":"'${MQTT_HOST:-$(hostname -I | awk '{ print $1 }')}'","port":'${MQTT_PORT:-1883}',"username":"'${MQTT_USERNAME:-username}'","password":"'${MQTT_PASSWORD:-password}'"}'
+YOLO='{"config":"'${YOLO_CONFIG:-tiny}'","entity":"'${YOLO_ENTITY:-all}'","scale":"'${YOLO_SCALE:-none}'","threshold":'${YOLO_THRESHOLD:-0.25}'}'
 DEBUG='{"debug":'${DEBUG:-false}',"level":"'"${LOG_LEVEL:-info}"'","logto":"'"${LOGTO:-/dev/stderr}"'"}'
 
 # notify
 echo 'SERVICE: '$(echo "${SERVICE}" | jq -c '.') &> /dev/stderr
 echo 'MOTION: '$(echo "${MOTION}" | jq -c '.') &> /dev/stderr
 echo 'MQTT: '$(echo "${MQTT}" | jq -c '.') &> /dev/stderr
+echo 'YOLO: '$(echo "${YOLO}" | jq -c '.') &> /dev/stderr
 echo 'DEBUG: '$(echo "${DEBUG}" | jq -c '.') &> /dev/stderr
 
 # specify
@@ -52,14 +54,14 @@ CID=$(docker run -d \
   -e YOLO4MOTION_TOPIC_PAYLOAD=image/end \
   -e YOLO4MOTION_USE_MOCK=false \
   -e YOLO4MOTION_TOO_OLD=300 \
-  -e YOLO_CONFIG=tiny \
-  -e YOLO_ENTITY=all \
-  -e YOLO_SCALE=none \
-  -e YOLO_THRESHOLD=0.25 \
+  -e YOLO_CONFIG=$(echo "${YOLO}" | jq -r '.config') \
+  -e YOLO_ENTITY=$(echo "${YOLO}" | jq -r '.entity') \
+  -e YOLO_SCALE=$(echo "${YOLO}" | jq -r '.scale') \
+  -e YOLO_THRESHOLD=$(echo "${YOLO}" | jq -r '.threshold') \
   -e YOLO_PERIOD=60 \
-  -e LOG_LEVEL=debug \
-  -e LOGTO=/dev/stderr \
-  -e DEBUG=true\
+  -e LOG_LEVEL=$(echo "${DEBUG}" | jq -r '.level') \
+  -e LOGTO=$(echo "${DEBUG}" | jq -r '.logto') \
+  -e DEBUG=$(echo "${DEBUG}" | jq -r '.debug') \
   "dcmartin/${ARCH}_${ID}:${VERS}" 2> /dev/stderr)
 
 # report
@@ -68,4 +70,4 @@ if [ "${CID:-null}" != 'null' ]; then
 else
   echo "Container ${LABEL} failed" &> /dev/stderr
 fi
-echo '{"name":"'${NAME}'","id":"'${CID:-null}'","service":'"${SERVICE}"',"motion":'"${MOTION}"',"mqtt":'"${MQTT}"',"debug":'"${DEBUG}"'}' | jq
+echo '{"name":"'${NAME}'","id":"'${CID:-null}'","service":'"${SERVICE}"',"motion":'"${MOTION}"',"yolo":'"${YOLO}"',"mqtt":'"${MQTT}"',"debug":'"${DEBUG}"'}' | jq
