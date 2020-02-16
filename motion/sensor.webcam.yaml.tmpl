@@ -542,10 +542,13 @@
         - sensor.motion_annotated_counter_${MOTION_CAMERA}
       unit_of_measurement: seconds
       value_template: >-
-        {% if  state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event') is not none %}
-          {% set date = states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.event.end|int %}
-          {% if date > 0 %}{{ date }}{% else %}null{% endif %}
-        {% else %}null{% endif %}
+        {% set e = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event') %}
+        {% if e is not none and e|lower != 'unknown' and e != 'null' %}
+          {% set s = e.end %}
+          {% if s is not none and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
+            {{ s|int }}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
 
 ## when
 - platform: template
@@ -577,20 +580,6 @@
           {% if s <  86400 %}{{ s }}{%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif -%}
 
-## percent
-- platform: template
-  sensors:
-    motion_annotated_percent_${MOTION_CAMERA}:
-      friendly_name: ${MOTION_CAMERA} annotated percent
-      entity_id:
-        - sensor.motion_end_counter_${MOTION_CAMERA}
-        - sensor.motion_annotated_counter_${MOTION_CAMERA}
-      unit_of_measurement: '%'
-      value_template: >-
-        {% if states('sensor.motion_annotated_counter_${MOTION_CAMERA}')|int > 0 and states('sensor.motion_end_counter_${MOTION_CAMERA}')|int > 0 %}
-          {{  ( states.sensor.motion_annotated_counter_${MOTION_CAMERA}.state|int / states.sensor.motion_end_counter_${MOTION_CAMERA}.state|int ) * 100.0 }}
-        {%- else -%}null{%- endif -%}
-
 ## elapsed
 - platform: template
   sensors:
@@ -600,9 +589,12 @@
         - counter.motion_annotated_counter_${MOTION_CAMERA}
       unit_of_measurement: seconds
       value_template: >
-        {% set s = states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.event.elapsed %}
-        {% if s is not none and s|lower != 'unknown' and s is not null %}
-          {{ s|int }}
+        {% set e = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event') %}
+        {% if e is not none and e|lower != 'unknown' and e != 'null' %}
+          {% set s = e.elapsed %}
+          {% if s is not none and s|lower != 'unknown' and s != 'null' %}
+            {{ s|int }}
+          {%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif -%}
 
 ## delay
@@ -615,8 +607,22 @@
       unit_of_measurement: seconds
       value_template: >
         {% set s = states('sensor.motion_annotated_date_${MOTION_CAMERA}') %}
-        {% if s is not none and s|lower != 'unknown' and s is not null %}
+        {% if s is not none and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
           {{ utcnow().timestamp()|int - s|int }}
+        {%- else -%}null{%- endif -%}
+
+## percent
+- platform: template
+  sensors:
+    motion_annotated_percent_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} annotated percent
+      entity_id:
+        - sensor.motion_end_counter_${MOTION_CAMERA}
+        - sensor.motion_annotated_counter_${MOTION_CAMERA}
+      unit_of_measurement: '%'
+      value_template: >-
+        {% if states('sensor.motion_annotated_counter_${MOTION_CAMERA}')|int > 0 and states('sensor.motion_end_counter_${MOTION_CAMERA}')|int > 0 %}
+          {{  ( states.sensor.motion_annotated_counter_${MOTION_CAMERA}.state|int / states.sensor.motion_end_counter_${MOTION_CAMERA}.state|int ) * 100.0 }}
         {%- else -%}null{%- endif -%}
 
 ###
