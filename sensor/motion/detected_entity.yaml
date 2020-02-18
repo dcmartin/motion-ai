@@ -28,7 +28,7 @@
       unit_of_measurement: entities
       value_template: >
         {% if is_state('binary_sensor.motion_detected_entity_expired','off') %}
-          {% set s = states('sensor.motion_detected_count_entity') %}
+          {% set s = states('sensor.motion_annotated_count_entity') %}
           {% if s is not none and s|lower != 'unknown' and s != 'null' %}
             {{ s|int }}
           {% else %}null{% endif %}
@@ -54,7 +54,7 @@
       entity_id:
         - counter.motion_detected_entity_counter
       value_template: >-
-        {{ states('sensor.motion_detected_device') }}
+        {{ state_attr('sensor.motion_event_annotated','event').device }}
 
 ## camera
 - platform: template
@@ -64,7 +64,7 @@
       entity_id:
         - counter.motion_detected_entity_counter
       value_template: >-
-        {{ states('sensor.motion_detected_camera') }}
+        {{ state_attr('sensor.motion_event_annotated','event').camera }}
 
 ## date
 - platform: template
@@ -74,7 +74,7 @@
         - sensor.motion_detected_entity_counter
       unit_of_measurement: seconds
       value_template: >-
-        {{ states('sensor.motion_detected_date')|int }}
+        {{ state_attr('sensor.motion_event_annotated','event').end|int }}
 
 ## when - human readable
 - platform: template
@@ -114,7 +114,7 @@
       entity_id:
         - counter.motion_detected_entity_counter
       value_template: >-
-        {{ states('sensor.motion_detected_list') }}
+        {{ states('sensor.motion_annotated_list') }}
 
 ## percent
 - platform: template
@@ -137,15 +137,15 @@
 - platform: template
   sensors:
     motion_detected_entity_snapshot:
-      friendly_name: Detected snapshot
+      friendly_name: Detected entity snapshot
       entity_id:
-        - sensor.motion_detected_entity_camera
+        - counter.motion_detected_entity_counter
       value_template: >-
         {% set bu = states('sensor.motion_base_url') %}
-        {% if bu != 'unknown' %}
+        {% if bu is not none and bu != 'unknown' %}
           {% set p = bu + '/local/images/motion_detected_entity.jpg' %}
         {% endif %}
-        {% if p is defined and p|lower != 'none' and p != 'unknown' and p != 'null' and p|length > 0 %}
+        {% if p is defined and p is not none and p|lower != 'unknown' and p|length > 0 %}
           {{ p }}
         {% else %}
           {{ states('sensor.motion_nosignal_picture') }}
@@ -157,18 +157,15 @@
     motion_detected_entity_picture:
       friendly_name: Detected entity picture
       entity_id:
-        #- sensor.motion_detected_picture
         - counter.motion_detected_entity_counter
       value_template: >-
-        {% if is_state('binary_sensor.motion_detected_entity','on') %}
-          {% set ep = state_attr('camera.motion_event_annotated','entity_picture') %}
-          {% if ep is not none and bu is not none and ep|lower != 'unknown' and ep|length > 0 %}
-            {% set bu = states('sensor.motion_base_url') %}
-            {% if bu is not none and bu|lower != 'unknown' %}
-              {% set p = bu + ep %}
-            {% else %}
-              {% set p = states('sensor.motion_noisesignal_picture') %}
-            {% endif %}
+        {% set ep = state_attr('camera.motion_event_annotated','entity_picture') %}
+        {% if ep is not none and ep|lower != 'unknown' and ep|length > 0 %}
+          {% set bu = states('sensor.motion_base_url') %}
+          {% if bu is not none and bu|lower != 'unknown' %}
+            {% set p = bu + ep %}
+          {% else %}
+            {% set p = states('sensor.motion_noisesignal_picture') %}
           {% endif %}
         {% endif %}
         {% if p is defined and p is not none and p|lower != 'unknown' and p|length > 0 %}
