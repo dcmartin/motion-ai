@@ -1,5 +1,5 @@
 ###
-### detected_entity SENSOR
+## motion/sensor/detected_entity.yaml
 ###
 
 ## human readable status
@@ -8,14 +8,21 @@
     motion_detected_entity_status:
       friendly_name: Found
       entity_id:
-        - sensor.motion_detected_entity_when
+        - counter.motion_detected_entity_counter
       value_template: >-
-        {% set device = states('sensor.motion_detected_entity_device') %}
-        {% set camera = states('sensor.motion_detected_entity_camera') %}
-        {% set count = states('sensor.motion_detected_entity_count')|int %}
-        {% set when = states('sensor.motion_detected_entity_when') %}
-        {% set what = states('sensor.motion_detect_entity') %}
-        {{ count }} {{ what }}; from {{ device -}}/{{- camera }}; at {{ when -}}
+        Counter: {{ states('counter.motion_detected_entity_counter') -}};
+        {% set e = state_attr('sensor.motion_event_annotated','event') %}
+        {% if e is not none and e|lower != 'unknown' and e|length > 0 %}
+          {% set when = e.end|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
+          {% set what = states('sensor.motion_detect_entity') %}
+          {% set detected = state_attr('sensor.motion_event_annotated','detected') %}
+          {% if detected is not none and detected|lower != 'unknown' and detected|length > 0 %}
+            {%- for d in detected -%}
+              {%- if d.entity == what or what == 'all' -%} {{ d.count|int }} {%- endif -%}
+            {%- endfor %}
+          {% else %}Zero{% endif %}
+          {{ what }}; from {{ e.device -}}/{{- e.camera -}}/{{- e.event -}}; at {{ when }}
+        {% else %}NO STATUS{% endif %}
 
 ## count
 - platform: template
@@ -40,7 +47,7 @@
     motion_detected_entity_counter:
       friendly_name: Found counter
       entity_id:
-        - sensor.motion_detected_entity_count
+        - counter.motion_detected_entity_counter
       unit_of_measurement: count
       value_template: >
         {{ states('counter.motion_detected_entity_counter')|int }}
@@ -71,7 +78,7 @@
   sensors:
     motion_detected_entity_date:
       entity_id:
-        - sensor.motion_detected_entity_counter
+        - counter.motion_detected_entity_counter
       unit_of_measurement: seconds
       value_template: >-
         {{ state_attr('sensor.motion_event_annotated','event').end|int }}
