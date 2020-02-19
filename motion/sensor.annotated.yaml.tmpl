@@ -29,26 +29,25 @@
     motion_annotated_status:
       friendly_name: Annotated
       entity_id:
-        - counter.motion_annotated_counter
+        - sensor.motion_annotated_counter
       value_template: >-
         Counter: {{ states('counter.motion_annotated_counter') -}};
-        {% set e = state_attr('sensor.motion_event_annotated','event') %}
-        {% if e is not none and e|lower != 'unknown' and e|length > 0 %}
-          {% set count = state_attr('sensor.motion_event_annotated','count') %} 
-          {% set when = e.end|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
-          {% if e.elapsed > 0 %}Duration: {{ e.elapsed }} seconds{% else %}None{% endif %};
-          {% if count > 0 %}
-            {{ count }} entities: 
-            {% set array = state_attr('sensor.motion_event_annotated','detected') %}
-            {% if array is not none and array|lower != 'unknown' and array|length > 0 %}
-              {% for detected in array %}
+        {%- set e = states('sensor.motion_event_annotated') -%}
+        {%- if e is not none %}
+          {%- set event = state_attr('sensor.motion_event_annotated','event') -%}
+          {%- set when = event.end|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -%}
+          {%- if event.elapsed|int > 0 %} Duration: {{ event.elapsed }} seconds{%- else -%}None{%- endif -%};
+          {%- set count = state_attr('sensor.motion_event_annotated','count')|int -%}
+          {%- if count > 0 -%}
+            {{ count }} entities:
+            {%- set array = state_attr('sensor.motion_event_annotated','detected') -%}
+            {%- if array is not none and array|lower != 'unknown' and array|length > 0 -%}
+              {%- for detected in array -%}
                 {%- if loop.first -%}{%- else -%},{%- endif -%}
                 {{- detected.entity -}}
-              {% endfor %}
-            {% else %}null{% endif %}
-          {% else %}nothing{% endif -%};
-          from: {{ e.device -}}/{{- e.camera -}}/{{- e.event -}};
-          at: {{ when -}}
+              {%- endfor -%}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}nothing{%- endif -%}; from: {{ event.device -}}/{{- event.camera -}}/{{- event.event -}}; at: {{ when -}}
         {% else %}NO STATUS{% endif %}
 
 ## count
@@ -290,8 +289,10 @@
           {% if bu is not none and bu|lower != 'unknown' %}
             {% set p = bu + ep %}
           {% else %}
-            {% set p = states('sensor.motion_noisesignal_picture') %}
+            {% set p = states('sensor.motion_testsignal_picture') %}
           {% endif %}
+        {% else %}
+          {% set p = states('sensor.motion_noisesignal_picture') %}
         {% endif %}
         {% if p is defined and p is not none and p|lower != 'unknown' and p|length > 0 %}
           {{ p }}

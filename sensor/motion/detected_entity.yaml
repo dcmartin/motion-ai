@@ -8,19 +8,20 @@
     motion_detected_entity_status:
       friendly_name: Found
       entity_id:
-        - counter.motion_detected_entity_counter
+        - sensor.motion_detected_entity_counter
       value_template: >-
         Counter: {{ states('counter.motion_detected_entity_counter') -}};
-        {%- set e = state_attr('sensor.motion_event_annotated','event') %}
-        {%- if e is not none and e|lower != 'unknown' and e|length > 0 %}
-          {%- set when = e.end|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
+        {%- set e = states('sensor.motion_event_annotated') %}
+        {%- if e is not none %}
+          {%- set event = state_attr('sensor.motion_event_annotated','event') %}
+          {%- set when = event.end|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
           {%- set what = states('sensor.motion_detect_entity') %}
           {%- set detected = state_attr('sensor.motion_event_annotated','detected') %}
           {%- if detected is not none and detected|lower != 'unknown' and detected|length > 0 %}
             {%- for d in detected -%}
               {%- if d.entity == what or what == 'all' -%} {{ d.count|int }} {{ d.entity }}{%- endif -%}
             {%- endfor -%}
-          {%- endif %} from {{ e.device -}}/{{- e.camera -}}/{{- e.event -}}; at {{ when }}
+          {%- endif %} from {{ event.device -}}/{{- event.camera -}}/{{- event.event -}}; at {{ when }}
         {% else %}NO STATUS{% endif %}
 
 ## count
@@ -147,12 +148,22 @@
       entity_id:
         - counter.motion_detected_entity_counter
       value_template: >-
-        {% set bu = states('sensor.motion_base_url') %}
-        {% if bu is not none and bu != 'unknown' %}
-          {% set p = bu + '/local/images/motion_detected_entity.jpg' %}
+        {% set e = state_attr('sensor.motion_event_annotated','event') %}
+        {% if e is not none and e|lower != 'unknown' and e != 'null' %}
+          {% set c = e.camera %}
+          {% if c is not none and c|lower != 'unknown' and c|length > 0 %}
+            {% set p = '/local/images/motion_detected_entity-' + e.camera + '.jpg' %}
+          {% else %}
+            {% set p = '/local/images/motion_detected_entity.jpg' %}
+          {% endif %}
         {% endif %}
         {% if p is defined and p is not none and p|lower != 'unknown' and p|length > 0 %}
-          {{ p }}
+          {% set bu = states('sensor.motion_base_url') %}
+          {% if bu is not none and bu|lower != 'unknown' and bu|length > 0 %}
+            {{ bu + p }}
+          {% else %}
+            {{ states('sensor.motion_testsignal_picture') }}
+          {% endif %}
         {% else %}
           {{ states('sensor.motion_nosignal_picture') }}
         {% endif %}
@@ -163,16 +174,17 @@
     motion_detected_entity_picture:
       friendly_name: Detected entity picture
       entity_id:
-        - counter.motion_detected_entity_counter
+        - sensor.motion_detected_picture
       value_template: >-
-        {% set ep = state_attr('camera.motion_event_annotated','entity_picture') %}
-        {% if ep is not none and ep|lower != 'unknown' and ep|length > 0 %}
-          {% set bu = states('sensor.motion_base_url') %}
-          {% if bu is not none and bu|lower != 'unknown' %}
-            {% set p = bu + ep %}
+        {% set n = states('sensor.motion_detected_count_entity') %}
+        {% if n is not none and n|lower != 'unknown' and n != 'null' %}
+          {% if n|int > 0 %}
+            {% set p = states('sensor.motion_detected_picture') %}
           {% else %}
-            {% set p = states('sensor.motion_noisesignal_picture') %}
+            {% set p = states('sensor.motion_detected_entity_picture') %}
           {% endif %}
+        {% else %}
+          {% set p = states('sensor.motion_noisesignal_picture') %}
         {% endif %}
         {% if p is defined and p is not none and p|lower != 'unknown' and p|length > 0 %}
           {{ p }}
@@ -452,6 +464,7 @@
 - platform: template
   sensors:
     motion_detected_person:
+      friendly_name: Detected person
       entity_id:
         - counter.motion_detected_counter
         - sensor.motion_detected_ago
@@ -471,6 +484,7 @@
 - platform: template
   sensors:
     motion_detected_vehicle:
+      friendly_name: Detected vehicle
       entity_id:
         - counter.motion_detected_counter
         - sensor.motion_detected_ago
@@ -490,6 +504,7 @@
 - platform: template
   sensors:
     motion_detected_animal:
+      friendly_name: Detected animal
       entity_id:
         - counter.motion_detected_counter
         - sensor.motion_detected_ago
