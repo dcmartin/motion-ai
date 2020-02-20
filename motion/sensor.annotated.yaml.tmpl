@@ -78,27 +78,11 @@
       unit_of_measurement: entities
       value_template: >-
         {% if is_state('binary_sensor.motion_annotated_expired','off') %}
-          {% set s = states('sensor.motion_annotated_count_entity_loop') %}
+          {% set s = state_attr('sensor.motion_event_annotated','detected')|selectattr('entity','==',states('sensor.motion_detect_entity'))|map(attribute='count')|sum %}
           {% if s is not none and s|lower != 'unknown' and s != 'null' %}
             {{ s|int }}
           {% else %}null{% endif %}
         {% else %}null{% endif %}
-
-## count_entity_loop
-- platform: template
-  sensors:
-    motion_annotated_count_entity_loop:
-      entity_id:
-        - counter.motion_annotated_counter
-      unit_of_measurement: entities
-      value_template: >-
-        {% set detected = state_attr('sensor.motion_event_annotated','detected') %}
-        {% if detected is not none and detected|lower != 'unknown' and detected|length > 0 %}
-          {% set s = states('sensor.motion_detect_entity') %}
-          {% for d in detected %}
-            {% if d.entity == s or s == 'all' %} {{ d.count|int }} {% endif %}
-          {% endfor %}
-        {% else %}0{% endif %}
 
 ## counter
 - platform: template
@@ -106,7 +90,7 @@
     motion_annotated_counter:
       friendly_name: Total annotations
       entity_id:
-        - sensor.motion_annotated_count_entity_loop
+        - sensor.motion_annotated_count_entity
       unit_of_measurement: count
       value_template: >
         {{ states('counter.motion_annotated_counter')|int }}
@@ -235,12 +219,9 @@
       entity_id:
         - counter.motion_annotated_counter
       value_template: >-
-        {% set array = state_attr('sensor.motion_event_annotated','detected') %}
-        {% if array is not none and array|lower != 'unknown' and array|length > 0  %}
-          {% for detected in array %}
-            {%- if loop.first -%}{%- else -%},{%- endif -%}
-            {{- detected.count -}}
-          {% endfor %}
+        {% set detected = state_attr('sensor.motion_event_annotated','detected') %}
+        {% if detected is not none and detected|lower != 'unknown' and detected|length > 0  %}
+          {{ detected|map(attribute='count')|list }}
         {% else %}null{% endif %}
 
 ## list
@@ -251,12 +232,9 @@
       entity_id:
         - counter.motion_annotated_counter
       value_template: >-
-        {% set array = state_attr('sensor.motion_event_annotated','detected') %}
-        {% if array is not none and array|lower != 'unknown' and array|length > 0 %}
-          {% for detected in array %}
-            {%- if loop.first -%}{%- else -%},{%- endif -%}
-            {{- detected.entity -}}
-          {% endfor %}
+        {% set detected = state_attr('sensor.motion_event_annotated','detected') %}
+        {% if detected is not none and detected|lower != 'unknown' and detected|length > 0 %}
+          {{ detected|map(attribute='entity')|list }}
         {% else %}null{% endif %}
 
 ## snapshot
