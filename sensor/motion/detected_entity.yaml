@@ -173,7 +173,30 @@
       entity_id:
         - counter.motion_detected_entity_counter
       value_template: >-
-        {% set n = state_attr('sensor.motion_event_annotated','detected')|selectattr('entity','==',states('sensor.motion_detect_entity'))|map(attribute='count')|sum %}
+        {% set detected = state_attr('sensor.motion_event_annotated','detected') %}
+        {% set n = detected|selectattr('entity','==',states('sensor.motion_detect_entity'))|map(attribute='count')|sum %}
+        {% if n is not none and n|lower != 'unknown' and n != 'null' and n|int > 0 %}
+          {% set ep = state_attr('camera.motion_event_annotated','entity_picture') %}
+          {% if ep is not none and ep|lower != 'unknown' and ep|length > 0 %}
+            {% set p = states('sensor.motion_base_url') + ep %}
+          {% endif %}
+        {% else %}
+          {% set p = states('sensor.motion_noisesignal_picture') %}
+        {% endif %}
+        {% if p is defined and p is not none and p|lower != 'unknown' and p|length > 0 %}
+          {{ p }}
+        {% else %}
+          {{ states('sensor.motion_nosignal_picture') }}
+        {% endif %}
+
+## picture
+- platform: template
+  sensors:
+    motion_detected_entity_picture:
+      friendly_name: Detected entity picture
+      entity_id:
+        - counter.motion_detected_entity_counter
+      value_template: >-
         {% if n is not none and n|lower != 'unknown' and n != 'null' and n|int > 0 %}
           {% set p = states('sensor.motion_detected_picture') %}
         {% else %}
