@@ -14,14 +14,11 @@
         {%- set e = states('sensor.motion_event_annotated') %}
         {%- if e is not none %}
           {%- set event = state_attr('sensor.motion_event_annotated','event') %}
+          {%- set detected = state_attr('sensor.motion_event_annotated','detected') %}
           {%- set when = event.end|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
           {%- set what = states('sensor.motion_detect_entity') %}
-          {%- set detected = state_attr('sensor.motion_event_annotated','detected') %}
-          {%- if detected is not none and detected|lower != 'unknown' and detected|length > 0 %}
-            {%- for d in detected -%}
-              {%- if d.entity == what or what == 'all' -%} {{ d.count|int }} {{ d.entity }}{%- endif -%}
-            {%- endfor -%}
-          {%- endif %} from {{ event.device -}}/{{- event.camera -}}/{{- event.event -}}; at {{ when }}
+          {%- set count = detected|selectattr('entity','==',what)|map(attribute='count')|sum %}
+          {{ count }} {{ what }}; from {{ event.device -}}/{{- event.camera -}}/{{- event.event -}}; at {{ when }}
         {% else %}NO STATUS{% endif %}
 
 ## count
@@ -35,7 +32,7 @@
       unit_of_measurement: entities
       value_template: >
         {% if is_state('binary_sensor.motion_detected_entity_expired','off') %}
-          {% set s = states('sensor.motion_annotated_count_entity') %}
+          {% set s = state_attr('sensor.motion_event_annotated','detected')|selectattr('entity','==',states('sensor.motion_detect_entity'))|map(attribute='count')|sum %}
           {% if s is not none and s|lower != 'unknown' and s != 'null' %}
             {{ s|int }}
           {% else %}null{% endif %}
@@ -45,7 +42,7 @@
 - platform: template
   sensors:
     motion_detected_entity_counter:
-      friendly_name: Found counter
+      friendly_name: Detected entity counter
       entity_id:
         - counter.motion_detected_entity_counter
       unit_of_measurement: count
@@ -101,7 +98,7 @@
 - platform: template
   sensors:
     motion_detected_entity_ago:
-      friendly_name: Found ago
+      friendly_name: Detected entity ago
       entity_id:
         - sensor.motion_detected_entity_date
         - sensor.time
@@ -176,20 +173,38 @@
       entity_id:
         - counter.motion_detected_entity_counter
       value_template: >-
-        {% set e = states('sensor.motion_event_annotated') %}
-        {% if e is not none %}
+        {% set detected = state_attr('sensor.motion_event_annotated','detected') %}
+        {% set n = detected|selectattr('entity','==',states('sensor.motion_detect_entity'))|map(attribute='count')|sum %}
+        {% if n is not none and n|lower != 'unknown' and n != 'null' and n|int > 0 %}
           {% set ep = state_attr('camera.motion_event_annotated','entity_picture') %}
           {% if ep is not none and ep|lower != 'unknown' and ep|length > 0 %}
-            {% set p = ep %}
+            {% set p = states('sensor.motion_base_url') + ep %}
           {% endif %}
+        {% else %}
+          {% set p = states('sensor.motion_noisesignal_picture') %}
         {% endif %}
         {% if p is defined and p is not none and p|lower != 'unknown' and p|length > 0 %}
-          {% set bu = states('sensor.motion_base_url') %}
-          {% if bu is not none and bu|lower != 'unknown' %}
-            {{ bu + p }}
-          {% else %}
-            {{ states('sensor.motion_noisesignal_picture') }}
-          {% endif %}
+          {{ p }}
+        {% else %}
+          {{ states('sensor.motion_nosignal_picture') }}
+        {% endif %}
+
+## picture
+- platform: template
+  sensors:
+    motion_detected_entity_picture:
+      friendly_name: Detected entity picture
+      entity_id:
+        - counter.motion_detected_entity_counter
+      value_template: >-
+        {% set n = state_attr('sensor.motion_event_annotated','detected')|selectattr('entity','==',states('sensor.motion_detect_entity'))|map(attribute='count')|sum %}
+        {% if n is not none and n|lower != 'unknown' and n != 'null' and n|int > 0 %}
+          {% set p = states('sensor.motion_detected_picture') %}
+        {% else %}
+          {% set p = states('sensor.motion_noisesignal_picture') %}
+        {% endif %}
+        {% if p is not none and p|lower != 'unknown' and p|length > 0 %}
+          {{ p }}
         {% else %}
           {{ states('sensor.motion_nosignal_picture') }}
         {% endif %}
@@ -202,7 +217,7 @@
 - platform: template
   sensors:
     motion_detected_entity_ago_mean:
-      friendly_name: Found ago avg
+      friendly_name: Avg ago found
       entity_id:
         - sensor.motion_detected_entity_ago_statistics
       unit_of_measurement: seconds
@@ -211,7 +226,7 @@
           {{ states.sensor.motion_detected_entity_ago_statistics.state|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_entity_ago_min_value:
-      friendly_name: Found ago min
+      friendly_name: Min ago found
       entity_id:
         - sensor.motion_detected_entity_ago_statistics
       unit_of_measurement: seconds
@@ -220,7 +235,7 @@
           {{ states.sensor.motion_detected_entity_ago_statistics.attributes.min_value|int }}
         {%- else -%}null{%- endif -%}
     motion_detected_entity_ago_max_value:
-      friendly_name: Found ago max
+      friendly_name: Max ago found
       entity_id:
         - sensor.motion_detected_entity_ago_statistics
       unit_of_measurement: seconds
@@ -229,7 +244,7 @@
           {{ states.sensor.motion_detected_entity_ago_statistics.attributes.max_value|int }}
         {%- else -%}null{%- endif -%}
     motion_detected_entity_ago_stdev:
-      friendly_name: Found ago stdev
+      friendly_name: StDev ago found
       entity_id:
         - sensor.motion_detected_entity_ago_statistics
       unit_of_measurement: seconds
@@ -238,7 +253,7 @@
           {{ states.sensor.motion_detected_entity_ago_statistics.attributes.standard_deviation|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_entity_ago_change:
-      friendly_name: Found ago change
+      friendly_name: Change ago found
       entity_id:
         - sensor.motion_detected_entity_ago_statistics
       unit_of_measurement: seconds
@@ -247,7 +262,7 @@
           {{ states.sensor.motion_detected_entity_ago_statistics.attributes.change|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_entity_ago_stdev_change:
-      friendly_name: Found ago stdev change
+      friendly_name: StDev change ago found
       entity_id:
         - sensor.motion_detected_entity_ago_stdev_statistics
       unit_of_measurement: seconds
@@ -260,7 +275,7 @@
 - platform: template
   sensors:
     motion_detected_entity_counter_mean:
-      friendly_name: Found avg
+      friendly_name: Avg counter found
       entity_id:
         - sensor.motion_detected_entity_counter_statistics
       unit_of_measurement: count
@@ -269,7 +284,7 @@
           {{ states.sensor.motion_detected_entity_counter_statistics.state|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_entity_counter_min_value:
-      friendly_name: Found min
+      friendly_name: Min counter found
       entity_id:
         - sensor.motion_detected_entity_counter_statistics
       unit_of_measurement: count
@@ -278,7 +293,7 @@
           {{ states.sensor.motion_detected_entity_counter_statistics.attributes.min_value|int }}
         {%- else -%}null{%- endif -%}
     motion_detected_entity_counter_max_value:
-      friendly_name: Found max
+      friendly_name: Max counter found
       entity_id:
         - sensor.motion_detected_entity_counter_statistics
       unit_of_measurement: count
@@ -287,7 +302,7 @@
           {{ states.sensor.motion_detected_entity_counter_statistics.attributes.max_value|int }}
         {%- else -%}null{%- endif -%}
     motion_detected_entity_counter_stdev:
-      friendly_name: Found stdev
+      friendly_name: StDev counter found
       entity_id:
         - sensor.motion_detected_entity_counter_statistics
       unit_of_measurement: count
@@ -296,7 +311,7 @@
           {{ states.sensor.motion_detected_entity_counter_statistics.attributes.standard_deviation|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_entity_counter_change:
-      friendly_name: Found change
+      friendly_name: Change counter found
       entity_id:
         - sensor.motion_detected_entity_counter_statistics
       unit_of_measurement: count
