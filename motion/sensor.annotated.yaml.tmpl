@@ -36,23 +36,17 @@
       entity_id:
         - counter.motion_annotated_counter
       value_template: >-
-        Counter: {{ states('counter.motion_annotated_counter') -}};
+        Counter: {{ states('counter.motion_annotated_counter') -}}/{{- states('sensor.motion_annotated_counter') -}};
         {%- set e = states('sensor.motion_event_annotated') -%}
         {%- if e is not none %}
+          State: {{ e|lower == 'true'  -}};
           {%- set event = state_attr('sensor.motion_event_annotated','event') -%}
+          {%- set count = state_attr('sensor.motion_event_annotated','count') -%}
+          {%- set detected = state_attr('sensor.motion_event_annotated','detected') -%}
           {%- set when = event.end|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -%}
-          {%- if event.elapsed|int > 0 %} Duration: {{ event.elapsed }} seconds{%- else -%}None{%- endif -%};
-          {%- set count = state_attr('sensor.motion_event_annotated','count')|int -%}
-          {%- if count > 0 -%}
-            {{ count }} entities:
-            {%- set array = state_attr('sensor.motion_event_annotated','detected') -%}
-            {%- if array is not none and array|lower != 'unknown' and array|length > 0 -%}
-              {%- for detected in array -%}
-                {%- if loop.first -%}{%- else -%},{%- endif -%}
-                {{- detected.entity -}}
-              {%- endfor -%}
-            {%- else -%}null{%- endif -%}
-          {%- else -%}nothing{%- endif -%}; from: {{ event.device -}}/{{- event.camera -}}/{{- event.event -}}; at: {{ when -}}
+          {%- if event.elapsed > 0 -%}Duration: {{ event.elapsed }} seconds{%- else -%}None{%- endif -%};
+          {%- set what = detected|map(attribute='entity')|list %}
+          {%- if count > 0 -%}{{ count }} entities: {{ what }}{%- else -%}nothing{%- endif -%}; from {{ event.device -}}/{{- event.camera -}}/{{- event.event -}}; at {{ when -}}
         {% else %}NO STATUS{% endif %}
 
 ## count
