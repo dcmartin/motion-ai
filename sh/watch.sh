@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [ -z "$(command -v mosquitto_sub)" ]; then
+  echo "Please install mosquitto_sub; apt install -qq -y mosquitto_clients" > /dev/stderr
+  exit 1
+fi
+
 PIDS=($(ps alxwww | egrep 'mosquitto_sub' | egrep -v 'grep' | awk '{ print $3 }'))
 if [ ${#PIDS[@]} -gt 0 ]; then
    echo "Killing existing mosquitto_sub processes: ${PIDS[@]}" &> /dev/stderr
@@ -34,6 +39,6 @@ mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASS
 mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/status/found" | jq -c '{"FOUND":.}' &
 mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/status/lost" | jq -c '{"LOST":.}' &
 
-mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/annotated" | jq -c '{"PUBLISHED":{"camera":.event.camera,"event":.event.id,"timestamp":.event.timestamp,"detected":.detected}}' &
-mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/detected" | jq -c '{"DETECTED":{"camera":.event.camera,"event":.event.id,"timestamp":.event.timestamp,"detected":.detected}}' &
-mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/detected_entity" | jq -c '{"DETECTED_ENTITY":{"camera":.event.camera,"event":.event.id,"timestamp":.event.timestamp,"detected":.detected}}' &
+mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/annotated" | sed 's/"//g' | sed 's/None/null/g' | tr \' \" | jq -c '{"PUBLISHED":.|.annotated.event.image=(.annotated.event.image!=null)}|.annotated.image=(.annotated.image!=null)' &
+mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/detected" | sed 's/"//g' | sed 's/None/null/g' | tr \' \" | jq -c '{"DETECTED":.|.detected.event.image=(.detected.event.image!=null)|.detected.image=(.detected.image!=null)}' &
+mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/detected_entity" | sed 's/"//g' | sed 's/None/null/g' | tr \' \" | jq -c '{"DETECTED_ENTITY":.|.detected_entity.event.image=(.detected_entity.event.image!=null)|.detected_entity.image=(.detected_entity.image!=null)}' &
