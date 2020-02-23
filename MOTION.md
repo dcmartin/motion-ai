@@ -31,7 +31,7 @@ sudo apt update -qq -y
 sudo apt upgrade -qq -y 
 sudo apt install -qq -y git jq curl bc gettext make git
 ```
-##&#10123; - Clone repository; install Docker and Home Assistant
+## &#10123; - Clone repository; install Docker and Home Assistant
 Clone this repository into a temporary location, e.g. `~/horizon.dcmartin.com/`, and use the provided shell scripts to install Docker and Home Assistant; for example:
 
 ```
