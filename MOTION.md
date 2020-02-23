@@ -67,13 +67,6 @@ echo '192.168.1.40' > MQTT_HOST 	# specify another device as broker
 echo '80' > HOST_PORT 				# change host port if desired
 make
 ```
-### &#10071;  - `motion/webcams.json`
-Create the `motion/webcams.json` file with details on the camera(s) attached.  Those details include:
-
-+ `name` : a unique name for the camera (e.g. `kitchencam`)
-+ `mjpeg_url` : location of "live" motion JPEG stream from camera
-+ `username` and `password` : credentials for access via the `mjpeg_url`
-+ `icon` : specified from the [Material Design Icons](https://materialdesignicons.com/) selection.
 
 ## &#10126; - Restart Home Assistant
 ```
@@ -81,78 +74,52 @@ make restart
 ```
 
 ##  &#10127; - Start `yolo4motion` _service_
+Start the `yolo4motion` service container by executing the provided [shell script](sh/yolo4motion.sh); the options, which may be specified through equivalent environment variables or file, are:
+
++ `MQTT_HOST` - host for message broker; default: _hostname_
++ `MOTION_GROUP` - which clients to process; default: `motion`
++ `MOTION_CLIENT` - which clients to process; default: _hostname_
++ `MOTION_CAMERA` - which camera to process; default: `+`
++ `YOLO_CONFIG` - may be `tiny`, `tiny-v2`, `tiny-v3`, `v2`, or `v3`; default: `tiny`
++ `YOLO_ENTITY` - entity to detect; default: `all`
++ `YOLO_SCALE` - size for image scaling prior to detect; default: `none`
++ `YOLO_THRESHOLD` - threshold for entity detection; default: `0.25`
++ `LOG_LEVEL` - logging level; default: `info`
++ `LOG_TO` - logging output; default: `/dev/stderr`
++ `DEBUG` - turn debugging on; default: `false`
+
+For example:
 
 ```
-./sh/yolo4motion
+DEBUG=true LOG_LEVEL=debug YOLO_CONFIG=tiny-v3 ./sh/yolo4motion.sh
 ```
 
-## &#9989; - COMPLETE
-The device is now configured and operational, with the exception of the `motion` _add-on_; please refer to the following to install and configure.
+## &#10128; - Install `motion` _add-on_
+The device is now configured and operational, with the exception of the `motion` _add-on_; please refer to [`INSTALL.md`](INSTALL.md) for information on instalation and configuration of the add-on.  Visit the [`motion`](http://github.com/dcmartin/hassio-addons/tree/master/motion/README.md) documentation for details.  
 
-## &#9995; - Installing `motion` _add-on_
-Browse to Home Assistant Web interface (n.b. don't forget `port` if not `80`) and visit the **Supervisor** via the icon in the lower left panel (see below).
+### &#10071;  - `motion/webcams.json`
+ Once the add-on is configured and operational create the `motion/webcams.json` file with details on the camera(s) specified for the local `motion` add-on.  Those details include:
 
-[![example](samples/supervisor.png?raw=true "EXAMPLE")](http://github.com/dcmartin/hassio-addons/tree/master/motion/samples/supervisor.png)
++ `name` : a unique name for the camera (e.g. `kitchencam`)
++ `mjpeg_url` : location of "live" motion JPEG stream from camera
++ `username` and `password` : credentials for access via the `mjpeg_url`
++ `icon` : specified from the [Material Design Icons](https://materialdesignicons.com/) selection.
 
-Then select the `Add-on Store` and type in the address of this repository, for example:
-
-[![example](samples/add-repository.png?raw=true "EXAMPLE")](http://github.com/dcmartin/hassio-addons/tree/master/motion/samples/add-repository.png)
-
-When the system reloads, select the **Motion Server** _add-on_ from those available; when utilizing a locally attached USB camera, select the **Motion Video0** _add-on_; for example:
-
-[![example](samples/dcmartin-repository.png?raw=true "EXAMPLE")](http://github.com/dcmartin/hassio-addons/tree/master/motion/samples/dcmartin-repository.png)
-
-After selecting the appropriate _add-on_, install by clicking on the `'INSTALL` button, for example:
-
- [![example](samples/motion-server-addon.png?raw=true "EXAMPLE")](http://github.com/dcmartin/hassio-addons/tree/master/motion/samples/motion-server-addon.png)
-
-For more information on configuring, please refer to the [`motion`](http://github.com/dcmartin/hassio-addons/tree/master/motion/README.md) documentation.
-
-### Local camera
-
-```
-[
-  {
-    "name": "kitchencam",
-    "type": "local",
-    "netcam_url": "http://127.0.0.1:8090/1",
-    "icon": "stove",
-    "netcam_userpass": "username:password"
-  }
-]   
-```
-
-### Network camera
+For example:
 
 ```
 [
   {
-    "name": "pondlive",
-    "type": "netcam",
-    "netcam_url": "mjpeg://192.168.1.174/img/video.mjpeg",
-    "icon": "waves",
-    "netcam_userpass": "!secret netcam-userpass"
+    "name": "localcam",
+    "mjpeg_url": "http://127.0.0.1:8090/1",
+    "icon": "webcam",
+    "username": "username",
+    "password": "password"
   }
 ]
 ```
 
-### FTP camera
-For network cameras that deposit video via FTP; the `username` and `password` apply the the `netcam_url` for access to the camera (n.b. direct, not through the `motion` port).
-
-```
-[
-  {
-    "name": "backyard",
-    "type": "ftpd",
-    "netcam_url": "http://192.168.1.183/img/video.mjpeg",
-    "icon": "texture-box",
-     "netcam_userpass": "!secret netcam-userpass"
-  }
-]
-```
-
-<hr>
-# OPTIONS
+# Reference
 
 Variable|Description|Default|Info
 :-------|:-------|:-------|:-------
@@ -167,5 +134,4 @@ Variable|Description|Default|Info
 `WEBCAM_PASSWORD`|Authentication password for cameras |`password`|Credentials from `motion` addon
 `MQTT_USERNAME`|Authentication login for cameras |`username`|Credentials from `MQTT` addon
 `MQTT_PASSWORD`|Authentication password for cameras |`password`|Credentials from `MQTT` addon
-<hr>
 
