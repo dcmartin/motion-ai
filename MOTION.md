@@ -151,8 +151,8 @@ For network cameras that deposit video via FTP; the `username` and `password` ap
 ]
 ```
 
-## OPTIONS
-Then specify the variables for the `motion` _addon_ files (n.b. generated from the `motion/webcams.json` file).
+<hr>
+# OPTIONS
 
 Variable|Description|Default|Info
 :-------|:-------|:-------|:-------
@@ -167,4 +167,5 @@ Variable|Description|Default|Info
 `WEBCAM_PASSWORD`|Authentication password for cameras |`password`|Credentials from `motion` addon
 `MQTT_USERNAME`|Authentication login for cameras |`username`|Credentials from `MQTT` addon
 `MQTT_PASSWORD`|Authentication password for cameras |`password`|Credentials from `MQTT` addon
+<hr>
 
