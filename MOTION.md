@@ -53,7 +53,6 @@ cd ~/horizon.dcmartin.com/
 sudo mv .??* * /usr/share/hassio/homeassistant
 cd /usr/share/hassio/homeassistant
 sudo chown -R ${USER} .
-cd /usr/share/hassio/homeassistant
 rm configuration.yaml
 ln -s config-client.yaml.tmpl configuration.yaml
 ```
@@ -62,12 +61,20 @@ Specify options according to environment and build files using the `make` comman
 
 ```
 cd /usr/share/hassio/homeassistant
-echo '[]' > motion/webcams.json # initially for zero motion addon-on cameras
-echo '+' > MOTION_CLIENT # listen for all client cameras
-echo '192.168.1.40' > MQTT_HOST # specify another device as broker
-echo '80' > HOST_PORT # change host port if desired
+echo '[]' > motion/webcams.json 	# initially for zero motion addon-on cameras
+echo '+' > MOTION_CLIENT 			# listen for all client cameras
+echo '192.168.1.40' > MQTT_HOST 	# specify another device as broker
+echo '80' > HOST_PORT 				# change host port if desired
 make
 ```
+### &#10071;  - `motion/webcams.json`
+Create the `motion/webcams.json` file with details on the camera(s) attached.  Those details include:
+
++ `name` : a unique name for the camera (e.g. `kitchencam`)
++ `mjpeg_url` : location of "live" motion JPEG stream from camera
++ `username` and `password` : credentials for access via the `mjpeg_url`
++ `icon` : specified from the [Material Design Icons](https://materialdesignicons.com/) selection.
+
 ## &#10126; - Restart Home Assistant
 ```
 make restart
@@ -101,64 +108,46 @@ After selecting the appropriate _add-on_, install by clicking on the `'INSTALL` 
 
 For more information on configuring, please refer to the [`motion`](http://github.com/dcmartin/hassio-addons/tree/master/motion/README.md) documentation.
 
-### Customization
-Create the `motion/webcams.json` file with details on the camera(s) attached.  Those details include:
-
-+ `name` : a unique name for the camera (e.g. `kitchencam`)
-+ `mjpeg_url` : location of "live" motion JPEG stream from camera
-+ `device` : _(optional)_ specifies the local V4L2 device
-+ `username` and `password` : credentials for access via the `mjpeg_url`
-+ `icon` : specified (mostly) from the [Material Design Icons](https://materialdesignicons.com/) selection.
-
 ### Local camera
-For example for an attached camera on `/dev/video0` named `kitchencam` using the icon `stove`:
 
 ```
 [
   {
     "name": "kitchencam",
-    "device": "/dev/video0",
-    "mjpeg_url": "http://127.0.0.1:8090/1",
-    "still_image_url": "http://127.0.0.1:8090/1",
+    "type": "local",
+    "netcam_url": "http://127.0.0.1:8090/1",
     "icon": "stove",
-    "username": "username",
-    "password": "password"
+    "netcam_userpass": "username:password"
   }
 ]   
 ```
 
 ### Network camera
-For network cameras that provide motion JPEG streaming, the `url` provides direct access; the `mjpeg_url` may be either the same, or may utilize the local streaming port (n.b. `8090`) and camera (n.b. `/1`).
 
 ```
 [
   {
     "name": "pondlive",
-    "url": "mjpeg://192.168.1.174/img/video.mjpeg",
-    "mjpeg_url": "http://127.0.0.1:8090/1",
-    "still_image_url": "",
+    "type": "netcam",
+    "netcam_url": "mjpeg://192.168.1.174/img/video.mjpeg",
     "icon": "waves",
-    "username": "!secret webcam-username",
-    "password": "!secret webcam-password"
+    "netcam_userpass": "!secret netcam-userpass"
   }
 ]
 ```
 
 ### FTP camera
-For network cameras that deposit video via FTP to the local `ftp` addon, the configuration below indicates the `url` with `ftpd` specified as protocol; the `username` and `password` apply the the `mjpeg_url` for access to the camera (n.b. direct, not through the `motion` port).
+For network cameras that deposit video via FTP; the `username` and `password` apply the the `netcam_url` for access to the camera (n.b. direct, not through the `motion` port).
 
 ```
 [
   {
     "name": "backyard",
-    "url": "ftpd:///share/ftp/backyard",
-    "mjpeg_url": "http://192.168.1.183/img/video.mjpeg",
-    "still_image_url": "http://192.168.1.183/img/snapshot.cgi",
+    "type": "ftpd",
+    "netcam_url": "http://192.168.1.183/img/video.mjpeg",
     "icon": "texture-box",
-    "username": "!secret webcam-username",
-    "password": "!secret webcam-password"
-  },
-  ...
+     "netcam_userpass": "!secret netcam-userpass"
+  }
 ]
 ```
 
