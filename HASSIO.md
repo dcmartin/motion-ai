@@ -14,7 +14,7 @@ Then specify the wireless and enable `ssh` access; for example, using the provid
 ```
 % NETWORK_SSID=WIFINAME NETWORK_PASSWORD=MyP@S$WoRd ./sh/add-wpa.sh
 ```
-When completed, eject the SD card, insert into target device and power-on.
+When completed, eject the SD card, insert into target device and power-on.  Please refer to [`DEBIAN.md`](DEBIAN.md) for further information on Debian/Ubuntu/Raspbian systems.
 
 ## Step 2
 When the system has completed booting, it will automatically join the indicated wireless network.  To find the device on the network, search for it using the `nmap` program, for example:

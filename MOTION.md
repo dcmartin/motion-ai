@@ -2,7 +2,47 @@
 
 This directory contains YAML and templates to generate YAML for the `motion` [addon](https://github.com/dcmartin/hassio-addons/blob/master/motion/README.md).  
 
-## Step 1
+# Configuration
+
+## 1) Setup device
+```
+sudo apt update -qq -y 
+sudo apt upgrade -qq -y 
+sudo apt install -qq -y git jq curl bc gettext make
+echo "${USER} ALL=(ALL) NOPASSWD: ALL" | sudo tee "/etc/sudoers.d/010_${USER}-nopasswd"
+```
+## 2) Install Home Assistant
+```
+cd ~/
+git clone git@github.com:dcmartin/horizon.dcmartin.com.git
+cd ~/horizon.dcmartin.com/
+sudo ./sh/get.hassio.sh
+sudo ./hassio-install.sh
+sudo addgroup ${USER} docker
+```
+Wait ... connect to IP address of device on port `8123` and complete setup.
+
+## 3) Install configuration
+```
+cd ~/horizon.dcmartin.com/
+sudo mv .??* * /usr/share/hassio/homeassistant
+cd /usr/share/hassio/homeassistant
+sudo chown -R ${USER} .
+rm configuration.yaml
+ln -s config-client.yaml.tmpl configuration.yaml
+```
+## 4) Update Home Assistant
+```
+cd /usr/share/hassio/homeassistant
+echo '[]' > motion/webcams.json
+echo '+' > MOTION_CLIENT
+echo '192.168.1.40' > MQTT_HOST
+echo '80' > HOST_PORT
+make restart
+make logs
+```
+
+# Customization
 Create the `motion/webcams.json` file with details on the camera(s) attached.  Those details include:
 
 + `name` : a unique name for the camera (e.g. `kitchencam`)
@@ -72,10 +112,5 @@ Variable|Description|Default|Info
 `MOTION_DEVICE`|Name of the `motion` _addon_ host|_`HOST_NAME`_|_see above_
 `MOTION_CLIENT`|Device(s) topic for `MQTT`|_`MOTION_DEVICE`_|Aggregate using: **`"+"`**
 
-```
-cd /usr/share/hassio/homeassistant/motion
-echo '+' > MOTION_CLIENT
-```
 
-# All done
 
