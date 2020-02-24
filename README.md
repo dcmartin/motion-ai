@@ -1,4 +1,4 @@
-# &#128679; - `README.md`
+# &#127916;  - `motion`
 This   repository is a demonstration and proof-of-concept for an **AI assistatant** providing improved situational awareness from a collection of network accessible video cameras.  Most consumer-grade Web cameras -- or similar devices -- send notifications when _motion_ occurs.
 
 Motion is often defined as a change in the video from one instance to the next; these changes are often influenced by light, wind, and many other environmental factors -- producing a large number of notifications.  While limitations may be set on the amount of change, a better solution would detect and classify movement.
@@ -9,6 +9,20 @@ All of this processing is performed on local devices; there are **no cloud servi
 
 ### What  is _edge computing_?
 The edge of the network is where connectivity is lost and privacy is challenged; extending the services developed for the cloud to these scenarios requires additional considerations for microservices development, notably graceful degradation when services are lost, as well as automated recovery and restart when appropriate.  Available computing in edge scenarios may vary from a single device to multiple varying devices on a local-area-network (LAN), for example _home automation_.  Example use-cases include detecting motion and classifying entities seen and monitoring Internet connectivity.
+
+## Status
+![](https://img.shields.io/github/license/dcmartin/motion.svg?style=flat)
+![](https://img.shields.io/github/release/dcmartin/motion.svg?style=flat)
+![](https://img.shields.io/github/repo-size/dcmartin/motion.svg?style=flat)
+![](https://img.shields.io/github/issues/dcmartin/motion.svg?style=flat)
+![](https://img.shields.io/github/tag/dcmartin/motion.svg?style=flat)
+
+![](https://img.shields.io/github/last-commit/dcmartin/motion.svg?style=flat)
+![](https://img.shields.io/github/commit-activity/w/dcmartin/motion.svg?style=flat)
+![](https://img.shields.io/github/contributors/dcmartin/motion.svg?style=flat)
+
+[![Build Status](https://travis-ci.org/dcmartin/motion.svg?branch=master)](https://travis-ci.org/dcmartin/motion)
+[![Coverage Status](https://coveralls.io/repos/github/dcmartin/motion/badge.svg?branch=master)](https://coveralls.io/github/dcmartin/motion?branch=master)
 
 # Components
 
