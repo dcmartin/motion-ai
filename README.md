@@ -27,12 +27,12 @@ The edge of the network is where connectivity is lost and privacy is challenged;
 # Components
 
 ## 1. Home Assistant
-[Home Assistant](http://home-assistant.io)  is an open source home automation software putting local control and privacy first. Powered by a worldwide community of tinkerers and DIY enthusiasts. Perfect to run on a [Raspberry Pi](https://en.wikipedia.org/wiki/Raspberry_Pi) or a local server.   HomeAssistant includes _add-on_ Docker containers  from the HomeAssistant [community](https://github.com/hassio-addons/repository/blob/master/README.md).  Please refer to the installation instructions for Home Assistant in [`HASSIO.md`](HASSIO.md).
+[Home Assistant](http://home-assistant.io)  is an open source home automation software putting local control and privacy first. Powered by a worldwide community of tinkerers and DIY enthusiasts. Perfect to run on a [Raspberry Pi](https://en.wikipedia.org/wiki/Raspberry_Pi) or a local server.   HomeAssistant includes _add-on_ Docker containers  from the HomeAssistant [community](https://github.com/hassio-addons/repository/blob/master/README.md).  Please refer to the installation instructions for Home Assistant in [`HASSIO.md`](doc/HASSIO.md).
 
 ###  `motion` _add-on_
 The Home Assistant _add-on_ [`motion`](http://github.com/dcmartin/hassio-addons/tree/master/motion/README.md) provides the capabilities of the [Motion Project](https://motion-project.github.io/) software in conjunction with a specified message broker to capture and process motion detection events.  These events are published as `MQTT`  _topics_ for consumption by Home Assistant and the supporting  _Open Horizon_ `yolo4motion` _service_.
 
-**Please refer to [`MOTION.md`](MOTION.md) for further information.**
+**Please refer to [`MOTION.md`](doc/MOTION.md) for further information.**
 
 In addition, the following community _add-ons_ should be configured appropriately:
 
