@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ -z "$(command -v mosquitto_sub)" ]; then
-  echo "Please install mosquitto_sub; apt install -qq -y mosquitto_clients" > /dev/stderr
+  echo "Please install mosquitto_sub; apt install -qq -y mosquitto-clients" > /dev/stderr
   exit 1
 fi
 
