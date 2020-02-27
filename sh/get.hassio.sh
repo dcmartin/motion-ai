@@ -9,34 +9,46 @@ if [ -z "$(command -v docker)" ]; then
 fi
 
 # get architecture
-arch=$(uname -m)
 
-# attempt to determine machine/model
-case ${arch} in
-  aarch64)
-    machine='-m qemuarm-64'
-    ;;
-  armv7l)
-    local model=$(cat /proc/cpuinfo | egrep "^Model" | awk -F': ' '{ print $2 }')
+machine()
+{
+  local uname_machine=$(uname -m)
+  local machine
+  local supported=('intel-nuc' 'odroid-c2' 'odroid-n2' 'odroid-xu' 'qemuarm' 'qemuarm-64' 'qemux86' 'qemux86-64' 'raspberrypi' 'raspberrypi2' 'raspberrypi3' 'raspberrypi4' 'raspberrypi3-64' 'raspberrypi4-64' 'tinker' )
 
-    case ${model} in
-      'Raspberry Pi 4 Model B Rev 1.1')
+  # attempt to determine machine/model
+  case ${uname_machine} in
+    aarch64)
+      machine='-m qemuarm-64'
+      ;;
+    arm*)
+      local model=$(cat /proc/cpuinfo | egrep "^Model" | awk -F': ' '{ print $2 }')
+      local rpi3='Raspberry Pi 3 Model'
+      local rpi4='Raspberry Pi 4 Model'
+      local rpi0='Raspberry Pi Zero Model'
+
+      if [[ "${model:-null}" =~ ${rpi4:-null}* ]]; then
         machine='-m raspberrypi4'
-        ;;
-      'Raspberry Pi 3 Model B Rev 1.2')
+      elif [[ "${model:-null}" =~ ${rpi3:-null}* ]]; then
         machine='-m raspberrypi3'
-        ;;
-      *)
-        echo "Machine: ${machine}; unknown model: ${model}" &> /dev/stderr
-	machine=''
-        ;;
-    esac
-    ;;
-  *)
-    echo "Architecture: ${arch}; unknown architecture: ${arch}" &> /dev/stderr
-    machine=''
-    ;;
-esac
+      elif [[ "${model:-null}" =~ ${rpi0:-null}* ]]; then
+        machine='-m raspberrypi'
+      else
+        local hardware=$(cat /proc/cpuinfo | egrep "^Hardware" | awk -F': ' '{ print $2 }')
+
+        if [ "${hardware:-null}" = 'BCM2835' ]; then
+          machine='-m raspberrypi2'
+        fi
+      fi
+      ;;
+    *)
+      ;;
+  esac
+  if [ "${machine:-null}" = 'null' ]; then
+    echo "Architecture: ${uname_machine}; supported: ${supported}" &> /dev/stderr
+  fi
+  echo "${machine:-}"
+}
 
 export DEBIAN_FRONTEND=noninteractive
 
@@ -50,5 +62,5 @@ echo 'Updating apt ...' &> /dev/stderr \
   && echo 'Downloading shell script ...' &> /dev/stderr \
   && curl -sSL -o hassio-install.sh 'https://raw.githubusercontent.com/home-assistant/hassio-installer/master/hassio_install.sh' \
   && chmod 755 hassio-install.sh \
-  && echo "Now install using hassio-install.sh script; sudo ./hassio-install.sh ${machine}" &> /dev/stderr \
+  && echo "Now install using hassio-install.sh script; sudo ./hassio-install.sh $(machine)" &> /dev/stderr \
   || echo 'Failed to get Home Assistant' &> /dev/stderr
