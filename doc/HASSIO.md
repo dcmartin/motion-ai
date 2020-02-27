@@ -1,10 +1,15 @@
-# Home Assistant Installation
+# &#9937; - Installing Home Assistant
 
-This document provides instructions for installation of Home Assistant as a Docker container using the HA control system, aka **HASSIO** identifier and `hassio_supervisor` container).  This method provides the ability to both control the Home Assistant system as well as install additional _addons_ as Docker containers.
+This document provides instructions for installation of [Home Assistant](http://home-assistant.io) on as Docker containers.
+
+This method is based on the [generic LINUX host](https://www.home-assistant.io/hassio/installation/#alternative-install-on-a-generic-linux-host) installation instructions.  The process described works for Debian LINUX systems.
 
 For additional information on installing Home Assistant, please refer to the [documentation](https://www.home-assistant.io/hassio/installation/).
 
-<hr>
+# Introduction
+The following steps describe how to flash and configure a micro-SD card for use in a RaspberryPi on an Apple `macOS` computer.  Other mechanisms to prepare a Debian LINUX system include use of [VirtualBox](http://virtualbox.com) to create _virtual machines_ as well as running natively on host.
+
+**The following presume a `macOS` computer; minor modifications may be appropriate for other systems.**
 
 ## Step 1
  Download and flash (e.g. using [Balena Etcher](https://www.balena.io/etcher/)) an appropriate operating system for the target device (e.g. [Raspbian Lite](https://www.raspberrypi.org/downloads/raspbian/) for RaspberryPi) and  _don't unmount or eject after flashing_.
@@ -14,7 +19,7 @@ Then specify the wireless and enable `ssh` access; for example, using the provid
 ```
 % NETWORK_SSID=WIFINAME NETWORK_PASSWORD=MyP@S$WoRd ./sh/add-wpa.sh
 ```
-When completed, eject the SD card, insert into target device and power-on.
+When completed, eject the SD card, insert into target device and power-on.  Please refer to [`DEBIAN.md`](doc/DEBIAN.md) for further information on Debian/Ubuntu/Raspbian systems.
 
 ## Step 2
 When the system has completed booting, it will automatically join the indicated wireless network.  To find the device on the network, search for it using the `nmap` program, for example:
@@ -67,7 +72,13 @@ Access the target device using `ssh` and install pre-requisites for Home Assista
 ```
 sudo apt update -qq -y
 sudo apt upgrade -qq -y
-sudo apt install -y software-properties-common apparmor-utils apt-transport-https avahi-daemon ca-certificates curl dbus jq socat network-manager
+sudo apt install -qq -y software-properties-common apparmor-utils apt-transport-https avahi-daemon ca-certificates curl dbus jq socat network-manager
+```
+
+Optionally install `network-manager`:
+
+```
+sudo apt install -qq -y  network-manager
 ```
 
 If `network-manager` is installed, disable the MAC address randomization; create the file:
