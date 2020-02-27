@@ -29,7 +29,7 @@ HOST_NETWORK := $(shell export HOST_IPADDR=$(HOST_IPADDR) && echo $${HOST_IPADDR
 HOST_NETWORK_MASK := 24
 
 # MQTT
-MQTT_HOST := $(if $(wildcard MQTT_HOST),$(shell v=$$(cat MQTT_HOST) && echo "** SPECIFIED: MQTT_HOST: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="core-mosquitto" && echo "!! UNSPECIFIED: MQTT_HOST unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MQTT_HOST := $(if $(wildcard MQTT_HOST),$(shell v=$$(cat MQTT_HOST) && echo "** SPECIFIED: MQTT_HOST: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="$(HOST_IPADDR)" && echo "!! UNSPECIFIED: MQTT_HOST unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MQTT_PORT := $(if $(wildcard MQTT_PORT),$(shell v=$$(cat MQTT_PORT) && echo "** SPECIFIED: MQTT_PORT: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="1883" && echo "!! UNSPECIFIED: MQTT_PORT unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MQTT_USERNAME := $(if $(wildcard MQTT_USERNAME),$(shell v=$$(cat MQTT_USERNAME) && echo "** SPECIFIED: MQTT_USERNAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="username" && echo "!! UNSPECIFIED: MQTT_USERNAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MQTT_PASSWORD := $(if $(wildcard MQTT_PASSWORD),$(shell v=$$(cat MQTT_PASSWORD) && echo "** SPECIFIED: MQTT_PASSWORD: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="password" && echo "!! UNSPECIFIED: MQTT_PASSWORD unset; default: $${v}" > /dev/stderr && echo "$${v}"))
