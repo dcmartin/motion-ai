@@ -4,12 +4,20 @@
 ### webcams history_graph
 ###
 
+LIMITED_BUILD=$(jq -r '.limited?==true' ${1:-webcams.json})
+
 WEBCAMS=$(jq -r '.[].name' ${1:-webcams.json})
 
-
-WEBCAM_EVENTS='detected_entity annotated' # 'detected_entity detected_entity detected annotated'
-WEBCAM_ATTRIBUTES='ago counter percent delay complete'
-WEBCAM_MEASURES='actual mean stdev change'
+## SENSORS
+if [ "${LIMITED_BUILD:-null}" != 'true' ]; then
+  WEBCAM_EVENTS='detected_entity detected annotated end'
+  WEBCAM_ATTRIBUTES='ago counter count percent delay complete'
+  WEBCAM_MEASURES='actual mean stdev change'
+else
+  WEBCAM_EVENTS='detected_entity detected'
+  WEBCAM_ATTRIBUTES='ago count percent delay complete'
+  WEBCAM_MEASURES='actual mean stdev'
+fi
 
 echo "###"
 echo "## history_grsph/webcams.yaml"
