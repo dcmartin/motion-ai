@@ -1,3 +1,5 @@
+<a href="http://github.com/dcmartin/hassio-addons/tree/master/motion/samples/frontdoor-person-approach.jpeg"><img src="samples/frontdoor-person-approach.jpeg" width="512"></a>
+
 # &#127916;  - `motion`
 This   repository is a demonstration and proof-of-concept for an **AI assistatant** providing improved situational awareness from a collection of network accessible video cameras.  Most consumer-grade Web cameras -- or similar devices -- send notifications when _motion_ occurs.
 
