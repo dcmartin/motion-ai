@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [ -z "$(command -v curl)" ]; then
+  echo 'Install curl; sudo apt install -qq -y curl' &> /dev/stderr
+  exit 1
+fi
+
 if [ -z "$(command -v docker)" ]; then
   echo 'Getting Docker ..' &> /dev/stderr \
     && curl -sSL -o get.docker.sh 'get.docker.com' \
