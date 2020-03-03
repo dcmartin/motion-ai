@@ -51,6 +51,9 @@ In addition, the following community _add-ons_ should be configured appropriatel
 ### `yolo4motion` _service_
 The Open Horizon _service_ [`yolo4motion`](http://github.com/dcmartin/open-horizon/tree/master/yolo4motion/README.md) provides the capabilities of the [YOLO](https://pjreddie.com/darknet/yolo/) software in conjunction with a specified `MQTT` message broker.  This service subscribes to the _topic_ `{group}/{device}/{camera}/event/end` and processes the JavaScript Object Notation (JSON) payload which includes a selected `JPEG` image (n.b. `BASE64` encoded) from the motion event.  This service may be used independently of the Open Horizon service as a stand-alone Docker container; see [`yolo4motion.sh`](http://github.com/dcmartin/motion/tree/master/sh/yolo4motion.sh)
 
+### `alpr4motion` _service_
+The Open Horizon _service_ [`alpr4motion`](http://github.com/dcmartin/open-horizon/tree/master/alpr4motion/README.md) provides the capabilities of the [OpenALPR](https://github.com/dcmartin/openalpr/) software in conjunction with a specified `MQTT` message broker.  This service subscribes to the _topic_ `{group}/{device}/{camera}/event/end` and processes the JavaScript Object Notation (JSON) payload which includes a selected `JPEG` image (n.b. `BASE64` encoded) from the motion event.  This service may be used independently of the Open Horizon service as a stand-alone Docker container; see [`alpr4motion.sh`](http://github.com/dcmartin/motion/tree/master/sh/alpr4motion.sh)
+
 # Example
 When combined together and operating successfully, the system automatically detects `person` and provides both visual update of the Web user-interface for the most recent entity, as well as most recent detection of any entity, as well as provides notifications through the Web interface (n.b. mobile notifications require SSL and are pending).
 
