@@ -63,7 +63,7 @@ WEBCAM_YAML := \
 ##
 
 # entity's items to track
-HIGHLOW_ENTITYS := image end annotated detected detected_entity
+HIGHLOW_ENTITYS := image end annotated detected detected_entity face
 HIGHLOW_ITEMS := count ago
 
 # HIGHLOW templates
@@ -82,11 +82,13 @@ MOTION_YAML := \
 	sensor/image.yaml \
 	sensor/start.yaml \
 	sensor/end.yaml \
+	sensor/face.yaml \
 	sensor/annotated.yaml \
 	sensor/device_start.yaml \
 	sensor/lost.yaml \
 	sensor/found.yaml \
 	camera/end.yaml \
+	camera/face.yaml \
 	camera/annotated.yaml
 
 ###
