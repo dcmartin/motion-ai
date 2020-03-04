@@ -15,7 +15,7 @@ fi
 if [ -s "MOTION_CLIENT" ] || [ ${MOTION_CLIENT:-null} != 'null' ]; then
   v=${MOTION_CLIENT:-$(cat MOTION_CLIENT)} && echo "** SPECIFIED: MOTION_CLIENT: ${v}" > /dev/stderr 
 else
-  v=$(hostname | tee MOTION_CLIENT) && echo "!! UNSPECIFIED: MOTION_CLIENT unset; default: ${v}" > /dev/stderr 
+  v=$(hostname -s | tee MOTION_CLIENT) && echo "!! UNSPECIFIED: MOTION_CLIENT unset; default: ${v}" > /dev/stderr 
 fi
 MOTION_CLIENT=${MOTION_CLIENT:-${v}}
 
