@@ -79,17 +79,18 @@ HIGHLOW_YAML := ${HIGHLOW_BINARY_SENSORS} # ${HIGHLOW_AUTOMATIONS}
 # TEMPLATES
 
 MOTION_YAML := \
-	sensor/image.yaml \
-	sensor/start.yaml \
-	sensor/end.yaml \
-	sensor/face.yaml \
-	sensor/annotated.yaml \
+	sensor/event_start.yaml \
+	sensor/event_image.yaml \
+	sensor/event_end.yaml \
+	sensor/event_face.yaml \
+	sensor/event_annotated.yaml \
 	sensor/device_start.yaml \
 	sensor/lost.yaml \
 	sensor/found.yaml \
-	camera/end.yaml \
-	camera/face.yaml \
-	camera/annotated.yaml
+	camera/event_image.yaml \
+	camera/event_end.yaml \
+	camera/event_face.yaml \
+	camera/event_annotated.yaml
 
 ###
 ### targets
