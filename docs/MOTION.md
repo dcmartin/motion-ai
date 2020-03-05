@@ -74,7 +74,7 @@ make restart
 ```
 
 ##  &#10127; - Start `yolo4motion` _service_
-Start the `yolo4motion` service container by executing the provided [shell script](sh/yolo4motion.sh); the options, which may be specified through equivalent environment variables or file, are:
+Start the `yolo4motion` service container by executing the provided [shell script](../sh/yolo4motion.sh); the options, which may be specified through equivalent environment variables or file, are:
 
 + `MQTT_HOST` - host for message broker; default: _hostname_
 + `MOTION_GROUP` - which clients to process; default: `motion`
