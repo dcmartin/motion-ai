@@ -45,14 +45,92 @@ In addition, the following community _add-ons_ should be configured appropriatel
 + [`MQTT`](https://github.com/home-assistant/hassio-addons/blob/master/mosquitto/README.md) - may be run privately on local device or shared on network
 + [`FTP`](https://github.com/hassio-addons/addon-ftp/blob/master/README.md) - optional, only required for `ftpd` type cameras
 
-## 2. Open Horizon
+## 2. Open Horizon _services_
 [Open Horizon](http://github.com/dcmartin/open-horizon) is an open source _edge_ fabric for microservices.  The Open Horizon microservices are run as Docker containers on a distributed network across a wide range of computing devices; from [Power9](http://openpowerfoundation.org/) servers to RaspberryPi [Zero W](https://www.raspberrypi.org/products/raspberry-pi-zero-w/) micro-computers.
 
-### `yolo4motion` _service_
+### `yolo4motion`
+![Supports amd64 Architecture][amd64-shield]
+[![](https://images.microbadger.com/badges/image/dcmartin/amd64_com.github.dcmartin.open-horizon.yolo4motion.svg)](https://microbadger.com/images/dcmartin/amd64_com.github.dcmartin.open-horizon.yolo4motion)
+[![](https://images.microbadger.com/badges/version/dcmartin/amd64_com.github.dcmartin.open-horizon.yolo4motion.svg)](https://microbadger.com/images/dcmartin/amd64_com.github.dcmartin.open-horizon.yolo4motion)
+[![Docker Pulls][pulls-yolo4motion-amd64]][docker-yolo4motion-amd64]
+
+[docker-yolo4motion-amd64]: https://hub.docker.com/r/dcmartin/amd64_com.github.dcmartin.open-horizon.yolo4motion
+[pulls-yolo4motion-amd64]: https://img.shields.io/docker/pulls/dcmartin/amd64_com.github.dcmartin.open-horizon.yolo4motion.svg
+
+![Supports arm Architecture][arm-shield]
+[![](https://images.microbadger.com/badges/image/dcmartin/arm_com.github.dcmartin.open-horizon.yolo4motion.svg)](https://microbadger.com/images/dcmartin/arm_com.github.dcmartin.open-horizon.yolo4motion)
+[![](https://images.microbadger.com/badges/version/dcmartin/arm_com.github.dcmartin.open-horizon.yolo4motion.svg)](https://microbadger.com/images/dcmartin/arm_com.github.dcmartin.open-horizon.yolo4motion)
+[![Docker Pulls][pulls-yolo4motion-arm]][docker-yolo4motion-arm]
+
+[docker-yolo4motion-arm]: https://hub.docker.com/r/dcmartin/arm_com.github.dcmartin.open-horizon.yolo4motion
+[pulls-yolo4motion-arm]: https://img.shields.io/docker/pulls/dcmartin/arm_com.github.dcmartin.open-horizon.yolo4motion.svg
+
+![Supports arm64 Architecture][arm64-shield]
+[![](https://images.microbadger.com/badges/image/dcmartin/arm64_com.github.dcmartin.open-horizon.yolo4motion.svg)](https://microbadger.com/images/dcmartin/arm64_com.github.dcmartin.open-horizon.yolo4motion)
+[![](https://images.microbadger.com/badges/version/dcmartin/arm64_com.github.dcmartin.open-horizon.yolo4motion.svg)](https://microbadger.com/images/dcmartin/arm64_com.github.dcmartin.open-horizon.yolo4motion)
+[![Docker Pulls][pulls-yolo4motion-arm64]][docker-yolo4motion-arm64]
+
+[docker-yolo4motion-arm64]: https://hub.docker.com/r/dcmartin/arm64_com.github.dcmartin.open-horizon.yolo4motion
+[pulls-yolo4motion-arm64]: https://img.shields.io/docker/pulls/dcmartin/arm64_com.github.dcmartin.open-horizon.yolo4motion.svg
+
 The Open Horizon _service_ [`yolo4motion`](http://github.com/dcmartin/open-horizon/tree/master/yolo4motion/README.md) provides the capabilities of the [YOLO](https://pjreddie.com/darknet/yolo/) software in conjunction with a specified `MQTT` message broker.  This service subscribes to the _topic_ `{group}/{device}/{camera}/event/end` and processes the JavaScript Object Notation (JSON) payload which includes a selected `JPEG` image (n.b. `BASE64` encoded) from the motion event.  This service may be used independently of the Open Horizon service as a stand-alone Docker container; see [`yolo4motion.sh`](http://github.com/dcmartin/motion/tree/master/sh/yolo4motion.sh)
 
-### `alpr4motion` _service_
+### `alpr4motion`
+![Supports amd64 Architecture][amd64-shield]
+[![](https://images.microbadger.com/badges/image/dcmartin/amd64_com.github.dcmartin.open-horizon.alpr4motion.svg)](https://microbadger.com/images/dcmartin/amd64_com.github.dcmartin.open-horizon.alpr4motion)
+[![](https://images.microbadger.com/badges/version/dcmartin/amd64_com.github.dcmartin.open-horizon.alpr4motion.svg)](https://microbadger.com/images/dcmartin/amd64_com.github.dcmartin.open-horizon.alpr4motion)
+[![Docker Pulls][pulls-alpr4motion-amd64]][docker-alpr4motion-amd64]
+
+[docker-alpr4motion-amd64]: https://hub.docker.com/r/dcmartin/amd64_com.github.dcmartin.open-horizon.alpr4motion
+[pulls-alpr4motion-amd64]: https://img.shields.io/docker/pulls/dcmartin/amd64_com.github.dcmartin.open-horizon.alpr4motion.svg
+
+![Supports arm Architecture][arm-shield]
+[![](https://images.microbadger.com/badges/image/dcmartin/arm_com.github.dcmartin.open-horizon.alpr4motion.svg)](https://microbadger.com/images/dcmartin/arm_com.github.dcmartin.open-horizon.alpr4motion)
+[![](https://images.microbadger.com/badges/version/dcmartin/arm_com.github.dcmartin.open-horizon.alpr4motion.svg)](https://microbadger.com/images/dcmartin/arm_com.github.dcmartin.open-horizon.alpr4motion)
+[![Docker Pulls][pulls-alpr4motion-arm]][docker-alpr4motion-arm]
+
+[docker-alpr4motion-arm]: https://hub.docker.com/r/dcmartin/arm_com.github.dcmartin.open-horizon.alpr4motion
+[pulls-alpr4motion-arm]: https://img.shields.io/docker/pulls/dcmartin/arm_com.github.dcmartin.open-horizon.alpr4motion.svg
+
+![Supports arm64 Architecture][arm64-shield]
+[![](https://images.microbadger.com/badges/image/dcmartin/arm64_com.github.dcmartin.open-horizon.alpr4motion.svg)](https://microbadger.com/images/dcmartin/arm64_com.github.dcmartin.open-horizon.alpr4motion)
+[![](https://images.microbadger.com/badges/version/dcmartin/arm64_com.github.dcmartin.open-horizon.alpr4motion.svg)](https://microbadger.com/images/dcmartin/arm64_com.github.dcmartin.open-horizon.alpr4motion)
+[![Docker Pulls][pulls-alpr4motion-arm64]][docker-alpr4motion-arm64]
+
+[docker-alpr4motion-arm64]: https://hub.docker.com/r/dcmartin/arm64_com.github.dcmartin.open-horizon.alpr4motion
+[pulls-alpr4motion-arm64]: https://img.shields.io/docker/pulls/dcmartin/arm64_com.github.dcmartin.open-horizon.alpr4motion.svg
+
 The Open Horizon _service_ [`alpr4motion`](http://github.com/dcmartin/open-horizon/tree/master/alpr4motion/README.md) provides the capabilities of the [OpenALPR](https://github.com/dcmartin/openalpr/) software in conjunction with a specified `MQTT` message broker.  This service subscribes to the _topic_ `{group}/{device}/{camera}/event/end` and processes the JavaScript Object Notation (JSON) payload which includes a selected `JPEG` image (n.b. `BASE64` encoded) from the motion event.  This service may be used independently of the Open Horizon service as a stand-alone Docker container; see [`alpr4motion.sh`](http://github.com/dcmartin/motion/tree/master/sh/alpr4motion.sh)
+
+### `face4motion`
+![Supports amd64 Architecture][amd64-shield]
+[![](https://images.microbadger.com/badges/image/dcmartin/amd64_com.github.dcmartin.open-horizon.face4motion.svg)](https://microbadger.com/images/dcmartin/amd64_com.github.dcmartin.open-horizon.face4motion)
+[![](https://images.microbadger.com/badges/version/dcmartin/amd64_com.github.dcmartin.open-horizon.face4motion.svg)](https://microbadger.com/images/dcmartin/amd64_com.github.dcmartin.open-horizon.face4motion)
+[![Docker Pulls][pulls-face4motion-amd64]][docker-face4motion-amd64]
+
+[docker-face4motion-amd64]: https://hub.docker.com/r/dcmartin/amd64_com.github.dcmartin.open-horizon.face4motion
+[pulls-face4motion-amd64]: https://img.shields.io/docker/pulls/dcmartin/amd64_com.github.dcmartin.open-horizon.face4motion.svg
+
+![Supports arm Architecture][arm-shield]
+[![](https://images.microbadger.com/badges/image/dcmartin/arm_com.github.dcmartin.open-horizon.face4motion.svg)](https://microbadger.com/images/dcmartin/arm_com.github.dcmartin.open-horizon.face4motion)
+[![](https://images.microbadger.com/badges/version/dcmartin/arm_com.github.dcmartin.open-horizon.face4motion.svg)](https://microbadger.com/images/dcmartin/arm_com.github.dcmartin.open-horizon.face4motion)
+[![Docker Pulls][pulls-face4motion-arm]][docker-face4motion-arm]
+
+[docker-face4motion-arm]: https://hub.docker.com/r/dcmartin/arm_com.github.dcmartin.open-horizon.face4motion
+[pulls-face4motion-arm]: https://img.shields.io/docker/pulls/dcmartin/arm_com.github.dcmartin.open-horizon.face4motion.svg
+
+![Supports arm64 Architecture][arm64-shield]
+[![](https://images.microbadger.com/badges/image/dcmartin/arm64_com.github.dcmartin.open-horizon.face4motion.svg)](https://microbadger.com/images/dcmartin/arm64_com.github.dcmartin.open-horizon.face4motion)
+[![](https://images.microbadger.com/badges/version/dcmartin/arm64_com.github.dcmartin.open-horizon.face4motion.svg)](https://microbadger.com/images/dcmartin/arm64_com.github.dcmartin.open-horizon.face4motion)
+[![Docker Pulls][pulls-face4motion-arm64]][docker-face4motion-arm64]
+
+[docker-face4motion-arm64]: https://hub.docker.com/r/dcmartin/arm64_com.github.dcmartin.open-horizon.face4motion
+[pulls-face4motion-arm64]: https://img.shields.io/docker/pulls/dcmartin/arm64_com.github.dcmartin.open-horizon.face4motion.svg
+
+[arm64-shield]: https://img.shields.io/badge/arm64-yes-green.svg
+[amd64-shield]: https://img.shields.io/badge/amd64-yes-green.svg
+[arm-shield]: https://img.shields.io/badge/arm-yes-green.svg
+The Open Horizon _service_ [`face4motion`](http://github.com/dcmartin/open-horizon/tree/master/face4motion/README.md) provides the capabilities of the [OpenFACE](https://github.com/dcmartin/openface/) software in conjunction with a specified `MQTT` message broker.  This service subscribes to the _topic_ `{group}/{device}/{camera}/event/end` and processes the JavaScript Object Notation (JSON) payload which includes a selected `JPEG` image (n.b. `BASE64` encoded) from the motion event.  This service may be used independently of the Open Horizon service as a stand-alone Docker container; see [`face4motion.sh`](http://github.com/dcmartin/motion/tree/master/sh/face4motion.sh)
 
 # Example
 When combined together and operating successfully, the system automatically detects `person` and provides both visual update of the Web user-interface for the most recent entity, as well as most recent detection of any entity, as well as provides notifications through the Web interface (n.b. mobile notifications require SSL and are pending).
@@ -60,4 +138,4 @@ When combined together and operating successfully, the system automatically dete
 Data may be saved locally and processed to produce historical graphs as well as exported for analysis using other tools, e.g. time-series database _InfluxDB_ and analysis front-end _Grafana_.  Data may also be processed using _Jupyter_ notebooks.
 
 
-[![example](samples/example.png?raw=true "EXAMPLE")](http://github.com/dcmartin/hassio-addons/tree/master/motion/samples/example.png)
+[![example](docs/samples/example.png?raw=true "EXAMPLE")](http://github.com/dcmartin/hassio-addons/tree/master/motion/docs/samples/example.png)
