@@ -1,3 +1,5 @@
+<a href="http://github.com/dcmartin/hassio-addons/tree/master/motion/docs/samples/example-motion-detection.gif"><img src="docs/samples/example-motion-detection.gif" width="512"></a>
+
 # `motion`  &Atilde;&#128065;
 This   repository is a demonstration and proof-of-concept for an **AI assistatant** providing improved situational awareness from a collection of network accessible video cameras.  Most consumer-grade Web cameras -- or similar devices -- send notifications when _motion_ occurs.
 
@@ -5,16 +7,7 @@ Motion is often defined as a change in the video from one instance to the next; 
 
 To accomplish that objective, a combination of open source components have been integrated to provide a means to detect motion and recognize selected entities, e.g. a _person_, a _vehicle_, or an _animal_.  The resulting detection may then be processed for notifications as well as analysis.
 
-<a href="http://github.com/dcmartin/hassio-addons/tree/master/motion/docs/samples/example-motion-detection.gif"><img src="docs/samples/example-motion-detection.gif" width="512"></a>
-
 All of this processing is performed on local devices; there are **no cloud services** utilized.  This pattern is known as _edge computing_.
-
-### What  is _edge computing_?
-The edge of the network is where connectivity is lost and privacy is challenged; extending the services developed for the cloud to these scenarios requires additional considerations for microservices development, notably graceful degradation when services are lost, as well as automated recovery and restart when appropriate.  Available computing in edge scenarios may vary from a single device to multiple varying devices on a local-area-network (LAN), for example _home automation_.  Example use-cases include detecting motion and classifying entities seen and monitoring Internet connectivity.
-
-#### Further reading
-+ [_Understanding AI_](https://www.linkedin.com/pulse/understanding-ai-david-c-martin)
-+ [_Building a better 'bot_](https://www.linkedin.com/pulse/building-better-bot-david-c-martin)
 
 ## Status
 ![](https://img.shields.io/github/license/dcmartin/motion.svg?style=flat)
@@ -137,5 +130,25 @@ When combined together and operating successfully, the system automatically dete
 
 Data may be saved locally and processed to produce historical graphs as well as exported for analysis using other tools, e.g. time-series database _InfluxDB_ and analysis front-end _Grafana_.  Data may also be processed using _Jupyter_ notebooks.
 
-
 [![example](docs/samples/example.png?raw=true "EXAMPLE")](http://github.com/dcmartin/hassio-addons/tree/master/motion/docs/samples/example.png)
+
+# What  is _edge computing_?
+The edge of the network is where connectivity is lost and privacy is challenged; extending the services developed for the cloud to these scenarios requires additional considerations for microservices development, notably graceful degradation when services are lost, as well as automated recovery and restart when appropriate.  Available computing in edge scenarios may vary from a single device to multiple varying devices on a local-area-network (LAN), for example _home automation_.  Example use-cases include detecting motion and classifying entities seen and monitoring Internet connectivity.
+
+## Further reading
++ [_Understanding AI_](https://www.linkedin.com/pulse/understanding-ai-david-c-martin)
++ [_Building a better 'bot_](https://www.linkedin.com/pulse/building-better-bot-david-c-martin)
+
+# Changelog & Releases
+
+Releases are based on Semantic Versioning, and use the format
+of ``MAJOR.MINOR.PATCH``. In a nutshell, the version will be incremented
+based on the following:
+
+- ``MAJOR``: Incompatible or major changes.
+- ``MINOR``: Backwards-compatible new features and enhancements.
+- ``PATCH``: Backwards-compatible bugfixes and package updates.
+
+## Authors & contributors
+
+David C Martin (github@dcmartin.com)
