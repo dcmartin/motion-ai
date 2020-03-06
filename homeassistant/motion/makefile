@@ -98,7 +98,7 @@ MOTION_YAML := \
 
 default: all
 
-all:  $(MOTION_YAML) $(WEBCAM_YAML) $(HIGHLOW_BINARY_SENSORS) motion-addon.json group/webcams.yaml history_graph/webcams.yaml
+all:  $(MOTION_YAML) $(WEBCAM_YAML) $(HIGHLOW_BINARY_SENSORS) group/webcams.yaml history_graph/webcams.yaml
 
 # TEMPLATES
 
@@ -247,7 +247,7 @@ motion-addon.json: motion-addon.json.tmpl makefile ${WEBCAMS_JSON}
 	&& cat motion-addon.json.tmpl | envsubst > motion-addon.json
 	@for C in $(WEBCAMS); do \
 	  export \
-	    MOTION_CAMERA_URL=$$(jq -r ".[]|select(.name==\"$${C}\")|.url" $(WEBCAMS_JSON)) \
+	    MOTION_CAMERA_URL=$$(jq -r ".[]|select(.name==\"$${C}\")|.mjpeg_url" $(WEBCAMS_JSON)) \
 	  && \
           jq '.|.cameras+=[ { "name": "'$${C}'", "url": "'$${MOTION_CAMERA_URL}'" } ]' motion-addon.json > motion-addon.json.$$; \
           mv motion-addon.json.$$ motion-addon.json; \
