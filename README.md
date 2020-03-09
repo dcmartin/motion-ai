@@ -152,3 +152,7 @@ based on the following:
 ## Authors & contributors
 
 David C Martin (github@dcmartin.com)
+
+## Stargazers
+[![Stargazers over time](https://starchart.cc/dcmartin/motion.svg)](https://starchart.cc/dcmartin/motion)
+
