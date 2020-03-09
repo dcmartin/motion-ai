@@ -37,7 +37,7 @@ MQTT_PASSWORD := $(if $(wildcard MQTT_PASSWORD),$(shell v=$$(cat MQTT_PASSWORD) 
 ## MOTION
 MOTION_GROUP := $(if $(wildcard MOTION_GROUP),$(shell v=$$(cat MOTION_GROUP) && echo "** SPECIFIED: MOTION_GROUP: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='motion' && echo "!! UNSPECIFIED: MOTION_GROUP unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MOTION_DEVICE := $(if $(wildcard MOTION_DEVICE),$(shell v=$$(cat MOTION_DEVICE) && echo "** SPECIFIED: MOTION_DEVICE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(hostname -s) && echo "!! UNSPECIFIED: MOTION_DEVICE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
-MOTION_CLIENT := $(if $(wildcard MOTION_CLIENT),$(shell v=$$(cat MOTION_CLIENT) && echo "** SPECIFIED: MOTION_CLIENT: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(hostname -s) && echo "!! UNSPECIFIED: MOTION_CLIENT unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MOTION_CLIENT := $(if $(wildcard MOTION_CLIENT),$(shell v=$$(cat MOTION_CLIENT) && echo "** SPECIFIED: MOTION_CLIENT: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=${MOTION_DEVICE} && echo "!! UNSPECIFIED: MOTION_CLIENT unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 # webcam
 NETCAM_USERNAME := $(if $(wildcard NETCAM_USERNAME),$(shell v=$$(cat NETCAM_USERNAME) && echo "** SPECIFIED: NETCAM_USERNAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="username" && echo "!! UNSPECIFIED: NETCAM_USERNAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
