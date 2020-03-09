@@ -63,7 +63,7 @@ WEBCAM_YAML := \
 ##
 
 # entity's items to track
-HIGHLOW_ENTITYS := image end annotated detected detected_entity face
+HIGHLOW_ENTITYS := detected detected_entity face # image end annotated 
 HIGHLOW_ITEMS := count ago
 
 # HIGHLOW templates
