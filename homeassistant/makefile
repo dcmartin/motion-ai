@@ -190,4 +190,4 @@ logclean:
 distclean: realclean
 	rm -fr .uuid .HA_VERSION .cloud deps tts .storage
 
-.PHONY: all default build run stop logs restart clean realclean distclean $(PACKAGES)
+.PHONY: tidy all default run stop logs restart clean realclean distclean $(PACKAGES)
