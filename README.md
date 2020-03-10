@@ -1,7 +1,7 @@
 <a href="http://github.com/dcmartin/hassio-addons/tree/master/motion/docs/samples/example-motion-detection.gif"><img src="docs/samples/example-motion-detection.gif" width="512"></a>
 
 # `motion`  &Atilde;&#128065;
-This   repository is a demonstration and proof-of-concept for an **AI assistatant** providing improved situational awareness from a collection of network accessible video cameras.  Most consumer-grade Web cameras -- or similar devices -- send notifications when _motion_ occurs.
+This   repository is a demonstration and proof-of-concept for an **AI assistants** providing improved situational awareness from a collection of network accessible video cameras.  Most consumer-grade Web cameras -- or similar devices -- send notifications when _motion_ occurs.
 
 Motion is often defined as a change in the video from one instance to the next; these changes are often influenced by light, wind, and many other environmental factors -- producing a large number of notifications.  While limitations may be set on the amount of change, a better solution would detect and classify movement.
 
@@ -152,3 +152,7 @@ based on the following:
 ## Authors & contributors
 
 David C Martin (github@dcmartin.com)
+
+## Stargazers
+[![Stargazers over time](https://starchart.cc/dcmartin/motion.svg)](https://starchart.cc/dcmartin/motion)
+
