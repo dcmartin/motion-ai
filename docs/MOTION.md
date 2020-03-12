@@ -29,46 +29,60 @@ Do the standard things and upgrade all software; older RaspberryPi devices may n
 ```
 sudo apt update -qq -y 
 sudo apt upgrade -qq -y 
-sudo apt install -qq -y git jq curl bc gettext make git
+sudo apt install -qq -y git jq curl bc gettext make git mosquitto-clients
 ```
 ## &#10123; - Clone repository; install Docker and Home Assistant
 Clone this repository into a temporary location, e.g. `~/horizon.dcmartin.com/`, and use the provided shell scripts to install Docker and Home Assistant; for example:
 
 ```
 cd ~/
-git clone git@github.com:dcmartin/horizon.dcmartin.com.git
-cd ~/horizon.dcmartin.com/
+mkdir -p ~/GIT/motion
+cd ~/GIT/motion
+git clone http://github.com/dcmartin/motion.git .
 sudo ./sh/get.hassio.sh
-sudo ./hassio-install.sh
 sudo addgroup ${USER} docker
+sudo reboot
 ```
-Logout to enable `docker` group; wait for 20-30 minutes for Home Assistant to configure, then connect to IP address on port `8123` and complete setup using a Web browser, for example: `http://192.168.1.36:8123`
-
-
-## &#10124; - Update Home Assistant configuration
-Copy the contents of the repository into the Home Assistant directory `homeassistant/`; this will over-write any existing files with the same names and is **intended for new systems**; please copy accordingly for existing systems.
+Reboot to enable `docker` and set group privilege.  Login again, and initiate installation of Home Assistant, for example:
 
 ```
-cd ~/horizon.dcmartin.com/
-sudo mv .??* * /usr/share/hassio/homeassistant
-cd /usr/share/hassio/homeassistant
+cd ~/GIT/motion
+sudo ./hassio-install.sh -m raspberrypi3
+```
+
+Wait for 20-30 minutes for Home Assistant to download the necessary Docker containers and setup default configuration.  Then connect to IP address on the default port, `8123`, and complete setup using a Web browser, for example:
+
+```
+http://127.0.0.1:8123
+```
+
+## &#10124; - Home Assistant configuration
+The `motion` configuration overwrites the existing `/usr/share/hassio/homeassistant/` configuration contents.  Copy the contents of  this repository into the existing installation, change ownership, and create new `configuration.yaml` file; for example:
+
+```
+cd ~/GIT/motion
+tar cvf - . | ( cd /usr/share/hassio; sudo tar xvf - )
+rm -fr motion/ && ln -s /usr/share/hassio motion
+cd /usr/share/hassio/
 sudo chown -R ${USER} .
-rm configuration.yaml
+cd homeassistant/
+rm -f configuration.yaml
 ln -s config-client.yaml.tmpl configuration.yaml
 ```
 ## &#10125; - Build configuration files
-Specify options according to environment and build files using the `make` command, for example:
+Specify options according to environment and local files; build YAML configuration files using the `make` command, for example:
 
 ```
 cd /usr/share/hassio/homeassistant
 echo '[]' > motion/webcams.json 	# initially for zero motion addon-on cameras
 echo '+' > MOTION_CLIENT 			# listen for all client cameras
-echo '192.168.1.40' > MQTT_HOST 	# specify another device as broker
-echo '80' > HOST_PORT 				# change host port if desired
+echo '192.168.1.40' > MQTT_HOST 	# to specify another device as broker
+echo '80' > HOST_PORT 				# change host port from 8123
 make
 ```
 
 ## &#10126; - Restart Home Assistant
+
 ```
 make restart
 ```
@@ -95,10 +109,10 @@ DEBUG=true LOG_LEVEL=debug YOLO_CONFIG=tiny-v3 ./sh/yolo4motion.sh
 ```
 
 ## &#10128; - Install `motion` _add-on_
-The device is now configured and operational, with the exception of the `motion` _add-on_; please refer to [`INSTALL.md`](INSTALL.md) for information on instalation and configuration of the add-on.  Visit the [`motion`](http://github.com/dcmartin/hassio-addons/tree/master/motion/README.md) documentation for details.  
+The device is now configured and operational, with the exception of the `motion` _add-on_ itself.  The add-on must be installed through the Home Assistant UX; please refer to [`INSTALL.md`](INSTALL.md) for information on instalation and configuration of the add-on.  Visit the [`motion`](http://github.com/dcmartin/hassio-addons/tree/master/motion/README.md) documentation for details.  
 
 ### &#10071;  - `motion/webcams.json`
- Once the add-on is configured and operational create the `motion/webcams.json` file with details on the camera(s) specified for the local `motion` add-on.  Those details include:
+ Once the add-on is configured and operational create the `homeassistant/motion/webcams.json` file with details on the camera(s) specified for the local `motion` add-on.  Those details include:
 
 + `name` : a unique name for the camera (e.g. `kitchencam`)
 + `mjpeg_url` : location of "live" motion JPEG stream from camera
