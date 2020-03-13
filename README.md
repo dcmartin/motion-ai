@@ -1,4 +1,4 @@
-<a href="http://github.com/dcmartin/hassio-addons/tree/master/motion/docs/samples/example-motion-detection.gif"><img src="docs/samples/example-motion-detection.gif" width="512"></a>
+<img src="docs/samples/example-motion-detection.gif" width="512">
 
 # `motion`  &Atilde;&#128065;
 This   repository is a demonstration and proof-of-concept for an **AI assistants** providing improved situational awareness from a collection of network accessible video cameras.  Most consumer-grade Web cameras -- or similar devices -- send notifications when _motion_ occurs.
