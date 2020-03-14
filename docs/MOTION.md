@@ -193,18 +193,22 @@ For example:
 
 ```
 [
-  {
-    "name": "localcam",
-    "mjpeg_url": "http://127.0.0.1:8090/1",
-    "icon": "webcam",
-    "username": "username",
-    "password": "password"
-  }
+  { "name": "poolcam", "mjpeg_url": "http://192.168.1.251:8090/1", "icon": "water", "username": "!secret motioncam-username", "password": "!secret motioncam-password" },
+  { "name": "road", "mjpeg_url": "http://192.168.1.251:8090/2", "icon": "road", "username": "!secret motioncam-username", "password": "!secret motioncam-password" },
+  { "name": "dogshed", "mjpeg_url": "http://192.168.1.251:8090/3", "icon": "dog", "username": "!secret motioncam-username", "password": "!secret motioncam-password" },
+  { "name": "dogshedfront", "mjpeg_url": "http://192.168.1.251:8090/4", "icon": "home-floor-1", "username": "!secret motioncam-username", "password": "!secret motioncam-password" },
+  { "name": "sheshed", "mjpeg_url": "http://192.168.1.251:8090/5", "icon": "window-shutter-open", "username": "!secret motioncam-username", "password": "!secret motioncam-password" },
+  { "name": "dogpond", "mjpeg_url": "http://192.168.1.251:8090/6", "icon": "waves", "username": "!secret motioncam-username", "password": "!secret motioncam-password" },
+  { "name": "pondview", "mjpeg_url": "http://192.168.1.251:8090/7", "icon": "waves", "username": "!secret motioncam-username", "password": "!secret motioncam-password" }
 ]
 ```
 
-The `motion` configuration overwrites the existing `/usr/share/hassio/` directory contents.  Copy the contents of  this repository into the existing installation, change ownership, and create new `configuration.yaml` file; for example:
+The `motion` configuration installs over an existing `/usr/share/hassio/` directory contents, but only over-writes file in the `homeassistant/` subdirectory. 
+
+To complete installation, copy the contents of  this repository into the existing installation, change ownership, and create new `configuration.yaml` file; for example:
+
 ```
+cd ~/GIT/motion
 tar cvf - . | ( cd /usr/share/hassio; sudo tar xvf - )
 cd ~/GIT/
 rm -fr motion/ && ln -s /usr/share/hassio motion
@@ -214,18 +218,21 @@ cd homeassistant/
 rm -f configuration.yaml
 ln -s config-client.yaml.tmpl configuration.yaml
 ```
-```
-cd /usr/share/hassio/homeassistant
 
-```
+## &#10127; - Restart Home Assistant
+The configuration may now be updated and controlled using the `make` command, including the following:
 
-## &#10126; - Restart Home Assistant
++ `restart` - restart the Home Assistant server
++ `tidy` - remove any automatically constructed YAML configuration files
++ `clean` - perform `tidy` and then remove any log files and `.storage/` recorder files
++ `realclean` - perform `clean` and then remove all database files
++ `logs` - show the Home Assistant logs
 
 ```
 make restart
 ```
 
-##  &#10127; - Start `yolo4motion` _service_
+##  &#10128; - Start `yolo4motion` _service_
 Start the `yolo4motion` service container by executing the provided [shell script](../sh/yolo4motion.sh); the options, which may be specified through equivalent environment variables or file, are:
 
 + `MQTT_HOST` - host for message broker; default: _hostname_
@@ -246,7 +253,15 @@ For example:
 DEBUG=true LOG_LEVEL=debug YOLO_CONFIG=tiny-v3 ./sh/yolo4motion.sh
 ```
 
+##  &#10129; - Start `face4motion`and `alpr4motion` (_optional_)
+These two Open Horizon _services_ may also be started via a shell script, namely [`alpr4motion.sh`](../sh/alpr4motion.sh) and 
 
+##  &#10130; - Watch `MQTT` traffic
+To monitor the `MQTT` traffic from one or more `motion` devices use the `./sh/watch.sh` script which runs a `MQTT` client to listen for various _topics_, including motion detection events, annotations, detections, and a specified detected entity (n.b. currently limited per device).  The script outputs information to `/dev/stderr` and runs in the background.  The shell script will utilize existing values for the `MQTT` host, etc.. as well as the `MOTION_CLIENT`, but those may be specified as well; for example:
+
+```
+MOTION_GROUP=motion MOTION_CLIENT=+ MQTT_HOST=192.168.1.50 ./sh/watch.sh
+```
 
 # Reference
 
