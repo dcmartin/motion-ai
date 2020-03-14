@@ -57,7 +57,7 @@ http://127.0.0.1:8123
 ```
 
 ## &#10124; - Home Assistant configuration
-The `motion` configuration overwrites the existing `/usr/share/hassio/homeassistant/` configuration contents.  Copy the contents of  this repository into the existing installation, change ownership, and create new `configuration.yaml` file; for example:
+The `motion` configuration overwrites the existing `/usr/share/hassio/` directory contents.  Copy the contents of  this repository into the existing installation, change ownership, and create new `configuration.yaml` file; for example:
 
 ```
 cd ~/GIT/motion
@@ -111,7 +111,86 @@ DEBUG=true LOG_LEVEL=debug YOLO_CONFIG=tiny-v3 ./sh/yolo4motion.sh
 ## &#10128; - Install `motion` _add-on_
 The device is now configured and operational, with the exception of the `motion` _add-on_ itself.  The add-on must be installed through the Home Assistant UX; please refer to [`INSTALL.md`](INSTALL.md) for information on instalation and configuration of the add-on.  Visit the [`motion`](http://github.com/dcmartin/hassio-addons/tree/master/motion/README.md) documentation for details.  
 
-### &#10071;  - `motion/webcams.json`
+### Example configuration for `motion` _add-on_
+```
+log_level: debug
+log_motion_level: error
+log_motion_type: ALL
+default:
+  brightness: 100
+  changes: 'on'
+  contrast: 50
+  despeckle: EedDl
+  event_gap: 10
+  framerate: 2
+  hue: 50
+  interval: 60
+  lightswitch: 0
+  minimum_motion_frames: 10
+  movie_max: 60
+  movie_output: 'off'
+  movie_quality: 80
+  netcam_userpass: '!secret motioncam-userpass'
+  palette: 15
+  picture_quality: 80
+  post_pictures: best
+  saturation: 0
+  stream_quality: 50
+  text_scale: 2
+  threshold_percent: 1
+  username: '!secret motioncam-username'
+  password: '!secret motioncam-password'
+  width: 1920
+  height: 1080
+mqtt:
+  host: 192.168.1.50
+  port: '1883'
+  username: username
+  password: password
+group: motion
+device: netcams
+client: netcams
+timezone: America/Los_Angeles
+cameras:
+  - name: poolcam
+    type: netcam
+    icon: water
+    netcam_url: 'http://192.168.1.162/nphMotionJpeg?Resolution=640x480&Quality=Clarity'
+    netcam_userpass: '!secret netcam-userpass'
+    width: 640
+    height: 480
+    framerate: 5
+  - name: road
+    type: netcam
+    icon: road
+    netcam_url: 'http://192.168.1.36:8081/'
+    netcam_userpass: '!secret netcam-userpass'
+    width: 640
+    height: 480
+    framerate: 5
+  - name: dogshed
+    type: netcam
+    icon: dog
+    netcam_url: 'rtsp://192.168.1.221/live'
+  - name: dogshedfront
+    type: netcam
+    icon: home-floor-1
+    netcam_url: 'rtsp://192.168.1.222/live'
+  - name: sheshed
+    type: netcam
+    icon: window-shutter-open
+    netcam_url: 'rtsp://192.168.1.223/live'
+  - name: dogpond
+    type: netcam
+    icon: waves
+    netcam_url: 'rtsp://192.168.1.224/live'
+  - name: pondview
+    type: netcam
+    icon: waves
+    netcam_url: 'rtsp://192.168.1.225/live'
+```
+
+## &#10071;  - `motion/webcams.json`
  Once the add-on is configured and operational create the `homeassistant/motion/webcams.json` file with details on the camera(s) specified for the local `motion` add-on.  Those details include:
 
 + `name` : a unique name for the camera (e.g. `kitchencam`)
