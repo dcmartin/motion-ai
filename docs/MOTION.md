@@ -8,8 +8,9 @@ After configuring an appropriate device with Home Assistant (see: [here](http://
 The Home Assistant configuration generated is dependent on many options; the most important options are:
 
 + `HOST_PORT` - the port number on which Home Assistant will listen; default `8123`
-+ `MQTT_HOST` - the identifier for the message broker; defaults to `core-mosquitto`
-+ `MOTION_CLIENT` - the client for message topic; defaults to `<hostname>`; for **all** clients specify `+`
++ `MQTT_HOST` - the TCP/IP address or DNS name for the message broker; defaults to `core-mosquitto`
++ `MOTION_DEVICE` - unique name; defaults to `$(hostname -s)`; **do not use `-`** or reserved `MQTT` _topic_ characters
++ `MOTION_CLIENT` - the client for message topic; defaults to `MOTION_DEVICE`; for **all** clients specify `+`
 
 These attributes may be specified through files with equivalent names containing the preferred value (see below).
 
@@ -19,7 +20,7 @@ In addition, the configuration depends on a listing of cameras, notably the file
 After installing LINUX, creating user account, and accessing device, configure the `domainname` and optionally grant privileges to enable automated `sudo`, for example:
 
 ```
-sudo domainname mydomain.com
+echo "mydomain.com" | sudo tee /etc/domainname
 echo "${USER} ALL=(ALL) NOPASSWD: ALL" | sudo tee "/etc/sudoers.d/010_${USER}-nopasswd"
 ```
 
@@ -28,18 +29,28 @@ Do the standard things and upgrade all software; older RaspberryPi devices may n
 
 ```
 sudo apt update -qq -y 
-sudo apt upgrade -qq -y 
-sudo apt install -qq -y git jq curl bc gettext make git mosquitto-clients
+sudo apt full-upgrade -qq -y 
+sudo apt install -qq -y git jq curl bc gettext make mosquitto-clients
 ```
-## &#10123; - Clone repository; install Docker and Home Assistant
-Clone this repository into a temporary location, e.g. `~/horizon.dcmartin.com/`, and use the provided shell scripts to install Docker and Home Assistant; for example:
+## &#10123; - Clone repository and install
+Clone this repository into a directory in the local file-system, e.g. `~/GIT/motion/`; for example:
 
 ```
-cd ~/
 mkdir -p ~/GIT/motion
 cd ~/GIT/motion
 git clone http://github.com/dcmartin/motion.git .
+```
+
+After cloning, use the provided shell script to install Docker and other pre-requisites; for example:
+
+```
+cd ~/GIT/motion
 sudo ./sh/get.hassio.sh
+```
+
+Add the account to the `docker` group; for example:
+
+```
 sudo addgroup ${USER} docker
 sudo reboot
 ```
@@ -50,66 +61,31 @@ cd ~/GIT/motion
 sudo ./hassio-install.sh -m raspberrypi3
 ```
 
-Wait for 20-30 minutes for Home Assistant to download the necessary Docker containers and setup default configuration.  Then connect to IP address on the default port, `8123`, and complete setup using a Web browser, for example:
+Wait for 20-30 minutes for Home Assistant to download the necessary Docker containers and setup default configuration. 
+
+## &#10124; - Initialize Home Assistant
+When the installation from step (2) completes connect to IP address for the device on the default port, `8123`, and complete setup using a Web browser, for example:
 
 ```
-http://127.0.0.1:8123
+http://raspberrypi.local:8123
 ```
 
-## &#10124; - Home Assistant configuration
-The `motion` configuration overwrites the existing `/usr/share/hassio/` directory contents.  Copy the contents of  this repository into the existing installation, change ownership, and create new `configuration.yaml` file; for example:
+Create the initial user (a.ka. the _owner_), provide a name, use auto-detection to guess your location, set other attributes and finish configuration.  The default view of the default configuration should appear, as well as a _save login_ option in the lower right of the Web page.
 
-```
-cd ~/GIT/motion
-tar cvf - . | ( cd /usr/share/hassio; sudo tar xvf - )
-rm -fr motion/ && ln -s /usr/share/hassio motion
-cd /usr/share/hassio/
-sudo chown -R ${USER} .
-cd homeassistant/
-rm -f configuration.yaml
-ln -s config-client.yaml.tmpl configuration.yaml
-```
-## &#10125; - Build configuration files
-Specify options according to environment and local files; build YAML configuration files using the `make` command, for example:
+## &#10125; - Install `motion` _add-on_
+The add-on must be installed through the Home Assistant UX; please refer to [`INSTALL.md`](INSTALL.md) for details on instalation and configuration of the add-on.  Visit the [`motion` _add-on_](https://github.com/dcmartin/hassio-addons/blob/master/motion/CONFIGURATION.md) documentation for _add-on_ configuration information.
 
-```
-cd /usr/share/hassio/homeassistant
-echo '[]' > motion/webcams.json 	# initially for zero motion addon-on cameras
-echo '+' > MOTION_CLIENT 			# listen for all client cameras
-echo '192.168.1.40' > MQTT_HOST 	# to specify another device as broker
-echo '80' > HOST_PORT 				# change host port from 8123
-make
-```
+### Options for `motion` _add-on_
+The `default` attributes for _cameras_ are utilized unless the _camera_ entry specifies an alternative; please note the `netcam_userpass` may be shared across cameras or specified for any.
 
-## &#10126; - Restart Home Assistant
+ + `mqtt` - ensure `host`, `username`, and `password` match `MQTT` _add-on_ configuration
+ + `group` - a collection of device(s), each with one or more cameras.
+ + `device`- the unique identifier used in the `MQTT` topic
+ + `client` - the unique identifier per `device` or `+` for all `group` camera(s)
+ + `timezone` - for time across `group`
+ + `cameras` - one or more `netcam`, `ftpd` cameras; at most one (1) `local` camera
 
-```
-make restart
-```
-
-##  &#10127; - Start `yolo4motion` _service_
-Start the `yolo4motion` service container by executing the provided [shell script](../sh/yolo4motion.sh); the options, which may be specified through equivalent environment variables or file, are:
-
-+ `MQTT_HOST` - host for message broker; default: _hostname_
-+ `MOTION_GROUP` - which clients to process; default: `motion`
-+ `MOTION_CLIENT` - which clients to process; default: _hostname_
-+ `MOTION_CAMERA` - which camera to process; default: `+`
-+ `YOLO_CONFIG` - may be `tiny`, `tiny-v2`, `tiny-v3`, `v2`, or `v3`; default: `tiny`
-+ `YOLO_ENTITY` - entity to detect; default: `all`
-+ `YOLO_SCALE` - size for image scaling prior to detect; default: `none`
-+ `YOLO_THRESHOLD` - threshold for entity detection; default: `0.25`
-+ `LOG_LEVEL` - logging level; default: `info`
-+ `LOG_TO` - logging output; default: `/dev/stderr`
-+ `DEBUG` - turn debugging on; default: `false`
-
-For example:
-
-```
-DEBUG=true LOG_LEVEL=debug YOLO_CONFIG=tiny-v3 ./sh/yolo4motion.sh
-```
-
-## &#10128; - Install `motion` _add-on_
-The device is now configured and operational, with the exception of the `motion` _add-on_ itself.  The add-on must be installed through the Home Assistant UX; please refer to [`INSTALL.md`](INSTALL.md) for information on instalation and configuration of the add-on.  Visit the [`motion`](http://github.com/dcmartin/hassio-addons/tree/master/motion/README.md) documentation for details.  
+ After configuration, start the _add-on_.
 
 ### Example configuration for `motion` _add-on_
 ```
@@ -190,7 +166,22 @@ cameras:
     netcam_url: 'rtsp://192.168.1.225/live'
 ```
 
-## &#10071;  - `motion/webcams.json`
+
+## &#10126; - Build `motion` YAML
+This repository provides a set of `YAML` files and templates specifically designed to consume information provided by the `motion` _add-on_.  These files provide a multi-view interface through both Lovelace and legacy user-interfaces.
+
+Specify options according to environment and local files; build YAML configuration files using the `make` command, for example:
+
+```
+cd ~/GIT/motion/
+echo '[]' > motion/webcams.json 	# initially for zero motion addon-on cameras
+echo '+' > MOTION_CLIENT 			# listen for all client cameras
+echo '192.168.1.40' > MQTT_HOST 	# to specify another device as broker
+echo '80' > HOST_PORT 				# change host port from 8123
+make
+```
+
+### &#10071;  - `motion/webcams.json`
  Once the add-on is configured and operational create the `homeassistant/motion/webcams.json` file with details on the camera(s) specified for the local `motion` add-on.  Those details include:
 
 + `name` : a unique name for the camera (e.g. `kitchencam`)
@@ -211,6 +202,51 @@ For example:
   }
 ]
 ```
+
+The `motion` configuration overwrites the existing `/usr/share/hassio/` directory contents.  Copy the contents of  this repository into the existing installation, change ownership, and create new `configuration.yaml` file; for example:
+```
+tar cvf - . | ( cd /usr/share/hassio; sudo tar xvf - )
+cd ~/GIT/
+rm -fr motion/ && ln -s /usr/share/hassio motion
+cd /usr/share/hassio/
+sudo chown -R ${USER} .
+cd homeassistant/
+rm -f configuration.yaml
+ln -s config-client.yaml.tmpl configuration.yaml
+```
+```
+cd /usr/share/hassio/homeassistant
+
+```
+
+## &#10126; - Restart Home Assistant
+
+```
+make restart
+```
+
+##  &#10127; - Start `yolo4motion` _service_
+Start the `yolo4motion` service container by executing the provided [shell script](../sh/yolo4motion.sh); the options, which may be specified through equivalent environment variables or file, are:
+
++ `MQTT_HOST` - host for message broker; default: _hostname_
++ `MOTION_GROUP` - which clients to process; default: `motion`
++ `MOTION_CLIENT` - which clients to process; default: _hostname_
++ `MOTION_CAMERA` - which camera to process; default: `+`
++ `YOLO_CONFIG` - may be `tiny`, `tiny-v2`, `tiny-v3`, `v2`, or `v3`; default: `tiny`
++ `YOLO_ENTITY` - entity to detect; default: `all`
++ `YOLO_SCALE` - size for image scaling prior to detect; default: `none`
++ `YOLO_THRESHOLD` - threshold for entity detection; default: `0.25`
++ `LOG_LEVEL` - logging level; default: `info`
++ `LOG_TO` - logging output; default: `/dev/stderr`
++ `DEBUG` - turn debugging on; default: `false`
+
+For example:
+
+```
+DEBUG=true LOG_LEVEL=debug YOLO_CONFIG=tiny-v3 ./sh/yolo4motion.sh
+```
+
+
 
 # Reference
 
