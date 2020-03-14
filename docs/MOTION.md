@@ -233,7 +233,9 @@ make restart
 ```
 
 ##  &#10128; - Start `yolo4motion` _service_
-Start the `yolo4motion` service container by executing the provided [shell script](../sh/yolo4motion.sh); the options, which may be specified through equivalent environment variables or file, are:
+Start the `yolo4motion` service container by executing the provided [shell script](../sh/yolo4motion.sh); the options, which may be specified through equivalent environment variables or file.
+
+### `yolomotion.sh`
 
 + `MQTT_HOST` - host for message broker; default: _hostname_
 + `MOTION_GROUP` - which clients to process; default: `motion`
@@ -245,18 +247,27 @@ Start the `yolo4motion` service container by executing the provided [shell scrip
 + `YOLO_THRESHOLD` - threshold for entity detection; default: `0.25`
 + `LOG_LEVEL` - logging level; default: `info`
 + `LOG_TO` - logging output; default: `/dev/stderr`
-+ `DEBUG` - turn debugging on; default: `false`
 
 For example:
 
 ```
-DEBUG=true LOG_LEVEL=debug YOLO_CONFIG=tiny-v3 ./sh/yolo4motion.sh
+LOG_LEVEL=debug YOLO_CONFIG=tiny-v3 ./sh/yolo4motion.sh
 ```
 
-##  &#10129; - Start `face4motion`and `alpr4motion` (_optional_)
-These two Open Horizon _services_ may also be started via a shell script, namely [`alpr4motion.sh`](../sh/alpr4motion.sh) and 
+**Note** that the Docker container and the model's weights must be downloaded from the Internet; there may be a considerable delay given the device Internet connection bandwidth.  The container is only downloaded one time, but the model's weights  are downloaded each time the container is started.
 
-##  &#10130; - Watch `MQTT` traffic
+##  &#10129; - Start `face4motion`and `alpr4motion` (_optional_)
+These two Open Horizon _services_ may also be started via shell scripts, namely [`alpr4motion.sh`](../sh/alpr4motion.sh) and [`face4motion`](../sh/face4motion.sh).  These scripts utilize the same environment variables for `MQTT`, `MOTION`, and `LOG` attributes as `yolo4motion.sh`, but have their own specific options rather than `YOLO`:
+
+### `face4motion.sh`
++ `FACE_THRESHOLD` - floating point value between `0.0` and `0.99`; default: `0.5`
+
+### `alpr4motion.sh`
++ `ALPR_COUNTRY` - designation for country specific license plates, may be `us` or `eu`; default: `us`
++ `ALPR_PATTERN` - pattern for plate recognition, may be regular expression; default: `none`
++ `ALPR_TOPN` - integer value between `1` and `20` limiting number `tag` predictions per `plate` 
+
+##  &#10130; - Watch `MQTT` traffic (_optional_)
 To monitor the `MQTT` traffic from one or more `motion` devices use the `./sh/watch.sh` script which runs a `MQTT` client to listen for various _topics_, including motion detection events, annotations, detections, and a specified detected entity (n.b. currently limited per device).  The script outputs information to `/dev/stderr` and runs in the background.  The shell script will utilize existing values for the `MQTT` host, etc.. as well as the `MOTION_CLIENT`, but those may be specified as well; for example:
 
 ```
