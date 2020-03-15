@@ -36,12 +36,12 @@ sudo apt install -qq -y git jq curl bc gettext make mosquitto-clients
 Clone this repository into a directory in the local file-system, e.g. `~/GIT/motion/`; for example:
 
 ```
-mkdir -p ~/GIT/motion
-cd ~/GIT/motion
-git clone http://github.com/dcmartin/motion.git .
+mkdir -p ~/GIT/
+cd ~/GIT/
+git clone http://github.com/dcmartin/motion.git
 ```
 
-After cloning, use the provided shell script to install Docker and other pre-requisites; for example:
+Cloning the repository creates a new directory, `motion/`; use the provided shell script to install Docker and other pre-requisites; for example:
 
 ```
 cd ~/GIT/motion
