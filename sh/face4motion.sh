@@ -7,7 +7,7 @@ BUILD_ARCH=$(uname -m | sed -e 's/aarch64.*/arm64/' -e 's/x86_64.*/amd64/' -e 's
 SERVICE='{"label":"face4motion","id":"com.github.dcmartin.open-horizon.face4motion","version":"'${SERVICE_VERSION:-0.0.1}'","arch":"'${SERVICE_ARCH:-${BUILD_ARCH}}'","ports":{"service":'${SERVICE_PORT:-80}',"host":'${HOST_PORT:-4664}'}}'
 MOTION='{"group":"'${MOTION_GROUP:-motion}'","client":"'${MOTION_CLIENT:-+}'","camera":"'${MOTION_CAMERA:-+}'"}'
 MQTT='{"host":"'${MQTT_HOST:-$(hostname -I | awk '{ print $1 }')}'","port":'${MQTT_PORT:-1883}',"username":"'${MQTT_USERNAME:-username}'","password":"'${MQTT_PASSWORD:-password}'"}'
-FACE='{"country":"'${FACE_COUNTRY:-us}'","pattern":"'${FACE_PATTERN:-all}'","scale":"'${FACE_SCALE:-none}'","topn":'${FACE_TOPN:-10}'}'
+FACE='{"country":"'${FACE_COUNTRY:-us}'","pattern":"'${FACE_PATTERN:-all}'","scale":"'${FACE_SCALE:-none}'","threshold":'${FACE_THRESHOLD:-0.5}'}'
 DEBUG='{"debug":'${DEBUG:-false}',"level":"'"${LOG_LEVEL:-info}"'","logto":"'"${LOGTO:-/dev/stderr}"'"}'
 
 # notify
@@ -56,7 +56,7 @@ CID=$(docker run -d \
   -e FACE_COUNTRY=$(echo "${FACE}" | jq -r '.country') \
   -e FACE_PATTERN=$(echo "${FACE}" | jq -r '.pattern') \
   -e FACE_SCALE=$(echo "${FACE}" | jq -r '.scale') \
-  -e FACE_TOPN=$(echo "${FACE}" | jq -r '.topn') \
+  -e FACE_THRESHOLD=$(echo "${FACE}" | jq -r '.threshold') \
   -e FACE_PERIOD=60 \
   -e LOG_LEVEL=$(echo "${DEBUG}" | jq -r '.level') \
   -e LOGTO=$(echo "${DEBUG}" | jq -r '.logto') \
