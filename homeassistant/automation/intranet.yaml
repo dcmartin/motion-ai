@@ -4,7 +4,7 @@
 
 - id: intranet_counter
   alias: intranet_counter
-  initial_state: !secret intranet-automations
+  initial_state: on
   trigger:
     platform: state
     entity_id: binary_sensor.intranet_test
@@ -16,9 +16,28 @@
     - service: counter.increment
       entity_id: counter.intranet_counter
 
+- id: intranet_publish
+  alias: intranet_publish
+  initial_state: on
+  trigger:
+    platform: state
+    entity_id: binary_sensor.intranet_test
+  condition:
+    - condition: template
+      value_template: >
+        {{ states('binary_sensor.intranet_test') == 'on' }}
+  action:
+  action:
+    - service: mqtt.publish
+      data_template:
+        topic: '${MOTION_GROUP}/${MOTION_DEVICE}/internet'
+        retain: false
+        payload: >
+          {{ states('sensor.intranet_link.attributes') }}
+
 - id: intranet_slow_counter
   alias: intranet_slow_counter
-  initial_state: !secret intranet-automations
+  initial_state: on
   trigger:
     platform: state
     entity_id: binary_sensor.intranet_slow
@@ -29,6 +48,18 @@
   action:
     - service: counter.increment
       entity_id: counter.intranet_slow_counter
+
+- id: intranet_slow_notify
+  alias: intranet_slow_notify
+  initial_state: !secret intranet-notifications
+  trigger:
+    platform: state
+    entity_id: binary_sensor.intranet_slow
+  condition:
+    - condition: template
+      value_template: >
+        {{ states.binary_sensor.intranet_slow.state == 'on' }}
+  action:
     - service: persistent_notification.create
       data_template:
         title: >
@@ -39,16 +70,10 @@
           Current: {{ states.sensor.intranet_test_receive.state }} Mbps; 
           average {{ states.sensor.intranet_receive_mean.state }} Mbps;
           stdev {{ states.sensor.intranet_receive_statistics_mean.attributes.standard_deviation }} Mbps
-    - service: mqtt.publish
-      data_template:
-        topic: 'status/intranet/download'
-        retain: false
-        payload: >
-          {{ states.sensor.intranet_receive_statistics_mean.attributes }}
 
 - id: intranet_slow_dismiss
   alias: intranet_slow_dismiss
-  initial_state: !secret intranet-automations
+  initial_state: !secret intranet-notifications
   trigger:
     platform: state
     entity_id: binary_sensor.intranet_slow
@@ -63,7 +88,7 @@
 
 - id: intranet_fast_counter
   alias: intranet_fast_counter
-  initial_state: !secret intranet-automations
+  initial_state: !secret intranet-notifications
   trigger:
     platform: state
     entity_id: binary_sensor.intranet_fast
@@ -89,16 +114,10 @@
           Current: {{ states.sensor.intranet_test_receive.state }} Mbps; 
           average {{ states.sensor.intranet_receive_mean.state }} Mbps;
           stdev {{ states.sensor.intranet_receive_statistics_mean.attributes.standard_deviation }} Mbps
-    - service: mqtt.publish
-      data_template:
-        topic: 'status/intranet/download'
-        retain: false
-        payload: >
-          {{ states.sensor.intranet_receive_statistics_mean.attributes }}
 
 - id: intranet_fast_dismiss
   alias: intranet_fast_dismiss
-  initial_state: !secret intranet-automations
+  initial_state: !secret intranet-notifications
   trigger:
     platform: state
     entity_id: binary_sensor.intranet_fast
@@ -113,7 +132,7 @@
 
 - id: intranet_slow_persistent
   alias: intranet_slow_persistent
-  initial_state: !secret intranet-automations
+  initial_state: !secret intranet-notifications
   trigger:
     platform: state
     entity_id: binary_sensor.intranet_slow_persistent
@@ -132,16 +151,10 @@
           Current: {{ states.sensor.intranet_test_receive.state }} Mbps; 
           average {{ states.sensor.intranet_receive_mean.state }} Mbps;
           average stdev {{ states.sensor.intranet_receive_stdev_mean.state }} Mbps
-    - service: mqtt.publish
-      data_template:
-        topic: 'status/intranet/download/stdev'
-        retain: false
-        payload: >
-          {{ states.sensor.intranet_receive_stdev_mean.attributes }}
 
 - id: intranet_fast_persistent
   alias: intranet_fast_persistent
-  initial_state: !secret intranet-automations
+  initial_state: !secret intranet-notifications
   trigger:
     platform: state
     entity_id: binary_sensor.intranet_fast_persistent
@@ -160,10 +173,4 @@
           Current: {{ states.sensor.intranet_test_receive.state }} Mbps; 
           average {{ states.sensor.intranet_receive_mean.state }} Mbps;
           average stdev {{ states.sensor.intranet_receive_stdev_mean.state }} Mbps
-    - service: mqtt.publish
-      data_template:
-        topic: 'status/intranet/download/stdev'
-        retain: false
-        payload: >
-          {{ states.sensor.intranet_receive_stdev_mean.attributes }}
 
