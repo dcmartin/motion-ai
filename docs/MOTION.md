@@ -173,7 +173,7 @@ This repository provides a set of `YAML` files and templates specifically design
 Specify options according to environment and local files; build YAML configuration files using the `make` command, for example:
 
 ```
-cd ~/GIT/motion/
+cd ~/GIT/motion/homeassistant/
 echo '[]' > motion/webcams.json 	# initially for zero motion addon-on cameras
 echo '+' > MOTION_CLIENT 			# listen for all client cameras
 echo '192.168.1.40' > MQTT_HOST 	# to specify another device as broker
