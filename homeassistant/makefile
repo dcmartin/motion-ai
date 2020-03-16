@@ -7,10 +7,6 @@ SHELL := /bin/bash
 # logging
 LOGGER_DEFAULT := $(if $(wildcard LOGGER_DEFAULT),$(shell v=$$(cat LOGGER_DEFAULT) && echo "** SPECIFIED: LOGGER_DEFAULT: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="warn" && echo "!! UNSPECIFIED: LOGGER_DEFAULT unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
-# automation(s)
-AUTOMATION_internet := $(if $(wildcard AUTOMATION_internet),$(shell v=$$(cat AUTOMATION_internet) && echo "** SPECIFIED: AUTOMATION_internet: $${v}" > /dev/stderr && echo "$${v}"),$(shell echo "!! UNSPECIFIED: AUTOMATION_internet unset; default: off" > /dev/stderr && echo "off"))
-AUTOMATION_intranet := $(if $(wildcard AUTOMATION_intranet),$(shell v=$$(cat AUTOMATION_intranet) && echo "** SPECIFIED: AUTOMATION_intranet: $${v}" > /dev/stderr && echo "$${v}"),$(shell echo "!! UNSPECIFIED: AUTOMATION_intranet unset; default: off" > /dev/stderr && echo "off"))
-
 #
 AUTOMATION_startup := $(if $(wildcard AUTOMATION_startup),$(shell v=$$(cat AUTOMATION_startup) && echo "** SPECIFIED: AUTOMATION_startup: $${v}" > /dev/stderr && echo "$${v}"),$(shell echo "!! UNSPECIFIED: AUTOMATION_startup unset; default: off" > /dev/stderr && echo "off"))
 AUTOMATION_sdr2msghub := $(if $(wildcard AUTOMATION_sdr2msghub),$(shell v=$$(cat AUTOMATION_sdr2msghub) &&  echo "** SPECIFIED: AUTOMATION_sdr2msghub: $${v}" > /dev/stderr && echo "$${v}"),$(shell echo "!! UNSPECIFIED: AUTOMATION_sdr2msghub unset; default: off" > /dev/stderr && echo "off"))
@@ -129,8 +125,6 @@ logs:
 secrets.yaml: secrets.yaml.tmpl makefile $(PWD)
 	@echo "making $@"
 	@export \
-	  AUTOMATION_internet="$(AUTOMATION_internet)" \
-	  AUTOMATION_intranet="$(AUTOMATION_intranet)" \
 	  AUTOMATION_startup="$(AUTOMATION_startup)" \
 	  AUTOMATION_sdr2msghub="$(AUTOMATION_sdr2msghub)" \
 	  AUTOMATION_yolo2msghub="$(AUTOMATION_yolo2msghub)" \
