@@ -8,8 +8,9 @@ After configuring an appropriate device with Home Assistant (see: [here](http://
 The Home Assistant configuration generated is dependent on many options; the most important options are:
 
 + `HOST_PORT` - the port number on which Home Assistant will listen; default `8123`
-+ `MQTT_HOST` - the identifier for the message broker; defaults to `core-mosquitto`
-+ `MOTION_CLIENT` - the client for message topic; defaults to `<hostname>`; for **all** clients specify `+`
++ `MQTT_HOST` - the TCP/IP address or DNS name for the message broker; defaults to `core-mosquitto`
++ `MOTION_DEVICE` - unique name; defaults to `$(hostname -s)`; **do not use `-`** or reserved `MQTT` _topic_ characters
++ `MOTION_CLIENT` - the client for message topic; defaults to `MOTION_DEVICE`; for **all** clients specify `+`
 
 These attributes may be specified through files with equivalent names containing the preferred value (see below).
 
@@ -19,7 +20,7 @@ In addition, the configuration depends on a listing of cameras, notably the file
 After installing LINUX, creating user account, and accessing device, configure the `domainname` and optionally grant privileges to enable automated `sudo`, for example:
 
 ```
-sudo domainname mydomain.com
+echo "mydomain.com" | sudo tee /etc/domainname
 echo "${USER} ALL=(ALL) NOPASSWD: ALL" | sudo tee "/etc/sudoers.d/010_${USER}-nopasswd"
 ```
 
@@ -28,53 +29,216 @@ Do the standard things and upgrade all software; older RaspberryPi devices may n
 
 ```
 sudo apt update -qq -y 
-sudo apt upgrade -qq -y 
-sudo apt install -qq -y git jq curl bc gettext make git
+sudo apt full-upgrade -qq -y 
+sudo apt install -qq -y git jq curl bc gettext make mosquitto-clients
 ```
-## &#10123; - Clone repository; install Docker and Home Assistant
-Clone this repository into a temporary location, e.g. `~/horizon.dcmartin.com/`, and use the provided shell scripts to install Docker and Home Assistant; for example:
+## &#10123; - Clone repository and install
+Clone this repository into a directory in the local file-system, e.g. `~/GIT/motion/`; for example:
 
 ```
-cd ~/
-git clone git@github.com:dcmartin/horizon.dcmartin.com.git
-cd ~/horizon.dcmartin.com/
+mkdir -p ~/GIT/
+cd ~/GIT/
+git clone http://github.com/dcmartin/motion.git
+```
+
+Cloning the repository creates a new directory, `motion/`; use the provided shell script to install Docker and other pre-requisites; for example:
+
+```
+cd ~/GIT/motion
 sudo ./sh/get.hassio.sh
-sudo ./hassio-install.sh
+```
+
+Add the account to the `docker` group; for example:
+
+```
 sudo addgroup ${USER} docker
+sudo reboot
 ```
-Logout to enable `docker` group; wait for 20-30 minutes for Home Assistant to configure, then connect to IP address on port `8123` and complete setup using a Web browser, for example: `http://192.168.1.36:8123`
-
-
-## &#10124; - Update Home Assistant configuration
-Copy the contents of the repository into the Home Assistant directory `homeassistant/`; this will over-write any existing files with the same names and is **intended for new systems**; please copy accordingly for existing systems.
+Reboot to enable `docker` and set group privilege.  Login again, and initiate installation of Home Assistant, for example:
 
 ```
-cd ~/horizon.dcmartin.com/
-sudo mv .??* * /usr/share/hassio/homeassistant
-cd /usr/share/hassio/homeassistant
-sudo chown -R ${USER} .
-rm configuration.yaml
-ln -s config-client.yaml.tmpl configuration.yaml
+cd ~/GIT/motion
+sudo ./hassio-install.sh -m raspberrypi3
 ```
-## &#10125; - Build configuration files
-Specify options according to environment and build files using the `make` command, for example:
+
+Wait for 20-30 minutes for Home Assistant to download the necessary Docker containers and setup default configuration. 
+
+## &#10124; - Initialize Home Assistant
+When the installation from step (2) completes connect to IP address for the device on the default port, `8123`, and complete setup using a Web browser, for example:
 
 ```
-cd /usr/share/hassio/homeassistant
+http://raspberrypi.local:8123
+```
+
+Create the initial user (a.ka. the _owner_), provide a name, use auto-detection to guess your location, set other attributes and finish configuration.  The default view of the default configuration should appear, as well as a _save login_ option in the lower right of the Web page.
+
+## &#10125; - Install `motion` _add-on_
+The add-on must be installed through the Home Assistant UX; please refer to [`INSTALL.md`](INSTALL.md) for details on instalation and configuration of the add-on.  Visit the [`motion` _add-on_](https://github.com/dcmartin/hassio-addons/blob/master/motion/CONFIGURATION.md) documentation for _add-on_ configuration information.
+
+### Options for `motion` _add-on_
+The `default` attributes for _cameras_ are utilized unless the _camera_ entry specifies an alternative; please note the `netcam_userpass` may be shared across cameras or specified for any.
+
+ + `mqtt` - ensure `host`, `username`, and `password` match `MQTT` _add-on_ configuration
+ + `group` - a _name_ collection of device(s), each with one or more cameras.
+ + `device`- the unique _name_ used in the `MQTT` topic
+ + `client` - the unique _name_ per `device` or `+` for all `group` camera(s)
+ + `timezone` - for time across `group`
+ + `cameras` - one or more `netcam`, `ftpd` cameras; at most one (1) `local` camera
+
+After configuration, start the _add-on_.
+
+#### &#9995; Naming
+A `group`, `device`, or `camera` _name_ may **ONLY** include lower-case letters (`a-z`), numbers (`0-9`), and _underscore_ (`_`).
+
+### Example configuration for `motion` _add-on_
+```
+log_level: debug
+log_motion_level: error
+log_motion_type: ALL
+default:
+  brightness: 100
+  changes: 'on'
+  contrast: 50
+  despeckle: EedDl
+  event_gap: 10
+  framerate: 2
+  hue: 50
+  interval: 60
+  lightswitch: 0
+  minimum_motion_frames: 10
+  movie_max: 60
+  movie_output: 'off'
+  movie_quality: 80
+  netcam_userpass: '!secret motioncam-userpass'
+  palette: 15
+  picture_quality: 80
+  post_pictures: best
+  saturation: 0
+  stream_quality: 50
+  text_scale: 2
+  threshold_percent: 1
+  username: '!secret motioncam-username'
+  password: '!secret motioncam-password'
+  width: 1920
+  height: 1080
+mqtt:
+  host: 192.168.1.50
+  port: '1883'
+  username: username
+  password: password
+group: motion
+device: netcams
+client: netcams
+timezone: America/Los_Angeles
+cameras:
+  - name: poolcam
+    type: netcam
+    icon: water
+    netcam_url: 'http://192.168.1.162/nphMotionJpeg?Resolution=640x480&Quality=Clarity'
+    netcam_userpass: '!secret netcam-userpass'
+    width: 640
+    height: 480
+    framerate: 5
+  - name: road
+    type: netcam
+    icon: road
+    netcam_url: 'http://192.168.1.36:8081/'
+    netcam_userpass: '!secret netcam-userpass'
+    width: 640
+    height: 480
+    framerate: 5
+  - name: dogshed
+    type: netcam
+    icon: dog
+    netcam_url: 'rtsp://192.168.1.221/live'
+  - name: dogshedfront
+    type: netcam
+    icon: home-floor-1
+    netcam_url: 'rtsp://192.168.1.222/live'
+  - name: sheshed
+    type: netcam
+    icon: window-shutter-open
+    netcam_url: 'rtsp://192.168.1.223/live'
+  - name: dogpond
+    type: netcam
+    icon: waves
+    netcam_url: 'rtsp://192.168.1.224/live'
+  - name: pondview
+    type: netcam
+    icon: waves
+    netcam_url: 'rtsp://192.168.1.225/live'
+```
+
+
+## &#10126; - Build `motion` YAML
+This repository provides a set of `YAML` files and templates specifically designed to consume information provided by the `motion` _add-on_.  These files provide a multi-view interface through both Lovelace and legacy user-interfaces.
+
+Specify options according to environment and local files; build YAML configuration files using the `make` command, for example:
+
+```
+cd ~/GIT/motion/homeassistant/
 echo '[]' > motion/webcams.json 	# initially for zero motion addon-on cameras
 echo '+' > MOTION_CLIENT 			# listen for all client cameras
-echo '192.168.1.40' > MQTT_HOST 	# specify another device as broker
-echo '80' > HOST_PORT 				# change host port if desired
+echo '192.168.1.40' > MQTT_HOST 	# to specify another device as broker
+echo '80' > HOST_PORT 				# change host port from 8123
 make
 ```
 
-## &#10126; - Restart Home Assistant
+### &#10071;  - `motion/webcams.json`
+ Once the add-on is configured and operational create the `homeassistant/motion/webcams.json` file with details on the camera(s) specified for the local `motion` add-on.  Those details include:
+
++ `name` : a unique name for the camera (e.g. `kitchencam`)
++ `mjpeg_url` : location of "live" motion JPEG stream from camera
++ `username` and `password` : credentials for access via the `mjpeg_url`
++ `icon` : specified from the [Material Design Icons](https://materialdesignicons.com/) selection.
+
+For example:
+
+```
+[
+  { "name": "poolcam", "mjpeg_url": "http://192.168.1.251:8090/1", "icon": "water", "username": "!secret motioncam-username", "password": "!secret motioncam-password" },
+  { "name": "road", "mjpeg_url": "http://192.168.1.251:8090/2", "icon": "road", "username": "!secret motioncam-username", "password": "!secret motioncam-password" },
+  { "name": "dogshed", "mjpeg_url": "http://192.168.1.251:8090/3", "icon": "dog", "username": "!secret motioncam-username", "password": "!secret motioncam-password" },
+  { "name": "dogshedfront", "mjpeg_url": "http://192.168.1.251:8090/4", "icon": "home-floor-1", "username": "!secret motioncam-username", "password": "!secret motioncam-password" },
+  { "name": "sheshed", "mjpeg_url": "http://192.168.1.251:8090/5", "icon": "window-shutter-open", "username": "!secret motioncam-username", "password": "!secret motioncam-password" },
+  { "name": "dogpond", "mjpeg_url": "http://192.168.1.251:8090/6", "icon": "waves", "username": "!secret motioncam-username", "password": "!secret motioncam-password" },
+  { "name": "pondview", "mjpeg_url": "http://192.168.1.251:8090/7", "icon": "waves", "username": "!secret motioncam-username", "password": "!secret motioncam-password" }
+]
+```
+
+The `motion` configuration installs over an existing `/usr/share/hassio/` directory contents, but only over-writes file in the `homeassistant/` subdirectory. 
+
+To complete installation, copy the contents of  this repository into the existing installation, change ownership, and create new `configuration.yaml` file; for example:
+
+```
+cd ~/GIT/motion
+tar cvf - . | ( cd /usr/share/hassio; sudo tar xvf - )
+cd ~/GIT/
+rm -fr motion/ && ln -s /usr/share/hassio motion
+cd /usr/share/hassio/
+sudo chown -R ${USER} .
+cd homeassistant/
+rm -f configuration.yaml
+ln -s config-client.yaml.tmpl configuration.yaml
+```
+
+## &#10127; - Restart Home Assistant
+The configuration may now be updated and controlled using the `make` command, including the following:
+
++ `restart` - restart the Home Assistant server
++ `tidy` - remove any automatically constructed YAML configuration files
++ `clean` - perform `tidy` and then remove any log files and `.storage/` recorder files
++ `realclean` - perform `clean` and then remove all database files
++ `logs` - show the Home Assistant logs
+
 ```
 make restart
 ```
 
-##  &#10127; - Start `yolo4motion` _service_
-Start the `yolo4motion` service container by executing the provided [shell script](../sh/yolo4motion.sh); the options, which may be specified through equivalent environment variables or file, are:
+##  &#10128; - Start `yolo4motion` _service_
+Start the `yolo4motion` service container by executing the provided [shell script](../sh/yolo4motion.sh); the options, which may be specified through equivalent environment variables or file.
+
+### `yolomotion.sh`
 
 + `MQTT_HOST` - host for message broker; default: _hostname_
 + `MOTION_GROUP` - which clients to process; default: `motion`
@@ -86,37 +250,31 @@ Start the `yolo4motion` service container by executing the provided [shell scrip
 + `YOLO_THRESHOLD` - threshold for entity detection; default: `0.25`
 + `LOG_LEVEL` - logging level; default: `info`
 + `LOG_TO` - logging output; default: `/dev/stderr`
-+ `DEBUG` - turn debugging on; default: `false`
 
 For example:
 
 ```
-DEBUG=true LOG_LEVEL=debug YOLO_CONFIG=tiny-v3 ./sh/yolo4motion.sh
+LOG_LEVEL=debug YOLO_CONFIG=tiny-v3 ./sh/yolo4motion.sh
 ```
 
-## &#10128; - Install `motion` _add-on_
-The device is now configured and operational, with the exception of the `motion` _add-on_; please refer to [`INSTALL.md`](INSTALL.md) for information on instalation and configuration of the add-on.  Visit the [`motion`](http://github.com/dcmartin/hassio-addons/tree/master/motion/README.md) documentation for details.  
+**Note** that the Docker container and the model's weights must be downloaded from the Internet; there may be a considerable delay given the device Internet connection bandwidth.  The container is only downloaded one time, but the model's weights  are downloaded each time the container is started.
 
-### &#10071;  - `motion/webcams.json`
- Once the add-on is configured and operational create the `motion/webcams.json` file with details on the camera(s) specified for the local `motion` add-on.  Those details include:
+##  &#10129; - Start `face4motion`and `alpr4motion` (_optional_)
+These two Open Horizon _services_ may also be started via shell scripts, namely [`alpr4motion.sh`](../sh/alpr4motion.sh) and [`face4motion`](../sh/face4motion.sh).  These scripts utilize the same environment variables for `MQTT`, `MOTION`, and `LOG` attributes as `yolo4motion.sh`, but have their own specific options rather than `YOLO`:
 
-+ `name` : a unique name for the camera (e.g. `kitchencam`)
-+ `mjpeg_url` : location of "live" motion JPEG stream from camera
-+ `username` and `password` : credentials for access via the `mjpeg_url`
-+ `icon` : specified from the [Material Design Icons](https://materialdesignicons.com/) selection.
+### `face4motion.sh`
++ `FACE_THRESHOLD` - floating point value between `0.0` and `0.99`; default: `0.5`
 
-For example:
+### `alpr4motion.sh`
++ `ALPR_COUNTRY` - designation for country specific license plates, may be `us` or `eu`; default: `us`
++ `ALPR_PATTERN` - pattern for plate recognition, may be regular expression; default: `none`
++ `ALPR_TOPN` - integer value between `1` and `20` limiting number `tag` predictions per `plate` 
+
+##  &#10130; - Watch `MQTT` traffic (_optional_)
+To monitor the `MQTT` traffic from one or more `motion` devices use the `./sh/watch.sh` script which runs a `MQTT` client to listen for various _topics_, including motion detection events, annotations, detections, and a specified detected entity (n.b. currently limited per device).  The script outputs information to `/dev/stderr` and runs in the background.  The shell script will utilize existing values for the `MQTT` host, etc.. as well as the `MOTION_CLIENT`, but those may be specified as well; for example:
 
 ```
-[
-  {
-    "name": "localcam",
-    "mjpeg_url": "http://127.0.0.1:8090/1",
-    "icon": "webcam",
-    "username": "username",
-    "password": "password"
-  }
-]
+MOTION_GROUP=motion MOTION_CLIENT=+ MQTT_HOST=192.168.1.50 ./sh/watch.sh
 ```
 
 # Reference

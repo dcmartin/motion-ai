@@ -1,13 +1,23 @@
-<a href="http://github.com/dcmartin/hassio-addons/tree/master/motion/docs/samples/example-motion-detection.gif"><img src="docs/samples/example-motion-detection.gif" width="512"></a>
+<img src="docs/samples/example-motion-detection.gif" width="512">
 
 # `motion`  &Atilde;&#128065;
-This   repository is a demonstration and proof-of-concept for an **AI assistants** providing improved situational awareness from a collection of network accessible video cameras.  Most consumer-grade Web cameras -- or similar devices -- send notifications when _motion_ occurs.
+This   repository is a demonstration and proof-of-concept for an **AI assistants** providing improved situational awareness from a collection of network accessible video cameras.
 
-Motion is often defined as a change in the video from one instance to the next; these changes are often influenced by light, wind, and many other environmental factors -- producing a large number of notifications.  While limitations may be set on the amount of change, a better solution would detect and classify movement.
+Most consumer-grade Web cameras -- or similar devices -- send notifications when _motion_ occurs.  Motion is often defined as a change in the image from one frame to the next; these changes are often influenced by light, wind, and many other environmental factors -- producing a large number of notifications (a.k.a. _false positives_).  While limitations may be set on the amount of change to indicate motion, a better solution would detect and classify entities of interest whenever motion occurs and send notifications only when specified are present.
 
-To accomplish that objective, a combination of open source components have been integrated to provide a means to detect motion and recognize selected entities, e.g. a _person_, a _vehicle_, or an _animal_.  The resulting detection may then be processed for notifications as well as analysis.
+To accomplish that objective, a combination of open source components have been integrated to provide a means to detect motion and recognize entities.  The resulting detections and recognitions may then be analyzed and used for a variety of purposes (e.g. counting over time).   Currently the system supports:
 
-All of this processing is performed on local devices; there are **no cloud services** utilized.  This pattern is known as _edge computing_.
++ [object detection and classification](http://github.com/dcmartin/openyolo)
++ [automated license plate recognition](http://github.com/dcmartin/openalpr)
++ [face detection](http://github.com/dcmartin/openface) (n.b. not recognition).
+
+All of this processing is performed on local devices; there are **no cloud services** utilized.  This pattern is known as _edge computing_.  Supported architectures include:
+
++ `amd64` - Intel/AMD 64-bit virtual machines and devices (e.g. VirtualBox Ubuntu18 VM)
++ `aarch64` - ARMv8 64-bit devices (e.g. nVidia Jetson Nano)
++ `armv7` - ARMv7 32-bit devices (e.g. RaspberryPi 3/4)
+
+Currently there is **no support** for nVidia `CUDA` GPU hardware; support is in-plan for `amd64` and `aarch64`.   Support for Intel  Neural Compute Stick v2 is being considered for `armv7`.
 
 ## Status
 ![](https://img.shields.io/github/license/dcmartin/motion.svg?style=flat)
@@ -28,8 +38,14 @@ All of this processing is performed on local devices; there are **no cloud servi
 ## 1. Home Assistant
 [Home Assistant](http://home-assistant.io)  is an open source home automation software putting local control and privacy first. Powered by a worldwide community of tinkerers and DIY enthusiasts. Perfect to run on a [Raspberry Pi](https://en.wikipedia.org/wiki/Raspberry_Pi) or a local server.   HomeAssistant includes _add-on_ Docker containers  from the HomeAssistant [community](https://github.com/hassio-addons/repository/blob/master/README.md).  Please refer to the installation instructions for Home Assistant in [`HASSIO.md`](docs/HASSIO.md).
 
+The  system supports three _types_ of cameras:
+
++ `netcam` - may be any supported by the [Motion Project](https://motion-project.github.io/motion_config.html); see the *Network Cameras* section.
++ `ftpd` - cameras the transmit `3GP` videos via `FTP`; **requires** `FTP` add-on (see below)
++ `local` - video device supported by `V4L2`; **requires** `motion-video0` add-on and `/dev/video0`
+
 ###  `motion` _add-on_
-The Home Assistant _add-on_ [`motion`](http://github.com/dcmartin/hassio-addons/tree/master/motion/README.md) provides the capabilities of the [Motion Project](https://motion-project.github.io/) software in conjunction with a specified message broker to capture and process motion detection events.  These events are published as `MQTT`  _topics_ for consumption by Home Assistant and the supporting  _Open Horizon_ `yolo4motion` _service_.
+The Home Assistant _add-on_ [`motion`](http://github.com/dcmartin/hassio-addons/tree/master/motion/README.md) provides the capabilities of the [Motion Project](https://motion-project.github.io/) software in conjunction with a specified message broker to capture and process motion detection events.  These events are published as `MQTT`  _topics_ for consumption by Home Assistant and the supporting  _services_.
 
 **Please refer to [`MOTION.md`](docs/MOTION.md) for further information.**
 
@@ -39,7 +55,7 @@ In addition, the following community _add-ons_ should be configured appropriatel
 + [`FTP`](https://github.com/hassio-addons/addon-ftp/blob/master/README.md) - optional, only required for `ftpd` type cameras
 
 ## 2. Open Horizon _services_
-[Open Horizon](http://github.com/dcmartin/open-horizon) is an open source _edge_ fabric for microservices.  The Open Horizon microservices are run as Docker containers on a distributed network across a wide range of computing devices; from [Power9](http://openpowerfoundation.org/) servers to RaspberryPi [Zero W](https://www.raspberrypi.org/products/raspberry-pi-zero-w/) micro-computers.
+[Open Horizon](http://github.com/dcmartin/open-horizon) is an open source _edge_ fabric for microservices.  The Open Horizon microservices are run as Docker containers on a distributed network across a wide range of computing devices; from [Power9](http://openpowerfoundation.org/) servers to RaspberryPi [Zero W](https://www.raspberrypi.org/products/raspberry-pi-zero-w/) micro-computers.  
 
 ### `yolo4motion`
 ![Supports amd64 Architecture][amd64-shield]
@@ -66,7 +82,7 @@ In addition, the following community _add-ons_ should be configured appropriatel
 [docker-yolo4motion-arm64]: https://hub.docker.com/r/dcmartin/arm64_com.github.dcmartin.open-horizon.yolo4motion
 [pulls-yolo4motion-arm64]: https://img.shields.io/docker/pulls/dcmartin/arm64_com.github.dcmartin.open-horizon.yolo4motion.svg
 
-The Open Horizon _service_ [`yolo4motion`](http://github.com/dcmartin/open-horizon/tree/master/yolo4motion/README.md) provides the capabilities of the [YOLO](https://pjreddie.com/darknet/yolo/) software in conjunction with a specified `MQTT` message broker.  This service subscribes to the _topic_ `{group}/{device}/{camera}/event/end` and processes the JavaScript Object Notation (JSON) payload which includes a selected `JPEG` image (n.b. `BASE64` encoded) from the motion event.  This service may be used independently of the Open Horizon service as a stand-alone Docker container; see [`yolo4motion.sh`](http://github.com/dcmartin/motion/tree/master/sh/yolo4motion.sh)
+The Open Horizon _service_ [`yolo4motion`](http://github.com/dcmartin/open-horizon/tree/master/yolo4motion/README.md) provides the capabilities of the [YOLO](https://github.com/dcmartion/openyolo/) software in conjunction with a specified `MQTT` message broker.  This service subscribes to the _topic_ `{group}/{device}/{camera}/event/end` and processes the JavaScript Object Notation (JSON) payload which includes a selected `JPEG` image (n.b. `BASE64` encoded) from the motion event.  This service may be used independently of the Open Horizon service as a stand-alone Docker container; see [`yolo4motion.sh`](http://github.com/dcmartin/motion/tree/master/sh/yolo4motion.sh)
 
 ### `alpr4motion`
 ![Supports amd64 Architecture][amd64-shield]
@@ -126,11 +142,16 @@ The Open Horizon _service_ [`alpr4motion`](http://github.com/dcmartin/open-horiz
 The Open Horizon _service_ [`face4motion`](http://github.com/dcmartin/open-horizon/tree/master/face4motion/README.md) provides the capabilities of the [OpenFACE](https://github.com/dcmartin/openface/) software in conjunction with a specified `MQTT` message broker.  This service subscribes to the _topic_ `{group}/{device}/{camera}/event/end` and processes the JavaScript Object Notation (JSON) payload which includes a selected `JPEG` image (n.b. `BASE64` encoded) from the motion event.  This service may be used independently of the Open Horizon service as a stand-alone Docker container; see [`face4motion.sh`](http://github.com/dcmartin/motion/tree/master/sh/face4motion.sh)
 
 # Example
-When combined together and operating successfully, the system automatically detects `person` and provides both visual update of the Web user-interface for the most recent entity, as well as most recent detection of any entity, as well as provides notifications through the Web interface (n.b. mobile notifications require SSL and are pending).
+When combined together and operating successfully, the system automatically detects the `person` entity, as well as any faces and license plates, updating both the Home Assistant Web user-interface and providing notifications in the browser (n.b. mobile notifications require SSL and are pending).
 
 Data may be saved locally and processed to produce historical graphs as well as exported for analysis using other tools, e.g. time-series database _InfluxDB_ and analysis front-end _Grafana_.  Data may also be processed using _Jupyter_ notebooks.
 
 [![example](docs/samples/example.png?raw=true "EXAMPLE")](http://github.com/dcmartin/hassio-addons/tree/master/motion/docs/samples/example.png)
+
+## Operational Scenarios
+This system may be used to build solutions for various operational scenarios, e.g. monitoring the elderly to determine patterns of daily activity and alert care-givers and loved ones when aberrations occur; see the [Age-At-Home](http://www.age-at-home.com/) project for more information; example below:
+
+<img src="docs/samples/age-at-home.png" width="512">
 
 # What  is _edge computing_?
 The edge of the network is where connectivity is lost and privacy is challenged; extending the services developed for the cloud to these scenarios requires additional considerations for microservices development, notably graceful degradation when services are lost, as well as automated recovery and restart when appropriate.  Available computing in edge scenarios may vary from a single device to multiple varying devices on a local-area-network (LAN), for example _home automation_.  Example use-cases include detecting motion and classifying entities seen and monitoring Internet connectivity.

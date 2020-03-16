@@ -2,6 +2,7 @@
 # automation/motion/detected_entity.yaml
 ###
 
+## counter
 - id: motion_detected_entity_counter
   alias: motion_detected_entity_counter
   initial_state: on
@@ -16,18 +17,21 @@
     - service: counter.increment
       entity_id: counter.motion_detected_entity_counter
 
+## snapshot
+
 - id: motion_detected_entity_snapshot
   alias: motion_detected_entity_snapshot
   initial_state: on
   trigger:
     platform: state
-    entity_id: binary_sensor.motion_detected_entity
+    #entity_id: binary_sensor.motion_detected_entity
+    entity_id: counter.motion_detected_entity_counter
   condition:
     condition: and
     conditions:
-      - condition: template
-        value_template: >-
-          {{ states('binary_sensor.motion_detected_entity') == 'on' }}
+      #- condition: template
+      #  value_template: >-
+      #    {{ states('binary_sensor.motion_detected_entity') == 'on' }}
       - condition: template
         value_template: >-
           {{ is_state('input_boolean.motion_snapshot_save','on') }}
@@ -47,13 +51,14 @@
   initial_state: on
   trigger:
     platform: state
-    entity_id: binary_sensor.motion_detected_entity
+    #entity_id: binary_sensor.motion_detected_entity
+    entity_id: counter.motion_detected_entity_counter
   condition:
     condition: and
     conditions:
-      - condition: template
-        value_template: >-
-          {{ states('binary_sensor.motion_detected_entity') == 'on' }}
+      #- condition: template
+      #  value_template: >-
+      #    {{ states('binary_sensor.motion_detected_entity') == 'on' }}
       - condition: template
         value_template: >-
           {{ is_state('input_boolean.motion_snapshot_save','on') }}
@@ -77,6 +82,51 @@
         entity_id: >-
           {{ 'camera.motion_event_annotated' }}
 
+## copy
+
+- id: motion_detected_entity_copy
+  alias: motion_detected_entity_copy
+  initial_state: off
+  trigger:
+    platform: state
+    entity_id: binary_sensor.motion_detected_entity
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ states('binary_sensor.motion_detected_entity') == 'on' }}
+      - condition: template
+        value_template: >-
+          {{ is_state('input_boolean.motion_snapshot_save','on') }}
+  action:
+    - service: shell_command.motion_detected_entity_copy
+
+- id: motion_detected_entity_copy_webcam
+  alias: motion_detected_entity_copy_webcam
+  initial_state: off
+  trigger:
+    platform: state
+    entity_id: binary_sensor.motion_detected_entity
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ states('binary_sensor.motion_detected_entity') == 'on' }}
+      - condition: template
+        value_template: >-
+          {{ is_state('input_boolean.motion_snapshot_save','on') }}
+      - condition: template
+        value_template: >-
+          {% set e = state_attr('sensor.motion_event_annotated','event') %}
+          {{ e is not none and e|lower !='unknown' and e|length > 0 }}
+  action:
+    - service: shell_command.motion_detected_entity_copy_webcam
+
+###
+# person
+###
 
 - id: motion_detected_person_counter
   alias: motion_detected_person_counter
@@ -191,7 +241,7 @@
 
 - id: motion_detected_entity_notify
   alias: motion_detected_entity_notify
-  initial_state: 'on'
+  initial_state: on
   trigger:
     - platform: state
       entity_id: counter.motion_detected_entity_counter
@@ -208,7 +258,7 @@
         notification_id: >
           detected_entity-{{- states.sensor.motion_event_annotated.attributes.event.camera -}}
         message: >-
-          Detected {{ states.sensor.motion_annotated_count.state }} {{ states.sensor.motion_detect_entity.state }}(s)
+          Detected {{ states.sensor.motion_annotated_count.state }} {{ states.sensor.motion_detect_entity.state -}}(s)
           from {{ states.sensor.motion_event_annotated.attributes.event.camera }}
           for {{ states.sensor.motion_event_annotated.attributes.event.elapsed }} seconds
           ({{ states.sensor.motion_event_annotated.attributes.event.images|length }} frames)

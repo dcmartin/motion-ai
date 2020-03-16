@@ -126,6 +126,7 @@ secrets.yaml: secrets.yaml.tmpl makefile $(PWD)
 	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
 	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
 	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
+	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
 	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
 	&& cat secrets.yaml.tmpl | envsubst > $@
 
