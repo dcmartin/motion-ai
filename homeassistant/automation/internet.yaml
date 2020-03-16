@@ -4,7 +4,7 @@
 
 - id: internet_counter
   alias: internet_counter
-  initial_state: !secret internet-automations
+  initial_state: on
   trigger:
     platform: state
     entity_id: binary_sensor.internet_test
@@ -18,7 +18,7 @@
 
 - id: internet_slow_counter
   alias: internet_slow_counter
-  initial_state: !secret internet-automations
+  initial_state: on
   trigger:
     platform: state
     entity_id: binary_sensor.internet_slow
@@ -29,6 +29,18 @@
   action:
     - service: counter.increment
       entity_id: counter.internet_slow_counter
+
+- id: internet_slow_notify
+  alias: internet_slow_notify
+  initial_state: !secret internet-notifications
+  trigger:
+    platform: state
+    entity_id: binary_sensor.internet_slow
+  condition:
+    - condition: template
+      value_template: >
+        {{ states.binary_sensor.internet_slow.state == 'on' }}
+  action:
     - service: persistent_notification.create
       data_template:
         title: >
@@ -39,16 +51,10 @@
           Current: {{ states.sensor.internet_test_receive.state }} Mbps; 
           average {{ states.sensor.internet_receive_mean.state }} Mbps;
           stdev {{ states.sensor.internet_receive_statistics_mean.attributes.standard_deviation }} Mbps
-    - service: mqtt.publish
-      data_template:
-        topic: 'status/internet/download'
-        retain: false
-        payload: >
-          {{ states.sensor.internet_receive_statistics_mean.attributes }}
 
 - id: internet_slow_dismiss
   alias: internet_slow_dismiss
-  initial_state: !secret internet-automations
+  initial_state: !secret internet-notifications
   trigger:
     platform: state
     entity_id: binary_sensor.internet_slow
@@ -63,7 +69,7 @@
 
 - id: internet_fast_counter
   alias: internet_fast_counter
-  initial_state: !secret internet-automations
+  initial_state: on
   trigger:
     platform: state
     entity_id: binary_sensor.internet_fast
@@ -79,6 +85,23 @@
   action:
     - service: counter.increment
       entity_id: counter.internet_fast_counter
+
+- id: internet_fast_notify
+  alias: internet_fast_notify
+  initial_state: !secret internet-notifications
+  trigger:
+    platform: state
+    entity_id: binary_sensor.internet_fast
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ states.binary_sensor.internet_fast.state == 'on' }}
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+  action:
     - service: persistent_notification.create
       data_template:
         title: >
@@ -89,16 +112,10 @@
           Current: {{ states.sensor.internet_test_receive.state }} Mbps; 
           average {{ states.sensor.internet_receive_mean.state }} Mbps;
           stdev {{ states.sensor.internet_receive_statistics_mean.attributes.standard_deviation }} Mbps
-    - service: mqtt.publish
-      data_template:
-        topic: 'status/internet/download'
-        retain: false
-        payload: >
-          {{ states.sensor.internet_receive_statistics_mean.attributes }}
 
 - id: internet_fast_dismiss
   alias: internet_fast_dismiss
-  initial_state: !secret internet-automations
+  initial_state: !secret internet-notifications
   trigger:
     platform: state
     entity_id: binary_sensor.internet_fast
@@ -111,9 +128,11 @@
       data_template:
         notification_id: internet_fast
 
+## slow_persistent
+
 - id: internet_slow_persistent
   alias: internet_slow_persistent
-  initial_state: !secret internet-automations
+  initial_state: !secret internet-notifications
   trigger:
     platform: state
     entity_id: binary_sensor.internet_slow_persistent
@@ -132,16 +151,12 @@
           Current: {{ states.sensor.internet_test_receive.state }} Mbps; 
           average {{ states.sensor.internet_receive_mean.state }} Mbps;
           average stdev {{ states.sensor.internet_receive_stdev_mean.state }} Mbps
-    - service: mqtt.publish
-      data_template:
-        topic: 'status/internet/download/stdev'
-        retain: false
-        payload: >
-          {{ states.sensor.internet_receive_stdev_mean.attributes }}
+
+## fast persistent
 
 - id: internet_fast_persistent
   alias: internet_fast_persistent
-  initial_state: !secret internet-automations
+  initial_state: !secret internet-notifications
   trigger:
     platform: state
     entity_id: binary_sensor.internet_fast_persistent
@@ -160,10 +175,3 @@
           Current: {{ states.sensor.internet_test_receive.state }} Mbps; 
           average {{ states.sensor.internet_receive_mean.state }} Mbps;
           average stdev {{ states.sensor.internet_receive_stdev_mean.state }} Mbps
-    - service: mqtt.publish
-      data_template:
-        topic: 'status/internet/download/stdev'
-        retain: false
-        payload: >
-          {{ states.sensor.internet_receive_stdev_mean.attributes }}
-
