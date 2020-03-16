@@ -88,7 +88,7 @@ The `default` attributes for _cameras_ are utilized unless the _camera_ entry sp
 After configuration, start the _add-on_.
 
 #### &#9995; Naming
-A `group`, `device`, or `camera` _name_ **CANNOT** include _any_ upper-case letter (`A-Z`) nor  _space_, _hyphen_ (`-`), _asterisk_ (`*`), _hash_ (`#`), slash (`/`), or _plus_ (`+`) characters.
+A `group`, `device`, or `camera` _name_ may **ONLY** include lower-case letters (`a-z`), numbers (`0-9`), and _underscore_ (`_`).
 
 ### Example configuration for `motion` _add-on_
 ```
