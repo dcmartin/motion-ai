@@ -79,13 +79,16 @@ The add-on must be installed through the Home Assistant UX; please refer to [`IN
 The `default` attributes for _cameras_ are utilized unless the _camera_ entry specifies an alternative; please note the `netcam_userpass` may be shared across cameras or specified for any.
 
  + `mqtt` - ensure `host`, `username`, and `password` match `MQTT` _add-on_ configuration
- + `group` - a collection of device(s), each with one or more cameras.
- + `device`- the unique identifier used in the `MQTT` topic
- + `client` - the unique identifier per `device` or `+` for all `group` camera(s)
+ + `group` - a _name_ collection of device(s), each with one or more cameras.
+ + `device`- the unique _name_ used in the `MQTT` topic
+ + `client` - the unique _name_ per `device` or `+` for all `group` camera(s)
  + `timezone` - for time across `group`
  + `cameras` - one or more `netcam`, `ftpd` cameras; at most one (1) `local` camera
 
- After configuration, start the _add-on_.
+After configuration, start the _add-on_.
+
+#### &#9995; Naming
+A `group`, `device`, or `camera` _name_ **CANNOT** include _any_ upper-case letter (`A-Z`) nor  _space_, _hyphen_ (`-`), _asterisk_ (`*`), _hash_ (`#`), slash (`/`), or _plus_ (`+`) characters.
 
 ### Example configuration for `motion` _add-on_
 ```
