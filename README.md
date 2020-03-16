@@ -82,7 +82,7 @@ In addition, the following community _add-ons_ should be configured appropriatel
 [docker-yolo4motion-arm64]: https://hub.docker.com/r/dcmartin/arm64_com.github.dcmartin.open-horizon.yolo4motion
 [pulls-yolo4motion-arm64]: https://img.shields.io/docker/pulls/dcmartin/arm64_com.github.dcmartin.open-horizon.yolo4motion.svg
 
-The Open Horizon _service_ [`yolo4motion`](http://github.com/dcmartin/open-horizon/tree/master/yolo4motion/README.md) provides the capabilities of the [YOLO](https://pjreddie.com/darknet/yolo/) software in conjunction with a specified `MQTT` message broker.  This service subscribes to the _topic_ `{group}/{device}/{camera}/event/end` and processes the JavaScript Object Notation (JSON) payload which includes a selected `JPEG` image (n.b. `BASE64` encoded) from the motion event.  This service may be used independently of the Open Horizon service as a stand-alone Docker container; see [`yolo4motion.sh`](http://github.com/dcmartin/motion/tree/master/sh/yolo4motion.sh)
+The Open Horizon _service_ [`yolo4motion`](http://github.com/dcmartin/open-horizon/tree/master/yolo4motion/README.md) provides the capabilities of the [YOLO](https://github.com/dcmartion/openyolo/) software in conjunction with a specified `MQTT` message broker.  This service subscribes to the _topic_ `{group}/{device}/{camera}/event/end` and processes the JavaScript Object Notation (JSON) payload which includes a selected `JPEG` image (n.b. `BASE64` encoded) from the motion event.  This service may be used independently of the Open Horizon service as a stand-alone Docker container; see [`yolo4motion.sh`](http://github.com/dcmartin/motion/tree/master/sh/yolo4motion.sh)
 
 ### `alpr4motion`
 ![Supports amd64 Architecture][amd64-shield]
@@ -142,7 +142,7 @@ The Open Horizon _service_ [`alpr4motion`](http://github.com/dcmartin/open-horiz
 The Open Horizon _service_ [`face4motion`](http://github.com/dcmartin/open-horizon/tree/master/face4motion/README.md) provides the capabilities of the [OpenFACE](https://github.com/dcmartin/openface/) software in conjunction with a specified `MQTT` message broker.  This service subscribes to the _topic_ `{group}/{device}/{camera}/event/end` and processes the JavaScript Object Notation (JSON) payload which includes a selected `JPEG` image (n.b. `BASE64` encoded) from the motion event.  This service may be used independently of the Open Horizon service as a stand-alone Docker container; see [`face4motion.sh`](http://github.com/dcmartin/motion/tree/master/sh/face4motion.sh)
 
 # Example
-When combined together and operating successfully, the system automatically detects `person`, updating both the Home Assistant Web user-interface and providing notifications in the browser (n.b. mobile notifications require SSL and are pending).
+When combined together and operating successfully, the system automatically detects the `person` entity, as well as any faces and license plates, updating both the Home Assistant Web user-interface and providing notifications in the browser (n.b. mobile notifications require SSL and are pending).
 
 Data may be saved locally and processed to produce historical graphs as well as exported for analysis using other tools, e.g. time-series database _InfluxDB_ and analysis front-end _Grafana_.  Data may also be processed using _Jupyter_ notebooks.
 
