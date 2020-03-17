@@ -2,6 +2,8 @@
 ## automation/intranet.yaml
 ###
 
+## COUNT
+
 - id: intranet_counter
   alias: intranet_counter
   initial_state: on
@@ -9,12 +11,19 @@
     platform: state
     entity_id: binary_sensor.intranet_test
   condition:
-    - condition: template
-      value_template: >
-        {{ states('binary_sensor.intranet_test') == 'on' }}
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.intranet_test','on') }}
+      - condition: template
+        value_template: >
+          {{ states('sensor.intranet_test') is not none }}
   action:
     - service: counter.increment
       entity_id: counter.intranet_counter
+
+## SLOW
 
 - id: intranet_slow_counter
   alias: intranet_slow_counter
@@ -23,9 +32,17 @@
     platform: state
     entity_id: binary_sensor.intranet_slow
   condition:
-    - condition: template
-      value_template: >
-        {{ states.binary_sensor.intranet_slow.state == 'on' }}
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.intranet_slow','on') }}
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+      - condition: template
+        value_template: >
+          {{ states('sensor.intranet_test') is not none }}
   action:
     - service: counter.increment
       entity_id: counter.intranet_slow_counter
@@ -37,19 +54,24 @@
     platform: state
     entity_id: binary_sensor.intranet_slow
   condition:
-    - condition: template
-      value_template: >
-        {{ states.binary_sensor.intranet_slow.state == 'on' }}
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.intranet_slow','on') }}
+      - condition: template
+        value_template: >
+          {{ states('sensor.intranet_test') is not none and state_attr('sensor.intranet_test','date') is not none }}
   action:
     - service: persistent_notification.create
       data_template:
         title: >
           Internet slow at
-          {{ states.sensor.intranet_test.attributes.date | int | timestamp_custom("%a %b %d %I:%M %p %Z") }}
+          {{ state_attr('sensor.intranet_test','date')|int|timestamp_custom("%a %b %d %I:%M %p %Z") }}
         notification_id: intranet_slow
         message: >
-          Current: {{ states.sensor.intranet_test_receive.state }} Mbps; 
-          average {{ states.sensor.intranet_receive_mean.state }} Mbps;
+          Current: {{ states('sensor.intranet_receive') }} Mbps; 
+          average {{ states('sensor.intranet_receive_mean') }} Mbps;
           stdev {{ states.sensor.intranet_receive_statistics_mean.attributes.standard_deviation }} Mbps
 
 - id: intranet_slow_dismiss
@@ -61,14 +83,67 @@
   condition:
     - condition: template
       value_template: >
-        {{ states.binary_sensor.intranet_slow.state == 'off' }}
+        {{ is_state('binary_sensor.intranet_slow','off') }}
   action:
     - service: persistent_notification.dismiss
       data_template:
         notification_id: intranet_slow
 
+# slow_persistent
+
+- id: intranet_slow_persistent
+  alias: intranet_slow_persistent
+  initial_state: !secret intranet-notifications
+  trigger:
+    platform: state
+    entity_id: binary_sensor.intranet_slow_persistent
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.intranet_slow_persistent','on') }}
+      - condition: template
+        value_template: >
+          {{ states('sensor.intranet_test') is not none }}
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >
+          Internet slowing at
+          {{ states.sensor.intranet_test.attributes.date | int | timestamp_custom("%a %b %d %I:%M %p %Z") }}
+        notification_id: intranet_slow
+        message: >
+          Current: {{ states.sensor.intranet_receive.state }} Mbps; 
+          average {{ states.sensor.intranet_receive_mean.state }} Mbps;
+          average stdev {{ states.sensor.intranet_receive_stdev_mean.state }} Mbps
+
+## FAST
+
 - id: intranet_fast_counter
   alias: intranet_fast_counter
+  initial_state: on
+  trigger:
+    platform: state
+    entity_id: binary_sensor.intranet_fast
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.intranet_fast','on') }}
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+      - condition: template
+        value_template: >
+          {{ states('sensor.intranet_test') is not none }}
+  action:
+    - service: counter.increment
+      entity_id: counter.intranet_fast_counter
+
+- id: intranet_fast_notify
+  alias: intranet_fast_notify
   initial_state: !secret intranet-notifications
   trigger:
     platform: state
@@ -78,22 +153,20 @@
     conditions:
       - condition: template
         value_template: >
-          {{ states.binary_sensor.intranet_fast.state == 'on' }}
+          {{ is_state('binary_sensor.intranet_fast','on') }}
       - condition: template
         value_template: >
-          {{ trigger.to_state.state != trigger.from_state.state }}
+          {{ states('sensor.intranet_test') is not none and state_attr('sensor.intranet_test','date') is not none }}
   action:
-    - service: counter.increment
-      entity_id: counter.intranet_fast_counter
     - service: persistent_notification.create
       data_template:
         title: >
           Internet fast at
-          {{ states.sensor.intranet_test.attributes.date | int | timestamp_custom("%a %b %d %I:%M %p %Z") }}
+          {{ state_attr('sensor.intranet_test','date')|int|timestamp_custom("%a %b %d %I:%M %p %Z") }}
         notification_id: intranet_fast
         message: >
-          Current: {{ states.sensor.intranet_test_receive.state }} Mbps; 
-          average {{ states.sensor.intranet_receive_mean.state }} Mbps;
+          Current: {{ states('sensor.intranet_receive') }} Mbps; 
+          average {{ states('sensor.intranet_receive_mean') }} Mbps;
           stdev {{ states.sensor.intranet_receive_statistics_mean.attributes.standard_deviation }} Mbps
 
 - id: intranet_fast_dismiss
@@ -105,33 +178,13 @@
   condition:
     - condition: template
       value_template: >
-        {{ states.binary_sensor.intranet_fast.state == 'off' }}
+        {{ is_state('binary_sensor.intranet_fast','off') }}
   action:
     - service: persistent_notification.dismiss
       data_template:
         notification_id: intranet_fast
 
-- id: intranet_slow_persistent
-  alias: intranet_slow_persistent
-  initial_state: !secret intranet-notifications
-  trigger:
-    platform: state
-    entity_id: binary_sensor.intranet_slow_persistent
-  condition:
-    - condition: template
-      value_template: >
-        {{ states.binary_sensor.intranet_slow_persistent.state == 'on' }}
-  action:
-    - service: persistent_notification.create
-      data_template:
-        title: >
-          Internet slowing at
-          {{ states.sensor.intranet_test.attributes.date | int | timestamp_custom("%a %b %d %I:%M %p %Z") }}
-        notification_id: intranet_slow
-        message: >
-          Current: {{ states.sensor.intranet_test_receive.state }} Mbps; 
-          average {{ states.sensor.intranet_receive_mean.state }} Mbps;
-          average stdev {{ states.sensor.intranet_receive_stdev_mean.state }} Mbps
+# fast_persistent
 
 - id: intranet_fast_persistent
   alias: intranet_fast_persistent
@@ -140,18 +193,22 @@
     platform: state
     entity_id: binary_sensor.intranet_fast_persistent
   condition:
-    - condition: template
-      value_template: >
-        {{ states.binary_sensor.intranet_fast_persistent.state == 'on' }}
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.intranet_fast_persistent','on') }}
+      - condition: template
+        value_template: >
+          {{ states('sensor.intranet_test') is not none }}
   action:
     - service: persistent_notification.create
       data_template:
         title: >
-          Internet improving at
+          Internet fasting at
           {{ states.sensor.intranet_test.attributes.date | int | timestamp_custom("%a %b %d %I:%M %p %Z") }}
         notification_id: intranet_fast
         message: >
-          Current: {{ states.sensor.intranet_test_receive.state }} Mbps; 
+          Current: {{ states.sensor.intranet_receive.state }} Mbps; 
           average {{ states.sensor.intranet_receive_mean.state }} Mbps;
           average stdev {{ states.sensor.intranet_receive_stdev_mean.state }} Mbps
-
