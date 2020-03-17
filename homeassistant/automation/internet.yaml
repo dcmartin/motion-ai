@@ -2,6 +2,8 @@
 ## automation/internet.yaml
 ###
 
+## COUNT
+
 - id: internet_counter
   alias: internet_counter
   initial_state: on
@@ -9,12 +11,19 @@
     platform: state
     entity_id: binary_sensor.internet_test
   condition:
-    - condition: template
-      value_template: >
-        {{ states('binary_sensor.internet_test') == 'on' }}
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.internet_test','on') }}
+      - condition: template
+        value_template: >
+          {{ states('sensor.internet_test') is not none }}
   action:
     - service: counter.increment
       entity_id: counter.internet_counter
+
+## SLOW
 
 - id: internet_slow_counter
   alias: internet_slow_counter
@@ -23,9 +32,17 @@
     platform: state
     entity_id: binary_sensor.internet_slow
   condition:
-    - condition: template
-      value_template: >
-        {{ states.binary_sensor.internet_slow.state == 'on' }}
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.internet_slow','on') }}
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+      - condition: template
+        value_template: >
+          {{ states('sensor.internet_test') is not none }}
   action:
     - service: counter.increment
       entity_id: counter.internet_slow_counter
@@ -37,19 +54,24 @@
     platform: state
     entity_id: binary_sensor.internet_slow
   condition:
-    - condition: template
-      value_template: >
-        {{ states.binary_sensor.internet_slow.state == 'on' }}
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.internet_slow','on') }}
+      - condition: template
+        value_template: >
+          {{ states('sensor.internet_test') is not none and state_attr('sensor.internet_test','date') is not none }}
   action:
     - service: persistent_notification.create
       data_template:
         title: >
           Internet slow at
-          {{ states.sensor.internet_test.attributes.date | int | timestamp_custom("%a %b %d %I:%M %p %Z") }}
+          {{ state_attr('sensor.internet_test','date')|int|timestamp_custom("%a %b %d %I:%M %p %Z") }}
         notification_id: internet_slow
         message: >
-          Current: {{ states.sensor.internet_test_receive.state }} Mbps; 
-          average {{ states.sensor.internet_receive_mean.state }} Mbps;
+          Current: {{ states('sensor.internet_receive') }} Mbps; 
+          average {{ states('sensor.internet_receive_mean') }} Mbps;
           stdev {{ states.sensor.internet_receive_statistics_mean.attributes.standard_deviation }} Mbps
 
 - id: internet_slow_dismiss
@@ -61,11 +83,42 @@
   condition:
     - condition: template
       value_template: >
-        {{ states.binary_sensor.internet_slow.state == 'off' }}
+        {{ is_state('binary_sensor.internet_slow','off') }}
   action:
     - service: persistent_notification.dismiss
       data_template:
         notification_id: internet_slow
+
+# slow_persistent
+
+- id: internet_slow_persistent
+  alias: internet_slow_persistent
+  initial_state: !secret internet-notifications
+  trigger:
+    platform: state
+    entity_id: binary_sensor.internet_slow_persistent
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.internet_slow_persistent','on') }}
+      - condition: template
+        value_template: >
+          {{ states('sensor.internet_test') is not none }}
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >
+          Internet slowing at
+          {{ states.sensor.internet_test.attributes.date | int | timestamp_custom("%a %b %d %I:%M %p %Z") }}
+        notification_id: internet_slow
+        message: >
+          Current: {{ states.sensor.internet_receive.state }} Mbps; 
+          average {{ states.sensor.internet_receive_mean.state }} Mbps;
+          average stdev {{ states.sensor.internet_receive_stdev_mean.state }} Mbps
+
+## FAST
 
 - id: internet_fast_counter
   alias: internet_fast_counter
@@ -78,10 +131,13 @@
     conditions:
       - condition: template
         value_template: >
-          {{ states.binary_sensor.internet_fast.state == 'on' }}
+          {{ is_state('binary_sensor.internet_fast','on') }}
       - condition: template
         value_template: >
           {{ trigger.to_state.state != trigger.from_state.state }}
+      - condition: template
+        value_template: >
+          {{ states('sensor.internet_test') is not none }}
   action:
     - service: counter.increment
       entity_id: counter.internet_fast_counter
@@ -97,20 +153,20 @@
     conditions:
       - condition: template
         value_template: >
-          {{ states.binary_sensor.internet_fast.state == 'on' }}
+          {{ is_state('binary_sensor.internet_fast','on') }}
       - condition: template
         value_template: >
-          {{ trigger.to_state.state != trigger.from_state.state }}
+          {{ states('sensor.internet_test') is not none and state_attr('sensor.internet_test','date') is not none }}
   action:
     - service: persistent_notification.create
       data_template:
         title: >
           Internet fast at
-          {{ states.sensor.internet_test.attributes.date | int | timestamp_custom("%a %b %d %I:%M %p %Z") }}
+          {{ state_attr('sensor.internet_test','date')|int|timestamp_custom("%a %b %d %I:%M %p %Z") }}
         notification_id: internet_fast
         message: >
-          Current: {{ states.sensor.internet_test_receive.state }} Mbps; 
-          average {{ states.sensor.internet_receive_mean.state }} Mbps;
+          Current: {{ states('sensor.internet_receive') }} Mbps; 
+          average {{ states('sensor.internet_receive_mean') }} Mbps;
           stdev {{ states.sensor.internet_receive_statistics_mean.attributes.standard_deviation }} Mbps
 
 - id: internet_fast_dismiss
@@ -122,37 +178,13 @@
   condition:
     - condition: template
       value_template: >
-        {{ states.binary_sensor.internet_fast.state == 'off' }}
+        {{ is_state('binary_sensor.internet_fast','off') }}
   action:
     - service: persistent_notification.dismiss
       data_template:
         notification_id: internet_fast
 
-## slow_persistent
-
-- id: internet_slow_persistent
-  alias: internet_slow_persistent
-  initial_state: !secret internet-notifications
-  trigger:
-    platform: state
-    entity_id: binary_sensor.internet_slow_persistent
-  condition:
-    - condition: template
-      value_template: >
-        {{ states.binary_sensor.internet_slow_persistent.state == 'on' }}
-  action:
-    - service: persistent_notification.create
-      data_template:
-        title: >
-          Internet slowing at
-          {{ states.sensor.internet_test.attributes.date | int | timestamp_custom("%a %b %d %I:%M %p %Z") }}
-        notification_id: internet_slow
-        message: >
-          Current: {{ states.sensor.internet_test_receive.state }} Mbps; 
-          average {{ states.sensor.internet_receive_mean.state }} Mbps;
-          average stdev {{ states.sensor.internet_receive_stdev_mean.state }} Mbps
-
-## fast persistent
+# fast_persistent
 
 - id: internet_fast_persistent
   alias: internet_fast_persistent
@@ -161,17 +193,22 @@
     platform: state
     entity_id: binary_sensor.internet_fast_persistent
   condition:
-    - condition: template
-      value_template: >
-        {{ states.binary_sensor.internet_fast_persistent.state == 'on' }}
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.internet_fast_persistent','on') }}
+      - condition: template
+        value_template: >
+          {{ states('sensor.internet_test') is not none }}
   action:
     - service: persistent_notification.create
       data_template:
         title: >
-          Internet improving at
+          Internet fasting at
           {{ states.sensor.internet_test.attributes.date | int | timestamp_custom("%a %b %d %I:%M %p %Z") }}
         notification_id: internet_fast
         message: >
-          Current: {{ states.sensor.internet_test_receive.state }} Mbps; 
+          Current: {{ states.sensor.internet_receive.state }} Mbps; 
           average {{ states.sensor.internet_receive_mean.state }} Mbps;
           average stdev {{ states.sensor.internet_receive_stdev_mean.state }} Mbps
