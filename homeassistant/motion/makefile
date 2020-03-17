@@ -85,6 +85,7 @@ HIGHLOW_YAML := ${HIGHLOW_BINARY_SENSORS} # ${HIGHLOW_AUTOMATIONS}
 MOTION_YAML := \
 	automation/internet_publish.yaml \
 	automation/intranet_publish.yaml \
+	sensor/intranet_test.yaml \
 	sensor/event_start.yaml \
 	sensor/event_image.yaml \
 	sensor/event_end.yaml \
@@ -130,6 +131,7 @@ sensor/%.yaml : sensor.%.yaml.tmpl
 	  MOTION_GROUP="$(MOTION_GROUP)" \
 	  MOTION_DEVICE="$(MOTION_DEVICE)" \
 	  MOTION_CLIENT="${MOTION_CLIENT}" \
+	  INTRANET_IPERF3_HOST="${MQTT_HOST}" \
 	  && cat $< | envsubst > $@
 
 ## HIGHLOW targets
