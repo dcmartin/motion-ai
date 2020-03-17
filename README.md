@@ -38,14 +38,14 @@ Currently there is **no support** for nVidia `CUDA` GPU hardware; support is in-
 ## 1. Home Assistant
 [Home Assistant](http://home-assistant.io)  is an open source home automation software putting local control and privacy first. Powered by a worldwide community of tinkerers and DIY enthusiasts. Perfect to run on a [Raspberry Pi](https://en.wikipedia.org/wiki/Raspberry_Pi) or a local server.   HomeAssistant includes _add-on_ Docker containers  from the HomeAssistant [community](https://github.com/hassio-addons/repository/blob/master/README.md).  Please refer to the installation instructions for Home Assistant in [`HASSIO.md`](docs/HASSIO.md).
 
-The  system supports three _types_ of cameras:
+###  `motion` _add-on_
+The Home Assistant _add-on_ [`motion`](http://github.com/dcmartin/hassio-addons/tree/master/motion/README.md) provides the capabilities of the [Motion Project](https://motion-project.github.io/) software in conjunction with a specified message broker to capture and process motion detection events.  These events are published as `MQTT`  _topics_ for consumption by Home Assistant and the supporting  _services_.
+
+The  _add-on_ supports three _types_ of cameras:
 
 + `netcam` - may be any supported by the [Motion Project](https://motion-project.github.io/motion_config.html); see the *Network Cameras* section.
 + `ftpd` - cameras the transmit `3GP` videos via `FTP`; **requires** `FTP` add-on (see below)
 + `local` - video device supported by `V4L2`; **requires** `motion-video0` add-on and `/dev/video0`
-
-###  `motion` _add-on_
-The Home Assistant _add-on_ [`motion`](http://github.com/dcmartin/hassio-addons/tree/master/motion/README.md) provides the capabilities of the [Motion Project](https://motion-project.github.io/) software in conjunction with a specified message broker to capture and process motion detection events.  These events are published as `MQTT`  _topics_ for consumption by Home Assistant and the supporting  _services_.
 
 **Please refer to [`MOTION.md`](docs/MOTION.md) for further information.**
 
