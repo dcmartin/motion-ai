@@ -86,18 +86,15 @@ ID=$(echo "${SERVICE:-null}" | jq -r '.id')
 EXT_PORT=$(echo "${SERVICE}" | jq -r '.ports.host')
 INT_PORT=$(echo "${SERVICE}" | jq -r '.ports.service') 
 
-# container name
-NAME=${CONTAINER_ID:-${LABEL}}
-
 # cleanup
 echo "Removing any existing container: ${LABEL}" &> /dev/stderr
-docker rm -f ${NAME} &> /dev/null
+docker rm -f ${LABEL} &> /dev/null
 
 # start up
-echo "Starting new container: ${NAME}; id: ${ID}; architecture: ${ARCH}; tag: ${TAG}; host: ${EXT_PORT}; service: ${INT_PORT}" &> /dev/stderr
+echo "Starting new container: ${LABEL}; id: ${ID}; architecture: ${ARCH}; tag: ${TAG}; host: ${EXT_PORT}; service: ${INT_PORT}" &> /dev/stderr
 CID=$(docker run -d \
   --privileged \
-  --name ${NAME} \
+  --name ${LABEL} \
   --mount type=tmpfs,destination=/tmpfs,tmpfs-size=81920000,tmpfs-mode=1777 \
   --publish=${EXT_PORT}:${INT_PORT} \
   --restart=unless-stopped \
@@ -131,4 +128,4 @@ if [ "${CID:-null}" != 'null' ]; then
 else
   echo "Container ${LABEL} failed" &> /dev/stderr
 fi
-echo '{"name":"'${NAME}'","id":"'${CID:-null}'","service":'"${SERVICE}"',"motion":'"${MOTION}"',"yolo":'"${YOLO}"',"mqtt":'"${MQTT}"',"debug":'"${DEBUG}"'}' | jq
+echo '{"name":"'${LABEL}'","id":"'${CID:-null}'","service":'"${SERVICE}"',"motion":'"${MOTION}"',"yolo":'"${YOLO}"',"mqtt":'"${MQTT}"',"debug":'"${DEBUG}"'}' | jq
