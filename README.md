@@ -71,7 +71,7 @@ ha core update --version=0.106.5
 ## 2. Open Horizon _services_
 [Open Horizon](http://github.com/dcmartin/open-horizon) is an open source _edge_ fabric for microservices.  The Open Horizon microservices are run as Docker containers on a distributed network across a wide range of computing devices; from [Power9](http://openpowerfoundation.org/) servers to RaspberryPi [Zero W](https://www.raspberrypi.org/products/raspberry-pi-zero-w/) micro-computers.  
 
-### `yolo4motion`
+### &#128064; `yolo4motion`
 ![Supports amd64 Architecture][amd64-shield]
 [![](https://images.microbadger.com/badges/image/dcmartin/amd64_com.github.dcmartin.open-horizon.yolo4motion.svg)](https://microbadger.com/images/dcmartin/amd64_com.github.dcmartin.open-horizon.yolo4motion)
 [![](https://images.microbadger.com/badges/version/dcmartin/amd64_com.github.dcmartin.open-horizon.yolo4motion.svg)](https://microbadger.com/images/dcmartin/amd64_com.github.dcmartin.open-horizon.yolo4motion)
@@ -114,7 +114,7 @@ ha core update --version=0.106.5
 
 The Open Horizon _service_ [`yolo4motion`](http://github.com/dcmartin/open-horizon/tree/master/yolo4motion/README.md) provides the capabilities of the [YOLO](https://github.com/dcmartion/openyolo/) software in conjunction with a specified `MQTT` message broker.  This service subscribes to the _topic_ `{group}/{device}/{camera}/event/end` and processes the JavaScript Object Notation (JSON) payload which includes a selected `JPEG` image (n.b. `BASE64` encoded) from the motion event.  This service may be used independently of the Open Horizon service as a stand-alone Docker container; see [`yolo4motion.sh`](http://github.com/dcmartin/motion/tree/master/sh/yolo4motion.sh)
 
-### `alpr4motion`
+### &#128663; `alpr4motion`
 ![Supports amd64 Architecture][amd64-shield]
 [![](https://images.microbadger.com/badges/image/dcmartin/amd64_com.github.dcmartin.open-horizon.alpr4motion.svg)](https://microbadger.com/images/dcmartin/amd64_com.github.dcmartin.open-horizon.alpr4motion)
 [![](https://images.microbadger.com/badges/version/dcmartin/amd64_com.github.dcmartin.open-horizon.alpr4motion.svg)](https://microbadger.com/images/dcmartin/amd64_com.github.dcmartin.open-horizon.alpr4motion)
@@ -141,7 +141,7 @@ The Open Horizon _service_ [`yolo4motion`](http://github.com/dcmartin/open-horiz
 
 The Open Horizon _service_ [`alpr4motion`](http://github.com/dcmartin/open-horizon/tree/master/alpr4motion/README.md) provides the capabilities of the [OpenALPR](https://github.com/dcmartin/openalpr/) software in conjunction with a specified `MQTT` message broker.  This service subscribes to the _topic_ `{group}/{device}/{camera}/event/end` and processes the JavaScript Object Notation (JSON) payload which includes a selected `JPEG` image (n.b. `BASE64` encoded) from the motion event.  This service may be used independently of the Open Horizon service as a stand-alone Docker container; see [`alpr4motion.sh`](http://github.com/dcmartin/motion/tree/master/sh/alpr4motion.sh)
 
-### `face4motion`
+### &#9786; `face4motion`
 ![Supports amd64 Architecture][amd64-shield]
 [![](https://images.microbadger.com/badges/image/dcmartin/amd64_com.github.dcmartin.open-horizon.face4motion.svg)](https://microbadger.com/images/dcmartin/amd64_com.github.dcmartin.open-horizon.face4motion)
 [![](https://images.microbadger.com/badges/version/dcmartin/amd64_com.github.dcmartin.open-horizon.face4motion.svg)](https://microbadger.com/images/dcmartin/amd64_com.github.dcmartin.open-horizon.face4motion)
