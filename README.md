@@ -13,11 +13,18 @@ To accomplish that objective, a combination of open source components have been 
 
 All of this processing is performed on local devices; there are **no cloud services** utilized.  This pattern is known as _edge computing_.  Supported architectures include:
 
-+ `amd64` - Intel/AMD 64-bit virtual machines and devices (e.g. VirtualBox Ubuntu18 VM)
-+ `aarch64` - ARMv8 64-bit devices (e.g. nVidia Jetson Nano)
+**CPU only**
+
++ `amd64` - Intel/AMD 64-bit virtual machines and devices
++ `aarch64` - ARMv8 64-bit devices 
 + `armv7` - ARMv7 32-bit devices (e.g. RaspberryPi 3/4)
 
-Currently there is **no support** for nVidia `CUDA` GPU hardware; support is in-plan for `amd64` and `aarch64`.   Support for Intel  Neural Compute Stick v2 is being considered for `armv7`.
+**GPU accelerated**
+
++ `tegra` - ARMv8 64-bit devices with nVidia GPU
++ `cuda` - Intel/AMD 64-bit with nVida GPU
+
+Support for Intel  Neural Compute Stick v2 is being considered for `armv7`.
 
 ## Status
 ![](https://img.shields.io/github/license/dcmartin/motion.svg?style=flat)
@@ -54,6 +61,13 @@ In addition, the following community _add-ons_ should be configured appropriatel
 + [`MQTT`](https://github.com/home-assistant/hassio-addons/blob/master/mosquitto/README.md) - may be run privately on local device or shared on network
 + [`FTP`](https://github.com/hassio-addons/addon-ftp/blob/master/README.md) - optional, only required for `ftpd` type cameras
 
+### &#9937; WARNING - HOME ASSISTANT VERSION 0.107
+Please downgrade installations of Home Assistant to version `0.106.5` using the [Terminal & SSH](https://github.com/home-assistant/hassio-addons/blob/master/ssh/README.md) _add-on_.  Access the command-line through the Web interface for the _add-on_ and downgrade using the following command:
+
+```
+ha core update --version=0.106.5
+```
+
 ## 2. Open Horizon _services_
 [Open Horizon](http://github.com/dcmartin/open-horizon) is an open source _edge_ fabric for microservices.  The Open Horizon microservices are run as Docker containers on a distributed network across a wide range of computing devices; from [Power9](http://openpowerfoundation.org/) servers to RaspberryPi [Zero W](https://www.raspberrypi.org/products/raspberry-pi-zero-w/) micro-computers.  
 
@@ -81,6 +95,22 @@ In addition, the following community _add-ons_ should be configured appropriatel
 
 [docker-yolo4motion-arm64]: https://hub.docker.com/r/dcmartin/arm64_com.github.dcmartin.open-horizon.yolo4motion
 [pulls-yolo4motion-arm64]: https://img.shields.io/docker/pulls/dcmartin/arm64_com.github.dcmartin.open-horizon.yolo4motion.svg
+
+[docker-cuda]: https://hub.docker.com/r/dcmartin/amd64_com.github.dcmartin.open-horizon.yolo-cuda4motion
+[pulls-cuda]: https://img.shields.io/docker/pulls/dcmartin/amd64_com.github.dcmartin.open-horizon.yolo-cuda4motion.svg
+[cuda-shield]: https://img.shields.io/badge/cuda-yes-green.svg
+[![Supports cuda Architecture][cuda-shield]](../yolo-cuda4motion/README.md)
+[![](https://images.microbadger.com/badges/image/dcmartin/amd64_com.github.dcmartin.open-horizon.yolo-cuda4motion.svg)](https://microbadger.com/images/dcmartin/amd64_com.github.dcmartin.open-horizon.yolo-cuda4motion)
+[![](https://images.microbadger.com/badges/version/dcmartin/amd64_com.github.dcmartin.open-horizon.yolo-cuda4motion.svg)](https://microbadger.com/images/dcmartin/amd64_com.github.dcmartin.open-horizon.yolo-cuda4motion )
+[![Docker Pulls][pulls-cuda]][docker-cuda]
+
+[docker-tegra]: https://hub.docker.com/r/dcmartin/arm64_com.github.dcmartin.open-horizon.yolo-tegra4motion
+[pulls-tegra]: https://img.shields.io/docker/pulls/dcmartin/arm64_com.github.dcmartin.open-horizon.yolo-tegra4motion.svg
+[tegra-shield]: https://img.shields.io/badge/tegra-yes-green.svg
+[![Supports tegra Architecture][tegra-shield]](../yolo-tegra4motion/README.md)
+[![](https://images.microbadger.com/badges/image/dcmartin/arm64_com.github.dcmartin.open-horizon.yolo-tegra4motion.svg)](https://microbadger.com/images/dcmartin/arm64_com.github.dcmartin.open-horizon.yolo-tegra4motion)
+[![](https://images.microbadger.com/badges/version/dcmartin/arm64_com.github.dcmartin.open-horizon.yolo-tegra4motion.svg)](https://microbadger.com/images/dcmartin/arm64_com.github.dcmartin.open-horizon.yolo-tegra4motion)
+[![Docker Pulls][pulls-tegra]][docker-tegra]
 
 The Open Horizon _service_ [`yolo4motion`](http://github.com/dcmartin/open-horizon/tree/master/yolo4motion/README.md) provides the capabilities of the [YOLO](https://github.com/dcmartion/openyolo/) software in conjunction with a specified `MQTT` message broker.  This service subscribes to the _topic_ `{group}/{device}/{camera}/event/end` and processes the JavaScript Object Notation (JSON) payload which includes a selected `JPEG` image (n.b. `BASE64` encoded) from the motion event.  This service may be used independently of the Open Horizon service as a stand-alone Docker container; see [`yolo4motion.sh`](http://github.com/dcmartin/motion/tree/master/sh/yolo4motion.sh)
 
