@@ -83,6 +83,7 @@ HIGHLOW_YAML := ${HIGHLOW_BINARY_SENSORS} # ${HIGHLOW_AUTOMATIONS}
 # TEMPLATES
 
 MOTION_YAML := \
+	input_text/config.yaml \
 	automation/internet_publish.yaml \
 	automation/intranet_publish.yaml \
 	sensor/intranet_test.yaml \
@@ -108,6 +109,14 @@ default: all
 all:  $(MOTION_YAML) $(WEBCAM_YAML) $(HIGHLOW_BINARY_SENSORS) group/webcams.yaml history_graph/webcams.yaml
 
 # TEMPLATES
+
+input_text/%.yaml : input_text.%.yaml.tmpl
+	@echo "Making $@"
+	@export \
+	  MOTION_GROUP="$(MOTION_GROUP)" \
+	  MOTION_DEVICE="$(MOTION_DEVICE)" \
+	  MOTION_CLIENT="${MOTION_CLIENT}" \
+	  && cat $< | envsubst > $@
 
 automation/%.yaml : automation.%.yaml.tmpl
 	@echo "Making $@"
