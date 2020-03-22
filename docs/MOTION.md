@@ -176,16 +176,20 @@ This repository provides a set of `YAML` files and templates specifically design
 Specify options according to environment and local files; build YAML configuration files using the `make` command, for example:
 
 ```
-cd ~/GIT/motion/homeassistant/
-echo '[]' > motion/webcams.json 	# initially for zero motion addon-on cameras
+cd ~/GIT/motion/
+echo '[]' > homeassistant/motion/webcams.json # initially for zero motion addon-on cameras
 echo '+' > MOTION_CLIENT 			# listen for all client cameras
-echo '192.168.1.40' > MQTT_HOST 	# to specify another device as broker
+echo '192.168.1.40' > MQTT_HOST 	# IP address of MQTT broker
+echo 'username' > MQTT_USERNAME 	# IP address of MQTT broker
+echo 'password' > MQTT_PASSWORD	# IP address of MQTT broker
 echo '80' > HOST_PORT 				# change host port from 8123
 make
 ```
 
+The `make` command should exit successfully having produced a number of YAML files in the `homeassistant/` subdirectory.
+
 ### &#10071;  - `motion/webcams.json`
- Once the add-on is configured and operational create the `homeassistant/motion/webcams.json` file with details on the camera(s) specified for the local `motion` add-on.  Those details include:
+Specifications in  `homeassistant/motion/webcams.json` file contain information about the cameras which will be inclued in the generated YAML; **warning** more cameras require more computational resources.  Those details include:
 
 + `name` : a unique name for the camera (e.g. `kitchencam`)
 + `mjpeg_url` : location of "live" motion JPEG stream from camera
