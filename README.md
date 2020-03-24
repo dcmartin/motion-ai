@@ -220,3 +220,5 @@ Python|3|43|17|170
 HTML|1|19|1|90
 --------|--------|--------|--------|--------
 SUM:|247|1370|1409|15527
+
+<img src="http://clustrmaps.com/map_v2.png?cl=ffffff&w=a&t=n&d=8TDxxKn9npMT6_70gwlS3FcPjhdcBm5j4LskwHzTO5U" width="1">
