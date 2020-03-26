@@ -1,6 +1,20 @@
 # `DEBIAN.md`
 This document has additional information for configuration Debian-based LINUX operating systems, including Raspbian and Ubuntu.  
 
+## DNS
+To setup DNS properly on Ubuntu 18.04 an additional package, `resolvconf`, needs to be installed and configured.
+
+```
+sudo apt install -qq -y resolvconf
+```
+
+Then configure by appending the desired nameservers, one per line; for example:
+
+```
+echo 'nameserver 192.168.1.50' | sudo tee -a /etc/resolvconf/resolv.conf.d/head
+echo 'nameserver 1.1.1.1' | sudo tee -a /etc/resolvconf/resolv.conf.d/head
+```
+
 ## Static IP _(optional)_
 To use static IP addresses, change the `/etc/network/interfaces` file, for example to configure a system with both wired (`eth0`) and wireless (`wlan0`) networking (presuming host is also running `dnsmasq` addon):
 
