@@ -35,7 +35,7 @@ Clone this repository into a directory in the local file-system, e.g. `~/GIT/mot
 ```
 mkdir -p ~/GIT/
 cd ~/GIT/
-git clone http://github.com/dcmartin/motion.git
+git clone http://github.com/dcmartin/motion-ai.git
 ```
 
 ## &#10123; - Install Home Assistant
