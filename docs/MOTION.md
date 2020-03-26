@@ -16,23 +16,20 @@ These attributes may be specified through files with equivalent names containing
 
 In addition, the configuration depends on a listing of cameras, notably the file `motion/webcams.json` which must be created; there is a [template](http://github.com/dcmartin/horizon.dcmartin.com/blob/master/motion/webcams.json.tmpl) provided.
 
-# &#11088; - Prepare device
-After installing LINUX, creating user account, and accessing device, configure the `domainname` and optionally grant privileges to enable automated `sudo`, for example:
-
-```
-echo "mydomain.com" | sudo tee /etc/domainname
-echo "${USER} ALL=(ALL) NOPASSWD: ALL" | sudo tee "/etc/sudoers.d/010_${USER}-nopasswd"
-```
-
-## &#10122; - Update, upgrade, and install pre-requisite software
-Do the standard things and upgrade all software; older RaspberryPi devices may need firmware upgrades.
+## &#10122; - Clone this repository
+Install the `git` command and _clone_ this repository from `github.com/dcmartin/motion-ai`, for example:
 
 ```
 sudo apt update -qq -y 
-sudo apt full-upgrade -qq -y 
-sudo apt install -qq -y git jq curl bc gettext make mosquitto-clients
+sudo apt install -qq -y git
 ```
-## &#10123; - Clone repository and install
+
+Additional (optional) packages:
+
+```
+sudo apt install -qq -y jq curl bc gettext make mosquitto-clients
+```
+
 Clone this repository into a directory in the local file-system, e.g. `~/GIT/motion/`; for example:
 
 ```
@@ -41,20 +38,15 @@ cd ~/GIT/
 git clone http://github.com/dcmartin/motion.git
 ```
 
-Cloning the repository creates a new directory, `motion/`; use the provided shell script to install Docker and other pre-requisites; for example:
+## &#10123; - Install Home Assistant
+Cloning the repository creates a new directory, `motion-ai/`; use the provided shell script to install Docker and other pre-requisites; for example:
 
 ```
 cd ~/GIT/motion
 sudo ./sh/get.hassio.sh
 ```
 
-Add the account to the `docker` group; for example:
-
-```
-sudo addgroup ${USER} docker
-sudo reboot
-```
-Reboot to enable `docker` and set group privilege.  Login again, and initiate installation of Home Assistant, for example:
+Once the pre-requisites are installed, run the downloaded `hassio-install.sh` script with the indicated options; for example, on a RaspberryPi model 3B+ the `-m` flag must be specified:
 
 ```
 cd ~/GIT/motion
@@ -62,6 +54,14 @@ sudo ./hassio-install.sh -m raspberrypi3
 ```
 
 Wait for 20-30 minutes for Home Assistant to download the necessary Docker containers and setup default configuration. 
+
+### _Optional_: Add `docker` group
+The account used may be added to the `docker` group to enable control of Docker and the containers.  Accounts in the `docker` group may be able to assume super-user privileges.
+
+```
+sudo addgroup ${USER} docker
+```
+Re-login to enable group privilege.
 
 ## &#10124; - Initialize Home Assistant
 When the installation from step (2) completes connect to IP address for the device on the default port, `8123`, and complete setup using a Web browser, for example:
@@ -71,6 +71,13 @@ http://raspberrypi.local:8123
 ```
 
 Create the initial user (a.ka. the _owner_), provide a name, use auto-detection to guess your location, set other attributes and finish configuration.  The default view of the default configuration should appear, as well as a _save login_ option in the lower right of the Web page.
+
+### &#9937; WARNING - HOME ASSISTANT VERSION 0.107
+Please downgrade installations of Home Assistant to version `0.106.5` using the [Terminal & SSH](https://github.com/home-assistant/hassio-addons/blob/master/ssh/README.md) _add-on_.  Access the command-line through the Web interface for the _add-on_ and downgrade using the following command:
+
+```
+ha core update --version=0.106.5
+```
 
 ## &#10125; - Install `motion` _add-on_
 The add-on must be installed through the Home Assistant UX; please refer to [`INSTALL.md`](INSTALL.md) for details on instalation and configuration of the add-on.  Visit the [`motion` _add-on_](https://github.com/dcmartin/hassio-addons/blob/master/motion/CONFIGURATION.md) documentation for _add-on_ configuration information.
@@ -176,7 +183,7 @@ This repository provides a set of `YAML` files and templates specifically design
 Specify options according to environment and local files; build YAML configuration files using the `make` command, for example:
 
 ```
-cd ~/GIT/motion/
+cd ~/GIT/motion-ai/
 echo '[]' > homeassistant/motion/webcams.json # initially for zero motion addon-on cameras
 echo '+' > MOTION_CLIENT 			# listen for all client cameras
 echo '192.168.1.40' > MQTT_HOST 	# IP address of MQTT broker
@@ -188,7 +195,7 @@ make
 
 The `make` command should exit successfully having produced a number of YAML files in the `homeassistant/` subdirectory.
 
-### &#10071;  - `motion/webcams.json`
+### &#10071;  - `webcams.json`
 Specifications in  `homeassistant/motion/webcams.json` file contain information about the cameras which will be inclued in the generated YAML; **warning** more cameras require more computational resources.  Those details include:
 
 + `name` : a unique name for the camera (e.g. `kitchencam`)

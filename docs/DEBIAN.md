@@ -1,6 +1,14 @@
 # `DEBIAN.md`
 This document has additional information for configuration Debian-based LINUX operating systems, including Raspbian and Ubuntu.  
 
+## Automated `sudo` & `domainname`
+After installing LINUX, creating user account, and accessing device, configure the `domainname` and optionally grant privileges to enable automated `sudo`, for example:
+
+```
+echo "mydomain.com" | sudo tee /etc/domainname
+echo "${USER} ALL=(ALL) NOPASSWD: ALL" | sudo tee "/etc/sudoers.d/010_${USER}-nopasswd"
+```
+
 ## DNS
 To setup DNS properly on Ubuntu 18.04 an additional package, `resolvconf`, needs to be installed and configured.
 
