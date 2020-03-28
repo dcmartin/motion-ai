@@ -200,9 +200,27 @@ based on the following:
 - ``MINOR``: Backwards-compatible new features and enhancements.
 - ``PATCH``: Backwards-compatible bugfixes and package updates.
 
-## Authors & contributors
+## Author
 
 David C Martin (github@dcmartin.com)
+
+## Contribute:
+
++ Let everyone know about this project
++ Test a `netcam` or `local` camera and let me know
++ Build out Lovelace inteface for v0.107++
+
+Add `motion-ai` as upstream to your repository:
+
+```
+git remote add upstream git@github.com:dcmartin/motion-ai.git
+```
+
+Please make sure you keep your fork up to date by regularly pulling from upstream. 
+
+```
+git pull upstream master
+```
 
 ## Stargazers
 [![Stargazers over time](https://starchart.cc/dcmartin/motion.svg)](https://starchart.cc/dcmartin/motion)
