@@ -6,12 +6,17 @@
  # sudo apt install -y nvidia-driver-390
  # sudo apt install -y nvidia-cuda-toolkit
 
+DATA_DIR=${HOME}/.digits/data
+JOBS_DIR=${HOME}/.digits/jobs
+
+mkdir -p ${DATA_DIR} ${JOBS_DIR}
+
 docker run \
-  --restart always \
   --name digits \
+  --restart=unless-stopped \
   -d \
   -p 5000:5000 \
-  -v digits-data:/data \
-  -v digits-jobs:/jobs \
+  -v digits-data:${DATA_DIR} \
+  -v digits-jobs:${JOBS_DIR} \
   --runtime=nvidia \
   nvidia/digits
