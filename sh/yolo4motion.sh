@@ -128,4 +128,4 @@ if [ "${CID:-null}" != 'null' ]; then
 else
   echo "Container ${LABEL} failed" &> /dev/stderr
 fi
-echo '{"name":"'${LABEL}'","id":"'${CID:-null}'","service":'"${SERVICE}"',"motion":'"${MOTION}"',"yolo":'"${YOLO}"',"mqtt":'"${MQTT}"',"debug":'"${DEBUG}"'}' | jq
+echo '{"name":"'${LABEL}'","id":"'${CID:-null}'","service":'"${SERVICE}"',"motion":'"${MOTION}"',"yolo":'"${YOLO}"',"mqtt":'"${MQTT}"',"debug":'"${DEBUG}"'}' | jq '.'
