@@ -96,7 +96,8 @@ homeassistant/lovelace.json: lovelace.json.tmpl homeassistant/motion/webcams.jso
 	  | jq '(.data.config.views[]|select(.title=="DETECTED").cards)+='"$$(jq '[.[]|{"entity":("camera.motion_detected_picture_"+.name),"type":"picture-entity"}]' homeassistant/motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.title=="ANNOTATED").cards)+='"$$(jq '[.[]|{"entity":("camera.motion_annotated_picture_"+.name),"type":"picture-entity"}]' homeassistant/motion/webcams.json)" \
 	 > $@
-	@echo "MADE $@; sudo cp $@ /usr/share/hassio/homeassistant/.storage/lovelace"
+	@echo "MADE $@"
+	sudo rm -f homeassistant/.storage/lovelace && sudo ln -s ../lovelace.json homeassistant/.storage/lovelace
 
 $(ACTIONS):
 	@echo "making $@"
