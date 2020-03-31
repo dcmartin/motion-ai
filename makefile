@@ -55,7 +55,7 @@ ACTIONS := all run stop logs restart tidy clean realclean distclean
 
 default: homeassistant/motion/webcams.json homeassistant/lovelace.json all
 
-homeassistant/lovelace.json: lovelace.json.tmpl homeassistant/motion/webcams.json
+homeassistant/lovelace.json: lovelace.json.tmpl homeassistant/motion/webcams.json makefile
 	@export \
 	  DOMAIN_NAME="$(DOMAIN_NAME)" \
 	  HOST_IPADDR="$(HOST_IPADDR)" \
@@ -82,7 +82,20 @@ homeassistant/lovelace.json: lovelace.json.tmpl homeassistant/motion/webcams.jso
 	  NETDATA_URL="$(NETDATA_URL)" \
 	&& cat $< \
 	  | envsubst \
-	  | jq '(.data.config.views[]|select(.title=="LIVE").cards)+='"$$(jq '[.[]|{"entity":("camera.motion_live_"+.name),"type":"picture-entity"}]' homeassistant/motion/webcams.json)" > $@
+	  | jq '(.data.config.views[]|select(.title=="LIVE").cards)+='"$$(jq '[.[]|{"entity":("camera.motion_live_"+.name),"type":"picture-entity"}]' homeassistant/motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.title=="ANNOTATED").cards[]|select(.title=="motion_annotated_ago").entities)+='"$$(jq '[.[]|("sensor.motion_annotated_ago_"+.name)]' homeassistant/motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.title=="ANNOTATED").cards[]|select(.title=="motion_annotated_counter").entities)+='"$$(jq '[.[]|("sensor.motion_annotated_counter_"+.name)]' homeassistant/motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.title=="ANNOTATED").cards[]|select(.title=="motion_annotated_count").entities)+='"$$(jq '[.[]|("sensor.motion_annotated_count_"+.name)]' homeassistant/motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.title=="DETECTED").cards[]|select(.title=="motion_detected_ago").entities)+='"$$(jq '[.[]|("sensor.motion_detected_ago_"+.name)]' homeassistant/motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.title=="DETECTED").cards[]|select(.title=="motion_detected_counter").entities)+='"$$(jq '[.[]|("sensor.motion_detected_counter_"+.name)]' homeassistant/motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.title=="DETECTED").cards[]|select(.title=="motion_detected_count").entities)+='"$$(jq '[.[]|("sensor.motion_detected_count_"+.name)]' homeassistant/motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.title=="DETECTED ENTITY").cards[]|select(.title=="motion_detected_entity_ago").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_ago_"+.name)]' homeassistant/motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.title=="DETECTED ENTITY").cards[]|select(.title=="motion_detected_entity_counter").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_counter_"+.name)]' homeassistant/motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.title=="DETECTED ENTITY").cards[]|select(.title=="motion_detected_entity_count").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_count_"+.name)]' homeassistant/motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.title=="DETECTED ENTITY").cards)+='"$$(jq '[.[]|{"entity":("camera.motion_detected_entity_picture_"+.name),"type":"picture-entity"}]' homeassistant/motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.title=="DETECTED").cards)+='"$$(jq '[.[]|{"entity":("camera.motion_detected_picture_"+.name),"type":"picture-entity"}]' homeassistant/motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.title=="ANNOTATED").cards)+='"$$(jq '[.[]|{"entity":("camera.motion_annotated_picture_"+.name),"type":"picture-entity"}]' homeassistant/motion/webcams.json)" \
+	 > $@
 	@echo "MADE $@; sudo cp $@ /usr/share/hassio/homeassistant/.storage/lovelace"
 
 $(ACTIONS):
