@@ -65,7 +65,7 @@ echo 'Updating apt ...' &> /dev/stderr \
   && sudo apt install -qq -y software-properties-common apparmor-utils apt-transport-https avahi-daemon ca-certificates curl dbus jq socat \
   && echo 'Skipping network-manager; sudo apt install -qq -y network-manager to install' \
   && echo 'Downloading shell script ...' &> /dev/stderr \
-  && curl -sSL -o hassio-install.sh 'https://raw.githubusercontent.com/home-assistant/hassio-installer/master/hassio_install.sh' \
+  && curl -sSL -o hassio-install.sh 'https://raw.githubusercontent.com/home-assistant/supervised-installer/master/installer.sh' \
   && chmod 755 hassio-install.sh \
   && echo "Now install using hassio-install.sh script; sudo ./hassio-install.sh $(machine)" &> /dev/stderr \
   || echo 'Failed to get Home Assistant' &> /dev/stderr
