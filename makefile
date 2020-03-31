@@ -82,19 +82,26 @@ homeassistant/lovelace.json: lovelace.json.tmpl homeassistant/motion/webcams.jso
 	  NETDATA_URL="$(NETDATA_URL)" \
 	&& cat $< \
 	  | envsubst \
-	  | jq '(.data.config.views[]|select(.title=="LIVE").cards)+='"$$(jq '[.[]|{"entity":("camera.motion_live_"+.name),"type":"picture-entity"}]' homeassistant/motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.title=="ANNOTATED").cards[]|select(.title=="motion_annotated_ago").entities)+='"$$(jq '[.[]|("sensor.motion_annotated_ago_"+.name)]' homeassistant/motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.title=="ANNOTATED").cards[]|select(.title=="motion_annotated_counter").entities)+='"$$(jq '[.[]|("sensor.motion_annotated_counter_"+.name)]' homeassistant/motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.title=="ANNOTATED").cards[]|select(.title=="motion_annotated_count").entities)+='"$$(jq '[.[]|("sensor.motion_annotated_count_"+.name)]' homeassistant/motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.title=="DETECTED").cards[]|select(.title=="motion_detected_ago").entities)+='"$$(jq '[.[]|("sensor.motion_detected_ago_"+.name)]' homeassistant/motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.title=="DETECTED").cards[]|select(.title=="motion_detected_counter").entities)+='"$$(jq '[.[]|("sensor.motion_detected_counter_"+.name)]' homeassistant/motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.title=="DETECTED").cards[]|select(.title=="motion_detected_count").entities)+='"$$(jq '[.[]|("sensor.motion_detected_count_"+.name)]' homeassistant/motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.title=="DETECTED ENTITY").cards[]|select(.title=="motion_detected_entity_ago").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_ago_"+.name)]' homeassistant/motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.title=="DETECTED ENTITY").cards[]|select(.title=="motion_detected_entity_counter").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_counter_"+.name)]' homeassistant/motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.title=="DETECTED ENTITY").cards[]|select(.title=="motion_detected_entity_count").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_count_"+.name)]' homeassistant/motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.title=="DETECTED ENTITY").cards)+='"$$(jq '[.[]|{"entity":("camera.motion_detected_entity_picture_"+.name),"type":"picture-entity"}]' homeassistant/motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.title=="DETECTED").cards)+='"$$(jq '[.[]|{"entity":("camera.motion_detected_picture_"+.name),"type":"picture-entity"}]' homeassistant/motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.title=="ANNOTATED").cards)+='"$$(jq '[.[]|{"entity":("camera.motion_annotated_picture_"+.name),"type":"picture-entity"}]' homeassistant/motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="motion_live").cards)+='"$$(jq '[.[]|{"entity":("camera.motion_live_"+.name),"type":"picture-entity"}]' homeassistant/motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="motion_animated_webcams_view").cards)+='"$$(jq '[.[]|{"entity":("camera.motion_detected_entity_animated_"+.name),"type":"picture-entity"}]' homeassistant/motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="motion_detected_entity_counter_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_counter_"+.name)]' homeassistant/motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="motion_detected_entity_percent_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_percent_"+.name)]' homeassistant/motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="motion_detected_entity_count_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_count_"+.name)]' homeassistant/motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="motion_detected_entity_count_mean_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_count_mean_"+.name)]' homeassistant/motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="motion_detected_entity_ago_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_ago_"+.name)]' homeassistant/motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="motion_detected_entity_ago_mean_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_ago_mean_"+.name)]' homeassistant/motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="motion_annotated_view").cards[]|select(.title=="motion_annotated_ago").entities)+='"$$(jq '[.[]|("sensor.motion_annotated_ago_"+.name)]' homeassistant/motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="motion_annotated_view").cards[]|select(.title=="motion_annotated_counter").entities)+='"$$(jq '[.[]|("sensor.motion_annotated_counter_"+.name)]' homeassistant/motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="motion_annotated_view").cards[]|select(.title=="motion_annotated_count").entities)+='"$$(jq '[.[]|("sensor.motion_annotated_count_"+.name)]' homeassistant/motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="motion_annotated_view").cards)+='"$$(jq '[.[]|{"entity":("camera.motion_annotated_picture_"+.name),"type":"picture-entity"}]' homeassistant/motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="motion_detected_view").cards[]|select(.title=="motion_detected_ago").entities)+='"$$(jq '[.[]|("sensor.motion_detected_ago_"+.name)]' homeassistant/motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="motion_detected_view").cards[]|select(.title=="motion_detected_counter").entities)+='"$$(jq '[.[]|("sensor.motion_detected_counter_"+.name)]' homeassistant/motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="motion_detected_view").cards[]|select(.title=="motion_detected_count").entities)+='"$$(jq '[.[]|("sensor.motion_detected_count_"+.name)]' homeassistant/motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="motion_detected_view").cards)+='"$$(jq '[.[]|{"entity":("camera.motion_detected_picture_"+.name),"type":"picture-entity"}]' homeassistant/motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="motion_detected_entity_view").cards[]|select(.title=="motion_detected_entity_ago").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_ago_"+.name)]' homeassistant/motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="motion_detected_entity_view").cards[]|select(.title=="motion_detected_entity_counter").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_counter_"+.name)]' homeassistant/motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="motion_detected_entity_view").cards[]|select(.title=="motion_detected_entity_count").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_count_"+.name)]' homeassistant/motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="motion_detected_entity_view").cards)+='"$$(jq '[.[]|{"entity":("camera.motion_detected_entity_picture_"+.name),"type":"picture-entity"}]' homeassistant/motion/webcams.json)" \
 	 > $@
 	@echo "MADE $@"
 	sudo rm -f homeassistant/.storage/lovelace && sudo ln -s ../lovelace.json homeassistant/.storage/lovelace
