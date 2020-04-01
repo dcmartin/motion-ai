@@ -3,6 +3,21 @@
 # `motion`  &Atilde;&#128065;
 This   repository is a demonstration and proof-of-concept for an **AI assistants** providing improved situational awareness from a collection of network accessible video cameras.
 
+## Status
+![](https://img.shields.io/github/license/dcmartin/motion.svg?style=flat)
+![](https://img.shields.io/github/release/dcmartin/motion.svg?style=flat)
+![](https://img.shields.io/github/repo-size/dcmartin/motion.svg?style=flat)
+![](https://img.shields.io/github/issues/dcmartin/motion.svg?style=flat)
+![](https://img.shields.io/github/tag/dcmartin/motion.svg?style=flat)
+
+![](https://img.shields.io/github/last-commit/dcmartin/motion.svg?style=flat)
+![](https://img.shields.io/github/commit-activity/w/dcmartin/motion.svg?style=flat)
+![](https://img.shields.io/github/contributors/dcmartin/motion.svg?style=flat)
+
+[![Build Status](https://travis-ci.org/dcmartin/motion.svg?branch=master)](https://travis-ci.org/dcmartin/motion)
+[![Coverage Status](https://coveralls.io/repos/github/dcmartin/motion/badge.svg?branch=master)](https://coveralls.io/github/dcmartin/motion?branch=master)
+
+## Introduction
 Most consumer-grade Web cameras -- or similar devices -- send notifications when _motion_ occurs.  Motion is often defined as a change in the image from one frame to the next; these changes are often influenced by light, wind, and many other environmental factors -- producing a large number of notifications (a.k.a. _false positives_).  While limitations may be set on the amount of change to indicate motion, a better solution would detect and classify entities of interest whenever motion occurs and send notifications only when specified are present.
 
 To accomplish that objective, a combination of open source components have been integrated to provide a means to detect motion and recognize entities.  The resulting detections and recognitions may then be analyzed and used for a variety of purposes (e.g. counting over time).   Currently the system supports:
@@ -25,20 +40,6 @@ All of this processing is performed on local devices; there are **no cloud servi
 + `cuda` - Intel/AMD 64-bit with nVida GPU
 
 Support for Intel  Neural Compute Stick v2 is being considered for `armv7`.
-
-## Status
-![](https://img.shields.io/github/license/dcmartin/motion.svg?style=flat)
-![](https://img.shields.io/github/release/dcmartin/motion.svg?style=flat)
-![](https://img.shields.io/github/repo-size/dcmartin/motion.svg?style=flat)
-![](https://img.shields.io/github/issues/dcmartin/motion.svg?style=flat)
-![](https://img.shields.io/github/tag/dcmartin/motion.svg?style=flat)
-
-![](https://img.shields.io/github/last-commit/dcmartin/motion.svg?style=flat)
-![](https://img.shields.io/github/commit-activity/w/dcmartin/motion.svg?style=flat)
-![](https://img.shields.io/github/contributors/dcmartin/motion.svg?style=flat)
-
-[![Build Status](https://travis-ci.org/dcmartin/motion.svg?branch=master)](https://travis-ci.org/dcmartin/motion)
-[![Coverage Status](https://coveralls.io/repos/github/dcmartin/motion/badge.svg?branch=master)](https://coveralls.io/github/dcmartin/motion?branch=master)
 
 # Components
 
