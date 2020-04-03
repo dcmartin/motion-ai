@@ -107,7 +107,6 @@ homeassistant/lovelace.json: lovelace.json.tmpl homeassistant/motion/webcams.jso
 	  | jq '(.data.config.views[]|select(.path=="motion_detected_entity_view").cards[]|select(.title=="motion_detected_entity_counter").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_counter_"+.name)]' homeassistant/motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="motion_detected_entity_view").cards[]|select(.title=="motion_detected_entity_count").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_count_"+.name)]' homeassistant/motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="motion_detected_entity_view").cards)+='"$$(jq '[.[]|{"entity":("camera.motion_detected_entity_picture_"+.name),"type":"picture-entity"}]' homeassistant/motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_face_view").cards)+='"$$(jq '[.[]|{"entity":("camera.motion_face_picture_"+.name),"type":"picture-entity"}]' homeassistant/motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="motion_face_detected_view").cards)+='"$$(jq '[.[]|{"entity":("camera.motion_face_detected_picture_"+.name),"type":"picture-entity"}]' homeassistant/motion/webcams.json)" \
 	 > $@
 	@echo "MADE $@"
