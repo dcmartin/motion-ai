@@ -37,7 +37,7 @@ if [ -z "${CONTAINER_ID:-}" ]; then
 fi
 
 # report
-echo "Using container named: ${CONTAINER_ID}"  &> /dev/stderr
+echo "Using container named: ${DOCKER_NAMESPACE:-dcmartin}/${CONTAINER_ID}"  &> /dev/stderr
 
 ## PARAMETERS
 
@@ -120,7 +120,7 @@ CID=$(docker run -d \
   -e LOG_LEVEL=$(echo "${DEBUG}" | jq -r '.level') \
   -e LOGTO=$(echo "${DEBUG}" | jq -r '.logto') \
   -e DEBUG=$(echo "${DEBUG}" | jq -r '.debug') \
-  "dcmartin/${ARCH}_${ID}:${TAG}" 2> /dev/stderr)
+  "${DOCKER_NAMESPACE:-dcmartin}/${ARCH}_${ID}:${TAG}" 2> /dev/stderr)
 
 # report
 if [ "${CID:-null}" != 'null' ]; then
@@ -128,4 +128,4 @@ if [ "${CID:-null}" != 'null' ]; then
 else
   echo "Container ${LABEL} failed" &> /dev/stderr
 fi
-echo '{"name":"'${LABEL}'","id":"'${CID:-null}'","service":'"${SERVICE}"',"motion":'"${MOTION}"',"yolo":'"${YOLO}"',"mqtt":'"${MQTT}"',"debug":'"${DEBUG}"'}' | jq '.'
+echo '{"name":"'${LABEL}'","id":"'${CID:-null}'","service":'"${SERVICE}"',"motion":'"${MOTION}"',"yolo":'"${YOLO}"',"mqtt":'"${MQTT}"',"debug":'"${DEBUG}"'}' | jq
