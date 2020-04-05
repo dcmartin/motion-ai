@@ -97,86 +97,6 @@ After configuration, start the _add-on_.
 #### &#9995; Naming
 A `group`, `device`, or `camera` _name_ may **ONLY** include lower-case letters (`a-z`), numbers (`0-9`), and _underscore_ (`_`).
 
-### Example configuration for `motion` _add-on_
-```
-log_level: debug
-log_motion_level: error
-log_motion_type: ALL
-default:
-  brightness: 100
-  changes: 'on'
-  contrast: 50
-  despeckle: EedDl
-  event_gap: 10
-  framerate: 2
-  hue: 50
-  interval: 60
-  lightswitch: 0
-  minimum_motion_frames: 10
-  movie_max: 60
-  movie_output: 'off'
-  movie_quality: 80
-  netcam_userpass: '!secret motioncam-userpass'
-  palette: 15
-  picture_quality: 80
-  post_pictures: best
-  saturation: 0
-  stream_quality: 50
-  text_scale: 2
-  threshold_percent: 1
-  username: '!secret motioncam-username'
-  password: '!secret motioncam-password'
-  width: 1920
-  height: 1080
-mqtt:
-  host: 192.168.1.50
-  port: '1883'
-  username: username
-  password: password
-group: motion
-device: netcams
-client: netcams
-timezone: America/Los_Angeles
-cameras:
-  - name: poolcam
-    type: netcam
-    icon: water
-    netcam_url: 'http://192.168.1.162/nphMotionJpeg?Resolution=640x480&Quality=Clarity'
-    netcam_userpass: '!secret netcam-userpass'
-    width: 640
-    height: 480
-    framerate: 5
-  - name: road
-    type: netcam
-    icon: road
-    netcam_url: 'http://192.168.1.36:8081/'
-    netcam_userpass: '!secret netcam-userpass'
-    width: 640
-    height: 480
-    framerate: 5
-  - name: dogshed
-    type: netcam
-    icon: dog
-    netcam_url: 'rtsp://192.168.1.221/live'
-  - name: dogshedfront
-    type: netcam
-    icon: home-floor-1
-    netcam_url: 'rtsp://192.168.1.222/live'
-  - name: sheshed
-    type: netcam
-    icon: window-shutter-open
-    netcam_url: 'rtsp://192.168.1.223/live'
-  - name: dogpond
-    type: netcam
-    icon: waves
-    netcam_url: 'rtsp://192.168.1.224/live'
-  - name: pondview
-    type: netcam
-    icon: waves
-    netcam_url: 'rtsp://192.168.1.225/live'
-```
-
-
 ## &#10126; - Build `motion` YAML
 This repository provides a set of `YAML` files and templates specifically designed to consume information provided by the `motion` _add-on_.  These files provide a multi-view interface through both Lovelace and legacy user-interfaces.
 
@@ -195,7 +115,37 @@ make
 
 The `make` command should exit successfully having produced a number of YAML files in the `homeassistant/` subdirectory.
 
-### &#10071;  - `webcams.json`
+## &#10127; - Copy configuration
+The `motion` configuration installs over an existing `/usr/share/hassio/` directory contents, but only over-writes file in the `homeassistant/` subdirectory. 
+
+To complete installation, copy the contents of  this repository into the existing installation, change ownership, and create new `configuration.yaml` file:
+
+```
+cd ~/GIT/motion
+tar cvf - . | ( cd /usr/share/hassio; sudo tar xvf - )
+cd ~/GIT/
+rm -fr motion/ && ln -s /usr/share/hassio motion
+cd /usr/share/hassio/
+sudo chown -R ${USER} .
+cd homeassistant/
+rm -f configuration.yaml
+ln -s config-client.yaml.tmpl configuration.yaml
+```
+
+## &#10128; - Restart Home Assistant
+The configuration may now be updated and controlled using the `make` command, including the following:
+
++ `restart` - restart the Home Assistant server
++ `tidy` - remove any automatically constructed YAML configuration files
++ `clean` - perform `tidy` and then remove any log files and `.storage/` recorder files
++ `realclean` - perform `clean` and then remove all database files
++ `logs` - show the Home Assistant logs
+
+```
+make restart
+```
+
+### &#10071;  - `homeassistant/motion/webcams.json`
 Specifications in  `homeassistant/motion/webcams.json` file contain information about the cameras which will be inclued in the generated YAML; **warning** more cameras require more computational resources.  Those details include:
 
 + `name` : a unique name for the camera (e.g. `kitchencam`)
@@ -217,36 +167,7 @@ For example:
 ]
 ```
 
-The `motion` configuration installs over an existing `/usr/share/hassio/` directory contents, but only over-writes file in the `homeassistant/` subdirectory. 
-
-To complete installation, copy the contents of  this repository into the existing installation, change ownership, and create new `configuration.yaml` file; for example:
-
-```
-cd ~/GIT/motion
-tar cvf - . | ( cd /usr/share/hassio; sudo tar xvf - )
-cd ~/GIT/
-rm -fr motion/ && ln -s /usr/share/hassio motion
-cd /usr/share/hassio/
-sudo chown -R ${USER} .
-cd homeassistant/
-rm -f configuration.yaml
-ln -s config-client.yaml.tmpl configuration.yaml
-```
-
-## &#10127; - Restart Home Assistant
-The configuration may now be updated and controlled using the `make` command, including the following:
-
-+ `restart` - restart the Home Assistant server
-+ `tidy` - remove any automatically constructed YAML configuration files
-+ `clean` - perform `tidy` and then remove any log files and `.storage/` recorder files
-+ `realclean` - perform `clean` and then remove all database files
-+ `logs` - show the Home Assistant logs
-
-```
-make restart
-```
-
-##  &#10128; - Start `yolo4motion` _service_
+##  &#10129; - Start `yolo4motion` _service_
 Start the `yolo4motion` service container by executing the provided [shell script](../sh/yolo4motion.sh); the options, which may be specified through equivalent environment variables or file.
 
 ### `yolomotion.sh`
@@ -272,7 +193,7 @@ The `tiny` model (aka `tiny-v2`) only detects [these](https://github.com/dcmarti
 
 **Note:** The Docker container and the model's weights must be downloaded from the Internet; there may be a considerable delay given the device Internet connection bandwidth.  The container is only downloaded one time, but the model's weights  are downloaded each time the container is started.
 
-##  &#10129; - Start `face4motion`and `alpr4motion` (_optional_)
+##  &#10130; - Start `face4motion`and `alpr4motion` (_optional_)
 These two Open Horizon _services_ may also be started via shell scripts, namely [`alpr4motion.sh`](../sh/alpr4motion.sh) and [`face4motion`](../sh/face4motion.sh).  These scripts utilize the same environment variables for `MQTT`, `MOTION`, and `LOG` attributes as `yolo4motion.sh`, but have their own specific options rather than `YOLO`:
 
 ### `face4motion.sh`
@@ -283,7 +204,7 @@ These two Open Horizon _services_ may also be started via shell scripts, namely 
 + `ALPR_PATTERN` - pattern for plate recognition, may be regular expression; default: `none`
 + `ALPR_TOPN` - integer value between `1` and `20` limiting number `tag` predictions per `plate` 
 
-##  &#10130; - Watch `MQTT` traffic (_optional_)
+##  &#10131; - Watch `MQTT` traffic (_optional_)
 To monitor the `MQTT` traffic from one or more `motion` devices use the `./sh/watch.sh` script which runs a `MQTT` client to listen for various _topics_, including motion detection events, annotations, detections, and a specified detected entity (n.b. currently limited per device).  The script outputs information to `/dev/stderr` and runs in the background.  The shell script will utilize existing values for the `MQTT` host, etc.. as well as the `MOTION_CLIENT`, but those may be specified as well; for example:
 
 ```
