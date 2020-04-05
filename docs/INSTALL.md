@@ -75,3 +75,82 @@ For network cameras that deposit video via FTP; the `username` and `password` ap
   }
 ]
 ```
+
+### Complete example configuration for `motion` _add-on_
+```
+log_level: debug
+log_motion_level: error
+log_motion_type: ALL
+default:
+  brightness: 100
+  changes: 'on'
+  contrast: 50
+  despeckle: EedDl
+  event_gap: 10
+  framerate: 2
+  hue: 50
+  interval: 60
+  lightswitch: 0
+  minimum_motion_frames: 10
+  movie_max: 60
+  movie_output: 'off'
+  movie_quality: 80
+  netcam_userpass: '!secret motioncam-userpass'
+  palette: 15
+  picture_quality: 80
+  post_pictures: best
+  saturation: 0
+  stream_quality: 50
+  text_scale: 2
+  threshold_percent: 1
+  username: '!secret motioncam-username'
+  password: '!secret motioncam-password'
+  width: 1920
+  height: 1080
+mqtt:
+  host: 192.168.1.50
+  port: '1883'
+  username: username
+  password: password
+group: motion
+device: netcams
+client: netcams
+timezone: America/Los_Angeles
+cameras:
+  - name: poolcam
+    type: netcam
+    icon: water
+    netcam_url: 'http://192.168.1.162/nphMotionJpeg?Resolution=640x480&Quality=Clarity'
+    netcam_userpass: '!secret netcam-userpass'
+    width: 640
+    height: 480
+    framerate: 5
+  - name: road
+    type: netcam
+    icon: road
+    netcam_url: 'http://192.168.1.36:8081/'
+    netcam_userpass: '!secret netcam-userpass'
+    width: 640
+    height: 480
+    framerate: 5
+  - name: dogshed
+    type: netcam
+    icon: dog
+    netcam_url: 'rtsp://192.168.1.221/live'
+  - name: dogshedfront
+    type: netcam
+    icon: home-floor-1
+    netcam_url: 'rtsp://192.168.1.222/live'
+  - name: sheshed
+    type: netcam
+    icon: window-shutter-open
+    netcam_url: 'rtsp://192.168.1.223/live'
+  - name: dogpond
+    type: netcam
+    icon: waves
+    netcam_url: 'rtsp://192.168.1.224/live'
+  - name: pondview
+    type: netcam
+    icon: waves
+    netcam_url: 'rtsp://192.168.1.225/live'
+```
