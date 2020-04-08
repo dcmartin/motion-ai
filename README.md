@@ -230,14 +230,14 @@ git pull upstream master
 
 Language|files|blank|comment|code
 :-------|-------:|-------:|-------:|-------:
-YAML|216|846|1253|13302
-Markdown|8|265|0|808
-Bourne Shell|12|99|75|546
-make|3|98|63|402
-JSON|4|0|0|209
+YAML|216|852|1443|13135
+JSON|6|0|0|1462
+Markdown|8|285|0|900
+Bourne Shell|15|128|75|695
+make|3|98|63|445
 Python|3|43|17|170
 HTML|1|19|1|90
 --------|--------|--------|--------|--------
-SUM:|247|1370|1409|15527
+SUM:|252|1425|1599|16897
 
 <img src="http://clustrmaps.com/map_v2.png?cl=ffffff&w=a&t=n&d=8TDxxKn9npMT6_70gwlS3FcPjhdcBm5j4LskwHzTO5U" width="1">
