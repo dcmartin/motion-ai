@@ -132,18 +132,19 @@ For example:
 ```
 
 ## &#10128; - Reconfigure Home Assistant
-Once the default Home Assistant installation has finished, the `motion` _add-on_ has been configured and started, and the `homeassistant/motion/webcams.json` file has been created, change the permissions on the Home Assistant directory to make the user the owner, which will enable many actions to be performed without `sudo`; for example:
+Once the default Home Assistant installation has finished, the `motion` _add-on_ has been configured and started, and the `homeassistant/motion/webcams.json` file has been created, change the permissions on the Home Assistant directory to make the user the owner, and run the `make` program to generate the YAML files; for example:
 
 ```
 cd /usr/share/hassio/
 sudo chown -R ${USER} .
+make
 ```
 
-The default `configuration.yaml` provided in the installation of Home Assistant does not include any `motion-ai` YAML; to utilize the generated YAML, remove the default `configuration.yaml` file and replace with the provided `config-client.yaml.tmpl` file; for example:
+The default `configuration.yaml` provided in the installation of Home Assistant does not include any `motion-ai` generated YAML; to utilize the generated YAML, remove the default `configuration.yaml` file and replace with the provided `config-client.yaml.tmpl` file; for example:
 
 ```
 cd /usr/share/hassio/homeassistant/
-rm -f configuration.yaml
+mv  configuration.yaml config-default.yaml
 ln -s config-client.yaml.tmpl configuration.yaml
 ```
 
@@ -157,9 +158,11 @@ The configuration may now be updated and controlled using the `make` command, in
 + `realclean` - perform `clean` and then remove all database files
 + `logs` - show the Home Assistant logs
 
+Whenever the contents of the `homeassistant/motion/webcams.json` file is changed, the system may be restarted to regenerate the YAML files appropriate for the cameras specified; for example:
 
 ```
 cd /usr/share/hassio
+# edit homeassistant/motion/webcams.json ..
 make restart
 ```
 
@@ -251,17 +254,18 @@ echo + > MOTION_CLIENT
 
 # Reference
 
-Variable|Description|Default|Info
+Variable|Description|Default|`!secret`
 :-------|:-------|:-------|:-------
-`MOTION_GROUP`|Name for the group of device(s) |`motion`|Aggregate devices' identifier
-`MOTION_DEVICE`|Name of the `motion` _addon_ host|_`HOST_NAME`_|_see above_
-`MOTION_CLIENT`|Device(s) topic for `MQTT`|_`MOTION_DEVICE`_|Aggregate using: **`"+"`**
-`HOST_PORT`|Port number for Home Assistant|`8123`|
-`DOMAIN_NAME`|Domain for local services |**`domainname`** _output_|May be `local`
-`HOST_NAME`|Host name for local reference |**`hostname -f`** _output_|May be `IP` address
-`HOST_IPADDR`|Local `IP` address |**`hostname -I`** _output_|Should _not_ be `127.0.0.1`
-`WEBCAM_USERNAME`|Authentication login for cameras |`username`|Credentials from `motion` addon
-`WEBCAM_PASSWORD`|Authentication password for cameras |`password`|Credentials from `motion` addon
-`MQTT_USERNAME`|Authentication login for cameras |`username`|Credentials from `MQTT` addon
-`MQTT_PASSWORD`|Authentication password for cameras |`password`|Credentials from `MQTT` addon
-
+`MOTION_GROUP`|Name for the group of device(s) |`motion`|`motion-group`
+`MOTION_DEVICE`|Name of the `motion` _addon_ host|_`HOST_NAME`_|`motion-device`
+`MOTION_CLIENT`|Device(s) topic for `MQTT`|`+`|`motion-client`
+`HOST_PORT`|Port number for Home Assistant|`8123`|`ha-port`
+`HOST_NAME`|Host name for local reference |**`hostname -f`**|`ha-name`
+`HOST_IPADDR`|Host LAN IP address or FQDN|**`hostname -I`**|`ha-ip`
+`MOTIONCAM_USERNAME`|`MJPEG` stream from `motion` _add-on_ |`username`|`motioncam-username`
+`MOTIONCAM_PASSWORD`|`MJPEG` stream from `motion` _add-on_ |`password`|`motioncam-password`
+`MQTT_HOST`|Broker LAN IP address or FQDN |`core-mosquitto`|`mqtt-broker`
+`MQTT_USERNAME`|Authentication |`username`|`mqtt-username`
+`MQTT_PASSWORD`|Authentication |`password`|`mqtt-password`
+`NETCAM_USERNAME`|Authentication for `netcam` _type_ cameras|`username`|`netcam-username`
+`NETCAM_PASSWORD`|Authentication for `netcam` _type_ cameras|`password`|`netcam-password`
