@@ -192,13 +192,14 @@ lovelace.json: lovelace.json.tmpl
 
 tidy: 
 	@echo "making $@"
+	@rm -f lovelace.json
 	@${MAKE} -C motion clean
 
 clean: stop logclean tidy
 	@echo "making $@"
 	-rm -f www/images/motion_*.jpg
 	-rm -f secrets.yaml
-	-rm -f .storage/lovelace 
+	-rm -f .storage/lovelace
 	-rm -f .storage/core.restore_state
 
 realclean: clean
