@@ -7,6 +7,78 @@
 ###
 
 ###
+# shell_command
+###
+
+- platform: template
+  sensors:
+    motion_detected_copy_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} detected copy
+      entity_id:
+        - sensor.motion_detected_counter_${MOTION_CAMERA}
+      value_template: >-
+        {%- set hd = states('sensor.motion_apache_htdocs') -%}
+        {%- if hd is not none and hd|lower != 'unavailable' and hd|lower != 'unknown' and hd != 'null' -%}
+          {%- set e = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event') -%}
+          {%- if e is not none and e|lower != 'unavailable' and e|lower != 'unknown' and e != 'null' -%}
+            {%- set c = e.camera -%}
+            {%- set id = e.id -%}
+            cp -f "/config/www/images/motion_annotated-{{- c -}}.jpg" "{{ hd -}}/cameras/{{- c -}}/motion_detected.jpg"
+          {%- endif -%}
+        {%- endif -%}
+
+- platform: template
+  sensors:
+    motion_detected_copy_animated_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} detected copy animated
+      entity_id:
+        - sensor.motion_detected_counter_${MOTION_CAMERA}
+      value_template: >-
+        {%- set hd = states('sensor.motion_apache_htdocs') -%}
+        {%- if hd is not none and hd|lower != 'unavailable' and hd|lower != 'unknown' and hd != 'null' -%}
+          {%- set e = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event') -%}
+          {%- if e is not none and e|lower != 'unavailable' and e|lower != 'unknown' and e != 'null' -%}
+            {%- set c = e.camera -%}
+            {%- set id = e.id -%}
+            cp -f "/config/www/images/motion_annotated-{{- c -}}.gif" "{{ hd -}}/cameras/{{- c -}}/motion_detected.gif"
+          {%- endif -%}
+        {%- endif -%}
+
+- platform: template
+  sensors:
+    motion_detected_entity_copy_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} detected_entity copy
+      entity_id:
+        - sensor.motion_detected_entity_counter_${MOTION_CAMERA}
+      value_template: >-
+        {%- set hd = states('sensor.motion_apache_htdocs') -%}
+        {%- if hd is not none and hd|lower != 'unavailable' and hd|lower != 'unknown' and hd != 'null' -%}
+          {%- set e = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event') -%}
+          {%- if e is not none and e|lower != 'unavailable' and e|lower != 'unknown' and e != 'null' -%}
+            {%- set c = e.camera -%}
+            {%- set id = e.id -%}
+            cp -f "/config/www/images/motion_annotated-{{- c -}}.jpg" "{{ hd -}}/cameras/{{- c -}}/motion_detected_entity.jpg"
+          {%- endif -%}
+        {%- endif -%}
+
+- platform: template
+  sensors:
+    motion_detected_entity_copy_animated_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} detected_entity copy animated
+      entity_id:
+        - sensor.motion_detected_entity_counter_${MOTION_CAMERA}
+      value_template: >-
+        {%- set hd = states('sensor.motion_apache_htdocs') -%}
+        {%- if hd is not none and hd|lower != 'unavailable' and hd|lower != 'unknown' and hd != 'null' -%}
+          {%- set e = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event') -%}
+          {%- if e is not none and e|lower != 'unavailable' and e|lower != 'unknown' and e != 'null' -%}
+            {%- set c = e.camera -%}
+            {%- set id = e.id -%}
+             cp -f "/config/www/images/motion_annotated-{{- c -}}.gif" "{{ hd -}}/cameras/{{- c -}}/motion_detected_entity.gif"
+          {%- endif -%}
+        {%- endif -%}
+
+###
 # lost/found
 ###
 
@@ -17,22 +89,28 @@
       entity_id:
         - binary_sensor.motion_status_camera_${MOTION_CAMERA}
       value_template: >-
-        {% set status= states('binary_sensor.motion_status_camera_${MOTION_CAMERA}') %}
-        {% if status == 'off' %}
-          {% set status = 'lost' %}
-          {% set s = states('sensor.motion_status_camera_lost_date_${MOTION_CAMERA}') %}
-          {% if s is none or s == 'null' %}{% set s = utcnow().timestamp()|int %}{% else %}{% set s = s|int %}{% endif %}
-        {% else %}
+        {% set status = states('binary_sensor.motion_status_camera_${MOTION_CAMERA}') %}
+        {% if status == 'on' %}
           {% set status = 'found' %}
-          {% set s = states('sensor.motion_status_camera_found_date_${MOTION_CAMERA}') %}
-          {% if s is none or s == 'null' %}{% set s = utcnow().timestamp()|int %}{% else %}{% set s = s|int %}{% endif %}
+        {% elif status == 'off' %}
+          {% set status = 'lost' %}
+        {% else %}
+          {% set status = null %}
         {% endif %}
-        {% set n = utcnow().timestamp()|int %}
-        Camera ${MOTION_CAMERA} {{ status -}}; {{ s|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}; {{ (n-s) }} lag 
+        {{- status -}}
 
-###
-# found
-###
+# found minus lost
+- platform: template
+  sensors:
+    motion_status_camera_counter_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} found-lost
+      entity_id:
+        - sensor.motion_status_camera_lost_counter_${MOTION_CAMERA}
+        - sensor.motion_status_camera_found_counter_${MOTION_CAMERA}
+      value_template: >-
+        {{ states('sensor.motion_status_camera_found_counter_${MOTION_CAMERA}')|int - states('sensor.motion_status_camera_lost_counter_${MOTION_CAMERA}')|int }}
+
+## found
 
 - platform: mqtt
   name: motion_status_camera_found_${MOTION_CAMERA}
@@ -47,7 +125,7 @@
   value_template: >
     {% if value_json is defined %}True{% else %}False{% endif %}
 
-## dates
+# dates
 - platform: template
   sensors:
     motion_status_camera_found_date_${MOTION_CAMERA}:
@@ -74,13 +152,13 @@
           {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}; {{ (n|int-s)|int }} lag
         {% else %}null{% endif %} 
 
-## counter
+# counter
 - platform: template
   sensors:
     motion_status_camera_found_counter_${MOTION_CAMERA}:
       friendly_name: ${MOTION_CAMERA} found counter
       entity_id:
-        - sensor.motion_status_camera_found_counter_${MOTION_CAMERA}
+        - counter.motion_status_camera_found_counter_${MOTION_CAMERA}
       unit_of_measurement: count
       value_template: >
         {% if states('counter.motion_status_camera_found_counter_${MOTION_CAMERA}') != 'unknown' %}
@@ -133,9 +211,7 @@
   max_age:
     hours: 72
 
-###
-# lost
-###
+## lost
 
 - platform: mqtt
   name: motion_status_camera_lost_${MOTION_CAMERA}
@@ -150,6 +226,7 @@
   value_template: >
     {% if value_json is defined %}True{% else %}False{% endif %}
 
+# dates
 - platform: template
   sensors:
     motion_status_camera_lost_date_${MOTION_CAMERA}:
@@ -176,13 +253,13 @@
           {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}; {{ (n|int-s)|int }} lag
         {% else %}null{% endif %} 
 
-## counter
+# counter
 - platform: template
   sensors:
     motion_status_camera_lost_counter_${MOTION_CAMERA}:
       friendly_name: ${MOTION_CAMERA} lost counter
       entity_id:
-        - sensor.motion_status_camera_lost_counter_${MOTION_CAMERA}
+        - counter.motion_status_camera_lost_counter_${MOTION_CAMERA}
       unit_of_measurement: count
       value_template: >
         {% if states('counter.motion_status_camera_lost_counter_${MOTION_CAMERA}') != 'unknown' %}
