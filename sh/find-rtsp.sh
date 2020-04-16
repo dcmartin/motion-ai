@@ -55,16 +55,17 @@ find_rtsp()
 {
   if [ "${DEBUG:-false}" = 'true' ]; then echo "${FUNCNAME[0]} ${*}" &> /dev/stderr; fi
 
-  local ipaddr=$(lookup_ipaddr ${1:-})
+  local net=${1:-}
+  local ipaddr=$(lookup_ipaddr ${net:-})
   local size=${2:-${NETWORK_SIZE:-24}}
-  local net
   local result
 
-  echo "Searching ${net} for devices.." &> /dev/stderr
   
   if [ "${ipaddr:-null}" = 'null' ]; then
-    echo "Could not identify a network to scan; please specify: ${0} 192.168.1.0" &> /dev/stderr
+    echo "No TCP/IP v4 address for this device on ${net:-any} network; please specify alternative: ${0} eth0" &> /dev/stderr
   else
+    echo "Searching ${net} for devices.." &> /dev/stderr
+
     net=${ipaddr%.*}.0/${size}
     local ips=$(nmap -sn -T4 ${net} | egrep -v ${ipaddr} | egrep '^Nmap scan' | awk '{ print $5 }' )
     local ipset=(${ips})
