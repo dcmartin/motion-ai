@@ -64,7 +64,7 @@ find_rtsp()
   if [ "${ipaddr:-null}" = 'null' ]; then
     echo "No TCP/IP v4 address for this device on ${net:-any} network; please specify alternative: ${0} eth0" &> /dev/stderr
   else
-    echo "Searching ${net} for devices.." &> /dev/stderr
+    echo "TCP/IP v4 network: ${net:-all}; searching for devices.." &> /dev/stderr
 
     net=${ipaddr%.*}.0/${size}
     local ips=$(nmap -sn -T4 ${net} | egrep -v ${ipaddr} | egrep '^Nmap scan' | awk '{ print $5 }' )
