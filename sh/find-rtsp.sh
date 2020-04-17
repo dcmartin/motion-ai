@@ -38,8 +38,8 @@ rtsp_test()
   if [ "${DEBUG:-false}" = 'true' ]; then echo "${FUNCNAME[0]} ${*}" &> /dev/stderr; fi
 
   local ip="${1:-}"
-  local connect=${2:-${CURL_CONNECT_TIME:-5}}
-  local maxtime=${3:-${CURL_MAX_TIME:-20}}
+  local connect=${2}
+  local maxtime=${3}
   local code=$(curl --connect-timeout ${connect} --max-time ${maxtime} -sSL -w '%{http_code}' "rtsp://${ip}/" 2> /dev/null)
   local result
 
@@ -56,10 +56,12 @@ find_rtsp()
   if [ "${DEBUG:-false}" = 'true' ]; then echo "${FUNCNAME[0]} ${*}" &> /dev/stderr; fi
 
   local net=${1:-}
+  local nmap_timeout=${2:-${NMAP_TIMEOUT:-4}}
+  local connect=${3:-${CURL_CONNECT_TIME:-5}}
+  local maxtime=${4:-${CURL_MAX_TIME:-20}}
   local ipaddr=$(lookup_ipaddr ${net:-})
   local size=${2:-${NETWORK_SIZE:-24}}
   local result
-
   
   if [ "${ipaddr:-null}" = 'null' ]; then
     echo "No TCP/IP v4 address for this device on ${net:-any} network; please specify alternative: ${0} eth0" &> /dev/stderr
@@ -67,14 +69,14 @@ find_rtsp()
     echo "TCP/IP v4 network: ${net:-all}; searching for devices.." &> /dev/stderr
 
     net=${ipaddr%.*}.0/${size}
-    local ips=$(nmap -sn -T4 ${net} | egrep -v ${ipaddr} | egrep '^Nmap scan' | awk '{ print $5 }' )
+    local ips=$(nmap -sn -T${nmap_timeout} ${net} | egrep -v ${ipaddr} | egrep '^Nmap scan' | awk '{ print $5 }' )
     local ipset=(${ips})
     local nip=${#ipset[@]}
 
     if [ ${nip} -gt 0 ]; then
       echo -n "Total devices: ${nip} " &> /dev/stderr
       for ip in ${ips}; do
-        local record=$(rtsp_test ${ip})
+        local record=$(rtsp_test ${ip} ${connect} ${maxtime})
         if [ "${record:-null}" != 'null' ]; then
           if [ "${output:-null}" = 'null' ]; then output='['"${record}"; else output="${output},${record}"; fi
           case $(echo "${record}" | jq -r '.code') in
@@ -92,14 +94,15 @@ find_rtsp()
           echo -n '_' &> /dev/stderr
         fi
       done
-      if [ "${output:-null}" != 'null' ]; then output="${output}"']'; fi
       echo " done" &> /dev/stderr
+      if [ ! -z "${output:-}" ]; then output="${output}]"; else output='null'; fi
     else
       echo "No devices" &> /dev/stderr
     fi
+    result='{"nmap":{"timeout":'${nmap_timeout}',"net":"'${net}'","ipaddr":"'${ipaddr}'"},"connect":'${connect}',"max":'${maxtime}',"rtsp":'"${output:-null}"'}'
   fi
 
-  echo "${output:-null}"
+  echo "${result:-null}"
 }
 
 ###
@@ -123,7 +126,7 @@ fi
 
 ## defaults
 CURL_CONNECT_TIME=5
-CURL_MAX_TIME=20
+CURL_MAX_TIME=15
 NETWORK_SIZE=24
 
 ## doit
