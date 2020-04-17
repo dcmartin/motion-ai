@@ -51,12 +51,25 @@ rtsp_test()
   echo ${result:-null}
 }
 
+nmap_scan()
+{
+  if [ "${DEBUG:-false}" = 'true' ]; then echo "${FUNCNAME[0]} ${*}" &> /dev/stderr; fi
+
+  local ipaddr=${1}
+  local net=${2}
+  local timeout=${3}
+  local ips=$(nmap -sn -T${timeout} ${net} | egrep '^Nmap scan report for [0-9][0-9]*' | sed 's/[^0-9]*\([0-9][0-9]*[0-9]*\.[0-9][0-9]*[0-9]*\.[0-9][0-9]*[0-9]*\.[0-9][0-9]*[0-9]*\).*/\1/')
+
+  if [ "${DEBUG:-false}" = 'true' ]; then echo "${FUNCNAME[0]}: Found: ${ips}" &> /dev/stderr; fi
+  echo ${ips}
+}
+
 find_rtsp()
 {
   if [ "${DEBUG:-false}" = 'true' ]; then echo "${FUNCNAME[0]} ${*}" &> /dev/stderr; fi
 
   local net=${1:-}
-  local nmap_timeout=${2:-${NMAP_TIMEOUT:-4}}
+  local nmap_timeout=${2:-${NMAP_TIMEOUT:-5}}
   local connect=${3:-${CURL_CONNECT_TIME:-5}}
   local maxtime=${4:-${CURL_MAX_TIME:-20}}
   local ipaddr=$(lookup_ipaddr ${net:-})
@@ -66,40 +79,24 @@ find_rtsp()
   if [ "${ipaddr:-null}" = 'null' ]; then
     echo "No TCP/IP v4 address for this device on ${net:-any} network; please specify alternative: ${0} eth0" &> /dev/stderr
   else
-    echo "TCP/IP v4 network: ${net:-all}; searching for devices.." &> /dev/stderr
-
     net=${ipaddr%.*}.0/${size}
-    local ips=$(nmap -sn -T${nmap_timeout} ${net} | egrep -v ${ipaddr} | egrep '^Nmap scan' | awk '{ print $5 }' )
-    local ipset=(${ips})
-    local nip=${#ipset[@]}
+    if [ "${DEBUG:-false}" = 'true' ]; then echo "${FUNCNAME[0]}: searching network: ${net:-all}; timeout: ${nmap_timeout}; connect: ${connect}; max: ${maxtime} .." &> /dev/stderr; fi
 
-    if [ ${nip} -gt 0 ]; then
-      echo -n "Total devices: ${nip} " &> /dev/stderr
-      for ip in ${ips}; do
-        local record=$(rtsp_test ${ip} ${connect} ${maxtime})
-        if [ "${record:-null}" != 'null' ]; then
-          if [ "${output:-null}" = 'null' ]; then output='['"${record}"; else output="${output},${record}"; fi
-          case $(echo "${record}" | jq -r '.code') in
-            200)
-	      echo -n '+' &> /dev/stderr
-	      ;;
-            404)
-              echo -n '-' &> /dev/stderr
-	      ;;
-            *)
-              echo -n '.' &> /dev/stderr
-	      ;;
-          esac
-        else
-          echo -n '_' &> /dev/stderr
+    local ips=($(nmap_scan ${ipaddr} ${net} ${nmap_timeout}))
+
+    if [ ${#ips[@]} -gt 0 ]; then
+      local rtsp
+
+      for ip in ${ips[@]}; do
+	local dev=$(rtsp_test ${ip} ${connect} ${maxtime})
+
+        if [ "${dev:-null}" != 'null' ]; then
+          if [ "${rtsp:-null}" = 'null' ]; then rtsp='['"${dev}"; else rtsp="${rtsp},${dev}"; fi
         fi
       done
-      echo " done" &> /dev/stderr
-      if [ ! -z "${output:-}" ]; then output="${output}]"; else output='null'; fi
-    else
-      echo "No devices" &> /dev/stderr
+      if [ ! -z "${rtsp:-}" ]; then rtsp="${rtsp}]"; else rtsp='null'; fi
     fi
-    result='{"nmap":{"timeout":'${nmap_timeout}',"net":"'${net}'","ipaddr":"'${ipaddr}'"},"connect":'${connect}',"max":'${maxtime}',"rtsp":'"${output:-null}"'}'
+    result='{"nmap":{"timeout":'${nmap_timeout}',"net":"'${net}'","ipaddr":"'${ipaddr}'"},"connect":'${connect}',"max":'${maxtime}',"rtsp":'"${rtsp:-null}"'}'
   fi
 
   echo "${result:-null}"
