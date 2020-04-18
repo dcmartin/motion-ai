@@ -99,6 +99,7 @@ MOTION_YAML := \
 	sensor/found.yaml \
 	camera/event_image.yaml \
 	camera/event_end.yaml \
+	camera/event_animated.yaml \
 	camera/event_face.yaml \
 	camera/event_annotated.yaml
 
