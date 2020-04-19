@@ -14,7 +14,7 @@ AUTOMATION_INTERNET ?= $(if $(wildcard AUTOMATION_INTERNET),$(shell v=$$(cat AUT
 AUTOMATION_INTRANET ?= $(if $(wildcard AUTOMATION_INTRANET),$(shell v=$$(cat AUTOMATION_INTRANET) && echo "** SPECIFIED: AUTOMATION_INTRANET: $${v}" > /dev/stderr && echo "$${v}"),$(shell echo "!! UNSPECIFIED: AUTOMATION_INTRANET unset; default: off" > /dev/stderr && echo "off"))
 
 # domain
-DOMAIN_NAME ?= $(if $(wildcard DOMAIN_NAME),$(shell v=$$(cat DOMAIN_NAME) && echo "** SPECIFIED: DOMAIN_NAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(domainname -d) && v=$${v:-local} && echo "!! UNSPECIFIED: DOMAIN_NAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+DOMAIN_NAME := $(if $(wildcard DOMAIN_NAME),$(shell v=$$(cat DOMAIN_NAME) && echo "** SPECIFIED: DOMAIN_NAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(domainname -d) && v=$${v:-local} && echo "!! UNSPECIFIED: DOMAIN_NAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 # host
 HOST_NAME ?= $(if $(wildcard HOST_NAME),$(shell v=$$(cat HOST_NAME) && echo "** SPECIFIED: HOST_NAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(hostname -f) && v=$${v%%.*} && echo "!! UNSPECIFIED: HOST_NAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
@@ -208,12 +208,14 @@ clean: stop logclean tidy
 	-rm -f .storage/core.restore_state
 
 realclean: clean
-	rm -f known_devices.yaml
-	rm -fr home-assistant.log
-	rm -fr home-assistant_v2.*
+	-rm -f known_devices.yaml
+	-rm -fr home-assistant.log
+	-rm -fr home-assistant_v2.*
 
 logclean:
-	@for i in $$(sudo find "/var/lib/docker/containers" -name "*.log" -print); do echo "Cleaning $${i}" && sudo cp /dev/null $${i}; done
+	@export LOGPATH=$$(docker inspect --format '{{json .}}' homeassistant | jq -r '.LogPath') \
+	  && echo 'Attempting to remove log file (requires sudo): '"$${LOGPATH}" \
+	  && sudo LOGPATH=$${LOGPATH} cp -r /dev/null $${LOGPATH}
 
 distclean: realclean
 	rm -fr .uuid .HA_VERSION .cloud deps tts .storage
