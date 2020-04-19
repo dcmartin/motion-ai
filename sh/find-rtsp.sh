@@ -43,10 +43,22 @@ rtsp_test()
   local code=$(curl --connect-timeout ${connect} --max-time ${maxtime} -sSL -w '%{http_code}' "rtsp://${ip}/" 2> /dev/null)
   local result
 
-  if [ "${code:-null}" = '200' ]; then
-    result='{"ip":"'${ip}'","type":"rtsp","code":"'${code:-200}'"}'
-  elif [ "${code:-}" != '000' ]; then
-    result='{"ip":"'${ip}'","code":"'${code:-xxx}'"}'
+  if [ ! -z "${code:-}" ]; then
+    result='{"ip":"'${ip}'","code":"'${code}'"}'
+
+    case ${code} in
+      200)
+        result=$(echo "${result}" | jq '.status="found"')
+        ;;
+      404)
+        result=$(echo "${result}" | jq '.status="notfound"')
+        ;;
+      *)
+        result=$(echo "${result}" | jq '.status=null')
+        ;;
+    esac
+  else
+    result='{"ip":"'${ip}'","status": null}'
   fi
   echo ${result:-null}
 }
@@ -91,7 +103,9 @@ find_rtsp()
 	local dev=$(rtsp_test ${ip} ${connect} ${maxtime})
 
         if [ "${dev:-null}" != 'null' ]; then
-          if [ "${rtsp:-null}" = 'null' ]; then rtsp='['"${dev}"; else rtsp="${rtsp},${dev}"; fi
+	  if [ $(echo "${dev}" | jq '.status!=null') = 'true' ]; then
+	    if [ "${rtsp:-null}" = 'null' ]; then rtsp='['"${dev}"; else rtsp="${rtsp},${dev}"; fi
+          fi
         fi
       done
       if [ ! -z "${rtsp:-}" ]; then rtsp="${rtsp}]"; else rtsp='null'; fi
