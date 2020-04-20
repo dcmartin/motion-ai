@@ -38,8 +38,8 @@ rtsp_test()
   if [ "${DEBUG:-false}" = 'true' ]; then echo "${FUNCNAME[0]} ${*}" &> /dev/stderr; fi
 
   local ip="${1:-}"
-  local connect=${2}
-  local maxtime=${3}
+  local connect=${2:-${RTSP_CONNECT_TIME:-5}}
+  local maxtime=${3:-${RTSP_MAX_TIME:-15}}
   local code=$(curl --connect-timeout ${connect} --max-time ${maxtime} -sSL -w '%{http_code}' "rtsp://${ip}/" 2> /dev/null)
   local result
 
@@ -82,8 +82,8 @@ find_rtsp()
 
   local net=${1:-}
   local nmap_timeout=${2:-${NMAP_TIMEOUT:-5}}
-  local connect=${3:-${CURL_CONNECT_TIME:-5}}
-  local maxtime=${4:-${CURL_MAX_TIME:-20}}
+  local connect=${3:-${RTSP_CONNECT_TIME:-5}}
+  local maxtime=${4:-${RTSP_MAX_TIME:-20}}
   local ipaddr=$(lookup_ipaddr ${net:-})
   local size=${2:-${NETWORK_SIZE:-24}}
   local result
@@ -136,8 +136,8 @@ if [ -z "$(command -v ip)" ]; then
 fi
 
 ## defaults
-CURL_CONNECT_TIME=5
-CURL_MAX_TIME=15
+RTSP_CONNECT_TIME=5
+RTSP_MAX_TIME=15
 NETWORK_SIZE=24
 
 ## doit
