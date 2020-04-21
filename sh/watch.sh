@@ -28,18 +28,15 @@ listen()
   
   # processed annotation
   mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/annotated" \
-    | sed 's/"//g' | sed 's/None/null/g' | tr \' \" \
-    | jq -c '{"PROCESSED":.|(.annotated.event.image=(.annotated.event.image!=null))|(.annotated.image=(.annotated.image!=null))}' &
+    | jq -c '{"ANNOTATED":.|(.event.image=(.event.image!=null))|(.image=(.image!=null))}' &
   
   # detected
   mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/detected" \
-    | sed 's/"//g' | sed 's/None/null/g' | tr \' \" \
-    | jq -c '{"SEEN":.|(.detected.event.image=(.detected.event.image!=null))|(.detected.image=(.detected.image!=null))}' &
+    | jq -c '{"DETECTED":.|(.event.image=(.event.image!=null))|(.image=(.image!=null))}' &
   
   # detected_entity
   mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/detected_entity" \
-    | sed 's/"//g' | sed 's/None/null/g' | tr \' \" \
-    | jq -c '{"FOUND":.|(.detected_entity.event.image=(.detected_entity.event.image!=null))|(.detected_entity.image=(.detected_entity.image!=null))}' &
+    | jq -c '{"DETECTED_ENTITY":.|(.event.image=(.event.image!=null))|(.image=(.image!=null))}' &
 }
 
 ###
