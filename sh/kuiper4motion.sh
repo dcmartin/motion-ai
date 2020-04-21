@@ -93,16 +93,19 @@ motion_kuiper_rule_create()
   local name="${1}"
   local topic="${2}"
   local schema="${3:-}"
+  local query="${4:-}"
   local result
 
   echo -e "${MC}Drop rule \"${name}\"${NC}" &> /dev/stderr
   result=$(kuiper.rule.drop ${name}) && echo "${result}" &> /dev/stderr
   echo -e "${MC}Creating rule \"${name}\"${NC}" &> /dev/stderr
-  result=$(kuiper.rule.create ${name} "${MOTION_GROUP:-motion}/kuiper/${name}") && echo "${result}" &> /dev/stderr
-  echo -e "${MC}Starting rule \"${name}\"${NC}" &> /dev/stderr
-  result=$(kuiper.rule.start ${name}) && echo "${result}" &> /dev/stderr
+  result=$(kuiper.rule.create ${name} "${MOTION_GROUP:-motion}/kuiper/${name}" "${query}") && echo "${result}" &> /dev/stderr
   echo -e "${MC}Describing rule \"${name}\"${NC}" &> /dev/stderr
   result=$(kuiper.rule.describe ${name})
+  if [ "${result:-null}" != 'null' ]; then
+    echo -e "${MC}Starting rule \"${name}\"${NC}" &> /dev/stderr
+    kuiper.rule.start ${name} &> /dev/stderr
+  fi
   echo "${result:-null}"
 }
 
@@ -113,12 +116,13 @@ motion_kuiper_create()
   local name="${1}"
   local topic="${2}"
   local schema="${3:-}"
+  local query="${4:-}"
   local stream=$(motion_kuiper_stream_create "${name}" "${topic}" "${schema}")
   local rule='null'
   local result
 
   if [ "${stream:-null}" != 'null' ]; then
-    result='{"stream":'"${stream}"',"rule":'$(motion_kuiper_rule_create "${name}" "${topic}" "${schema}")'}'
+    result='{"stream":'"${stream}"',"rule":'$(motion_kuiper_rule_create "${name}" "${topic}" "${schema}" "${query}")'}'
   fi
   echo "${result:-null}"
 }
@@ -159,13 +163,8 @@ container_start()
 ### MAIN
 ###
 
+# no globbing due to SQL statements
 set -o noglob
-
-# notify
-echo -e "${BLUE}"'SERVICE: '"${NC}"$(echo "${SERVICE}" | jq -c '.') &> /dev/stderr
-echo -e "${BLUE}"'MQTT: '"${NC}"$(echo "${MQTT}" | jq -c '.') &> /dev/stderr
-echo -e "${BLUE}"'KUIPER: '"${NC}"$(echo "${KUIPER}" | jq -c '.') &> /dev/stderr
-echo -e "${BLUE}"'DEBUG: '"${NC}"$(echo "${DEBUG}" | jq -c '.') &> /dev/stderr
 
 # specify
 LABEL=$(echo "${SERVICE:-null}" | jq -r '.label')
@@ -174,7 +173,6 @@ TAG=$(echo "${SERVICE:-null}" | jq -r '.tag')
 ID=$(echo "${SERVICE:-null}" | jq -r '.id')
 EXT_PORT=$(echo "${SERVICE}" | jq -r '.ports.host')
 INT_PORT=$(echo "${SERVICE}" | jq -r '.ports.service') 
-
 
 # cleanup
 container_clean ${LABEL}
@@ -225,19 +223,16 @@ if [ "${kuiper:-}" = 'OK' ]; then
 
   # cameras only
   name='cameras'
-  topic="${MOTION_GROUP:-+}/${MOTION_CLIENT:-+}/start"
-  schema=''
-  query="select cameras from ${name}"
-
-  kuiper.stream.create "${name}" "${topic}" "${schema}"
-  kuiper.stream.describe "${name}"
+  query="select cameras from device_start"
 
   kuiper.rule.create "${name}" "${MOTION_GROUP:-motion}/kuiper/${name}" "${query}"
-  kuiper.rule.describe "${name}"
+  result=$(kuiper.rule.describe "${name}")
+  if [ "${result:-null}" != 'null' ]; then
+    kuiper.rule.start "${name}" &> /dev/stderr
+    KUIPER=$(echo "${KUIPER}" | jq '.rules+='"$(echo ${result} | jq '[.]')")
+  fi
 
-  kuiper.rule.start "${name}"
-
-  mosquitto_sub -h ${MQTT_HOST} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -p ${MQTT_PORT} -t "${MOTION_GROUP:-motion}/kuiper/devices" > devices.json &
+  mosquitto_sub -h ${MQTT_HOST} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -p ${MQTT_PORT} -t "${MOTION_GROUP:-motion}/kuiper/device_start" > devices.json &
   mosquitto_sub -h ${MQTT_HOST} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -p ${MQTT_PORT} -t "${MOTION_GROUP:-motion}/kuiper/annotations" > annotations.json &
   mosquitto_sub -h ${MQTT_HOST} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -p ${MQTT_PORT} -t "${MOTION_GROUP:-motion}/kuiper/cameras" > cameras.json &
 fi
