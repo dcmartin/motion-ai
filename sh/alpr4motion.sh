@@ -19,14 +19,14 @@ MOTION='{"group":"'${MOTION_GROUP}'","client":"'${MOTION_CLIENT}'","camera":"'${
 # parameters
 SERVICE='{"label":"alpr4motion","id":"com.github.dcmartin.open-horizon.alpr4motion","version":"'${SERVICE_VERSION:-0.0.1}'","arch":"'${SERVICE_ARCH:-${BUILD_ARCH}}'","ports":{"service":'${SERVICE_PORT:-80}',"host":'${HOST_PORT:-4663}'}}'
 ALPR='{"country":"'${ALPR_COUNTRY:-us}'","pattern":"'${ALPR_PATTERN:-all}'","scale":"'${ALPR_SCALE:-none}'","topn":'${ALPR_TOPN:-10}'}'
-DEBUG='{"debug":'${DEBUG:-false}',"level":"'"${LOG_LEVEL:-info}"'","logto":"'"${LOGTO:-/dev/stderr}"'"}'
+LOG='{"debug":'${DEBUG:-false}',"level":"'"${LOG_LEVEL:-info}"'","logto":"'"${LOGTO:-/dev/stderr}"'"}'
 
 # notify
 echo 'SERVICE: '$(echo "${SERVICE}" | jq -c '.') &> /dev/stderr
 echo 'MOTION: '$(echo "${MOTION}" | jq -c '.') &> /dev/stderr
 echo 'MQTT: '$(echo "${MQTT}" | jq -c '.') &> /dev/stderr
 echo 'ALPR: '$(echo "${ALPR}" | jq -c '.') &> /dev/stderr
-echo 'DEBUG: '$(echo "${DEBUG}" | jq -c '.') &> /dev/stderr
+echo 'LOG: '$(echo "${LOG}" | jq -c '.') &> /dev/stderr
 
 # specify
 LABEL=$(echo "${SERVICE:-null}" | jq -r '.label')
@@ -69,9 +69,9 @@ CID=$(docker run -d \
   -e ALPR_SCALE=$(echo "${ALPR}" | jq -r '.scale') \
   -e ALPR_TOPN=$(echo "${ALPR}" | jq -r '.topn') \
   -e ALPR_PERIOD=60 \
-  -e LOG_LEVEL=$(echo "${DEBUG}" | jq -r '.level') \
-  -e LOGTO=$(echo "${DEBUG}" | jq -r '.logto') \
-  -e DEBUG=$(echo "${DEBUG}" | jq -r '.debug') \
+  -e LOG_LEVEL=$(echo "${LOG}" | jq -r '.level') \
+  -e LOGTO=$(echo "${LOG}" | jq -r '.logto') \
+  -e DEBUG=$(echo "${LOG}" | jq -r '.debug') \
   "dcmartin/${ARCH}_${ID}:${VERS}" 2> /dev/stderr)
 
 # report
@@ -80,4 +80,4 @@ if [ "${CID:-null}" != 'null' ]; then
 else
   echo "Container ${LABEL} failed" &> /dev/stderr
 fi
-echo '{"name":"'${NAME}'","id":"'${CID:-null}'","service":'"${SERVICE}"',"motion":'"${MOTION}"',"alpr":'"${ALPR}"',"mqtt":'"${MQTT}"',"debug":'"${DEBUG}"'}' | jq '.'
+echo '{"name":"'${NAME}'","id":"'${CID:-null}'","service":'"${SERVICE}"',"motion":'"${MOTION}"',"alpr":'"${ALPR}"',"mqtt":'"${MQTT}"',"debug":'"${LOG}"'}' | jq '.'

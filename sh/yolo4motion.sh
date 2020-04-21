@@ -65,7 +65,7 @@ YOLO='{"config":"'${YOLO_CONFIG}'","entity":"'${YOLO_ENTITY}'","scale":"'${YOLO_
 if [ -z "${DEBUG:-}" ] && [ -s DEBUG ]; then DEBUG=$(cat DEBUG); fi; DEBUG=${DEBUG:-false}
 if [ -z "${LOG_LEVEL:-}" ] && [ -s LOG_LEVEL ]; then LOG_LEVEL=$(cat LOG_LEVEL); fi; LOG_LEVEL=${LOG_LEVEL:-info}
 if [ -z "${LOGTO:-}" ] && [ -s LOGTO ]; then LOGTO=$(cat LOGTO); fi; LOGTO=${LOGTO:-/dev/stderr}
-DEBUG='{"debug":'${DEBUG}',"level":"'"${LOG_LEVEL}"'","logto":"'"${LOGTO}"'"}'
+LOG='{"debug":'${DEBUG}',"level":"'"${LOG_LEVEL}"'","logto":"'"${LOGTO}"'"}'
 
 ## SERVICE
 if [ -z "${CONTAINER_TAG:-}" ] && [ -s CONTAINER_TAG ]; then CONTAINER_TAG=$(cat CONTAINER_TAG); fi; CONTAINER_TAG=${CONTAINER_TAG:-0.1.2}
@@ -76,7 +76,7 @@ echo 'SERVICE: '$(echo "${SERVICE}" | jq -c '.') &> /dev/stderr
 echo 'MOTION: '$(echo "${MOTION}" | jq -c '.') &> /dev/stderr
 echo 'MQTT: '$(echo "${MQTT}" | jq -c '.') &> /dev/stderr
 echo 'YOLO: '$(echo "${YOLO}" | jq -c '.') &> /dev/stderr
-echo 'DEBUG: '$(echo "${DEBUG}" | jq -c '.') &> /dev/stderr
+echo 'LOG: '$(echo "${LOG}" | jq -c '.') &> /dev/stderr
 
 # specify
 LABEL=$(echo "${SERVICE:-null}" | jq -r '.label')
@@ -117,9 +117,9 @@ CID=$(docker run -d \
   -e YOLO_SCALE=$(echo "${YOLO}" | jq -r '.scale') \
   -e YOLO_THRESHOLD=$(echo "${YOLO}" | jq -r '.threshold') \
   -e YOLO_PERIOD=60 \
-  -e LOG_LEVEL=$(echo "${DEBUG}" | jq -r '.level') \
-  -e LOGTO=$(echo "${DEBUG}" | jq -r '.logto') \
-  -e DEBUG=$(echo "${DEBUG}" | jq -r '.debug') \
+  -e LOG_LEVEL=$(echo "${LOG}" | jq -r '.level') \
+  -e LOGTO=$(echo "${LOG}" | jq -r '.logto') \
+  -e DEBUG=$(echo "${LOG}" | jq -r '.debug') \
   "${DOCKER_NAMESPACE:-dcmartin}/${ARCH}_${ID}:${TAG}" 2> /dev/stderr)
 
 # report
@@ -128,4 +128,4 @@ if [ "${CID:-null}" != 'null' ]; then
 else
   echo "Container ${LABEL} failed" &> /dev/stderr
 fi
-echo '{"name":"'${LABEL}'","id":"'${CID:-null}'","service":'"${SERVICE}"',"motion":'"${MOTION}"',"yolo":'"${YOLO}"',"mqtt":'"${MQTT}"',"debug":'"${DEBUG}"'}' | jq '.'
+echo '{"name":"'${LABEL}'","id":"'${CID:-null}'","service":'"${SERVICE}"',"motion":'"${MOTION}"',"yolo":'"${YOLO}"',"mqtt":'"${MQTT}"',"debug":'"${LOG}"'}' | jq '.'
