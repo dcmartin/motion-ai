@@ -24,10 +24,12 @@ KUIPER='{"host":"'${KUIPER_HOST}'","port":'${KUIPER_PORT}',"version":"'${KUIPER_
 
 ## DEBUG
 if [ -z "${DEBUG:-}" ] && [ -s DEBUG ]; then DEBUG=$(cat DEBUG); fi; DEBUG=${DEBUG:-false}
+
+## LOG
 if [ -z "${LOG_LEVEL:-}" ] && [ -s LOG_LEVEL ]; then LOG_LEVEL=$(cat LOG_LEVEL); fi; LOG_LEVEL=${LOG_LEVEL:-info}
 if [ -z "${LOGTO:-}" ] && [ -s LOGTO ]; then LOGTO=$(cat LOGTO); fi; LOGTO=${LOGTO:-/dev/stderr}
 
-DEBUG='{"debug":'${DEBUG}',"level":"'"${LOG_LEVEL}"'","logto":"'"${LOGTO}"'"}'
+LOG='{"debug":'${DEBUG}',"level":"'"${LOG_LEVEL}"'","logto":"'"${LOGTO}"'"}'
 
 ## SERVICE
 if [ -z "${CONTAINER_ID:-}" ]; then CONTAINER_ID="kuiper"; fi
@@ -232,9 +234,11 @@ if [ "${kuiper:-}" = 'OK' ]; then
     KUIPER=$(echo "${KUIPER}" | jq '.rules+='"$(echo ${result} | jq '[.]')")
   fi
 
-  mosquitto_sub -h ${MQTT_HOST} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -p ${MQTT_PORT} -t "${MOTION_GROUP:-motion}/kuiper/device_start" > devices.json &
-  mosquitto_sub -h ${MQTT_HOST} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -p ${MQTT_PORT} -t "${MOTION_GROUP:-motion}/kuiper/annotations" > annotations.json &
-  mosquitto_sub -h ${MQTT_HOST} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -p ${MQTT_PORT} -t "${MOTION_GROUP:-motion}/kuiper/cameras" > cameras.json &
+  if [ "${DEBUG:-false}" = 'true' ]; then
+    mosquitto_sub -h ${MQTT_HOST} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -p ${MQTT_PORT} -t "${MOTION_GROUP:-motion}/kuiper/device_start" >> debug-devices.json 2> /dev/null &
+    mosquitto_sub -h ${MQTT_HOST} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -p ${MQTT_PORT} -t "${MOTION_GROUP:-motion}/kuiper/motion_annotated" >> debug-annotations.json 2> /dev/null &
+    mosquitto_sub -h ${MQTT_HOST} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -p ${MQTT_PORT} -t "${MOTION_GROUP:-motion}/kuiper/cameras" >> debug-cameras.json 2> /dev/null &
+  fi
 fi
 
-echo '{"name":"'${LABEL}'","id":"'${CID:-null}'","service":'"${SERVICE}"',"status":"'${kuiper:-}'","kuiper":'"${KUIPER}"',"mqtt":'"${MQTT}"',"debug":'"${DEBUG}"'}' | jq '.'
+echo '{"name":"'${LABEL}'","id":"'${CID:-null}'","service":'"${SERVICE}"',"status":"'${kuiper:-}'","kuiper":'"${KUIPER}"',"mqtt":'"${MQTT}"',"log":'"${LOG}"'}' | jq -c '.'
