@@ -17,12 +17,10 @@ if [ -z "${MQTT_PORT:-}" ] && [ -s MQTT_PORT ]; then MQTT_PORT=$(cat MQTT_PORT);
 MQTT='{"host":"'${MQTT_HOST}'","port":'${MQTT_PORT}',"username":"'${MQTT_USERNAME}'","password":"'${MQTT_PASSWORD}'"}'
 
 ## KUIPER
-if [ -z "${KUIPER_CONFIG:-}" ] && [ -s KUIPER_CONFIG ]; then KUIPER_CONFIG=$(cat KUIPER_CONFIG); fi; KUIPER_CONFIG=${KUIPER_CONFIG:-tiny}
-if [ -z "${KUIPER_ENTITY:-}" ] && [ -s KUIPER_ENTITY ]; then KUIPER_ENTITY=$(cat KUIPER_ENTITY); fi; KUIPER_ENTITY=${KUIPER_ENTITY:-all}
-if [ -z "${KUIPER_SCALE:-}" ] && [ -s KUIPER_SCALE ]; then KUIPER_SCALE=$(cat KUIPER_SCALE); fi; KUIPER_SCALE=${KUIPER_SCALE:-none}
-if [ -z "${KUIPER_THRESHOLD:-}" ] && [ -s KUIPER_THRESHOLD ]; then KUIPER_THRESHOLD=$(cat KUIPER_THRESHOLD); fi; KUIPER_THRESHOLD=${KUIPER_THRESHOLD:-0.25}
-
-KUIPER='{"config":"'${KUIPER_CONFIG}'","entity":"'${KUIPER_ENTITY}'","scale":"'${KUIPER_SCALE}'","threshold":'${KUIPER_THRESHOLD}'}'
+if [ -z "${KUIPER_HOST:-}" ] && [ -s KUIPER_HOST ]; then KUIPER_HOST=$(cat KUIPER_HOST); fi; KUIPER_HOST=${KUIPER_HOST:-localhost}
+if [ -z "${KUIPER_PORT:-}" ] && [ -s KUIPER_PORT ]; then KUIPER_PORT=$(cat KUIPER_PORT); fi; KUIPER_PORT=${KUIPER_PORT:-9081}
+if [ -z "${KUIPER_VERSION:-}" ] && [ -s KUIPER_VERSION ]; then KUIPER_VERSION=$(cat KUIPER_VERSION); fi; KUIPER_VERSION=${KUIPER_VERSION:-0.3.1}
+KUIPER='{"host":"'${KUIPER_HOST}'","port":'${KUIPER_PORT}',"version":"'${KUIPER_VERSION}'"}'
 
 ## DEBUG
 if [ -z "${DEBUG:-}" ] && [ -s DEBUG ]; then DEBUG=$(cat DEBUG); fi; DEBUG=${DEBUG:-false}
@@ -33,16 +31,141 @@ DEBUG='{"debug":'${DEBUG}',"level":"'"${LOG_LEVEL}"'","logto":"'"${LOGTO}"'"}'
 
 ## SERVICE
 if [ -z "${CONTAINER_ID:-}" ]; then CONTAINER_ID="kuiper"; fi
-if [ -z "${CONTAINER_TAG:-}" ] && [ -s CONTAINER_TAG ]; then CONTAINER_TAG=$(cat CONTAINER_TAG); fi; CONTAINER_TAG=${CONTAINER_TAG:-0.3.1}
+if [ -z "${CONTAINER_TAG:-}" ] && [ -s CONTAINER_TAG ]; then CONTAINER_TAG=$(cat CONTAINER_TAG); fi; CONTAINER_TAG=${KUIPER_VERSION:-0.3.1}
 
-SERVICE='{"label":"kuiper","id":"'${CONTAINER_ID}'","tag":"'${CONTAINER_TAG}'","arch":"'${SERVICE_ARCH:-${BUILD_ARCH}}'","ports":{"service":'${SERVICE_PORT:-9081}',"host":'${HOST_PORT:-9081}'}}'
+SERVICE='{"label":"kuiper","id":"'${CONTAINER_ID}'","tag":"'${CONTAINER_TAG}'","arch":"'${SERVICE_ARCH:-${BUILD_ARCH}}'","ports":{"service":9081,"host":'${KUIPER_PORT:-9081}'}}'
+
+## COLORS
+NO_COLOR='\033[0m'
+BLACK='\033[0;30m'
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BROWN_ORANGE='\033[0;33m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+LIGHT_GRAY='\033[0;37m'
+
+DARK_GRAY='\033[1;30m'
+LIGHT_RED='\033[1;31m'
+LIGHT_GREEN='\033[1;32m'
+YELLOW='\033[1;33m'
+LIGHT_BLUE='\033[1;34m'
+LIGHT_PURPLE='\033[1;35m'
+LIGHT_CYAN='\033[1;36m'
+WHITE='\034[1;37m'
+
+# used
+MC=${PURPLE}
+TEST_BAD=${LIGHT_RED}
+TEST_GOOD=${LIGHT_GREEN}
+NC=${NO_COLOR}
+
+##
+## KUIPER
+##
+
+## source
+source ${0%/*}/libkuiper.sh
+
+motion_kuiper_stream_create()
+{
+  if [ "${DEBUG:-false}" = 'true' ]; then echo -e "${RED}${FUNCNAME[0]} ${*}${NC}" &> /dev/stderr; fi
+
+  local name="${1}"
+  local topic="${2}"
+  local schema="${3:-}"
+  local result
+
+  echo -e "${MC}Dropping stream \"${name}\"${NC}" &> /dev/stderr
+  result=$(kuiper.stream.drop ${name}) && echo "${result}" &> /dev/stderr
+  echo -e "${MC}Creating stream \"${name}\" with \"${topic}\"${NC}" &> /dev/stderr
+  result=$(kuiper.stream.create ${name} "${topic}" "${schema}") && echo "${result}" &> /dev/stderr
+  echo -e "${MC}Describing stream \"${name}\"${NC}" &> /dev/stderr
+  result=$(kuiper.stream.describe ${name})
+  echo "${result:-null}"
+}
+
+motion_kuiper_rule_create()
+{
+  if [ "${DEBUG:-false}" = 'true' ]; then echo -e "${RED}${FUNCNAME[0]} ${*}${NC}" &> /dev/stderr; fi
+
+  local name="${1}"
+  local topic="${2}"
+  local schema="${3:-}"
+  local result
+
+  echo -e "${MC}Drop rule \"${name}\"${NC}" &> /dev/stderr
+  result=$(kuiper.rule.drop ${name}) && echo "${result}" &> /dev/stderr
+  echo -e "${MC}Creating rule \"${name}\"${NC}" &> /dev/stderr
+  result=$(kuiper.rule.create ${name} "${MOTION_GROUP:-motion}/kuiper/${name}") && echo "${result}" &> /dev/stderr
+  echo -e "${MC}Starting rule \"${name}\"${NC}" &> /dev/stderr
+  result=$(kuiper.rule.start ${name}) && echo "${result}" &> /dev/stderr
+  echo -e "${MC}Describing rule \"${name}\"${NC}" &> /dev/stderr
+  result=$(kuiper.rule.describe ${name})
+  echo "${result:-null}"
+}
+
+motion_kuiper_create()
+{
+  if [ "${DEBUG:-false}" = 'true' ]; then echo -e "${RED}${FUNCNAME[0]} ${*}${NC}" &> /dev/stderr; fi
+
+  local name="${1}"
+  local topic="${2}"
+  local schema="${3:-}"
+  local stream=$(motion_kuiper_stream_create "${name}" "${topic}" "${schema}")
+  local rule='null'
+  local result
+
+  if [ "${stream:-null}" != 'null' ]; then
+    result='{"stream":'"${stream}"',"rule":'$(motion_kuiper_rule_create "${name}" "${topic}" "${schema}")'}'
+  fi
+  echo "${result:-null}"
+}
+
+# cleanup
+container_clean()
+{
+  if [ "${DEBUG:-false}" = 'true' ]; then echo -e "${RED}${FUNCNAME[0]} ${*}${NC}" &> /dev/stderr; fi
+
+  local label=${1:-}
+  echo "Removing any existing container: ${label}" &> /dev/stderr
+  docker rm -f ${label} &> /dev/null
+}
+
+container_start()
+{
+  if [ "${DEBUG:-false}" = 'true' ]; then echo -e "${RED}${FUNCNAME[0]} ${*}${NC}" &> /dev/stderr; fi
+
+  local label=${1}
+  local image=${2}
+  local ext_port=${3}
+  local int_port=${4}
+  local broker=${5}
+  local result
+
+  # start up
+  result=$(docker run -d \
+    --name ${label} \
+    --mount type=tmpfs,destination=/tmpfs,tmpfs-size=81920000,tmpfs-mode=1777 \
+    --publish=${ext_port}:${int_port} \
+    --restart=unless-stopped \
+    -e MQTT_BROKER_ADDRESS=${broker} \
+    ${image}  2> /dev/stderr)
+  echo "${result:-null}"
+}
+
+###
+### MAIN
+###
+
+set -o noglob
 
 # notify
-echo 'SERVICE: '$(echo "${SERVICE}" | jq -c '.') &> /dev/stderr
-echo 'MOTION: '$(echo "${MOTION}" | jq -c '.') &> /dev/stderr
-echo 'MQTT: '$(echo "${MQTT}" | jq -c '.') &> /dev/stderr
-echo 'KUIPER: '$(echo "${KUIPER}" | jq -c '.') &> /dev/stderr
-echo 'DEBUG: '$(echo "${DEBUG}" | jq -c '.') &> /dev/stderr
+echo -e "${BLUE}"'SERVICE: '"${NC}"$(echo "${SERVICE}" | jq -c '.') &> /dev/stderr
+echo -e "${BLUE}"'MQTT: '"${NC}"$(echo "${MQTT}" | jq -c '.') &> /dev/stderr
+echo -e "${BLUE}"'KUIPER: '"${NC}"$(echo "${KUIPER}" | jq -c '.') &> /dev/stderr
+echo -e "${BLUE}"'DEBUG: '"${NC}"$(echo "${DEBUG}" | jq -c '.') &> /dev/stderr
 
 # specify
 LABEL=$(echo "${SERVICE:-null}" | jq -r '.label')
@@ -52,72 +175,71 @@ ID=$(echo "${SERVICE:-null}" | jq -r '.id')
 EXT_PORT=$(echo "${SERVICE}" | jq -r '.ports.host')
 INT_PORT=$(echo "${SERVICE}" | jq -r '.ports.service') 
 
-##
-## KUIPER
-##
-
-## source
-source ${0%/*}/kuiper-tools.sh
-
-###
-### MAIN
-###
 
 # cleanup
-echo "Removing any existing container: ${LABEL}" &> /dev/stderr
-docker rm -f ${LABEL} &> /dev/null
-# report
-echo "Using container named: ${DOCKER_NAMESPACE:-emqx}/${CONTAINER_ID}"  &> /dev/stderr
+container_clean ${LABEL}
 
-# start up
-echo "Starting new container: ${LABEL}; id: ${ID}; architecture: ${ARCH}; tag: ${TAG}; host: ${EXT_PORT}; service: ${INT_PORT}" &> /dev/stderr
-CID=$(docker run -d \
-  --name ${LABEL} \
-  --mount type=tmpfs,destination=/tmpfs,tmpfs-size=81920000,tmpfs-mode=1777 \
-  --publish=${EXT_PORT}:${INT_PORT} \
-  --restart=unless-stopped \
-  -e MQTT_BROKER_ADDRESS=tcp://${MQTT_USERNAME}:${MQTT_PASSWORD}@${MQTT_HOST}:${MQTT_PORT} \
-  "${DOCKER_NAMESPACE:-emqx}/${ID}:${TAG}" 2> /dev/stderr)
+# start
+CID=$(container_start ${LABEL} "${DOCKER_NAMESPACE:-emqx}/${ID}:${TAG}" ${EXT_PORT} ${INT_PORT} "tcp://${MQTT_USERNAME}:${MQTT_PASSWORD}@${MQTT_HOST}:${MQTT_PORT}")
 
 # report
 if [ "${CID:-null}" != 'null' ]; then
   echo 'Container '${LABEL}' started; status: "curl http://'${KUIPER_HOST:-localhost}:${EXT_PORT}'; id: '"${CID}" &> /dev/stderr
-
-  while [ "$(curl -sSL http://${KUIPER_HOST:-localhost}:${EXT_PORT} 2> /dev/null)" != 'OK' ]; do echo -n '.'; sleep 1; done; echo ''
-
-  schema='ipaddr string,hostname string,arch string,date bigint,device string,client string,timezone string,unit_system string,latitude float,longitude float,elevation bigint,motion struct( log_type string,log_level bigint,log_file string,target_dir string,auto_brightness string,locate_motion_mode string,locate_motion_style string,post_pictures string,picture_output string,movie_output string,movie_output_motion string,picture_type string,netcam_keepalive string,netcam_userpass string,palette bigint,pre_capture bigint,post_capture bigint,event_gap bigint,fov bigint,minimum_motion_frames bigint,picture_quality bigint,framerate bigint,changes string,text_scale bigint,despeckle_filter string,brightness bigint,contrast bigint,saturation bigint,hue bigint,rotate bigint,webcontrol_port bigint,stream_port bigint,stream_quality bigint,width bigint,height bigint,threshold_tune string,threshold_percent bigint,threshold bigint,lightswitch bigint,interval bigint,type string,stream_auth_method string,username string,password string),cameras array(struct( id bigint,type string,name string,fov bigint,width bigint,height bigint,framerate bigint,event_gap bigint,target_dir string,server bigint,cnum bigint,conf string,mjpeg_url string,rotate bigint,picture_quality bigint,stream_quality bigint,threshold_percent bigint,threshold bigint,palette bigint))'
-
-  #schema='ipaddr string,hostname string,arch string,date bigint,device string,group string,client string,timezone string,unit_system string,latitude float,longitude float,elevation bigint,motion struct( log_type string,log_level bigint,log_file string,target_dir string,auto_brightness string,locate_motion_mode string,locate_motion_style string,post_pictures string,picture_output string,movie_output string,movie_output_motion string,picture_type string,netcam_keepalive string,netcam_userpass string,palette bigint,pre_capture bigint,post_capture bigint,event_gap bigint,fov bigint,minimum_motion_frames bigint,picture_quality bigint,framerate bigint,changes string,text_scale bigint,despeckle_filter string,brightness bigint,contrast bigint,saturation bigint,hue bigint,rotate bigint,webcontrol_port bigint,stream_port bigint,stream_quality bigint,width bigint,height bigint,threshold_tune string,threshold_percent bigint,threshold bigint,lightswitch bigint,interval bigint,type string,stream_auth_method string,username string,password string),cameras array(struct( id bigint,type string,name string,fov bigint,width bigint,height bigint,framerate bigint,event_gap bigint,target_dir string,server bigint,cnum bigint,conf string,mjpeg_url string,rotate bigint,picture_quality bigint,stream_quality bigint,threshold_percent bigint,threshold bigint,palette bigint))'
-  topic="${MOTION_GROUP:-+}/${MOTION_CLIENT:-+}/start"
-  name='device_start'
-
-  echo "Dropping stream \"${name}\"" && v=$(kuiper.stream.drop ${name}) && echo "${v}"
-  echo "Creating stream \"${name}\" with \"${topic}\"" && v=$(kuiper.stream.create ${name} "${topic}" "${schema}") && echo "${v}"
-  echo "Describing stream \"${name}\"" && v=$(kuiper.stream.describe ${name}) && echo "${v}"
-
-  echo 'Drop rule "new_device"' && v=$(kuiper.rule.drop new_device) && echo "${v}"
-  echo 'Creating rule "new_device"' && v=$(kuiper.rule.create new_device device_start "${MOTION_GROUP:-motion}/devices") && echo "${v}"
-  echo 'Describing rule "new_device"' && v=$(kuiper.rule.describe new_device) && echo "${v}"
-  echo 'Starting rule "new_device"' && v=$(kuiper.rule.start new_device) && echo "${v}"
-
-  schema='date bigint,cameras array(struct(entity string,count bigint)),event struct(device string, camera string)'
-  topic="${MOTION_GROUP:-+}/${MOTION_CLIENT:-+}/${MOTION_CAMERA:-+}/event/end/+"
-  name='motion_annotated'
-
-  echo "Dropping stream \"${name}\"" && v=$(kuiper.stream.drop ${name}) && echo "${v}"
-  echo "Creating stream \"${name}\" with \"${topic}\"" && v=$(kuiper.stream.create ${name} "${topic}" "${schema}") && echo "${v}"
-  echo "Describing stream \"${name}\"" && v=$(kuiper.stream.describe ${name}) && echo "${v}"
-
-  echo 'Drop rule "new_device"' && v=$(kuiper.rule.drop motion_annotated) && echo "${v}"
-  echo 'Creating rule "motion_annotated"' && v=$(kuiper.rule.create motion_annotated motion_annotated "${MOTION_GROUP:-motion}/annotations") && echo "${v}"
-  echo 'Describing rule "motion_annotated"' && v=$(kuiper.rule.describe motion_annotated) && echo "${v}"
-  echo 'Starting rule "motion_annotated"' && v=$(kuiper.rule.start motion_annotated) && echo "${v}"
-
-  mosquitto_sub -h ${MQTT_HOST} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -p ${MQTT_PORT} -t "${MOTION_GROUP:-motion}/devices" &
-  mosquitto_sub -h ${MQTT_HOST} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -p ${MQTT_PORT} -t "${MOTION_GROUP:-motion}/annotations" &
-
 else
   echo "Container ${LABEL} failed" &> /dev/stderr
+  exit 1
 fi
-echo '{"name":"'${LABEL}'","id":"'${CID:-null}'","service":'"${SERVICE}"',"motion":'"${MOTION:-null}"',"kuiper":'"${KUIPER}"',"mqtt":'"${MQTT}"',"debug":'"${DEBUG}"'}' | jq '.'
 
+echo -n 'Wating for kuiper...'
+i=0; kuiper=''; while [ ${i} -le 10 ]; do 
+kuiper="$(curl -sSL http://${KUIPER_HOST:-localhost}:${EXT_PORT} 2> /dev/null)"
+  if [ "${kuiper:-null}" = 'OK' ]; then break; fi
+  echo -n '.'
+  sleep 1
+  i=$((i+1))
+done
+echo ''
+
+if [ "${kuiper:-}" = 'OK' ]; then
+  # device_start
+  name='device_start'
+  topic="${MOTION_GROUP:-+}/${MOTION_CLIENT:-+}/start"
+  schema=''
+
+  result=$(motion_kuiper_create "${name}" "${topic}" "${schema}")
+  if [ "${result:-null}" != 'null' ]; then
+    KUIPER=$(echo "${KUIPER}" | jq '.rules+='"$(echo ${result} | jq '[.rule]')")
+    KUIPER=$(echo "${KUIPER}" | jq '.streams+='"$(echo ${result} | jq '[.stream]')")
+  fi
+
+  # motion_annotated
+  name='motion_annotated'
+  topic="${MOTION_GROUP:-+}/${MOTION_CLIENT:-+}/${MOTION_CAMERA:-+}/event/end/+"
+  schema='date bigint,time float,count bigint,detected array(struct(entity string,count bigint)),event struct(device string, camera string)'
+
+  result=$(motion_kuiper_create ${name} "${topic}" "${schema}")
+  if [ "${result:-null}" != 'null' ]; then
+    KUIPER=$(echo "${KUIPER}" | jq '.rules+='"$(echo ${result} | jq '[.rule]')")
+    KUIPER=$(echo "${KUIPER}" | jq '.streams+='"$(echo ${result} | jq '[.stream]')")
+  fi
+
+  # cameras only
+  name='cameras'
+  topic="${MOTION_GROUP:-+}/${MOTION_CLIENT:-+}/start"
+  schema=''
+  query="select cameras from ${name}"
+
+  kuiper.stream.create "${name}" "${topic}" "${schema}"
+  kuiper.stream.describe "${name}"
+
+  kuiper.rule.create "${name}" "${MOTION_GROUP:-motion}/kuiper/${name}" "${query}"
+  kuiper.rule.describe "${name}"
+
+  kuiper.rule.start "${name}"
+
+  mosquitto_sub -h ${MQTT_HOST} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -p ${MQTT_PORT} -t "${MOTION_GROUP:-motion}/kuiper/devices" > devices.json &
+  mosquitto_sub -h ${MQTT_HOST} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -p ${MQTT_PORT} -t "${MOTION_GROUP:-motion}/kuiper/annotations" > annotations.json &
+  mosquitto_sub -h ${MQTT_HOST} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -p ${MQTT_PORT} -t "${MOTION_GROUP:-motion}/kuiper/cameras" > cameras.json &
+fi
+
+echo '{"name":"'${LABEL}'","id":"'${CID:-null}'","service":'"${SERVICE}"',"status":"'${kuiper:-}'","kuiper":'"${KUIPER}"',"mqtt":'"${MQTT}"',"debug":'"${DEBUG}"'}' | jq '.'
