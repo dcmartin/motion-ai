@@ -26,17 +26,17 @@ listen()
   mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/event/face/+" \
     | jq -c '{"FACE":{"camera":.event.camera,"event":.event.id,"timestamp":.event.timestamp,"detected":.detected}}' &
   
-  # processed annotation
+  # annotated
   mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/annotated" \
-    | jq -c '{"ANNOTATED":.|(.event.image=(.event.image!=null))|(.image=(.image!=null))}' &
+    | tr \' \" | jq -c '{"PROCESSED":.|(.event.image=(.event.image!=null))|(.image=(.image!=null))}' &
   
   # detected
   mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/detected" \
-    | jq -c '{"DETECTED":.|(.event.image=(.event.image!=null))|(.image=(.image!=null))}' &
+    | tr \' \" | jq -c '{"SEEN":.|(.event.image=(.event.image!=null))|(.image=(.image!=null))}' &
   
   # detected_entity
   mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/detected_entity" \
-    | jq -c '{"DETECTED_ENTITY":.|(.event.image=(.event.image!=null))|(.image=(.image!=null))}' &
+    | tr \' \" | jq -c '{"FOUND":.|(.event.image=(.event.image!=null))|(.image=(.image!=null))}' &
 }
 
 ###
