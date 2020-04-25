@@ -209,8 +209,8 @@ clean: stop logclean tidy
 
 realclean: clean
 	-rm -f known_devices.yaml
-	-rm -fr home-assistant.log
-	-rm -fr home-assistant_v2.*
+	-rm -f home-assistant.log
+	-rm -f home-assistant_v2.*
 
 logclean:
 	@export LOGPATH=$$(docker inspect --format '{{json .}}' homeassistant | jq -r '.LogPath') \
