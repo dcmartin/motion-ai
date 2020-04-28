@@ -190,15 +190,15 @@ else
   exit 1
 fi
 
-echo -n 'Wating for kuiper...'
+echo -n 'Wating for kuiper...' &> /dev/stderr
 i=0; kuiper=''; while [ ${i} -le 10 ]; do 
 kuiper="$(curl -sSL http://${KUIPER_HOST:-localhost}:${EXT_PORT} 2> /dev/null)"
   if [ "${kuiper:-null}" = 'OK' ]; then break; fi
-  echo -n '.'
+  echo -n '.' &> /dev/stderr
   sleep 1
   i=$((i+1))
 done
-echo ''
+echo '' &> /dev/stderr
 
 if [ "${kuiper:-}" = 'OK' ]; then
   # device_start
@@ -227,7 +227,7 @@ if [ "${kuiper:-}" = 'OK' ]; then
   name='cameras'
   query="select cameras from device_start"
 
-  kuiper.rule.create "${name}" "${MOTION_GROUP:-motion}/kuiper/${name}" "${query}"
+  kuiper.rule.create "${name}" "${MOTION_GROUP:-motion}/kuiper/${name}" "${query}" &> /dev/stderr
   result=$(kuiper.rule.describe "${name}")
   if [ "${result:-null}" != 'null' ]; then
     kuiper.rule.start "${name}" &> /dev/stderr
