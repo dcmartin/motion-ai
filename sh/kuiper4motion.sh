@@ -241,4 +241,4 @@ if [ "${kuiper:-}" = 'OK' ]; then
   fi
 fi
 
-echo '{"name":"'${LABEL}'","id":"'${CID:-null}'","service":'"${SERVICE}"',"status":"'${kuiper:-}'","kuiper":'"${KUIPER}"',"mqtt":'"${MQTT}"',"log":'"${LOG}"'}' | jq -c '.'
+echo '{"name":"'${LABEL}'","id":"'${CID:-null}'","service":'"${SERVICE}"',"status":"'${kuiper:-}'","kuiper":'"${KUIPER}"',"mqtt":'"${MQTT}"',"log":'"${LOG}"'}' | jq '.' | tee "${0##*/}.json"
