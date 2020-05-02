@@ -101,7 +101,7 @@ motion_kuiper_rule_create()
   echo -e "${MC}Drop rule \"${name}\"${NC}" &> /dev/stderr
   result=$(kuiper.rule.drop ${name}) && echo "${result}" &> /dev/stderr
   echo -e "${MC}Creating rule \"${name}\"${NC}" &> /dev/stderr
-  result=$(kuiper.rule.create ${name} "${MOTION_GROUP:-+}/kuiper/${name}" "${query}") && echo "${result}" &> /dev/stderr
+  result=$(kuiper.rule.create ${name} "${MOTION_GROUP:-motion}/kuiper/${name}" "${query}") && echo "${result}" &> /dev/stderr
   echo -e "${MC}Describing rule \"${name}\"${NC}" &> /dev/stderr
   result=$(kuiper.rule.describe ${name})
   if [ "${result:-null}" != 'null' ]; then
