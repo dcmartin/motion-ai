@@ -85,6 +85,7 @@ HIGHLOW_YAML := ${HIGHLOW_BINARY_SENSORS} # ${HIGHLOW_AUTOMATIONS}
 MOTION_YAML := \
 	input_text/config.yaml \
 	automation/storage.yaml \
+	automation/mqtt_attributes.yaml \
 	automation/internet_publish.yaml \
 	automation/intranet_publish.yaml \
 	sensor/intranet_test.yaml \
@@ -99,6 +100,7 @@ MOTION_YAML := \
 	sensor/found.yaml \
 	camera/event_image.yaml \
 	camera/event_end.yaml \
+	camera/event_animated.yaml \
 	camera/event_face.yaml \
 	camera/event_annotated.yaml
 
