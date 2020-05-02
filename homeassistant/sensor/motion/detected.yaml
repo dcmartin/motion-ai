@@ -2,7 +2,41 @@
 ### detected SENSOR
 ###
 
-## human readable status
+## shell_command
+- platform: template
+  sensors:
+    motion_detected_copy_webcam:
+      friendly_name: Detected copy
+      entity_id:
+        - sensor.motion_detected_counter
+      value_template: >-
+        {%- set hd = states('sensor.motion_apache_htdocs') -%}
+        {%- if hd is not none and hd|lower != 'unavailable' and hd|lower != 'unknown' and hd != 'null' -%}
+          {%- set e = state_attr('sensor.motion_event_annotated','event') -%}
+          {%- if e is not none and e|lower != 'unavailable' and e|lower != 'unknown' and e != 'null' -%}
+            {%- set c = e.camera -%}
+            {%- set id = e.id -%}
+            cp -f "/config/www/images/motion_annotated-{{- c -}}.jpg" "{{ hd -}}/cameras/motion_detected-{{- c -}}.jpg"
+          {%- endif -%}
+        {%- endif -%}
+
+- platform: template
+  sensors:
+    motion_detected_copy_animated_webcam:
+      friendly_name: Detected copy animated
+      entity_id:
+        - sensor.motion_detected_counter
+      value_template: >-
+        {%- set hd = states('sensor.motion_apache_htdocs') -%}
+        {%- if hd is not none and hd|lower != 'unavailable' and hd|lower != 'unknown' and hd != 'null' -%}
+          {%- set e = state_attr('sensor.motion_event_annotated','event') -%}
+          {%- if e is not none and e|lower != 'unavailable' and e|lower != 'unknown' and e != 'null' -%}
+            {%- set c = e.camera -%}
+            {%- set id = e.id -%}
+            cp -f "/config/www/images/motion_annotated-{{- c -}}.gif" "{{ hd -}}/cameras/motion_detected-{{- c -}}.gif"
+          {%- endif -%}
+        {%- endif -%}
+
 - platform: template
   sensors:
     motion_detected_status:
@@ -10,17 +44,15 @@
       entity_id:
         - counter.motion_detected_counter
       value_template: >-
-        {%- set e = states('sensor.motion_event_annotated') -%}
+        {%- set e = state_attr('sensor.motion_event_annotated','event') -%}
         {% if e is not none and e|lower != 'unavailable' and e|lower != 'unknown' and e != 'null' %}
           Counter: {{ states('counter.motion_detected_counter') -}}/{{- states('sensor.motion_detected_counter') -}};
-          State: {{ e|lower == 'true'  -}};
-          {%- set event = state_attr('sensor.motion_event_annotated','event') -%}
           {%- set count = state_attr('sensor.motion_event_annotated','count') -%}
           {%- set detected = state_attr('sensor.motion_event_annotated','detected') -%}
-          {%- set when = event.end|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -%}
-          {%- if event.elapsed > 0 -%}Duration: {{ event.elapsed }} seconds{%- else -%}None{%- endif -%};
+          {%- set when = e.end|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -%}
+          {%- if e.elapsed > 0 -%}Duration: {{ e.elapsed }} seconds{%- else -%}None{%- endif -%};
           {%- set what = detected|map(attribute='entity')|list %}
-          {%- if count > 0 -%}{{ count }} entities: {{ what }}{%- else -%}nothing{%- endif -%}; from {{ event.device -}}/{{- event.camera -}}/{{- event.event -}}; at {{ when -}}
+          {%- if count > 0 -%}{{ count }} entities: {{ what }}{%- else -%}nothing{%- endif -%}; from {{ e.device -}}/{{- e.camera -}}/{{- e.event -}}; at {{ when -}}
         {% else %}NO STATUS{% endif %}
 
 ## count
@@ -160,6 +192,28 @@
           {% set value = states.counter.motion_detected_counter.state|int / states.counter.motion_annotated_counter.state|int * 100.0 %}
           {{ "%.2f"|format(value|float) }}
         {%- else -%}null{%- endif -%}
+
+## animated
+- platform: template
+  sensors:
+    motion_detected_animated:
+      friendly_name: Detected animated
+      entity_id:
+        - counter.motion_detected_counter
+      value_template: >-
+        {% set event = state_attr('sensor.motion_event_annotated','event') %}
+        {% if event is not none and event|lower != 'unknown' and event != 'null' %}
+          {% set ep = '/local/images/motion_detected-' + event.camera + '.gif' %}
+          {% set bu = states('sensor.motion_base_url') %}
+          {% if bu is not none and bu|lower != 'unknown' and bu|length > 0 %}
+            {% set p = bu + ep %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined and p is not none and p|lower != 'unknown' and p|length > 0 %}
+          {{ p }}
+        {% else %}
+          {{ states('sensor.motion_nosignal_picture') }}
+        {% endif %}
 
 ## snapshot
 - platform: template

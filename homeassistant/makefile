@@ -4,6 +4,8 @@
 
 SHELL := /bin/bash
 
+THIS_HOSTIP ?= $(shell ifconfig | egrep 'inet ' | awk '{ print $$2 }' | egrep -v '^172.|^10.|^127.' | head -1)
+
 # logging
 LOGGER_DEFAULT ?= $(if $(wildcard LOGGER_DEFAULT),$(shell v=$$(cat LOGGER_DEFAULT) && echo "** SPECIFIED: LOGGER_DEFAULT: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="warn" && echo "!! UNSPECIFIED: LOGGER_DEFAULT unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
@@ -16,7 +18,7 @@ DOMAIN_NAME ?= $(if $(wildcard DOMAIN_NAME),$(shell v=$$(cat DOMAIN_NAME) && ech
 
 # host
 HOST_NAME ?= $(if $(wildcard HOST_NAME),$(shell v=$$(cat HOST_NAME) && echo "** SPECIFIED: HOST_NAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(hostname -f) && v=$${v%%.*} && echo "!! UNSPECIFIED: HOST_NAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
-HOST_IPADDR ?= $(if $(wildcard HOST_IPADDR),$(shell v=$$(cat HOST_IPADDR) && echo "** SPECIFIED: HOST_IPADDR: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(hostname -I | awk '{ print $$1 }') && echo "!! UNSPECIFIED: HOST_IPADDR unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+HOST_IPADDR ?= $(if $(wildcard HOST_IPADDR),$(shell v=$$(cat HOST_IPADDR) && echo "** SPECIFIED: HOST_IPADDR: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=${THIS_HOSTIP} && echo "!! UNSPECIFIED: HOST_IPADDR unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 HOST_PORT ?= $(if $(wildcard HOST_PORT),$(shell v=$$(cat HOST_PORT) && echo "** SPECIFIED: HOST_PORT: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="8123" && echo "!! UNSPECIFIED: HOST_PORT unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 HOST_THEME ?= $(if $(wildcard HOST_THEME),$(shell v=$$(cat HOST_THEME) && echo "** SPECIFIED: HOST_THEME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="default" && echo "!! UNSPECIFIED: HOST_THEME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 HOST_NETWORK ?= $(shell export HOST_IPADDR=$(HOST_IPADDR) && echo $${HOST_IPADDR%.*}.0)
@@ -184,6 +186,9 @@ lovelace.json: lovelace.json.tmpl
 	  | jq '(.data.config.views[]|select(.path=="motion_detected_entity_view").cards[]|select(.title=="motion_detected_entity_count").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_count_"+.name)]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="motion_detected_entity_view").cards)+='"$$(jq '[.[]|{"entity":("camera.motion_detected_entity_picture_"+.name),"type":"picture-entity"}]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="motion_face_detected_view").cards)+='"$$(jq '[.[]|{"entity":("camera.motion_face_detected_picture_"+.name),"type":"picture-entity"}]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="motion_status_camera_lost_counter").entities)+='"$$(jq '[.[]|("sensor.motion_status_camera_lost_counter_"+.name)]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="motion_status_camera_found_counter").entities)+='"$$(jq '[.[]|("sensor.motion_status_camera_found_counter_"+.name)]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="motion_status_camera").entities)+='"$$(jq '[.[]|("sensor.motion_status_camera_"+.name)]' motion/webcams.json)" \
 	 > $@
 	@echo "MADE $@"
 	rm -f .storage/lovelace && mkdir -p .storage/ && ln -s ../$@ .storage/lovelace
@@ -203,12 +208,14 @@ clean: stop logclean tidy
 	-rm -f .storage/core.restore_state
 
 realclean: clean
-	rm -f known_devices.yaml
-	rm -fr home-assistant.log
-	rm -fr home-assistant_v2.*
+	-rm -f known_devices.yaml
+	-rm -f home-assistant.log
+	-rm -f home-assistant_v2.*
 
 logclean:
-	@for i in $$(sudo find "/var/lib/docker/containers" -name "*.log" -print); do echo "Cleaning $${i}" && sudo cp /dev/null $${i}; done
+	@export LOGPATH=$$(docker inspect --format '{{json .}}' homeassistant | jq -r '.LogPath') \
+	  && echo 'Attempting to remove log file (requires sudo): '"$${LOGPATH}" \
+	  && sudo LOGPATH=$${LOGPATH} rm -f $${LOGPATH}
 
 distclean: realclean
 	rm -fr .uuid .HA_VERSION .cloud deps tts .storage

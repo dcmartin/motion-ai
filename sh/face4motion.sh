@@ -11,7 +11,7 @@ if [ -z "${MQTT_PORT:-}" ] && [ -s MQTT_PORT ]; then MQTT_PORT=$(cat MQTT_PORT);
 MQTT='{"host":"'${MQTT_HOST}'","port":'${MQTT_PORT}',"username":"'${MQTT_USERNAME}'","password":"'${MQTT_PASSWORD}'"}'
 
 ## MOTION
-if [ -z "${MOTION_GROUP:-}" ] && [ -s MOTION_GROUP ]; then MOTION_GROUP=$(cat MOTION_GROUP); fi; MOTION_GROUP=${MOTION_GROUP:-motion}
+if [ -z "${MOTION_GROUP:-}" ] && [ -s MOTION_GROUP ]; then MOTION_GROUP=$(cat MOTION_GROUP); fi; MOTION_GROUP=${MOTION_GROUP:-+}
 if [ -z "${MOTION_CLIENT:-}" ] && [ -s MOTION_CLIENT ]; then MOTION_CLIENT=$(cat MOTION_CLIENT); fi; MOTION_CLIENT=${MOTION_CLIENT:-+}
 if [ -z "${MOTION_CAMERA:-}" ] && [ -s MOTION_CAMERA ]; then MOTION_CAMERA=$(cat MOTION_CAMERA); fi; MOTION_CAMERA=${MOTION_CAMERA:-+}
 MOTION='{"group":"'${MOTION_GROUP}'","client":"'${MOTION_CLIENT}'","camera":"'${MOTION_CAMERA}'"}'
@@ -19,14 +19,14 @@ MOTION='{"group":"'${MOTION_GROUP}'","client":"'${MOTION_CLIENT}'","camera":"'${
 # parameters
 SERVICE='{"label":"face4motion","id":"com.github.dcmartin.open-horizon.face4motion","version":"'${SERVICE_VERSION:-0.0.1}'","arch":"'${SERVICE_ARCH:-${BUILD_ARCH}}'","ports":{"service":'${SERVICE_PORT:-80}',"host":'${HOST_PORT:-4664}'}}'
 FACE='{"country":"'${FACE_COUNTRY:-us}'","pattern":"'${FACE_PATTERN:-all}'","scale":"'${FACE_SCALE:-none}'","threshold":'${FACE_THRESHOLD:-0.5}'}'
-DEBUG='{"debug":'${DEBUG:-false}',"level":"'"${LOG_LEVEL:-info}"'","logto":"'"${LOGTO:-/dev/stderr}"'"}'
+LOG='{"debug":'${DEBUG:-false}',"level":"'"${LOG_LEVEL:-info}"'","logto":"'"${LOGTO:-/dev/stderr}"'"}'
 
 # notify
 echo 'SERVICE: '$(echo "${SERVICE}" | jq -c '.') &> /dev/stderr
 echo 'MOTION: '$(echo "${MOTION}" | jq -c '.') &> /dev/stderr
 echo 'MQTT: '$(echo "${MQTT}" | jq -c '.') &> /dev/stderr
 echo 'FACE: '$(echo "${FACE}" | jq -c '.') &> /dev/stderr
-echo 'DEBUG: '$(echo "${DEBUG}" | jq -c '.') &> /dev/stderr
+echo 'LOG: '$(echo "${LOG}" | jq -c '.') &> /dev/stderr
 
 # specify
 LABEL=$(echo "${SERVICE:-null}" | jq -r '.label')
@@ -69,9 +69,9 @@ CID=$(docker run -d \
   -e FACE_SCALE=$(echo "${FACE}" | jq -r '.scale') \
   -e FACE_THRESHOLD=$(echo "${FACE}" | jq -r '.threshold') \
   -e FACE_PERIOD=60 \
-  -e LOG_LEVEL=$(echo "${DEBUG}" | jq -r '.level') \
-  -e LOGTO=$(echo "${DEBUG}" | jq -r '.logto') \
-  -e DEBUG=$(echo "${DEBUG}" | jq -r '.debug') \
+  -e LOG_LEVEL=$(echo "${LOG}" | jq -r '.level') \
+  -e LOGTO=$(echo "${LOG}" | jq -r '.logto') \
+  -e DEBUG=$(echo "${LOG}" | jq -r '.debug') \
   "dcmartin/${ARCH}_${ID}:${VERS}" 2> /dev/stderr)
 
 # report
@@ -80,4 +80,4 @@ if [ "${CID:-null}" != 'null' ]; then
 else
   echo "Container ${LABEL} failed" &> /dev/stderr
 fi
-echo '{"name":"'${NAME}'","id":"'${CID:-null}'","service":'"${SERVICE}"',"motion":'"${MOTION}"',"face":'"${FACE}"',"mqtt":'"${MQTT}"',"debug":'"${DEBUG}"'}' | jq '.'
+echo '{"name":"'${NAME}'","id":"'${CID:-null}'","service":'"${SERVICE}"',"motion":'"${MOTION}"',"face":'"${FACE}"',"mqtt":'"${MQTT}"',"debug":'"${LOG}"'}' | jq '.' | tee "${0##*/}.json"
