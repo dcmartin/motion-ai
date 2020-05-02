@@ -101,7 +101,7 @@ motion_kuiper_rule_create()
   echo -e "${MC}Drop rule \"${name}\"${NC}" &> /dev/stderr
   result=$(kuiper.rule.drop ${name}) && echo "${result}" &> /dev/stderr
   echo -e "${MC}Creating rule \"${name}\"${NC}" &> /dev/stderr
-  result=$(kuiper.rule.create ${name} "${MOTION_GROUP:-motion}/kuiper/${name}" "${query}") && echo "${result}" &> /dev/stderr
+  result=$(kuiper.rule.create ${name} "${MOTION_GROUP:-+}/kuiper/${name}" "${query}") && echo "${result}" &> /dev/stderr
   echo -e "${MC}Describing rule \"${name}\"${NC}" &> /dev/stderr
   result=$(kuiper.rule.describe ${name})
   if [ "${result:-null}" != 'null' ]; then
@@ -227,7 +227,7 @@ if [ "${kuiper:-}" = 'OK' ]; then
   name='cameras'
   query="select cameras from device_start"
 
-  kuiper.rule.create "${name}" "${MOTION_GROUP:-motion}/kuiper/${name}" "${query}" &> /dev/stderr
+  kuiper.rule.create "${name}" "${MOTION_GROUP:-+}/kuiper/${name}" "${query}" &> /dev/stderr
   result=$(kuiper.rule.describe "${name}")
   if [ "${result:-null}" != 'null' ]; then
     kuiper.rule.start "${name}" &> /dev/stderr
@@ -235,9 +235,9 @@ if [ "${kuiper:-}" = 'OK' ]; then
   fi
 
   if [ "${DEBUG:-false}" = 'true' ]; then
-    mosquitto_sub -h ${MQTT_HOST} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -p ${MQTT_PORT} -t "${MOTION_GROUP:-motion}/kuiper/device_start" >> debug-devices.json 2> /dev/null &
-    mosquitto_sub -h ${MQTT_HOST} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -p ${MQTT_PORT} -t "${MOTION_GROUP:-motion}/kuiper/motion_annotated" >> debug-annotations.json 2> /dev/null &
-    mosquitto_sub -h ${MQTT_HOST} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -p ${MQTT_PORT} -t "${MOTION_GROUP:-motion}/kuiper/cameras" >> debug-cameras.json 2> /dev/null &
+    mosquitto_sub -h ${MQTT_HOST} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -p ${MQTT_PORT} -t "${MOTION_GROUP:-+}/kuiper/device_start" >> debug-devices.json 2> /dev/null &
+    mosquitto_sub -h ${MQTT_HOST} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -p ${MQTT_PORT} -t "${MOTION_GROUP:-+}/kuiper/motion_annotated" >> debug-annotations.json 2> /dev/null &
+    mosquitto_sub -h ${MQTT_HOST} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -p ${MQTT_PORT} -t "${MOTION_GROUP:-+}/kuiper/cameras" >> debug-cameras.json 2> /dev/null &
   fi
 fi
 
