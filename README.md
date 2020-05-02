@@ -62,13 +62,6 @@ In addition, the following community _add-ons_ should be configured appropriatel
 + [`MQTT`](https://github.com/home-assistant/hassio-addons/blob/master/mosquitto/README.md) - may be run privately on local device or shared on network
 + [`FTP`](https://github.com/hassio-addons/addon-ftp/blob/master/README.md) - optional, only required for `ftpd` type cameras
 
-### &#9937; WARNING - HOME ASSISTANT VERSION 0.108
-Please downgrade installations of Home Assistant to version `0.107.7` using the [Terminal & SSH](https://github.com/home-assistant/hassio-addons/blob/master/ssh/README.md) _add-on_.  Access the command-line through the Web interface for the _add-on_ and downgrade using the following command:
-
-```
-ha core update --version=0.107.7
-```
-
 ## 2. Open Horizon _services_
 [Open Horizon](http://github.com/dcmartin/open-horizon) is an open source _edge_ fabric for microservices.  The Open Horizon microservices are run as Docker containers on a distributed network across a wide range of computing devices; from [Power9](http://openpowerfoundation.org/) servers to RaspberryPi [Zero W](https://www.raspberrypi.org/products/raspberry-pi-zero-w/) micro-computers.  
 
