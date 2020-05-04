@@ -6,7 +6,7 @@ mkdir -p ${cmd}/
 topic='+/+/+/event/end/+'
 filter='.|select(.detected[]|select(.entity=="person"))'
 
-echo "${0##*} processing; topic: ${topic}; filter: ${filter}; destination: ${cmd}/" &> /dev/stderr
+echo "${0##*/} processing; topic: ${topic}; filter: ${filter}; destination: ${cmd}/" &> /dev/stderr
 
 mosquitto_sub -h 192.168.1.50 -u username -P password -t ${topic} \
   | jq -c "${filter}" \
