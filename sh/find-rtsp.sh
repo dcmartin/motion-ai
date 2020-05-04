@@ -85,7 +85,7 @@ find_rtsp()
   local connect=${3:-${RTSP_CONNECT_TIME:-5}}
   local maxtime=${4:-${RTSP_MAX_TIME:-20}}
   local ipaddr=$(lookup_ipaddr ${net:-})
-  local size=${2:-${NETWORK_SIZE:-24}}
+  local size=${5:-${NETWORK_SIZE:-24}}
   local result
   
   if [ "${ipaddr:-null}" = 'null' ]; then
