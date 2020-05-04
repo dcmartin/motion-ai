@@ -28,17 +28,14 @@ listen()
   
   # annotated
   mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/annotated" \
-    | tr \' \" \
     | jq -c '{"PROCESSED":.|(.event.image=(.event.image!=null))|(.image=(.image!=null))}' &
   
   # detected
   mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/detected" \
-    | tr \' \" \
     | jq -c '{"SEEN":.|(.event.image=(.event.image!=null))|(.image=(.image!=null))}' &
   
   # detected_entity
   mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/detected_entity" \
-    | tr \' \" \
     | jq -c '{"FOUND":.|(.event.image=(.event.image!=null))|(.image=(.image!=null))}' &
 }
 
