@@ -215,7 +215,7 @@ realclean: clean
 logclean:
 	@export LOGPATH=$$(docker inspect --format '{{json .}}' homeassistant | jq -r '.LogPath') \
 	  && echo 'Attempting to remove log file (requires sudo): '"$${LOGPATH}" \
-	  && sudo LOGPATH=$${LOGPATH} rm -f $${LOGPATH}
+	  && sudo LOGPATH=$${LOGPATH} /bin/rm -f $${LOGPATH}
 
 distclean: realclean
 	rm -fr .uuid .HA_VERSION .cloud deps tts .storage
