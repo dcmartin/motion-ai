@@ -19,14 +19,15 @@ else:
             attr_value = data.get(item)
             logger.debug("set_state: updating entity attribute array; item: {0}; value: {1}".format(item,attr_value))
             obj = attr_value.split(',')
-            ncamera=len(obj)
-            if ncamera > 0:
+            if len(obj) > 0:
               logger.debug("set_state: list provided; list: {0}".format(obj))
+              obj.remove('latest')
+              ncamera=len(obj)
               uniq=set(obj)
               if ncamera != len(uniq):
                 logger.warning("set_state: unique differs from whole: {0}".format(uniq))
-              obj=[]
-              for v in uniq:
+              obj=['latest']
+              for v in sorted(uniq):
                 obj.append(v)
               service_data = {"entity_id": inputEntity, "options": obj}
               logger.info("set_state: calling input_select/set_options; service_data: {0}: ".format(service_data))
