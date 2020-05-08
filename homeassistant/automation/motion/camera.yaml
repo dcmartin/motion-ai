@@ -8,18 +8,36 @@
   initial_state: on
   trigger:
     platform: state
-    entity_id: sensor.motion_camera_name_options
+    entity_id: sensor.motion_device_start
   condition:
     - condition: template
       value_template: >-
-        {% set v = states('sensor.motion_camera_name_options') %}
+        {% set v = state_attr('sensor.motion_device_start','cameras') %}
         {{ v|lower != 'unavailable' and v|lower != 'none' and v|length > 0 }}
   action:
     - service: python_script.input_select_set_options
       data_template:
         entity_id: input_select.motion_camera_name
         options: >-
-          {{ states('sensor.motion_camera_name_options') }}
+          {%- set prior = state_attr('input_select.motion_camera_name','options') -%}
+          {%- if prior is not none and prior|lower != 'unknown' and prior|lower != 'unavailable' and prior|lower != 'none' and prior|length > 0 -%}
+            {%- for p in prior -%}
+              {%- if loop.first -%}{%- else -%},{% endif -%}
+              {{- p -}}
+            {%- endfor -%}
+          {%- else -%}
+            {%- set prior = 'null' -%}
+          {%- endif -%}
+          {%- set cameras = state_attr('sensor.motion_device_start','cameras') -%}
+          {%- if cameras is not none and cameras|lower != 'unavailable' and cameras|lower != 'none' and cameras|length > 0 -%}
+            {%- for c in cameras -%}
+              {%- if loop.first -%}{%- if prior != 'null' -%},{%- else -%}{%- endif -%}{%- else -%},{% endif -%}
+              {{- c.name -}}
+              {%- if loop.last -%}{%- endif -%}
+            {%- endfor -%}
+          {% else %}
+            {%- if prior != 'null' -%}{%- endif -%}
+          {%- endif -%}
 
 ###
 ## autoselect current camera when detected_entity
