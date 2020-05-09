@@ -2,6 +2,8 @@
 ## automation/motion/lost.yaml
 ###
 
+## COUNTER
+
 - id: motion_status_camera_lost_counter
   alias: motion_status_camera_lost_counter
   initial_state: on
@@ -15,3 +17,58 @@
   action:
     - service: counter.increment
       entity_id: counter.motion_status_camera_lost_counter
+
+## RESET
+
+- id: motion_status_camera_lost_reset
+  alias: motion_status_camera_lost_reset
+  initial_state: on
+  trigger:
+    platform: state
+    entity_id: sensor.motion_status_camera_lost
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('input_boolean.motion_reset_lost','on') }}
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+      - condition: template
+        value_template: >
+          {{ states('sensor.motion_status_camera_lost')|lower == 'true' }}
+      - condition: template
+        value_template: >-
+          {% set camera = state_attr('sensor.motion_status_camera_lost','camera') %}
+          {% set ep = states('sensor.motion_status_camera_lost_' + camera|string) %}
+          {{ ep is none or ep|lower == 'unknown' or ep|lower == 'unavailable' or ep|length == 0 }}
+  action:
+    - service: camera.snapshot
+      data_template:
+        filename: >-
+          {% set camera = state_attr('sensor.motion_status_camera_lost','camera') %}
+          {{ '/config/www/images/motion_end-' + camera|string + '.jpg' }}
+        entity_id: >-
+          {{ 'camera.motion_nosignal' }}
+    - service: camera.snapshot
+      data_template:
+        filename: >-
+          {% set camera = state_attr('sensor.motion_status_camera_lost','camera') %}
+          {{ '/config/www/images/motion_annotated-' + camera|string + '.jpg' }}
+        entity_id: >-
+          {{ 'camera.motion_nosignal' }}
+    - service: camera.snapshot
+      data_template:
+        filename: >-
+          {% set camera = state_attr('sensor.motion_status_camera_lost','camera') %}
+          {{ '/config/www/images/motion_detected-' + camera|string + '.jpg' }}
+        entity_id: >-
+          {{ 'camera.motion_nosignal' }}
+    - service: camera.snapshot
+      data_template:
+        filename: >-
+          {% set camera = state_attr('sensor.motion_status_camera_lost','camera') %}
+          {{ '/config/www/images/motion_detected_entity-' + camera|string + '.jpg' }}
+        entity_id: >-
+          {{ 'camera.motion_nosignal' }}
