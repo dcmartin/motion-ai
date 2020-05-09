@@ -24,8 +24,9 @@ else:
               obj.remove('latest')
               ncamera=len(obj)
               uniq=set(obj)
-              if ncamera != len(uniq):
-                logger.warning("set_state: unique differs from whole: {0}".format(uniq))
+              d=ncamera - len(uniq)
+              if d > 0:
+                logger.warning("set_state: {0} duplicates; result: {1}".format(d,uniq))
               obj=['latest']
               for v in sorted(uniq):
                 obj.append(v)
