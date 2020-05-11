@@ -3,8 +3,10 @@
 listen()
 {
   # device start-up
+
   mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/start" \
-    | jq -c '{"DEVICE":.}' &
+    | jq -c '{"DEVICE":{"group":.group,"device":.device,"cameras":[.cameras[].name]}}' &
+    #| jq -c '{"DEVICE":.}' &
   
   # camera lost/found
   mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/status/found" \
@@ -16,11 +18,11 @@ listen()
   mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/event/start" \
     | jq -c '{"START":.}' &
   mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/event/end" \
-    | jq -c '{"END":{"camera":.camera,"event":.id,"timestamp":.timestamp,"device":.device}}' &
+    | jq -c '{"END":{"group":.group,"device":.device,"camera":.camera,"event":.id,"timestamp":.timestamp,"device":.device}}' &
   
   ## annotated
   mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/event/end/+" \
-    | jq -c '{"ANNOTATED":{"camera":.event.camera,"event":.event.id,"timestamp":.event.timestamp,"detected":.detected}}' &
+    | jq -c '{"ANNOTATED":{"group":.event.group,"device":.event.device,"camera":.event.camera,"event":.event.id,"timestamp":.event.timestamp,"detected":.detected}}' &
   
   ## face
   mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/event/face/+" \
@@ -28,15 +30,18 @@ listen()
   
   # annotated
   mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/annotated" \
-    | jq -c '{"PROCESSED":.|(.event.image=(.event.image!=null))|(.image=(.image!=null))}' &
+    | jq -c '{"PROCESSED":{"group":.event.group,"device":.event.device,"camera":.event.camera,"images":.event.images|length,"detected":.yolo.detected}}' &
+    #| jq -c '{"PROCESSED":.|(.event.image=(.event.image!=null))|(.image=(.image!=null))}' &
   
   # detected
   mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/detected" \
-    | jq -c '{"SEEN":.|(.event.image=(.event.image!=null))|(.image=(.image!=null))}' &
+    | jq -c '{"SEEN":{"group":.event.group,"device":.event.device,"camera":.event.camera,"images":.event.images|length,"detected":.yolo.detected}}' &
+    #| jq -c '{"SEEN":.|(.event.image=(.event.image!=null))|(.image=(.image!=null))}' &
   
   # detected_entity
   mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/detected_entity" \
-    | jq -c '{"FOUND":.|(.event.image=(.event.image!=null))|(.image=(.image!=null))}' &
+    | jq -c '{"FOUND":{"group":.event.group,"device":.event.device,"camera":.event.camera,"images":.event.images|length,"detected":.yolo.detected}}' &
+    #| jq -c '{"FOUND":.|(.event.image=(.event.image!=null))|(.image=(.image!=null))}' &
 }
 
 ###
