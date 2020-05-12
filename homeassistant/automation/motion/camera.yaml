@@ -1,28 +1,50 @@
 ###
-## automation/motion/device.yaml
+## homeassistant/automation/motion/camera.yaml
 ###
 
-- id: motion_camera_name_options
-  alias: motion_camera_name_options
+## set options for cameras
+- id: motion_camera_autoselect_set_options
+  alias: motion_camera_autoselect_set_options
   initial_state: on
   trigger:
     platform: state
-    entity_id: sensor.motion_camera_options
+    entity_id: sensor.motion_device_start
   condition:
     - condition: template
       value_template: >-
-        {{ states('sensor.motion_camera_options')|lower != 'unavailable' 
-             and states('sensor.motion_camera_options')|lower != 'none'
-             and states('sensor.motion_camera_options')|length > 0 }}
+        {% set v = state_attr('sensor.motion_device_start','cameras') %}
+        {{ v|lower != 'unavailable' and v|lower != 'none' and v|length > 0 }}
   action:
-    - service: input_select.set_options
+    - service: python_script.input_select_set_options
       data_template:
         entity_id: input_select.motion_camera_name
         options: >-
-          {{- states('sensor.motion_camera_options')|string|from_json -}}
+          {%- set prior = state_attr('input_select.motion_camera_name','options') -%}
+          {%- if prior is not none and prior|lower != 'unknown' and prior|lower != 'unavailable' and prior|lower != 'none' and prior|length > 0 -%}
+            {%- for p in prior -%}
+              {%- if loop.first -%}{%- else -%},{% endif -%}
+              {{- p -}}
+            {%- endfor -%}
+          {%- else -%}
+            {%- set prior = 'null' -%}
+          {%- endif -%}
+          {%- set cameras = state_attr('sensor.motion_device_start','cameras') -%}
+          {%- if cameras is not none and cameras|lower != 'unavailable' and cameras|lower != 'none' and cameras|length > 0 -%}
+            {%- for c in cameras -%}
+              {%- if loop.first -%}{%- if prior != 'null' -%},{%- endif -%}{%- else -%},{% endif -%}
+              {{- c.name -}}
+              {%- if loop.last -%}{%- endif -%}
+            {%- endfor -%}
+          {% else %}
+            {%- if prior != 'null' -%}{%- endif -%}
+          {%- endif -%}
 
-- id: motion_camera_select_detected_entity
-  alias: motion_camera_select_detected_entity
+###
+## autoselect current camera when detected_entity
+###
+
+- id: motion_camera_autoselect_detected_entity
+  alias: motion_camera_autoselect_detected_entity
   initial_state: on
   trigger:
     platform: state
@@ -30,10 +52,9 @@
   condition:
     - condition: template
       value_template: >-
-        {{ is_state('binary_sensor.motion_camera_autoselect','on') }}
+        {{ is_state('input_boolean.motion_camera_autoselect','on') }}
   action:
-    - service: input_select.select_option
+    - service: python_script.set_state
       data_template:
-        entity_id: input_select.motion_camera_name
-        option: >-
-          {{ states('sensor.motion_detected_entity_camera') }}
+        entity_id: sensor.motion_camera_name_selected
+        state: "{{ states('sensor.motion_detected_entity_camera') }}"

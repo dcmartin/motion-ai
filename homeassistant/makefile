@@ -176,16 +176,16 @@ lovelace.json: lovelace.json.tmpl
 	  | jq '(.data.config.views[]|select(.path=="motion_annotated_view").cards[]|select(.title=="motion_annotated_ago").entities)+='"$$(jq '[.[]|("sensor.motion_annotated_ago_"+.name)]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="motion_annotated_view").cards[]|select(.title=="motion_annotated_counter").entities)+='"$$(jq '[.[]|("sensor.motion_annotated_counter_"+.name)]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="motion_annotated_view").cards[]|select(.title=="motion_annotated_count").entities)+='"$$(jq '[.[]|("sensor.motion_annotated_count_"+.name)]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_annotated_view").cards)+='"$$(jq '[.[]|{"entity":("camera.motion_annotated_picture_"+.name),"type":"picture-entity"}]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="motion_annotated_view").cards)+='"$$(jq '[.[]|{"entity":("sensor.motion_annotated_count_"+.name),"aspect_ratio": "0%","camera_image": ("camera.motion_annotated_"+.name),"entities": [{"entity":("binary_sensor.motion_annotated_"+.name)},{"entity":("sensor.motion_annotated_ago_"+.name)}],"title":("Motion Annotated "+.name),"type":"picture-glance"}]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="motion_detected_view").cards[]|select(.title=="motion_detected_ago").entities)+='"$$(jq '[.[]|("sensor.motion_detected_ago_"+.name)]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="motion_detected_view").cards[]|select(.title=="motion_detected_counter").entities)+='"$$(jq '[.[]|("sensor.motion_detected_counter_"+.name)]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="motion_detected_view").cards[]|select(.title=="motion_detected_count").entities)+='"$$(jq '[.[]|("sensor.motion_detected_count_"+.name)]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_detected_view").cards)+='"$$(jq '[.[]|{"entity":("camera.motion_detected_picture_"+.name),"type":"picture-entity"}]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="motion_detected_view").cards)+='"$$(jq '[.[]|{"entity":("sensor.motion_detected_count_"+.name),"aspect_ratio": "0%","camera_image": ("camera.motion_detected_"+.name),"entities": [{"entity":("binary_sensor.motion_detected_"+.name)},{"entity":("sensor.motion_detected_ago_"+.name)}],"title":("Motion Detected "+.name),"type":"picture-glance"}]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="motion_detected_entity_view").cards[]|select(.title=="motion_detected_entity_ago").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_ago_"+.name)]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="motion_detected_entity_view").cards[]|select(.title=="motion_detected_entity_counter").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_counter_"+.name)]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="motion_detected_entity_view").cards[]|select(.title=="motion_detected_entity_count").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_count_"+.name)]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_detected_entity_view").cards)+='"$$(jq '[.[]|{"entity":("camera.motion_detected_entity_picture_"+.name),"type":"picture-entity"}]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_face_detected_view").cards)+='"$$(jq '[.[]|{"entity":("camera.motion_face_detected_picture_"+.name),"type":"picture-entity"}]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="motion_detected_entity_view").cards)+='"$$(jq '[.[]|{"entity":("sensor.motion_detected_entity_count_"+.name),"aspect_ratio": "0%","camera_image": ("camera.motion_detected_entity_"+.name),"entities": [{"entity":("binary_sensor.motion_detected_entity_"+.name)},{"entity":("sensor.motion_detected_entity_ago_"+.name)}],"title":("Motion Detected Entity "+.name),"type":"picture-glance"}]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="motion_face_detected_view").cards)+='"$$(jq '[.[]|{"entity":("sensor.motion_face_detected_count_"+.name),"aspect_ratio": "0%","camera_image": ("camera.motion_face_detected_"+.name),"entities": [{"entity":("binary_sensor.motion_face_detected_"+.name)},{"entity":("sensor.motion_face_detected_ago_"+.name)}],"title":("Motion Face Detected "+.name),"type":"picture-glance"}]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="motion_status_camera_lost_counter").entities)+='"$$(jq '[.[]|("sensor.motion_status_camera_lost_counter_"+.name)]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="motion_status_camera_found_counter").entities)+='"$$(jq '[.[]|("sensor.motion_status_camera_found_counter_"+.name)]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="motion_status_camera").entities)+='"$$(jq '[.[]|("sensor.motion_status_camera_"+.name)]' motion/webcams.json)" \
@@ -215,7 +215,7 @@ realclean: clean
 logclean:
 	@export LOGPATH=$$(docker inspect --format '{{json .}}' homeassistant | jq -r '.LogPath') \
 	  && echo 'Attempting to remove log file (requires sudo): '"$${LOGPATH}" \
-	  && sudo LOGPATH=$${LOGPATH} rm -f $${LOGPATH}
+	  && sudo LOGPATH=$${LOGPATH} /bin/rm -f $${LOGPATH}
 
 distclean: realclean
 	rm -fr .uuid .HA_VERSION .cloud deps tts .storage
