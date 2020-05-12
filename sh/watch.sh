@@ -18,7 +18,7 @@ listen()
   mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/event/start" \
     | jq -c '{"START":.}' &
   mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/event/end" \
-    | jq -c '{"END":{"group":.group,"device":.device,"camera":.camera,"event":.id,"timestamp":.timestamp,"device":.device}}' &
+    | jq -c '{"END":{"group":.group,"device":.device,"camera":.camera,"event":.event,"timestamp":.timestamp,"device":.device}}' &
   
   ## annotated
   mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/event/end/+" \
