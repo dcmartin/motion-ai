@@ -135,6 +135,13 @@ container_clean()
   if [ "${DEBUG:-false}" = 'true' ]; then echo -e "${RED}${FUNCNAME[0]} ${*}${NC}" &> /dev/stderr; fi
 
   local label=${1:-}
+  local logpath=$(docker inspect --format '{{json .}}' "${label}" | jq -r '.LogPath')
+
+  if [ "${logpath:-null}" != 'null' ]; then
+    echo 'Attempting (sudo) to remove log file: '"${logpath}" && sudo /bin/rm -f "${logpath}" &> /dev/stderr
+  else
+    echo 'No existing log file: '"${logpath:-none}" &> /dev/stderr
+  fi
   echo "Removing any existing container: ${label}" &> /dev/stderr
   docker rm -f ${label} &> /dev/null
 }
