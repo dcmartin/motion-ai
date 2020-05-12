@@ -90,7 +90,7 @@ run: all configuration.yaml
 stop:
 	-docker stop homeassistant
 
-restart: stop tidy logclean run
+restart: stop logclean refresh run
 
 logs:
 	docker logs -f homeassistant
@@ -200,9 +200,12 @@ tidy:
 	@rm -f lovelace.json
 	@${MAKE} -C motion clean
 
-clean: stop logclean tidy
+refresh: tidy
 	@echo "making $@"
-	-rm -f www/images/motion_*.jpg
+	-rm -f www/images/motion_*.{jpg,gif}
+
+clean: stop logclean refresh
+	@echo "making $@"
 	-rm -f secrets.yaml
 	-rm -f .storage/lovelace
 	-rm -f .storage/core.restore_state
@@ -220,4 +223,4 @@ logclean:
 distclean: realclean
 	rm -fr .uuid .HA_VERSION .cloud deps tts .storage
 
-.PHONY: tidy all default run stop logs restart clean realclean distclean $(PACKAGES)
+.PHONY: refresh tidy all default run stop logs restart clean realclean distclean $(PACKAGES)
