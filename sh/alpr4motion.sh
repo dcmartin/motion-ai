@@ -40,6 +40,12 @@ INT_PORT=$(echo "${SERVICE}" | jq -r '.ports.service')
 NAME=${SERVICE_NAME:-${LABEL}}
 
 # cleanup
+LOGPATH=$(docker inspect --format '{{json .}}' "${LABEL}" | jq -r '.LogPath')
+if [ "${LOGPATH:-null}" != 'null' ]; then
+  echo 'Attempting (sudo) to remove log file: '"${LOGPATH}" && sudo /bin/rm -f "${LOGPATH}" &> /dev/stderr
+else
+  echo 'No existing log file: '"${LOGPATH:-none}" &> /dev/stderr
+fi
 echo "Removing any existing container: ${LABEL}" &> /dev/stderr
 docker rm -f ${NAME} &> /dev/null
 
