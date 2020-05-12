@@ -90,7 +90,7 @@ run: all configuration.yaml
 stop:
 	-docker stop homeassistant
 
-restart: stop logclean refresh run
+restart: stop logclean tidy run
 
 logs:
 	docker logs -f homeassistant
