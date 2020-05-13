@@ -200,7 +200,7 @@ tidy:
 	@rm -f lovelace.json
 	@${MAKE} -C motion clean
 
-refresh: tidy
+refresh: 
 	@echo "making $@"
 	-rm -f www/images/motion_*.{jpg,gif}
 
