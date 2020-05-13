@@ -3,8 +3,8 @@
 ###
 
 ## set options for cameras
-- id: motion_camera_autoselect_set_options
-  alias: motion_camera_autoselect_set_options
+- id: motion_camera_device_start_set_options
+  alias: motion_camera_device_start_set_options
   initial_state: on
   trigger:
     platform: state
@@ -35,7 +35,7 @@
               {{- c.name -}}
               {%- if loop.last -%}{%- endif -%}
             {%- endfor -%}
-          {% else %}
+          {%- else -%}
             {%- if prior != 'null' -%}{%- endif -%}
           {%- endif -%}
 
@@ -50,18 +50,22 @@
     platform: state
     entity_id: counter.motion_detected_entity_counter
   condition:
-    - condition: template
-      value_template: >-
-        {{ is_state('input_boolean.motion_camera_autoselect','on') }}
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ is_state('input_boolean.motion_camera_autoselect','on') }}
+      - condition: template
+        value_template: >-
+          {% set e = state_attr('sensor.motion_event_annotated','event') %}
+          {{ e is not none and e|lower != 'unavailable' and e|lower !='unknown' and e|length > 0 }}
   action:
     - service: python_script.set_state
       data_template:
         entity_id: sensor.motion_camera_name_selected
         state: >-
           {% set e = state_attr('sensor.motion_event_annotated','event') %}
-          {% if e is not none and e|lower != 'unavailable' and e|lower != 'unknown' and e|length > 0 %}
-            {% set c = e.camera %}
-          {% endif %}
+          {% set c = e.camera %}
           {% if c is defined and c is not none and c|lower != 'unavailable' and c|lower != 'unknown' and c|length > 0 %}
             {{ c }}
           {% else %}null{% endif %}
