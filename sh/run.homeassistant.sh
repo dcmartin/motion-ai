@@ -5,4 +5,4 @@ if [ -z "${INT_PORT:-}" ] && [ -s INT_PORT ]; then INT_PORT=$(cat INT_PORT); fi;
 if [ -z "${HOST_PORT:-}" ] && [ -s HOST_PORT ]; then HOST_PORT=$(cat HOST_PORT); EXT_PORT=${HOST_PORT}; INT_PORT=${HOST_PORT}; fi; HOST_PORT=${HOST_PORT:-${EXT_PORT}}
 
 docker rm -f homeassistant
-docker run --restart=unless-stopped --init -d --name="homeassistant" -e "TZ=America/Los_Angeles" -v ~/GIT/motion-ai/homeassistant:/config -p ${EXT_PORT}:${INT_PORT} homeassistant/home-assistant:stable
+docker run --network host --restart=unless-stopped --init -d --name="homeassistant" -e "TZ=America/Los_Angeles" -v ~/GIT/motion-ai/homeassistant:/config -p ${EXT_PORT}:${INT_PORT} homeassistant/home-assistant:stable
