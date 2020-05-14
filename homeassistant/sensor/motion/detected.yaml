@@ -2,73 +2,66 @@
 ### detected SENSOR
 ###
 
-## shell_command
-- platform: template
-  sensors:
-    motion_detected_copy_webcam:
-      friendly_name: Detected copy
-      entity_id:
-        - sensor.motion_detected_counter
-      value_template: >-
-        {%- set hd = states('sensor.motion_apache_htdocs') -%}
-        {%- if hd is not none and hd|lower != 'unavailable' and hd|lower != 'unknown' and hd != 'null' -%}
-          {%- set e = state_attr('sensor.motion_event_annotated','event') -%}
-          {%- if e is not none and e|lower != 'unavailable' and e|lower != 'unknown' and e != 'null' -%}
-            {%- set c = e.camera -%}
-            {%- set id = e.id -%}
-            cp -f "/config/www/images/motion_annotated-{{- c -}}.jpg" "{{ hd -}}/cameras/motion_detected-{{- c -}}.jpg"
-          {%- endif -%}
-        {%- endif -%}
-
-- platform: template
-  sensors:
-    motion_detected_copy_animated_webcam:
-      friendly_name: Detected copy animated
-      entity_id:
-        - sensor.motion_detected_counter
-      value_template: >-
-        {%- set hd = states('sensor.motion_apache_htdocs') -%}
-        {%- if hd is not none and hd|lower != 'unavailable' and hd|lower != 'unknown' and hd != 'null' -%}
-          {%- set e = state_attr('sensor.motion_event_annotated','event') -%}
-          {%- if e is not none and e|lower != 'unavailable' and e|lower != 'unknown' and e != 'null' -%}
-            {%- set c = e.camera -%}
-            {%- set id = e.id -%}
-            cp -f "/config/www/images/motion_annotated-{{- c -}}.gif" "{{ hd -}}/cameras/motion_detected-{{- c -}}.gif"
-          {%- endif -%}
-        {%- endif -%}
+## STATUS
 
 - platform: template
   sensors:
     motion_detected_status:
       friendly_name: Detected status
       entity_id:
-        - counter.motion_detected_counter
+        - sensor.motion_detected_ago
       value_template: >-
-        {%- set e = state_attr('sensor.motion_event_annotated','event') -%}
-        {% if e is not none and e|lower != 'unavailable' and e|lower != 'unknown' and e != 'null' %}
-          Counter: {{ states('counter.motion_detected_counter') -}}/{{- states('sensor.motion_detected_counter') -}};
-          {%- set count = state_attr('sensor.motion_event_annotated','count') -%}
-          {%- set detected = state_attr('sensor.motion_event_annotated','detected') -%}
-          {%- set when = e.end|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -%}
-          {%- if e.elapsed > 0 -%}Duration: {{ e.elapsed }} seconds{%- else -%}None{%- endif -%};
-          {%- set what = detected|map(attribute='entity')|list %}
-          {%- if count > 0 -%}{{ count }} entities: {{ what }}{%- else -%}nothing{%- endif -%}; from {{ e.device -}}/{{- e.camera -}}/{{- e.event -}}; at {{ when -}}
-        {% else %}NO STATUS{% endif %}
+        {% if is_state('binary_sensor.motion_detected','on') or is_state('binary_sensor.motion_detected_expired','off') %}
+          {%- set ago = states('sensor.motion_detected_ago') %}
+          {% if ago != 'null' %}
+            {%- set event = states('sensor.motion_detected_event') %}
+            {%- set device = states('sensor.motion_detected_device') %}
+            {%- set count = states('sensor.motion_detected_count') %}
+            {%- set camera = states('sensor.motion_detected_camera') %}
+            {%- set elapsed = states('sensor.motion_detected_elapsed') %}
+            {%- set when = states('sensor.motion_detected_when') %}
+            {#- set what = states('sensor.motion_detect_entity') #}
+            {%- set what = states('sensor.motion_detected_list') %}
+            Counter: {{ states('counter.motion_detected_counter') -}}/{{- states('sensor.motion_detected_counter') -}};
+            duration: {{ elapsed }} seconds;
+            {{ count }} {{ what }}; from {{ device -}}/{{- camera -}}/{{- event -}}; at {{ when }}; {{ ago }} seconds ago
+          {% else %}NO STATUS{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_detected_status') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}NO PRIOR STATUS{% endif %}
+        {% endif %}
 
 ## count
 - platform: template
   sensors:
-    motion_detected_count:
-      friendly_name: Detected count
+    motion_detected_count_loop:
       entity_id:
         - counter.motion_detected_counter
+      unit_of_measurement: entities
+      value_template: >
+        {% set detected = state_attr('sensor.motion_event_annotated','detected') %}
+        {% if detected is not none and detected|lower != 'unavailable' and detected|lower != 'unknown' and detected != 'null' %}
+          {% set s = detected|map(attribute='count')|sum %}
+          {% if s is not none and s|lower != 'unknown' and s != 'null' %}
+            {{ s|int }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_detected_count:
+      friendly_name: Detected_entity count
+      entity_id:
+        - sensor.motion_detected_count_loop
         - binary_sensor.motion_detected_expired
       unit_of_measurement: entities
       value_template: >
         {% if is_state('binary_sensor.motion_detected','on') or is_state('binary_sensor.motion_detected_expired','off') %}
-          {% set count = state_attr('sensor.motion_event_annotated','count') %}
-          {% if count is not none and count|lower != 'unknown' and count != 'null' %}
-            {{ count|int }}
+          {% set s = states('sensor.motion_detected_count_loop') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'unknown' and s != 'null' %}
+            {{ s|int }}
           {% else %}null{% endif %}
         {% else %}null{% endif %}
 
@@ -98,6 +91,26 @@
         {% if s is not none and s|lower != 'unknown' and s != 'null' %}
           {{ s|int }}
         {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_detected_elapsed:
+      friendly_name: Detected elapsed
+      entity_id:
+        - counter.motion_detected_counter
+      value_template: >-
+        {{ state_attr('sensor.motion_event_annotated','event').elapsed }}
+
+## event
+- platform: template
+  sensors:
+    # device
+    motion_detected_event:
+      friendly_name: Detected event
+      entity_id:
+        - counter.motion_detected_counter
+      value_template: >-
+        {{ state_attr('sensor.motion_event_annotated','event').event }}
 
 ## device
 - platform: template
@@ -173,7 +186,10 @@
       entity_id:
         - counter.motion_detected_counter
       value_template: >-
-        {{ states('sensor.motion_annotated_list') }}
+        {% set detected = state_attr('sensor.motion_event_annotated','detected') %}
+        {% if detected is not none and detected|lower != 'unknown' and detected|length > 0 %}
+          {{ detected|map(attribute='entity')|list }}
+        {% else %}null{% endif %}
 
 ## percent
 - platform: template
@@ -549,3 +565,39 @@
         {% else %}
           {{ states('sensor.motion_nosignal_animated') }}
         {% endif %}
+
+## shell_command
+#- platform: template
+#  sensors:
+#    motion_detected_copy_webcam:
+#      friendly_name: Detected copy
+#      entity_id:
+#        - sensor.motion_detected_counter
+#      value_template: >-
+#        {%- set hd = states('sensor.motion_apache_htdocs') -%}
+#        {%- if hd is not none and hd|lower != 'unavailable' and hd|lower != 'unknown' and hd != 'null' -%}
+#          {%- set e = state_attr('sensor.motion_event_annotated','event') -%}
+#          {%- if e is not none and e|lower != 'unavailable' and e|lower != 'unknown' and e != 'null' -%}
+#            {%- set c = e.camera -%}
+#            {%- set id = e.id -%}
+#            cp -f "/config/www/images/motion_annotated-{{- c -}}.jpg" "{{ hd -}}/cameras/motion_detected-{{- c -}}.jpg"
+#          {%- endif -%}
+#        {%- endif -%}
+
+#- platform: template
+#  sensors:
+#    motion_detected_copy_animated_webcam:
+#      friendly_name: Detected copy animated
+#      entity_id:
+#        - sensor.motion_detected_counter
+#      value_template: >-
+#        {%- set hd = states('sensor.motion_apache_htdocs') -%}
+#        {%- if hd is not none and hd|lower != 'unavailable' and hd|lower != 'unknown' and hd != 'null' -%}
+#          {%- set e = state_attr('sensor.motion_event_annotated','event') -%}
+#          {%- if e is not none and e|lower != 'unavailable' and e|lower != 'unknown' and e != 'null' -%}
+#            {%- set c = e.camera -%}
+#            {%- set id = e.id -%}
+#            cp -f "/config/www/images/motion_annotated-{{- c -}}.gif" "{{ hd -}}/cameras/motion_detected-{{- c -}}.gif"
+#          {%- endif -%}
+#        {%- endif -%}
+

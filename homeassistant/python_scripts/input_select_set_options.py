@@ -26,7 +26,7 @@ else:
               uniq=set(obj)
               d=ncamera - len(uniq)
               if d > 0:
-                logger.warning("set_state: {0} duplicates; result: {1}".format(d,uniq))
+                logger.info("set_state: {0} duplicates; result: {1}".format(d,uniq))
               obj=['latest']
               for v in sorted(uniq):
                 obj.append(v)
@@ -34,6 +34,6 @@ else:
               logger.info("set_state: calling input_select/set_options; service_data: {0}: ".format(service_data))
               hass.services.call("input_select", "set_options", service_data, False)
             else:
-              logger.debug("set_state: options did not split: {0}".format(attr_value))
+              logger.warning("set_state: options did not split: {0}".format(attr_value))
           else:
             logger.warning("set_state: invalid option; item: {0}; value: {1}".format(item,attr_value))
