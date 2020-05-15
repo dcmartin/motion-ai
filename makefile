@@ -43,6 +43,10 @@ MOTIONCAM_PASSWORD ?= $(if $(wildcard MOTIONCAM_PASSWORD),$(shell v=$$(cat MOTIO
 # netdata
 NETDATA_URL ?= $(if $(wildcard NETDATA_URL),$(shell v=$$(cat NETDATA_URL) && echo "** SPECIFIED: NETDATA_URL: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="http://${HOST_IPADDR}:19999/" && echo "!! UNSPECIFIED: NETDATA_URL unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
+# tplink
+TPLINK_DISCOVERY ?= $(if $(wildcard TPLINK_DISCOVERY),$(shell v=$$(cat TPLINK_DISCOVERY) && echo "** SPECIFIED: TPLINK_DISCOVERY: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "!! UNSPECIFIED: TPLINK_DISCOVERY unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+
+# scan interval for speedtest
 # scan interval for speedtest
 INTERNET_SCAN_INTERVAL ?= $(if $(wildcard INTERNET_SCAN_INTERVAL),$(shell v=$$(cat INTERNET_SCAN_INTERVAL) && echo "** SPECIFIED: INTERNET_SCAN_INTERVAL: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="14400" && echo "!! UNSPECIFIED: INTERNET_SCAN_INTERVAL unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 INTRANET_SCAN_INTERVAL ?= $(if $(wildcard INTRANET_SCAN_INTERVAL),$(shell v=$$(cat INTRANET_SCAN_INTERVAL) && echo "** SPECIFIED: INTRANET_SCAN_INTERVAL: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="1800" && echo "!! UNSPECIFIED: INTRANET_SCAN_INTERVAL unset; default: $${v}" > /dev/stderr && echo "$${v}"))
@@ -82,6 +86,7 @@ $(ACTIONS):
 	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
 	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
 	  NETDATA_URL="$(NETDATA_URL)" \
+	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	&& make -C homeassistant $@
 
 .PHONY: all default run stop logs restart tidy clean realclean distclean $(PACKAGES)
