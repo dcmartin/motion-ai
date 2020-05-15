@@ -199,7 +199,7 @@ lovelace.json: lovelace.json.tmpl
 	  | jq '(.data.config.views[]|select(.path=="motion_face_detected_view").cards)+='"$$(jq '[.[]|{"entity":("sensor.motion_face_detected_count_"+.name),"aspect_ratio": "0%","camera_image": ("camera.motion_face_detected_"+.name),"entities": [{"entity":("binary_sensor.motion_face_detected_"+.name)},{"entity":("sensor.motion_face_detected_ago_"+.name)}],"title":("Motion Face Detected "+.name),"type":"picture-glance"}]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="motion_status_camera_lost_counter").entities)+='"$$(jq '[.[]|("sensor.motion_status_camera_lost_counter_"+.name)]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="motion_status_camera_found_counter").entities)+='"$$(jq '[.[]|("sensor.motion_status_camera_found_counter_"+.name)]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="motion_status_camera").entities)+='"$$(jq '[.[]|("sensor.motion_status_camera_"+.name)]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="default_view").cards[]|select(.title=="motion_status_camera").entities)+='"$$(jq '[.[]|("sensor.motion_status_camera_"+.name)]' motion/webcams.json)" \
 	 > $@
 	@echo "MADE $@"
 	rm -f .storage/lovelace && mkdir -p .storage/ && ln -s ../$@ .storage/lovelace
