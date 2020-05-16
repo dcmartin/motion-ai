@@ -89,6 +89,7 @@ MOTION_YAML := \
 	automation/mqtt_attributes.yaml \
 	automation/internet_publish.yaml \
 	automation/intranet_publish.yaml \
+	automation/camera_notify.yaml \
 	sensor/intranet_test.yaml \
 	sensor/event_start.yaml \
 	sensor/event_image.yaml \

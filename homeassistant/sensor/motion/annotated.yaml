@@ -6,20 +6,36 @@
 - platform: template
   sensors:
     motion_annotated_status:
-      friendly_name: Annotated
+      friendly_name: Annotated status
       entity_id:
         - counter.motion_annotated_counter
       value_template: >-
-        {%- set e = state_attr('sensor.motion_event_annotated','event') -%}
-        {% if e is not none and e|lower != 'unavailable' and e|lower != 'unknown' and e != 'null' %}
-          Counter: {{ states('counter.motion_annotated_counter') -}}/{{- states('sensor.motion_annotated_counter') -}};
-          {%- set count = state_attr('sensor.motion_event_annotated','count') -%}
-          {%- set detected = state_attr('sensor.motion_event_annotated','detected') -%}
-          {%- set when = e.end|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -%}
-          {%- if e.elapsed > 0 -%}Duration: {{ e.elapsed }} seconds{%- else -%}None{%- endif -%};
-          {%- set what = detected|map(attribute='entity')|list %}
-          {%- if count > 0 -%}{{ count }} entities: {{ what }}{%- else -%}nothing{%- endif -%}; from {{ e.device -}}/{{- e.camera -}}/{{- e.event -}}; at {{ when -}}
-        {% else %}NO STATUS{% endif %}
+        {% set ea = states.sensor.motion_event_annotated.attributes %}
+        {% if ea is not none and ea|lower != 'unavailable' and ea|lower != 'none' and ea|lower != 'unknown' and ea != 'null' %}
+          {% set n = utcnow().timestamp()|int %}
+          {% set what = ea.detected|map(attribute='entity')|list }}
+          {% set end = ea.event.end|int %}
+          {% set ago = n - end %}
+          {% set event = ea.event.event %}
+          {% set device = ea.event.device %}
+          {% set camera = ea.event.camera %}
+          {% set elapsed = ea.event.elapsed|int %}
+          {% set count = ea.count|int %}
+          {% set when = end|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
+          {% set delay = n - end %}
+          ANNOTATED: {{ count }} {{ what }}; 
+          from {{ device -}}/{{- camera -}}/{{- event -}}; 
+          at {{ when }}; 
+          ago: {{ ago }}; 
+          delay: {{ delay }};
+          duration: {{ elapsed }};
+          counter: {{ states('counter.motion_annotated_counter') -}}/{{- states('sensor.motion_annotated_counter') -}}
+        {% else %}
+          {% set s = states('sensor.motion_annotated_status') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}NO PRIOR STATUS{% endif %}
+        {% endif %}
 
 ## count
 - platform: template
