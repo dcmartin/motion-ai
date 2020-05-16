@@ -387,17 +387,17 @@
       entity_id:
         - counter.motion_annotated_counter_${MOTION_CAMERA}
       value_template: >-
-        {% set ea = states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes %}
-        {% if ea is not none and ea|lower != 'unavailable' and ea|lower != 'none' and ea|lower != 'unknown' and ea != 'null' %}
+        {% set e = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event') %}
+        {% if e is not none and e|lower != 'unavailable' and e|lower != 'unknown' and e != 'null' %}
           {% set n = utcnow().timestamp()|int %}
-          {% set what = ea.detected|map(attribute='entity')|list %}
-          {% set end = ea.event.end|int %}
+          {% set end = e.end|int %}
           {% set ago = n - end %}
-          {% set event = ea.event.event %}
-          {% set device = ea.event.device %}
-          {% set camera = ea.event.camera %}
-          {% set elapsed = ea.event.elapsed|int %}
-          {% set count = ea.count|int %}
+          {% set event = e.event %}
+          {% set device = e.device %}
+          {% set camera = e.camera %}
+          {% set elapsed = e.elapsed|int %}
+          {% set what = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','detected')|map(attribute='entity')|list %}
+          {% set count = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','count') %}
           {% set when = end|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
           {% set delay = n - end %}
           ANNOTATED: {{ count }} {{ what }};
@@ -734,16 +734,32 @@
       entity_id:
         - counter.motion_detected_counter_${MOTION_CAMERA}
       value_template: >-
-        {%- set e = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event') -%}
+        {% set e = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event') %}
         {% if e is not none and e|lower != 'unavailable' and e|lower != 'unknown' and e != 'null' %}
-          Counter: {{ states('counter.motion_detected_counter_${MOTION_CAMERA}') -}}/{{- states('sensor.motion_detected_counter_${MOTION_CAMERA}') -}};
-          {%- set count = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','count') -%}
-          {%- set detected = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','detected') -%}
-          {%- set when = e.end|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -%}
-          {%- if e.elapsed > 0 -%}Duration: {{ e.elapsed }} seconds{%- else -%}None{%- endif -%};
-          {%- set what = detected|map(attribute='entity')|list %}
-          {%- if count > 0 -%}{{ count }} entities: {{ what }}{%- else -%}nothing{%- endif -%}; from {{ e.device -}}/{{- e.camera -}}/{{- e.event -}}; at {{ when -}}
-        {% else %}NO STATUS{% endif %}
+          {% set n = utcnow().timestamp()|int %}
+          {% set end = e.end|int %}
+          {% set ago = n - end %}
+          {% set event = e.event %}
+          {% set device = e.device %}
+          {% set camera = e.camera %}
+          {% set elapsed = e.elapsed|int %}
+          {% set what = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','detected')|map(attribute='entity')|list %}
+          {% set count = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','count') %}
+          {% set when = end|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
+          {% set delay = n - end %} 
+          ANNOTATED: {{ count }} {{ what }};
+          from {{ device -}}/{{- camera -}}/{{- event -}};
+          at {{ when }};
+          ago: {{ ago }}; 
+          delay: {{ delay }};
+          duration: {{ elapsed }};
+          counter: {{ states('counter.motion_detected_counter_${MOTION_CAMERA}') -}}/{{- states('sensor.motion_detected_counter_${MOTION_CAMERA}') -}}
+        {% else %} 
+          {% set s = states('sensor.motion_detected_status_${MOTION_CAMERA}') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}NO PRIOR STATUS{% endif %}
+        {% endif %}
 
 ## count
 - platform: template
@@ -1021,15 +1037,32 @@
       entity_id:
         - counter.motion_detected_entity_counter_${MOTION_CAMERA}
       value_template: >-
-        {%- set e = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event') -%}
+        {% set e = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event') %}
         {% if e is not none and e|lower != 'unavailable' and e|lower != 'unknown' and e != 'null' %}
-          Counter: {{ states('counter.motion_detected_entity_counter_${MOTION_CAMERA}') -}}/{{- states('sensor.motion_detected_entity_counter_${MOTION_CAMERA}') -}};
-          {%- set detected = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','detected') %}
-          {%- set when = e.end|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
-          {%- set what = states('sensor.motion_detect_entity') %}
-          {%- set count = detected|selectattr('entity','==',what)|map(attribute='count')|sum %}
-          {{ count }} {{ what }}; from {{ e.device -}}/{{- e.camera -}}/{{- e.event -}}; at {{ when }}
-        {% else %}NO STATUS{% endif %}
+          {% set n = utcnow().timestamp()|int %}
+          {% set end = e.end|int %}
+          {% set ago = n - end %}
+          {% set event = e.event %}
+          {% set device = e.device %}
+          {% set camera = e.camera %}
+          {% set elapsed = e.elapsed|int %}
+          {% set what = states('sensor.motion_detect_entity') %}
+          {% set count = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','count')|selectattr('entity','==',what)|map(attribute='count')|sum|int %}
+          {% set when = end|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
+          {% set delay = n - end %}
+          FOUND: {{ count }} {{ what }}; 
+          from {{ device -}}/{{- camera -}}/{{- event -}};
+          at {{ when }};
+          ago: {{ ago }};
+          delay: {{ delay }};
+          duration: {{ elapsed }};
+          counter: {{ states('counter.motion_detected_entity_counter_${MOTION_CAMERA}') -}}/{{- states('sensor.motion_detected_entity_counter_${MOTION_CAMERA}') -}}
+        {% else %}
+          {% set s = states('sensor.motion_detected_entity_status_${MOTION_CAMERA}') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
+            {{ s }}
+          {% else %}NO PRIOR STATUS{% endif %}
+        {% endif %}
 
 ## count
 - platform: template
@@ -2005,17 +2038,17 @@
       entity_id:
         - counter.motion_face_detected_counter_${MOTION_CAMERA}
       value_template: >-
-        {% set ea = states.sensor.motion_event_face_${MOTION_CAMERA}.attributes %}
-        {% if ea is not none and ea|lower != 'unavailable' and ea|lower != 'none' and ea|lower != 'unknown' and ea != 'null' %}
+        {% set e = state_attr('sensor.motion_event_face_${MOTION_CAMERA}','event') %}
+        {% if e is not none and e|lower != 'unavailable' and e|lower != 'unknown' and e != 'null' %}
           {% set n = utcnow().timestamp()|int %}
-          {% set what = ea.detected|list %}
-          {% set end = ea.event.end|int %}
+          {% set end = e.end|int %}
           {% set ago = n - end %}
-          {% set event = ea.event.event %}
-          {% set device = ea.event.device %}
-          {% set camera = ea.event.camera %}
-          {% set elapsed = ea.event.elapsed|int %}
-          {% set count = ea.count|int %}
+          {% set event = e.event %}
+          {% set device = e.device %}
+          {% set camera = e.camera %}
+          {% set elapsed = e.elapsed|int %}
+          {% set what = state_attr('sensor.motion_event_face_${MOTION_CAMERA}','detected')|list %}
+          {% set count = state_attr('sensor.motion_event_face_${MOTION_CAMERA}','count')|int %}
           {% set when = end|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
           {% set delay = n - end %}
           FACE: {{ count }} {{ what }};
@@ -2027,7 +2060,7 @@
           counter: {{ states('counter.motion_face_detected_counter_${MOTION_CAMERA}') -}}/{{- states('sensor.motion_face_detected_counter_${MOTION_CAMERA}') -}}
         {% else %}
           {% set s = states('sensor.motion_face_detected_status_${MOTION_CAMERA}') %}
-          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
             {{ s }}
           {% else %}NO PRIOR STATUS{% endif %}
         {% endif %}
