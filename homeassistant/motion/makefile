@@ -115,7 +115,7 @@ MOTION_YAML := \
 
 default: all
 
-all:  $(MOTION_YAML) $(WEBCAM_YAML) $(HIGHLOW_BINARY_SENSORS) # group/webcams.yaml history_graph/webcams.yaml
+all:  $(MOTION_YAML) $(WEBCAM_YAML) $(HIGHLOW_BINARY_SENSORS) group/webcams.yaml # history_graph/webcams.yaml
 
 # TEMPLATES
 
