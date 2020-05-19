@@ -14,14 +14,14 @@ motion.restart()
     for c in ${cameras[@]}; do
       if [ "${c:-}" = "${camera}" ]; then
         if [ ${j} -gt 1 ]; then echo ','; fi
-        r=$(curl -sSL ${host}:${port}/${i}/action/restart &> /dev/null && echo '{}' | jq '.id='${i}'|.camera="'${camera}'"|.status="restarted"')
+        r=$(curl -sqSL --connect-timeout 10 ${host}:${port}/${i}/action/restart &> /dev/null && echo '{}' | jq '.id='${i}'|.camera="'${camera}'"|.status="restarted"')
         echo -n "${r}"
         j=$((j+1))
       fi
       i=$((i+1))
     done
   else
-    r=$(curl -sSL ${host}:${port}/0/action/restart &> /dev/null \
+    r=$(curl --connect-timeout 10 -sqSL ${host}:${port}/0/action/restart 2> /dev/null \
        | jq '.id='0'|.status=(.status=="restarted")')
     echo -n "${r}"
   fi
@@ -46,7 +46,7 @@ motion.status()
 {
   local host=${1:-localhost}
   local port=${2:-8080}
-  local cameras=($(curl -sSL http://${host}:${port}/0/detection/status | awk '{ print $5 }'))
+  local cameras=($(curl --connect-timeout 10 -qsSL http://${host}:${port}/0/detection/status 2> /dev/null | awk '{ print $5 }'))
 
   echo -n '{"host":"'${host}'","port":'${port}',"cameras":['
   if [ ${#cameras[@]} -gt 0 ]; then
@@ -54,7 +54,7 @@ motion.status()
     for c in ${cameras[@]}; do
       if [ ${i} -gt 1 ]; then echo ','; fi
       if [ "${c:-}" = 'ACTIVE' ]; then
-        r=$(curl -sSL ${host}:${port}/${i}/detection/connection \
+        r=$(curl --connect-timeout 10 -sqSL ${host}:${port}/${i}/detection/connection 2> /dev/null \
              | tail +2 \
              | awk '{ printf("{\"camera\":\"%s\",\"status\":\"%s\"}\n",$4,$6) }' \
              | jq '.id='${i}'|.status=(.status=="OK")')
