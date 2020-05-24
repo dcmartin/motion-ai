@@ -25,7 +25,6 @@ for WID in ${WEBCAM_SENSORS}; do
   echo "#"
   echo "${WID}:"
   echo "  name: ${WID}"
-  echo "  all: true"
   echo "  entities:"
   for C in ${WEBCAMS}; do
     echo "    - sensor.${WID}_${C}"
@@ -61,7 +60,6 @@ for WID in ${WEBCAM_SNAPSHOTS}; do
   echo "#"
   echo "${WID}_webcams:"
   echo "  name: ${WID}_webcams"
-  echo "  all: true"
   echo "  entities:"
   for C in ${WEBCAMS}; do
     echo "    - camera.${WID}_snapshot_${C}"
@@ -79,7 +77,6 @@ for WID in ${WEBCAM_CAMERAS}; do
   echo "#"
   echo "${WID}_webcams:"
   echo "  name: ${WID}_webcams"
-  echo "  all: true"
   echo "  entities:"
   for C in ${WEBCAMS}; do
     echo "    - camera.${WID}_${C}"
