@@ -1,0 +1,470 @@
+###
+## homeassistant/motion/sensor/alpr_detected.yaml
+###
+
+## human readable status
+- platform: template
+  sensors:
+    motion_alpr_detected_status:
+      friendly_name: Face detected
+      entity_id:
+        - counter.motion_alpr_detected_counter
+      value_template: >-
+        {% set e = state_attr('sensor.motion_event_alpr','event') %}
+        {% if e is not none and e|lower != 'unavailable' and e|lower != 'unknown' and e != 'null' %}
+          {% set n = utcnow().timestamp()|int %}
+          {% set end = e.end|int %}
+          {% set ago = n - end %}
+          {% set event = e.event %}
+          {% set device = e.device %}
+          {% set camera = e.camera %}
+          {% set elapsed = e.elapsed|int %}
+          {% set what = state_attr('sensor.motion_event_alpr','detected')|list %}
+          {% set count = state_attr('sensor.motion_event_alpr','count')|int %}
+          {% set when = end|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
+          {% set delay = n - end %}
+          ALPR DETECTED: {{ count }} {{ what }};
+          from {{ device -}}/{{- camera -}}/{{- event -}};
+          at {{ when }};
+          ago: {{ ago }};
+          delay: {{ delay }};
+          duration: {{ elapsed }};
+          counter: {{ states('counter.motion_alpr_detected_counter') -}}/{{- states('sensor.motion_alpr_detected_counter') -}}
+        {% else %}
+          {% set s = states('sensor.motion_alpr_detected_status') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
+            {{ s }}
+          {% else %}NO STATUS{% endif %}
+        {% endif %}
+
+## count
+- platform: template
+  sensors:
+    motion_alpr_detected_count:
+      friendly_name: Face detected count
+      entity_id:
+        - counter.motion_alpr_detected_counter
+        - binary_sensor.motion_alpr_detected_expired
+      unit_of_measurement: entities
+      value_template: >
+        {% if is_state('binary_sensor.motion_alpr_detected','on') or is_state('binary_sensor.motion_alpr_detected_expired','off') %}
+          {% set count = state_attr('sensor.motion_event_alpr','count') %}
+          {% if count is not none and count|lower != 'unknown' and count != 'null' %}
+            {{ count|int }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+
+## counter
+- platform: template
+  sensors:
+    motion_alpr_detected_counter:
+      friendly_name: Face detected counter
+      entity_id:
+        - counter.motion_alpr_detected_counter
+      unit_of_measurement: count
+      value_template: >
+        {{ states('counter.motion_alpr_detected_counter')|int }}
+
+## device
+- platform: template
+  sensors:
+    motion_alpr_detected_device:
+      friendly_name: Face detected device
+      entity_id:
+        - counter.motion_alpr_detected_counter
+      value_template: >-
+        {{ state_attr('sensor.motion_event_alpr','event').device }}
+
+## camera
+- platform: template
+  sensors:
+    motion_alpr_detected_camera:
+      friendly_name: Face detected camera
+      entity_id:
+        - counter.motion_alpr_detected_counter
+      value_template: >-
+        {{ state_attr('sensor.motion_event_alpr','event').camera }}
+
+## date
+- platform: template
+  sensors:
+    motion_alpr_detected_date:
+      entity_id:
+        - counter.motion_alpr_detected_counter
+      unit_of_measurement: seconds
+      value_template: >-
+        {% set e = state_attr('sensor.motion_event_alpr','event') %}
+        {% if e is not none and e|lower != 'unavailable' and e|lower != 'unknown' and e != 'null' %}
+          {{ e.end|int }}
+        {% else %}null{% endif %}
+
+## when - human readable
+- platform: template
+  sensors:
+    motion_alpr_detected_when:
+      friendly_name: Face detected at
+      entity_id:
+        - sensor.motion_alpr_detected_date
+      value_template: >-
+        {% set s = states('sensor.motion_alpr_detected_date')|int %}
+        {% if s > 0 %}
+          {% set n = utcnow().timestamp() %}
+          {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}; {{ (n|int-s)|int }} lag
+        {% else %}never{% endif %}
+
+## ago
+- platform: template
+  sensors:
+    motion_alpr_detected_ago:
+      friendly_name: Face detected ago
+      entity_id:
+        - sensor.motion_alpr_detected_date
+        - sensor.time
+      unit_of_measurement: seconds
+      value_template: >
+        {% set s = states('sensor.motion_alpr_detected_date')|int %}
+        {% if s > 0 %}
+          {% set s = utcnow().timestamp()|int - s %}
+          {% if s < 86400 %}{{ s }}{%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+
+## detected_list
+- platform: template
+  sensors:
+    motion_alpr_detected_list:
+      friendly_name: Face detected list
+      entity_id:
+        - counter.motion_alpr_detected_counter
+      value_template: >-
+        {{ states('sensor.motion_alpr_list') }}
+
+## percent
+- platform: template
+  sensors:
+    motion_alpr_detected_percent:
+      friendly_name: Face detected percent
+      entity_id:
+        - counter.motion_alpr_detected_counter
+        - counter.motion_alpr_counter
+      unit_of_measurement: '%'
+      value_template: >-
+        {% if states.counter.motion_alpr_detected_counter|lower != 'none'
+              and states.counter.motion_alpr_detected_counter.state != 'null'
+              and states.counter.motion_alpr_counter|lower != 'none'
+              and states.counter.motion_alpr_counter.state|int > 0 %}
+          {% set value = states.counter.motion_alpr_detected_counter.state|int / states.counter.motion_alpr_counter.state|int * 100.0 %}
+          {{ "%.2f"|format(value|float) }}
+        {%- else -%}null{%- endif -%}
+
+###
+# alpr
+###
+
+## snapshot
+- platform: template
+  sensors:
+    motion_alpr_detected_snapshot:
+      friendly_name: Face detected snapshot
+      entity_id:
+        - counter.motion_alpr_detected_counter
+      value_template: >-
+        {% set event = state_attr('sensor.motion_event_alpr','event') %}
+        {% if event is not none and event|lower != 'unknown' and event != 'null' %}
+          {% set ep = '/local/images/motion_alpr_detected-' + event.camera + '.jpg' %}
+          {% set bu = states('sensor.motion_base_url') %}
+          {% if bu is not none and bu|lower != 'unknown' and bu|length > 0 %}
+            {% set p = bu + ep %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined and p is not none and p|lower != 'unknown' and p|length > 0 %}
+          {{ p }}
+        {% else %}
+          {{ states('sensor.motion_nosignal_picture') }}
+        {% endif %}
+
+#- platform: template
+#  sensors:
+#    motion_alpr_detected_picture:
+#      friendly_name: Face detected picture
+#      entity_id:
+#        - counter.motion_alpr_detected_counter
+#      value_template: >-
+#        {% set ep = state_attr('camera.motion_event_alpr','entity_picture') %}
+#        {% if ep is not none and ep|lower != 'unknown' and ep|length > 0 %}
+#          {% set bu = states('sensor.motion_base_url') %}
+#          {% if bu is not none and bu|lower != 'unknown' and bu|length > 0 %}
+#            {% set p = bu + ep %}
+#          {% endif %}
+#        {% else %}
+#          {% set p = states('sensor.motion_noisesignal_picture') %}
+#        {% endif %}
+#        {% if p is defined and p is not none and p|lower != 'unknown' and p|length > 0 %}
+#          {{ p }}
+#        {% else %}
+#          {{ states('sensor.motion_nosignal_picture') }}
+#        {% endif %}
+
+###
+# statistics
+###
+
+## ago
+#- platform: template
+#  sensors:
+#    motion_alpr_detected_ago_mean:
+#      friendly_name: Face detected ago avg
+#      entity_id:
+#        - sensor.motion_alpr_detected_ago_statistics
+#      unit_of_measurement: seconds
+#      value_template: >-
+#        {% if states('sensor.motion_alpr_detected_ago_statistics') != 'unknown' %}
+#          {{ states.sensor.motion_alpr_detected_ago_statistics.state|float }}
+#        {%- else -%}null{%- endif -%}
+#    motion_alpr_detected_ago_min_value:
+#      friendly_name: Face detected ago min
+#      entity_id:
+#        - sensor.motion_alpr_detected_ago_statistics
+#      unit_of_measurement: seconds
+#      value_template: >-
+#        {% if states('sensor.motion_alpr_detected_ago_statistics') != 'unknown' %}
+#          {{ states.sensor.motion_alpr_detected_ago_statistics.attributes.min_value|int }}
+#        {%- else -%}null{%- endif -%}
+#    motion_alpr_detected_ago_max_value:
+#      friendly_name: Face detected ago max
+#      entity_id:
+#        - sensor.motion_alpr_detected_ago_statistics
+#      unit_of_measurement: seconds
+#      value_template: >-
+#        {% if states('sensor.motion_alpr_detected_ago_statistics') != 'unknown' %}
+#          {{ states.sensor.motion_alpr_detected_ago_statistics.attributes.max_value|int }}
+#        {%- else -%}null{%- endif -%}
+#    motion_alpr_detected_ago_stdev:
+#      friendly_name: Face detected ago stdev
+#      entity_id:
+#        - sensor.motion_alpr_detected_ago_statistics
+#      unit_of_measurement: seconds
+#      value_template: >
+#        {% if states('sensor.motion_alpr_detected_ago_statistics') != 'unknown' %}
+#          {{ states.sensor.motion_alpr_detected_ago_statistics.attributes.standard_deviation|float }}
+#        {%- else -%}null{%- endif -%}
+#    motion_alpr_detected_ago_change:
+#      friendly_name: Face detected ago change
+#      entity_id:
+#        - sensor.motion_alpr_detected_ago_statistics
+#      unit_of_measurement: seconds
+#      value_template: >
+#        {% if states('sensor.motion_alpr_detected_ago_statistics') != 'unknown' %}
+#          {{ states.sensor.motion_alpr_detected_ago_statistics.attributes.change|float }}
+#        {%- else -%}null{%- endif -%}
+#    motion_alpr_detected_ago_stdev_change:
+#      friendly_name: Face detected ago stdev change
+#      entity_id:
+#        - sensor.motion_alpr_detected_ago_stdev_statistics
+#      unit_of_measurement: seconds
+#      value_template: >
+#        {% if states.sensor.motion_alpr_detected_ago_stdev_statistics|lower != 'none' %}
+#          {{ states.sensor.motion_alpr_detected_ago_stdev_statistics.attributes.change|float }}
+#        {%- else -%}null{%- endif -%}
+#
+### counter
+#- platform: template
+#  sensors:
+#    motion_alpr_detected_counter_mean:
+#      friendly_name: Face detected avg
+#      entity_id:
+#        - sensor.motion_alpr_detected_counter_statistics
+#      unit_of_measurement: count
+#      value_template: >-
+#        {% if states('sensor.motion_alpr_detected_counter_statistics') != 'unknown' %}
+#          {{ states.sensor.motion_alpr_detected_counter_statistics.state|float }}
+#        {%- else -%}null{%- endif -%}
+#    motion_alpr_detected_counter_min_value:
+#      friendly_name: Face detected min
+#      entity_id:
+#        - sensor.motion_alpr_detected_counter_statistics
+#      unit_of_measurement: count
+#      value_template: >-
+#        {% if states('sensor.motion_alpr_detected_counter_statistics') != 'unknown' %}
+#          {{ states.sensor.motion_alpr_detected_counter_statistics.attributes.min_value|int }}
+#        {%- else -%}null{%- endif -%}
+#    motion_alpr_detected_counter_max_value:
+#      friendly_name: Face detected max
+#      entity_id:
+#        - sensor.motion_alpr_detected_counter_statistics
+#      unit_of_measurement: count
+#      value_template: >-
+#        {% if states('sensor.motion_alpr_detected_counter_statistics') != 'unknown' %}
+#          {{ states.sensor.motion_alpr_detected_counter_statistics.attributes.max_value|int }}
+#        {%- else -%}null{%- endif -%}
+#    motion_alpr_detected_counter_stdev:
+#      friendly_name: Face detected stdev
+#      entity_id:
+#        - sensor.motion_alpr_detected_counter_statistics
+#      unit_of_measurement: count
+#      value_template: >
+#        {% if states('sensor.motion_alpr_detected_counter_statistics') != 'unknown' %}
+#          {{ states.sensor.motion_alpr_detected_counter_statistics.attributes.standard_deviation|float }}
+#        {%- else -%}null{%- endif -%}
+#    motion_alpr_detected_counter_change:
+#      friendly_name: Face detected change
+#      entity_id:
+#        - sensor.motion_alpr_detected_counter_statistics
+#      unit_of_measurement: count
+#      value_template: >
+#        {% if states('sensor.motion_alpr_detected_counter_statistics') != 'unknown' %}
+#          {{ states.sensor.motion_alpr_detected_counter_statistics.attributes.change|float }}
+#        {%- else -%}null{%- endif -%}
+#
+### percent
+#- platform: template
+#  sensors:
+#    motion_alpr_detected_percent_mean:
+#      friendly_name: Face detected percent avg
+#      entity_id:
+#        - sensor.motion_alpr_detected_percent_statistics
+#      unit_of_measurement: '%'
+#      value_template: >-
+#        {% if states('sensor.motion_alpr_detected_percent_statistics') != 'unknown' %}
+#          {{ states.sensor.motion_alpr_detected_percent_statistics.state|float }}
+#        {%- else -%}null{%- endif -%}
+#    motion_alpr_detected_percent_min_value:
+#      friendly_name: Face detected percent min
+#      entity_id:
+#        - sensor.motion_alpr_detected_percent_statistics
+#      unit_of_measurement: '%'
+#      value_template: >-
+#        {% if states('sensor.motion_alpr_detected_percent_statistics') != 'unknown' %}
+#          {{ states.sensor.motion_alpr_detected_percent_statistics.attributes.min_value|float }}
+#        {%- else -%}null{%- endif -%}
+#    motion_alpr_detected_percent_max_value:
+#      friendly_name: Face detected percent max
+#      entity_id:
+#        - sensor.motion_alpr_detected_percent_statistics
+#      unit_of_measurement: '%'
+#      value_template: >-
+#        {% if states('sensor.motion_alpr_detected_percent_statistics') != 'unknown' %}
+#          {{ states.sensor.motion_alpr_detected_percent_statistics.attributes.max_value|float }}
+#        {%- else -%}null{%- endif -%}
+#    motion_alpr_detected_percent_stdev:
+#      friendly_name: Face detected percent stdev
+#      entity_id:
+#        - sensor.motion_alpr_detected_percent_statistics
+#      unit_of_measurement: '%'
+#      value_template: >
+#        {% if states('sensor.motion_alpr_detected_percent_statistics') != 'unknown' %}
+#          {{ states.sensor.motion_alpr_detected_percent_statistics.attributes.standard_deviation|float }}
+#        {%- else -%}null{%- endif -%}
+#    motion_alpr_detected_percent_change:
+#      friendly_name: Face detected percent change
+#      entity_id:
+#        - sensor.motion_alpr_detected_percent_statistics
+#      unit_of_measurement: '%'
+#      value_template: >
+#        {% if states('sensor.motion_alpr_detected_percent_statistics') != 'unknown' %}
+#          {{ states.sensor.motion_alpr_detected_percent_statistics.attributes.change|float }}
+#        {%- else -%}null{%- endif -%}
+#
+### count
+#- platform: template
+#  sensors:
+#    motion_alpr_detected_count_mean:
+#      friendly_name: Face detected count avg
+#      entity_id:
+#        - sensor.motion_alpr_detected_count_statistics
+#      unit_of_measurement: entities
+#      value_template: >-
+#        {% if states('sensor.motion_alpr_detected_count_statistics') != 'unknown' %}
+#          {{ states.sensor.motion_alpr_detected_count_statistics.state|float }}
+#        {%- else -%}null{%- endif -%}
+#    motion_alpr_detected_count_min_value:
+#      friendly_name: Face detected count min
+#      entity_id:
+#        - sensor.motion_alpr_detected_count_statistics
+#      unit_of_measurement: entities
+#      value_template: >-
+#        {% if states('sensor.motion_alpr_detected_count_statistics') != 'unknown' %}
+#          {{ states.sensor.motion_alpr_detected_count_statistics.attributes.min_value|int }}
+#        {%- else -%}null{%- endif -%}
+#    motion_alpr_detected_count_max_value:
+#      friendly_name: Face detected count max
+#      entity_id:
+#        - sensor.motion_alpr_detected_count_statistics
+#      unit_of_measurement: entities
+#      value_template: >-
+#        {% if states('sensor.motion_alpr_detected_count_statistics') != 'unknown' %}
+#          {{ states.sensor.motion_alpr_detected_count_statistics.attributes.max_value|int }}
+#        {%- else -%}null{%- endif -%}
+#    motion_alpr_detected_count_stdev:
+#      friendly_name: Face detected count stdev
+#      entity_id:
+#        - sensor.motion_alpr_detected_count_statistics
+#      unit_of_measurement: entities
+#      value_template: >
+#        {% if states('sensor.motion_alpr_detected_count_statistics') != 'unknown' %}
+#          {{ states.sensor.motion_alpr_detected_count_statistics.attributes.standard_deviation|float }}
+#        {%- else -%}null{%- endif -%}
+#    motion_alpr_detected_count_change:
+#      friendly_name: Face detected count change
+#      entity_id:
+#        - sensor.motion_alpr_detected_count_statistics
+#      unit_of_measurement: entities
+#      value_template: >
+#        {% if states('sensor.motion_alpr_detected_count_statistics') != 'unknown' %}
+#          {{ states.sensor.motion_alpr_detected_count_statistics.attributes.change|float }}
+#        {%- else -%}null{%- endif -%}
+#
+## counter
+#- platform: statistics
+#  name: motion_alpr_detected_counter_statistics
+#  entity_id: sensor.motion_alpr_detected_counter
+#  sampling_size: 100
+#  max_age:
+#    hours: 72
+#- platform: statistics
+#  name: motion_alpr_detected_counter_stdev_statistics
+#  entity_id: sensor.motion_alpr_detected_counter_stdev
+#  sampling_size: 100
+#  max_age:
+#    hours: 72
+#
+## count
+#- platform: statistics
+#  name: motion_alpr_detected_count_statistics
+#  entity_id: sensor.motion_alpr_detected_count
+#  sampling_size: 100
+#  max_age:
+#    hours: 72
+#- platform: statistics
+#  name: motion_alpr_detected_count_stdev_statistics
+#  entity_id: sensor.motion_alpr_detected_count_stdev
+#  sampling_size: 100
+#  max_age:
+#    hours: 72
+#
+## ago
+#- platform: statistics
+#  name: motion_alpr_detected_ago_statistics
+#  entity_id: sensor.motion_alpr_detected_ago
+#  sampling_size: 100
+#  max_age:
+#    hours: 72
+#- platform: statistics
+#  name: motion_alpr_detected_ago_stdev_statistics
+#  entity_id: sensor.motion_alpr_detected_ago_stdev
+#  sampling_size: 100
+#  max_age:
+#    hours: 72
+#
+## percent
+#- platform: statistics
+#  name: motion_alpr_detected_percent_statistics
+#  entity_id: sensor.motion_alpr_detected_percent
+#  sampling_size: 100
+#  max_age:
+#    hours: 72
+#- platform: statistics
+#  name: motion_alpr_detected_percent_stdev_statistics
+#  entity_id: sensor.motion_alpr_detected_percent_stdev
+#  sampling_size: 100
+#  max_age:
+#    hours: 72
