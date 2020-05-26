@@ -98,6 +98,7 @@ MOTION_YAML := \
 	sensor/event_image.yaml \
 	sensor/event_end.yaml \
 	sensor/event_face.yaml \
+	sensor/event_alpr.yaml \
 	sensor/event_annotated.yaml \
 	sensor/device.yaml \
 	sensor/device_start.yaml \
@@ -107,6 +108,7 @@ MOTION_YAML := \
 	camera/event_end.yaml \
 	camera/event_animated.yaml \
 	camera/event_face.yaml \
+	camera/event_alpr.yaml \
 	camera/event_annotated.yaml
 
 ###
