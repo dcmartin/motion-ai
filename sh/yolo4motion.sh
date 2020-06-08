@@ -1,43 +1,34 @@
 #!/bin/bash
 
-# calculated
-BUILD_ARCH=$(uname -m | sed -e 's/aarch64.*/arm64/' -e 's/x86_64.*/amd64/' -e 's/armv.*/arm/')
-
-# requires docker
+## requires docker
 if [ -z "$(command -v docker)" ]; then echo "Install docker; exiting" &> /dev/stderr; exit 1; fi
 
-## NVIDIA
+## calculated
+BUILD_ARCH=$(uname -m | sed -e 's/aarch64.*/arm64/' -e 's/x86_64.*/amd64/' -e 's/armv.*/arm/')
 
-# inspect docker 
+## NVIDIA specialization
 info=$(docker info --format '{{ json . }}')
 has_nvidia=$(echo "${info}" | jq '.Runtimes|to_entries[]|select(.key=="nvidia")!=null')
 is_default=$(echo "${info}" | jq '.DefaultRuntime=="nvidia"')
-
-# test if nvidia default runtim
 if [ "${is_default:-false}" = 'true' ]; then
   echo 'nVidia runtime default' &> /dev/stderr
-  case ${BUILD_ARCH} in
-    arm64)
-      # ARM64 w/ NVIDIA GPU and RUNTIME
-      CONTAINER_ID="com.github.dcmartin.open-horizon.yolo-tegra4motion"
-      ;;
-    amd64)
-      # AMD64 w/ NVIDIA GPU and RUNTIME
-      CONTAINER_ID="com.github.dcmartin.open-horizon.yolo-cuda4motion"
-      ;;
-    *)
-      echo "No support for ${BUILD_ARCH}; CPU only" &> /dev/stderr
-      ;;
-  esac
+  NVCC=${NVCC:-:-/usr/local/cuda/bin/nvcc}
+  if [ -e ${NVCC} ]; then
+    CUDA=$(${NVCC} --version | egrep '^Cuda' | awk -F, '{ print $$2 $$3 }')
+    if [ ! -z "${CUDA:-}" ]; then CUDA=$(echo "${CUDA}" | awk '{ print $2 }'); fi
+    if [ ! -z "${CUDA:-}" ]; then BUILD_ARCH="${BUILD_ARCH}-${CUDA}"; fi
+  fi
 elif [ "${has_nvidia:-false}" = 'true' ]; then
   echo 'nVidia runtime detected, but not default; CPU only' &> /dev/stderr
 fi
+
+## default
 if [ -z "${CONTAINER_ID:-}" ]; then
   CONTAINER_ID="com.github.dcmartin.open-horizon.yolo4motion"
 fi
 
 # report
-echo "Using container named: ${DOCKER_NAMESPACE:-dcmartin}/${CONTAINER_ID}"  &> /dev/stderr
+echo "Using container named: ${DOCKER_NAMESPACE:-dcmartin}/${BUILD_ARCH}_${CONTAINER_ID}"  &> /dev/stderr
 
 ## PARAMETERS
 
