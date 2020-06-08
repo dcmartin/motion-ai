@@ -10,13 +10,23 @@ BUILD_ARCH=$(uname -m | sed -e 's/aarch64.*/arm64/' -e 's/x86_64.*/amd64/' -e 's
 info=$(docker info --format '{{ json . }}')
 has_nvidia=$(echo "${info}" | jq '.Runtimes|to_entries[]|select(.key=="nvidia")!=null')
 is_default=$(echo "${info}" | jq '.DefaultRuntime=="nvidia"')
+
 if [ "${is_default:-false}" = 'true' ]; then
   echo 'nVidia runtime default' &> /dev/stderr
-  NVCC=${NVCC:-:-/usr/local/cuda/bin/nvcc}
+  NVCC=${NVCC:-/usr/local/cuda/bin/nvcc}
   if [ -e ${NVCC} ]; then
-    CUDA=$(${NVCC} --version | egrep '^Cuda' | awk -F, '{ print $$2 $$3 }')
-    if [ ! -z "${CUDA:-}" ]; then CUDA=$(echo "${CUDA}" | awk '{ print $2 }'); fi
-    if [ ! -z "${CUDA:-}" ]; then BUILD_ARCH="${BUILD_ARCH}-${CUDA}"; fi
+    CUDA=$(${NVCC} --version | egrep '^Cuda' | awk -F, '{ print $2 $3 }')
+    echo "Found nvcc: ${NVCC}; CUDA: ${CUDA}" &> /dev/stderr
+    if [ ! -z "${CUDA:-}" ]; then 
+      CUDA=$(echo "${CUDA}" | awk '{ print $2 }')
+      if [ ! -z "${CUDA:-}" ]; then 
+        BUILD_ARCH="${BUILD_ARCH}-${CUDA}"
+      else
+        echo "No CUDA" &> /dev/stderr
+      fi
+    else
+      echo "No CUDA" &> /dev/stderr
+    fi
   fi
 elif [ "${has_nvidia:-false}" = 'true' ]; then
   echo 'nVidia runtime detected, but not default; CPU only' &> /dev/stderr
