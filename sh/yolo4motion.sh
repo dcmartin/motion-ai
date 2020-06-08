@@ -82,7 +82,7 @@ if [ $(echo "${SERVICE}" | jq '.mount!=null') = true ]; then
     target=$(echo "${mount}" | jq -r '.target' | envsubst)
 
     if [ -e "${source}" ]; then
-      OPTIONS="${OPTIONS} --mount type=bind,source=${source},target=${target}"
+      OPTIONS="${OPTIONS:-} --mount type=bind,source=${source},target=${target}"
     else
       echo "+++ WARNING -- $0 $$ -- no source: ${source}; not mounted into ${target}" &> /dev/stderr
     fi
@@ -146,6 +146,7 @@ CID=$(docker run -d \
   -e LOG_LEVEL=$(echo "${LOG}" | jq -r '.level') \
   -e LOGTO=$(echo "${LOG}" | jq -r '.logto') \
   -e DEBUG=$(echo "${LOG}" | jq -r '.debug') \
+  ${OPTIONS:-} \
   "${DOCKER_NAMESPACE:-dcmartin}/${ARCH}_${ID}:${TAG}" 2> /dev/stderr)
 
 # report
