@@ -70,7 +70,26 @@ LOG='{"debug":'${DEBUG}',"level":"'"${LOG_LEVEL}"'","logto":"'"${LOGTO}"'"}'
 
 ## SERVICE
 if [ -z "${CONTAINER_TAG:-}" ] && [ -s CONTAINER_TAG ]; then CONTAINER_TAG=$(cat CONTAINER_TAG); fi; CONTAINER_TAG=${CONTAINER_TAG:-0.1.2}
-SERVICE='{"label":"yolo4motion","id":"'${CONTAINER_ID}'","tag":"'${CONTAINER_TAG}'","arch":"'${SERVICE_ARCH:-${BUILD_ARCH}}'","ports":{"service":'${SERVICE_PORT:-80}',"host":'${HOST_PORT:-4662}'}}'
+SERVICE='{"label":"yolo4motion","id":"'${CONTAINER_ID}'","tag":"'${CONTAINER_TAG}'","arch":"'${SERVICE_ARCH:-${BUILD_ARCH}}'","ports":{"service":'${SERVICE_PORT:-80}',"host":'${HOST_PORT:-4662}'},"mount":[{"source":"'${PWD}'/yolov2-tiny.weights","target":"/openyolo/darknet/yolov2-tiny.weights"},{"source":"'${PWD}'/yolov3-tiny.weights","target":"/openyolo/darknet/yolov3-tiny.weights"},{"source":"'${PWD}'/yolov2.weights","target":"/openyolo/darknet/yolov2.weights"},{"source":"'${PWD}'/yolov3.weights","target":"/openyolo/darknet/yolov3.weights"}]}'
+
+# extra mounts
+if [ $(echo "${SERVICE}" | jq '.mount!=null') = true ]; then
+  mounts=$(echo "${SERVICE}" | jq '.mount|to_entries')
+  keys=$(echo "${mounts}" | jq '.[]|.key')
+  for key in ${keys}; do
+    mount=$(echo "${mounts}" | jq '.[]|select(.key=='${key}').value')
+    source=$(echo "${mount}" | jq -r '.source' | envsubst)
+    target=$(echo "${mount}" | jq -r '.target' | envsubst)
+
+    if [ -e "${source}" ]; then
+      OPTIONS="${OPTIONS} --mount type=bind,source=${source},target=${target}"
+    else
+      echo "+++ WARNING -- $0 $$ -- no source: ${source}; not mounted into ${target}" &> /dev/stderr
+    fi
+  done
+else
+  if [ "${DEBUG:-}" = true ]; then echo "--- INFO -- $0 $$ -- no mount" &> /dev/stderr; fi
+fi
 
 # notify
 echo 'SERVICE: '$(echo "${SERVICE}" | jq -c '.') &> /dev/stderr
