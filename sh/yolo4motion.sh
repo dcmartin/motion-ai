@@ -1,43 +1,44 @@
 #!/bin/bash
 
-# calculated
-BUILD_ARCH=$(uname -m | sed -e 's/aarch64.*/arm64/' -e 's/x86_64.*/amd64/' -e 's/armv.*/arm/')
-
-# requires docker
+## requires docker
 if [ -z "$(command -v docker)" ]; then echo "Install docker; exiting" &> /dev/stderr; exit 1; fi
 
-## NVIDIA
+## calculated
+BUILD_ARCH=$(uname -m | sed -e 's/aarch64.*/arm64/' -e 's/x86_64.*/amd64/' -e 's/armv.*/arm/')
 
-# inspect docker 
+## NVIDIA specialization
 info=$(docker info --format '{{ json . }}')
 has_nvidia=$(echo "${info}" | jq '.Runtimes|to_entries[]|select(.key=="nvidia")!=null')
 is_default=$(echo "${info}" | jq '.DefaultRuntime=="nvidia"')
 
-# test if nvidia default runtim
 if [ "${is_default:-false}" = 'true' ]; then
   echo 'nVidia runtime default' &> /dev/stderr
-  case ${BUILD_ARCH} in
-    arm64)
-      # ARM64 w/ NVIDIA GPU and RUNTIME
-      CONTAINER_ID="com.github.dcmartin.open-horizon.yolo-tegra4motion"
-      ;;
-    amd64)
-      # AMD64 w/ NVIDIA GPU and RUNTIME
-      CONTAINER_ID="com.github.dcmartin.open-horizon.yolo-cuda4motion"
-      ;;
-    *)
-      echo "No support for ${BUILD_ARCH}; CPU only" &> /dev/stderr
-      ;;
-  esac
+  NVCC=${NVCC:-/usr/local/cuda/bin/nvcc}
+  if [ -e ${NVCC} ]; then
+    CUDA=$(${NVCC} --version | egrep '^Cuda' | awk -F, '{ print $2 $3 }')
+    echo "Found nvcc: ${NVCC}; CUDA: ${CUDA}" &> /dev/stderr
+    if [ ! -z "${CUDA:-}" ]; then 
+      CUDA=$(echo "${CUDA}" | awk '{ print $2 }')
+      if [ ! -z "${CUDA:-}" ]; then 
+        BUILD_ARCH="${BUILD_ARCH}-${CUDA}"
+      else
+        echo "No CUDA" &> /dev/stderr
+      fi
+    else
+      echo "No CUDA" &> /dev/stderr
+    fi
+  fi
 elif [ "${has_nvidia:-false}" = 'true' ]; then
   echo 'nVidia runtime detected, but not default; CPU only' &> /dev/stderr
 fi
+
+## default
 if [ -z "${CONTAINER_ID:-}" ]; then
   CONTAINER_ID="com.github.dcmartin.open-horizon.yolo4motion"
 fi
 
 # report
-echo "Using container named: ${DOCKER_NAMESPACE:-dcmartin}/${CONTAINER_ID}"  &> /dev/stderr
+echo "Using container named: ${DOCKER_NAMESPACE:-dcmartin}/${BUILD_ARCH}_${CONTAINER_ID}"  &> /dev/stderr
 
 ## PARAMETERS
 
@@ -55,7 +56,7 @@ if [ -z "${MOTION_CAMERA:-}" ] && [ -s MOTION_CAMERA ]; then MOTION_CAMERA=$(cat
 MOTION='{"group":"'${MOTION_GROUP}'","client":"'${MOTION_CLIENT}'","camera":"'${MOTION_CAMERA}'"}'
 
 ## YOLO
-if [ -z "${YOLO_CONFIG:-}" ] && [ -s YOLO_CONFIG ]; then YOLO_CONFIG=$(cat YOLO_CONFIG); fi; YOLO_CONFIG=${YOLO_CONFIG:-tiny}
+if [ -z "${YOLO_CONFIG:-}" ] && [ -s YOLO_CONFIG ]; then YOLO_CONFIG=$(cat YOLO_CONFIG); fi; YOLO_CONFIG=${YOLO_CONFIG:-tiny-v2}
 if [ -z "${YOLO_ENTITY:-}" ] && [ -s YOLO_ENTITY ]; then YOLO_ENTITY=$(cat YOLO_ENTITY); fi; YOLO_ENTITY=${YOLO_ENTITY:-all}
 if [ -z "${YOLO_SCALE:-}" ] && [ -s YOLO_SCALE ]; then YOLO_SCALE=$(cat YOLO_SCALE); fi; YOLO_SCALE=${YOLO_SCALE:-none}
 if [ -z "${YOLO_THRESHOLD:-}" ] && [ -s YOLO_THRESHOLD ]; then YOLO_THRESHOLD=$(cat YOLO_THRESHOLD); fi; YOLO_THRESHOLD=${YOLO_THRESHOLD:-0.25}
@@ -69,7 +70,26 @@ LOG='{"debug":'${DEBUG}',"level":"'"${LOG_LEVEL}"'","logto":"'"${LOGTO}"'"}'
 
 ## SERVICE
 if [ -z "${CONTAINER_TAG:-}" ] && [ -s CONTAINER_TAG ]; then CONTAINER_TAG=$(cat CONTAINER_TAG); fi; CONTAINER_TAG=${CONTAINER_TAG:-0.1.2}
-SERVICE='{"label":"yolo4motion","id":"'${CONTAINER_ID}'","tag":"'${CONTAINER_TAG}'","arch":"'${SERVICE_ARCH:-${BUILD_ARCH}}'","ports":{"service":'${SERVICE_PORT:-80}',"host":'${HOST_PORT:-4662}'}}'
+SERVICE='{"label":"yolo4motion","id":"'${CONTAINER_ID}'","tag":"'${CONTAINER_TAG}'","arch":"'${SERVICE_ARCH:-${BUILD_ARCH}}'","ports":{"service":'${SERVICE_PORT:-80}',"host":'${HOST_PORT:-4662}'},"mount":[{"source":"'${PWD}'/yolov2-tiny.weights","target":"/openyolo/darknet/yolov2-tiny.weights"},{"source":"'${PWD}'/yolov3-tiny.weights","target":"/openyolo/darknet/yolov3-tiny.weights"},{"source":"'${PWD}'/yolov2.weights","target":"/openyolo/darknet/yolov2.weights"},{"source":"'${PWD}'/yolov3.weights","target":"/openyolo/darknet/yolov3.weights"}]}'
+
+# extra mounts
+if [ $(echo "${SERVICE}" | jq '.mount!=null') = true ]; then
+  mounts=$(echo "${SERVICE}" | jq '.mount|to_entries')
+  keys=$(echo "${mounts}" | jq '.[]|.key')
+  for key in ${keys}; do
+    mount=$(echo "${mounts}" | jq '.[]|select(.key=='${key}').value')
+    source=$(echo "${mount}" | jq -r '.source' | envsubst)
+    target=$(echo "${mount}" | jq -r '.target' | envsubst)
+
+    if [ -e "${source}" ]; then
+      OPTIONS="${OPTIONS:-} --mount type=bind,source=${source},target=${target}"
+    else
+      echo "+++ WARNING -- $0 $$ -- no source: ${source}; not mounted into ${target}" &> /dev/stderr
+    fi
+  done
+else
+  if [ "${DEBUG:-}" = true ]; then echo "--- INFO -- $0 $$ -- no mount" &> /dev/stderr; fi
+fi
 
 # notify
 echo 'SERVICE: '$(echo "${SERVICE}" | jq -c '.') &> /dev/stderr
@@ -126,6 +146,7 @@ CID=$(docker run -d \
   -e LOG_LEVEL=$(echo "${LOG}" | jq -r '.level') \
   -e LOGTO=$(echo "${LOG}" | jq -r '.logto') \
   -e DEBUG=$(echo "${LOG}" | jq -r '.debug') \
+  ${OPTIONS:-} \
   "${DOCKER_NAMESPACE:-dcmartin}/${ARCH}_${ID}:${TAG}" 2> /dev/stderr)
 
 # report
