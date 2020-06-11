@@ -15,7 +15,7 @@ This   repository is a demonstration and proof-of-concept for an **AI assistants
 ![](https://img.shields.io/github/contributors/dcmartin/motion.svg?style=flat)
 
 [![Build Status](https://travis-ci.org/dcmartin/motion.svg?branch=master)](https://travis-ci.org/dcmartin/motion)
-[![Coverage Status](https://coveralls.io/repos/github/dcmartin/motion/badge.svg?branch=master)](https://coveralls.io/github/dcmartin/motion?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/dcmartin/motion-ai/badge.svg?branch=master)](https://coveralls.io/github/dcmartin/motion?branch=master)
 
 ## Introduction
 Most consumer-grade Web cameras -- or similar devices -- send notifications when _motion_ occurs.  Motion is often defined as a change in the image from one frame to the next; these changes are often influenced by light, wind, and many other environmental factors -- producing a large number of notifications (a.k.a. _false positives_).  While limitations may be set on the amount of change to indicate motion, a better solution would detect and classify entities of interest whenever motion occurs and send notifications only when specified are present.
@@ -47,7 +47,7 @@ Support for Intel  Neural Compute Stick v2 is being considered for `armv7`.
 [Home Assistant](http://home-assistant.io)  is an open source home automation software putting local control and privacy first. Powered by a worldwide community of tinkerers and DIY enthusiasts. Perfect to run on a [Raspberry Pi](https://en.wikipedia.org/wiki/Raspberry_Pi) or a local server.   HomeAssistant includes _add-on_ Docker containers  from the HomeAssistant [community](https://github.com/hassio-addons/repository/blob/master/README.md).  Please refer to the installation instructions for Home Assistant in [`HASSIO.md`](docs/HASSIO.md).
 
 ###  `motion` _add-on_
-The Home Assistant _add-on_ [`motion`](http://github.com/dcmartin/hassio-addons/tree/master/motion/README.md) provides the capabilities of the [Motion Project](https://motion-project.github.io/) software in conjunction with a specified message broker to capture and process motion detection events.  These events are published as `MQTT`  _topics_ for consumption by Home Assistant and the supporting  _services_.
+The Home Assistant _add-on_ [`motion`](http://github.com/dcmartin/hassio-addons/tree/master/motion-ai/README.md) provides the capabilities of the [Motion Project](https://motion-project.github.io/) software in conjunction with a specified message broker to capture and process motion detection events.  These events are published as `MQTT`  _topics_ for consumption by Home Assistant and the supporting  _services_.
 
 The  _add-on_ supports three _types_ of cameras:
 
@@ -106,7 +106,7 @@ In addition, the following community _add-ons_ should be configured appropriatel
 [![](https://images.microbadger.com/badges/version/dcmartin/arm64_com.github.dcmartin.open-horizon.yolo-tegra4motion.svg)](https://microbadger.com/images/dcmartin/arm64_com.github.dcmartin.open-horizon.yolo-tegra4motion)
 [![Docker Pulls][pulls-tegra]][docker-tegra]
 
-The Open Horizon _service_ [`yolo4motion`](http://github.com/dcmartin/open-horizon/tree/master/yolo4motion/README.md) provides the capabilities of the [YOLO](https://github.com/dcmartion/openyolo/) software in conjunction with a specified `MQTT` message broker.  This service subscribes to the _topic_ `{group}/{device}/{camera}/event/end` and processes the JavaScript Object Notation (JSON) payload which includes a selected `JPEG` image (n.b. `BASE64` encoded) from the motion event.  This service may be used independently of the Open Horizon service as a stand-alone Docker container; see [`yolo4motion.sh`](http://github.com/dcmartin/motion/tree/master/sh/yolo4motion.sh)
+The Open Horizon _service_ [`yolo4motion`](http://github.com/dcmartin/open-horizon/tree/master/services/yolo4motion/README.md) provides the capabilities of the [YOLO](https://github.com/dcmartion/openyolo/) software in conjunction with a specified `MQTT` message broker.  This service subscribes to the _topic_ `{group}/{device}/{camera}/event/end` and processes the JavaScript Object Notation (JSON) payload which includes a selected `JPEG` image (n.b. `BASE64` encoded) from the motion event.  This service may be used independently of the Open Horizon service as a stand-alone Docker container; see [`yolo4motion.sh`](http://github.com/dcmartin/motion-ai/tree/master/sh/yolo4motion.sh)
 
 ### &#128663; `alpr4motion`
 ![Supports amd64 Architecture][amd64-shield]
@@ -133,7 +133,7 @@ The Open Horizon _service_ [`yolo4motion`](http://github.com/dcmartin/open-horiz
 [docker-alpr4motion-arm64]: https://hub.docker.com/r/dcmartin/arm64_com.github.dcmartin.open-horizon.alpr4motion
 [pulls-alpr4motion-arm64]: https://img.shields.io/docker/pulls/dcmartin/arm64_com.github.dcmartin.open-horizon.alpr4motion.svg
 
-The Open Horizon _service_ [`alpr4motion`](http://github.com/dcmartin/open-horizon/tree/master/alpr4motion/README.md) provides the capabilities of the [OpenALPR](https://github.com/dcmartin/openalpr/) software in conjunction with a specified `MQTT` message broker.  This service subscribes to the _topic_ `{group}/{device}/{camera}/event/end` and processes the JavaScript Object Notation (JSON) payload which includes a selected `JPEG` image (n.b. `BASE64` encoded) from the motion event.  This service may be used independently of the Open Horizon service as a stand-alone Docker container; see [`alpr4motion.sh`](http://github.com/dcmartin/motion/tree/master/sh/alpr4motion.sh)
+The Open Horizon _service_ [`alpr4motion`](http://github.com/dcmartin/open-horizon/tree/master/services/alpr4motion/README.md) provides the capabilities of the [OpenALPR](https://github.com/dcmartin/openalpr/) software in conjunction with a specified `MQTT` message broker.  This service subscribes to the _topic_ `{group}/{device}/{camera}/event/end` and processes the JavaScript Object Notation (JSON) payload which includes a selected `JPEG` image (n.b. `BASE64` encoded) from the motion event.  This service may be used independently of the Open Horizon service as a stand-alone Docker container; see [`alpr4motion.sh`](http://github.com/dcmartin/motion-ai/tree/master/sh/alpr4motion.sh)
 
 ### &#9786; `face4motion`
 ![Supports amd64 Architecture][amd64-shield]
@@ -163,14 +163,14 @@ The Open Horizon _service_ [`alpr4motion`](http://github.com/dcmartin/open-horiz
 [arm64-shield]: https://img.shields.io/badge/arm64-yes-green.svg
 [amd64-shield]: https://img.shields.io/badge/amd64-yes-green.svg
 [arm-shield]: https://img.shields.io/badge/arm-yes-green.svg
-The Open Horizon _service_ [`face4motion`](http://github.com/dcmartin/open-horizon/tree/master/face4motion/README.md) provides the capabilities of the [OpenFACE](https://github.com/dcmartin/openface/) software in conjunction with a specified `MQTT` message broker.  This service subscribes to the _topic_ `{group}/{device}/{camera}/event/end` and processes the JavaScript Object Notation (JSON) payload which includes a selected `JPEG` image (n.b. `BASE64` encoded) from the motion event.  This service may be used independently of the Open Horizon service as a stand-alone Docker container; see [`face4motion.sh`](http://github.com/dcmartin/motion/tree/master/sh/face4motion.sh)
+The Open Horizon _service_ [`face4motion`](http://github.com/dcmartin/open-horizon/tree/master/services/face4motion/README.md) provides the capabilities of the [OpenFACE](https://github.com/dcmartin/openface/) software in conjunction with a specified `MQTT` message broker.  This service subscribes to the _topic_ `{group}/{device}/{camera}/event/end` and processes the JavaScript Object Notation (JSON) payload which includes a selected `JPEG` image (n.b. `BASE64` encoded) from the motion event.  This service may be used independently of the Open Horizon service as a stand-alone Docker container; see [`face4motion.sh`](http://github.com/dcmartin/motion-ai/tree/master/sh/face4motion.sh)
 
 # Example
 When combined together and operating successfully, the system automatically detects the `person` entity, as well as any faces and license plates, updating both the Home Assistant Web user-interface and providing notifications in the browser (n.b. mobile notifications require SSL and are pending).
 
 Data may be saved locally and processed to produce historical graphs as well as exported for analysis using other tools, e.g. time-series database _InfluxDB_ and analysis front-end _Grafana_.  Data may also be processed using _Jupyter_ notebooks.
 
-[![example](docs/samples/example.png?raw=true "EXAMPLE")](http://github.com/dcmartin/hassio-addons/tree/master/motion/docs/samples/example.png)
+[![example](docs/samples/example.png?raw=true "EXAMPLE")](http://github.com/dcmartin/hassio-addons/tree/master/motion-ai/docs/samples/example.png)
 
 ## Operational Scenarios
 This system may be used to build solutions for various operational scenarios, e.g. monitoring the elderly to determine patterns of daily activity and alert care-givers and loved ones when aberrations occur; see the [Age-At-Home](http://www.age-at-home.com/) project for more information; example below:
