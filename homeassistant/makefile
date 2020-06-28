@@ -66,7 +66,7 @@ MOTION_DIRS := camera/motion group/motion counter/motion sensor/motion automatio
 
 default: all
 
-all: motion/webcams.json lovelace.json $(MOTION_DIRS) $(PACKAGES) secrets.yaml
+all: motion/webcams.json lovelace.json lovelace_dashboards.json lovelace.developer.json $(MOTION_DIRS) $(PACKAGES) secrets.yaml
 
 motion/webcams.json:
 	@echo "MISSING: please create $(PWD)/$@ from example template: $(PWD)/$@.tmpl"
@@ -139,7 +139,7 @@ secrets.yaml: secrets.yaml.tmpl makefile $(PWD)
 	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
 	&& cat secrets.yaml.tmpl | envsubst > $@
 
-lovelace.json: lovelace.json.tmpl
+lovelace.developer.json: lovelace.developer.json.tmpl
 	@export \
 	  DOMAIN_NAME="$(DOMAIN_NAME)" \
 	  HOST_IPADDR="$(HOST_IPADDR)" \
@@ -200,13 +200,85 @@ lovelace.json: lovelace.json.tmpl
 	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="motion_status_camera").entities)+='"$$(jq '[.[]|("sensor.motion_status_camera_"+.name)]' motion/webcams.json)" \
 	 > $@
 	@echo "MADE $@"
-	rm -f .storage/lovelace && mkdir -p .storage/ && ln -s ../$@ .storage/lovelace
+	rm -f .storage/lovelace.lovelace_developer
+	-mkdir -p .storage/
+	ln -s ../$@ .storage/lovelace.lovelace_developer
+
+lovelace.json: lovelace.json.tmpl
+	@export \
+	  DOMAIN_NAME="$(DOMAIN_NAME)" \
+	  HOST_IPADDR="$(HOST_IPADDR)" \
+	  HOST_NAME="$(HOST_NAME)" \
+	  HOST_NETWORK="$(HOST_NETWORK)" \
+	  HOST_NETWORK_MASK="$(HOST_NETWORK_MASK)" \
+	  HOST_PORT="$(HOST_PORT)" \
+	  HOST_THEME="$(HOST_THEME)" \
+	  INTERNET_SCAN_INTERVAL="$(INTERNET_SCAN_INTERVAL)" \
+	  INTRANET_SCAN_INTERVAL="$(INTRANET_SCAN_INTERVAL)" \
+	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
+	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
+	  MOTION_GROUP="$(MOTION_GROUP)" \
+	  MOTION_DEVICE="$(MOTION_DEVICE)" \
+	  MOTION_CLIENT="$(MOTION_CLIENT)" \
+	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
+	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
+	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
+	  MQTT_HOST="$(MQTT_HOST)" \
+	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
+	  MQTT_PORT="$(MQTT_PORT)" \
+	  MQTT_USERNAME="$(MQTT_USERNAME)" \
+	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
+	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
+	  NETDATA_URL="$(NETDATA_URL)" \
+	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
+	&& cat $< \
+	  | envsubst \
+	 > $@
+	@echo "MADE $@"
+	rm -f .storage/lovelace
+	-mkdir -p .storage/
+	ln -s ../$@ .storage/lovelace
+
+lovelace_dashboards.json: lovelace_dashboards.json.tmpl
+	@export \
+	  DOMAIN_NAME="$(DOMAIN_NAME)" \
+	  HOST_IPADDR="$(HOST_IPADDR)" \
+	  HOST_NAME="$(HOST_NAME)" \
+	  HOST_NETWORK="$(HOST_NETWORK)" \
+	  HOST_NETWORK_MASK="$(HOST_NETWORK_MASK)" \
+	  HOST_PORT="$(HOST_PORT)" \
+	  HOST_THEME="$(HOST_THEME)" \
+	  INTERNET_SCAN_INTERVAL="$(INTERNET_SCAN_INTERVAL)" \
+	  INTRANET_SCAN_INTERVAL="$(INTRANET_SCAN_INTERVAL)" \
+	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
+	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
+	  MOTION_GROUP="$(MOTION_GROUP)" \
+	  MOTION_DEVICE="$(MOTION_DEVICE)" \
+	  MOTION_CLIENT="$(MOTION_CLIENT)" \
+	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
+	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
+	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
+	  MQTT_HOST="$(MQTT_HOST)" \
+	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
+	  MQTT_PORT="$(MQTT_PORT)" \
+	  MQTT_USERNAME="$(MQTT_USERNAME)" \
+	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
+	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
+	  NETDATA_URL="$(NETDATA_URL)" \
+	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
+	&& cat $< \
+	  | envsubst \
+	 > $@
+	@echo "MADE $@"
+	rm -f .storage/lovelace_dashboards
+	-mkdir -p .storage/
+	ln -s ../$@ .storage/lovelace_dashboards
 
 ## clean and clean and clean ..
 
 tidy: 
 	@echo "making $@"
-	@rm -f lovelace.json
+	@rm -f lovelace.json lovelace_dashboards.json lovelace.developer.json
 	@${MAKE} -C motion clean
 
 refresh: 
