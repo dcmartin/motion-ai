@@ -38,7 +38,7 @@
         - sensor.motion_detected_person_ratio_today
       value_template: >
         {{ state_attr('sensor.motion_detected_person_ratio_today','value') }}
-        
+
 - platform: history_stats
   name: motion_detected_person_count_today
   entity_id: binary_sensor.motion_detected_person
@@ -60,3 +60,59 @@
         {% if s|lower != 'unknown' and s|int > 0  %}
           {{ states('sensor.motion_detected_person_count_today') }} occurences; {{ states('sensor.motion_detected_person_ratio_today') -}}%; {{ states('sensor.motion_detected_person_ratio_duration') }}
         {% else %}No persons detected today{% endif %}
+
+- platform: template
+  sensors:
+    motion_detected_person_when:
+      friendly_name: Last person
+      icon_template: 'mdi:clock-outline'
+      entity_id:
+        - binary_sensor.motion_detected_person
+        - sensor.motion_detected_person_count_today
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_person','on') %}
+          {% set s = states('sensor.motion_detected_when') %}
+        {% else %}
+          {% set s = states('sensor.motion_detected_person_when') %}
+        {% endif %}
+        {% if s is not none and s|lower != 'unknown' and s|length > 0 %}
+          {{ s }}
+        {% else %}Never{% endif %}
+
+- platform: template
+  sensors:
+    motion_detected_person_where:
+      friendly_name: Last person where
+      icon_template: 'mdi:map-marker'
+      entity_id:
+        - binary_sensor.motion_detected_person
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_person','on') %}
+          {% set s = states('sensor.motion_detected_camera') %}
+        {% else %}
+          {% set s = states('sensor.motion_detected_person_where') %}
+        {% endif %}
+        {% if s is not none and s|lower != 'unknown' and s|length > 0 %}
+          {{ s }}
+        {% else %}None{% endif %}
+
+- platform: template
+  sensors:
+    motion_detected_person_ago:
+      friendly_name: Last person ago
+      icon_template: 'mdi:map-marker'
+      entity_id:
+        - binary_sensor.motion_detected_person
+        - sun.sun
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_person','on') %}
+          {% set s = states('sensor.motion_detected_date') %}
+          {% if s is not none and s|lower != 'unknown' and s|length > 0 %}
+            {% set v = as_timestamp(now())|int - s|int %}
+          {% endif %}
+        {% else %}
+          {% set v = states('sensor.motion_detected_person_ago') %}
+        {% endif %}
+        {% if v is defined and v is not none and v|lower != 'unknown' %}
+          {{ v }}
+        {% else %}null{% endif %}
