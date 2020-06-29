@@ -3,6 +3,8 @@
 # `motion`  &Atilde;&#128065;
 This   repository is a demonstration and proof-of-concept for an **AI assistants** providing improved situational awareness from a collection of network accessible video cameras.
 
+<a href="https://www.buymeacoffee.com/dcmartin" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" style="height: 51px !important;width: 217px !important;" ></a>
+
 ## Status
 ![](https://img.shields.io/github/license/dcmartin/motion.svg?style=flat)
 ![](https://img.shields.io/github/release/dcmartin/motion.svg?style=flat)
