@@ -17,6 +17,11 @@ This   repository is a demonstration and proof-of-concept for an **AI assistants
 [![Build Status](https://travis-ci.org/dcmartin/motion.svg?branch=master)](https://travis-ci.org/dcmartin/motion)
 [![Coverage Status](https://coveralls.io/repos/github/dcmartin/motion-ai/badge.svg?branch=master)](https://coveralls.io/github/dcmartin/motion?branch=master)
 
+## Videos
+
++ [A Tour of Motion &Atilde;&#128065; in action](https://youtu.be/NxUJEsBlktg)
++ [Installation of Motion &Atilde;&#128065; in five (5) easy steps](https://youtu.be/0dlx24lL_H8)
+
 ## Introduction
 Most consumer-grade Web cameras -- or similar devices -- send notifications when _motion_ occurs.  Motion is often defined as a change in the image from one frame to the next; these changes are often influenced by light, wind, and many other environmental factors -- producing a large number of notifications (a.k.a. _false positives_).  While limitations may be set on the amount of change to indicate motion, a better solution would detect and classify entities of interest whenever motion occurs and send notifications only when specified are present.
 
