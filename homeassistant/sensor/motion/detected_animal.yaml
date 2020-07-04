@@ -2,10 +2,11 @@
 # homeassistant/sensor/motion/detected_animal.yaml
 ###
 
+# array of animal count
 - platform: template
   sensors:
     motion_detected_animal:
-      friendly_name: Detected animal
+      friendly_name: Detected animal count
       icon_template: 'mdi:cow'
       entity_id:
         - counter.motion_detected_counter
@@ -23,40 +24,172 @@
           {% else %}null{% endif %}
         {% else %}null{% endif %}
 
+# sum of animal entity count
+- platform: template
+  sensors:
+    motion_detected_animal_count:
+      unit_of_measurement: 'animal'
+      friendly_name: Count of animal(s)
+      icon_template: 'mdi:cow'
+      entity_id:
+        - sensor.motion_detected_animal
+        - sensor.time
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_animal','on') %}
+          {{ states.sensor.motion_detected_animal.state|from_json|sum|int }}
+        {% else %}null{% endif %}
+
+## sensor from counter
+
+- platform: template
+  sensors:
+    motion_detected_animal_counter:
+      unit_of_measurement: 'animal'
+      entity_id:
+        - counter.motion_detected_animal_counter
+      value_template: >
+        {{ states('counter.motion_detected_animal_counter') }}
+
+## TODAY
+
 - platform: history_stats
-  name: motion_detected_animal_ratio_today
+  name: motion_today_animal_ratio
   entity_id: binary_sensor.motion_detected_animal
   state: 'on'
   type: ratio
   start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
   end: '{{ now() }}'
 
-- platform: template
-  sensors:
-    motion_detected_animal_ratio_duration:
-      entity_id:
-        - sensor.motion_detected_animal_ratio_today
-      value_template: >
-        {{ state_attr('sensor.motion_detected_animal_ratio_today','value') }}
-        
 - platform: history_stats
-  name: motion_detected_animal_count_today
+  name: motion_today_animal_counter
   entity_id: binary_sensor.motion_detected_animal
   state: 'on'
   type: count
   start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
   end: '{{ now() }}'
 
+- platform: history_stats
+  name: motion_today_animal_time
+  entity_id: binary_sensor.motion_detected_animal
+  state: 'on'
+  type: time
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+
 - platform: template
   sensors:
-    motion_detected_animal_today:
+    motion_animal_ratio_today:
+      friendly_name: Today animal ratio
+      unit_of_measurement: '%'
+      icon_template: 'mdi:percent'
+      entity_id:
+        - sensor.motion_today_animal_ratio
+      value_template: >
+        {{ states('sensor.motion_today_animal_ratio') }}
+
+- platform: template
+  sensors:
+    motion_animal_counter_today:
+      friendly_name: Today animal counter
+      unit_of_measurement: 'events'
+      icon_template: 'mdi:counter'
+      entity_id:
+        - sensor.motion_today_animal_counter
+      value_template: >-
+        {{ states('sensor.motion_today_animal_counter')|int }}
+
+- platform: template
+  sensors:
+    motion_animal_time_today:
+      friendly_name: Today animal time
+      unit_of_measurement: 'hours'
+      icon_template: 'mdi:timer'
+      entity_id:
+        - sensor.motion_today_animal_time
+      value_template: >
+        {{ states('sensor.motion_today_animal_time')|float }}
+
+- platform: template
+  sensors:
+    motion_animal_status_today:
       friendly_name: Today animal
       icon_template: 'mdi:cow'
       entity_id:
-        - sensor.motion_detected_animal_ratio_today
-        - sensor.motion_detected_animal_count_today
+        - sensor.motion_animal_ratio_today
+        - sensor.motion_animal_counter_today
+        - sensor.motion_animal_time_today
       value_template: >-
-        {% set s = states('sensor.motion_detected_animal_count_today') %}
-        {% if s|lower != 'unknown' and s|int > 0  %}
-          {{ states('sensor.motion_detected_animal_count_today') }} occurrences; {{ states('sensor.motion_detected_animal_ratio_today') -}}%; {{ states('sensor.motion_detected_animal_ratio_duration') }}
+        {% set c = states('sensor.motion_animal_counter_today') %}
+        {% set r = states('sensor.motion_animal_ratio_today') %}
+        {% set t = states('sensor.motion_animal_time_today') %}
+        {% if c|lower != 'unknown' and r|lower != 'unknown' and t|lower != 'unknown' %}
+          {{ c }} occurences; {{ t }} hours; {{ r }}%
         {% else %}No animals detected today{% endif %}
+
+- platform: template
+  sensors:
+    motion_animal_last_date:
+      friendly_name: Last animal date
+      icon_template: 'mdi:clock'
+      entity_id:
+        - sensor.motion_detected_animal_counter
+      value_template: >
+        {% set s = states('sensor.motion_detected_date') %}
+        {% if s is not none and s|lower != 'unknown' and s|int > 0 %}
+          {{ s }}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_animal_last_ago:
+      friendly_name: Person last ago
+      icon_template: 'mdi:timer'
+      unit_of_measurement: seconds
+      entity_id:
+        - sensor.motion_animal_last_date
+        - sensor.time
+      value_template: >
+        {% set s = states('sensor.motion_animal_last_date') %}
+        {% if s is not none and s|lower != 'unknown' and s|int > 0 %}
+          {{ as_timestamp(now())|int - s|int }}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_animal_last_when:
+      friendly_name: Last animal when
+      icon_template: 'mdi:clock-outline'
+      entity_id:
+        - sensor.motion_detected_animal_counter
+      value_template: >
+        {% set s = states('sensor.motion_detected_when') %}
+        {% if s is not none and s|lower != 'unknown' and s|length > 0 %}
+          {{ s }}
+        {% else %}Never{% endif %}
+
+- platform: template
+  sensors:
+    motion_animal_last_where:
+      friendly_name: Last animal where
+      icon_template: 'mdi:map-marker'
+      entity_id:
+        - sensor.motion_detected_animal_counter
+      value_template: >
+        {% set s = states('sensor.motion_detected_camera') %}
+        {% if s is not none and s|lower != 'unknown' and s|length > 0 %}
+          {{ s }}
+        {% else %}None{% endif %}
+
+- platform: template
+  sensors:
+    motion_animal_last_elapsed:
+      friendly_name: Last animal elapsed
+      icon_template: 'mdi:timeer'
+      entity_id:
+        - sensor.motion_detected_animal_counter
+      value_template: >
+        {% set s = states('sensor.motion_detected_elapsed') %}
+        {% if s is not none and s|lower != 'unknown' and s|length > 0 %}
+          {{ s }}
+        {% else %}Zero{% endif %}

@@ -19,6 +19,43 @@ The `motion` add-on processes video information into motion detection JSON event
 
 Visit  [`motion`](https://github.com/dcmartin/hassio-addons/tree/master/motion) page for details. 
 
+### EXAMPLE
+
+```
+log_level: info
+log_motion_level: info
+log_motion_type: ALL
+default:
+  changes: 'on'
+  event_gap: 30
+  framerate: 5
+  minimum_motion_frames: 25
+  post_pictures: best
+  text_scale: 2
+  threshold_percent: 2
+  username: '!secret motioncam-username'
+  password: '!secret motioncam-password'
+  netcam_userpass: '!secret netcam-userpass'
+  width: 640
+  height: 480
+mqtt:
+  host: '!secret mqtt-broker'
+  port: '!secret mqtt-port'
+  username: '!secret mqtt-username'
+  password: '!secret mqtt-password'
+group: motion
+device: pi42
+client: pi42
+timezone: America/Los_Angeles
+cameras:
+  - name: dogshed
+    type: netcam
+    netcam_url: 'rtsp://192.168.1.221/live'
+  - name: sheshed
+    type: netcam
+    netcam_url: 'rtsp://192.168.1.223/live'
+```
+
 ## `yolo4motion`
 Processes images from the `motion` addon received via MQTT through the [**YOLO**](https://pjreddie.com/darknet/yolo/) open source object detection and classification deep convolutional neural network (DCNN) and publishes results via MQTT.
 
