@@ -21,8 +21,8 @@ HOST_THEME ?= $(if $(wildcard HOST_THEME),$(shell v=$$(cat HOST_THEME) && echo "
 HOST_NETWORK ?= $(shell export HOST_IPADDR=$(HOST_IPADDR) && echo $${HOST_IPADDR%.*}.0)
 HOST_NETWORK_MASK ?= 24
 
-HOST_LATITUDE ?= $(if $(wildcard HOST_LATITUDE),$(shell v=$$(cat HOST_LATITUDE) && echo "** SPECIFIED: HOST_LATITUDE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="0" && echo "!! UNSPECIFIED: HOST_LATITUDE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
-HOST_LONGITUDE ?= $(if $(wildcard HOST_LONGITUDE),$(shell v=$$(cat HOST_LONGITUDE) && echo "** SPECIFIED: HOST_LONGITUDE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="0" && echo "!! UNSPECIFIED: HOST_LONGITUDE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+HOST_LATITUDE ?= $(if $(wildcard HOST_LATITUDE),$(shell v=$$(cat HOST_LATITUDE) && echo "** SPECIFIED: HOST_LATITUDE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="0.0" && echo "!! UNSPECIFIED: HOST_LATITUDE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+HOST_LONGITUDE ?= $(if $(wildcard HOST_LONGITUDE),$(shell v=$$(cat HOST_LONGITUDE) && echo "** SPECIFIED: HOST_LONGITUDE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="0.0" && echo "!! UNSPECIFIED: HOST_LONGITUDE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 # MQTT
 MQTT_HOST ?= $(if $(wildcard MQTT_HOST),$(shell v=$$(cat MQTT_HOST) && echo "** SPECIFIED: MQTT_HOST: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="$(HOST_IPADDR)" && echo "!! UNSPECIFIED: MQTT_HOST unset; default: $${v}" > /dev/stderr && echo "$${v}"))
