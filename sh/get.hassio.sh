@@ -64,5 +64,6 @@ echo 'Updating apt ...' &> /dev/stderr \
   && echo 'Installing prerequisites ...' &> /dev/stderr \
   && sudo apt install -qq -y software-properties-common apparmor-utils apt-transport-https avahi-daemon ca-certificates curl dbus jq socat iperf3 netdata \
   && echo 'Skipping network-manager; sudo apt install -qq -y network-manager to install' \
-  && echo "Now install using hassio-install.sh script; sudo ./sh/hassio-install.sh -d $(pwd -P) $(machine)" &> /dev/stderr \
+  && echo 'Installing HA using ./sh/hassio-install.sh script' \
+  && sudo ./sh/hassio-install.sh -d $(pwd -P) $(machine) \
   || echo 'Failed to get Home Assistant' &> /dev/stderr
