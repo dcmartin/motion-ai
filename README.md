@@ -46,6 +46,9 @@ All of this processing is performed on local devices; there are **no cloud servi
 + `tegra` - ARMv8 64-bit devices with nVidia GPU
 + `cuda` - Intel/AMD 64-bit with nVida GPU
 
+## `tegra` - nVidia Jetson
+<img src="docs/samples/jetson-etc.png" width="512">
+
 Support for Intel  Neural Compute Stick v2 is being considered for `armv7`.
 
 # Components
