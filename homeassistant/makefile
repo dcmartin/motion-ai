@@ -78,6 +78,8 @@ $(PACKAGES): makefile
 	@echo "making $@"
 	@export \
 	  DOMAIN_NAME="$(DOMAIN_NAME)" \
+	  HOST_LATITUDE="$(HOST_LATITUDE)" \
+	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
 	  HOST_NAME="$(HOST_NAME)" \
 	  MQTT_HOST="$(MQTT_HOST)" \
 	  MQTT_PORT="$(MQTT_PORT)" \
@@ -104,6 +106,8 @@ secrets.yaml: secrets.yaml.tmpl makefile $(PWD)
 	@export \
 	  AUTOMATION_INTERNET="$(AUTOMATION_INTERNET)" \
 	  AUTOMATION_INTRANET="$(AUTOMATION_INTRANET)" \
+	  HOST_LATITUDE="$(HOST_LATITUDE)" \
+	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
 	  HOST_NAME="$(HOST_NAME)" \
 	  HOST_IPADDR="$(HOST_IPADDR)" \
 	  HOST_NETWORK="$(HOST_NETWORK)" \
@@ -137,11 +141,13 @@ secrets.yaml: secrets.yaml.tmpl makefile $(PWD)
 	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
 	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
 	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
-	&& cat secrets.yaml.tmpl | envsubst > $@
+	&& cat $< | envsubst > $@
 
-lovelace.developer.json: lovelace.developer.json.tmpl
-	@export \
+lovelace.json: lovelace.json.tmpl
+	export \
 	  DOMAIN_NAME="$(DOMAIN_NAME)" \
+	  HOST_LATITUDE="$(HOST_LATITUDE)" \
+	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
 	  HOST_IPADDR="$(HOST_IPADDR)" \
 	  HOST_NAME="$(HOST_NAME)" \
 	  HOST_NETWORK="$(HOST_NETWORK)" \
@@ -168,6 +174,45 @@ lovelace.developer.json: lovelace.developer.json.tmpl
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	&& cat $< \
 	  | envsubst \
+	  | jq '(.data.config.views[]|select(.path=="status").cards[]|select(.title=="OVERVIEW").elements)+='"$$(jq '[.[]|{"type":"icon","entity":("sensor.motion_annotated_ago_"+.name),"icon": "mdi:cctv","style":{"color":"white","left":(.left|tostring+"%"),"top":(.top|tostring+"%"),"height":"5%","width": "5%"}}]' motion/webcams.json)" \
+	 > $@
+	@echo "MADE $@"
+	rm -f .storage/lovelace
+	-mkdir -p .storage/
+	ln -s ../$@ .storage/lovelace
+
+lovelace.developer.json: lovelace.developer.json.tmpl
+	@export \
+	  DOMAIN_NAME="$(DOMAIN_NAME)" \
+	  HOST_LATITUDE="$(HOST_LATITUDE)" \
+	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
+	  HOST_IPADDR="$(HOST_IPADDR)" \
+	  HOST_NAME="$(HOST_NAME)" \
+	  HOST_NETWORK="$(HOST_NETWORK)" \
+	  HOST_NETWORK_MASK="$(HOST_NETWORK_MASK)" \
+	  HOST_PORT="$(HOST_PORT)" \
+	  HOST_THEME="$(HOST_THEME)" \
+	  INTERNET_SCAN_INTERVAL="$(INTERNET_SCAN_INTERVAL)" \
+	  INTRANET_SCAN_INTERVAL="$(INTRANET_SCAN_INTERVAL)" \
+	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
+	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
+	  MOTION_GROUP="$(MOTION_GROUP)" \
+	  MOTION_DEVICE="$(MOTION_DEVICE)" \
+	  MOTION_CLIENT="$(MOTION_CLIENT)" \
+	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
+	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
+	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
+	  MQTT_HOST="$(MQTT_HOST)" \
+	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
+	  MQTT_PORT="$(MQTT_PORT)" \
+	  MQTT_USERNAME="$(MQTT_USERNAME)" \
+	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
+	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
+	  NETDATA_URL="$(NETDATA_URL)" \
+	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
+	&& cat $< \
+	  | envsubst \
+	  | jq '(.data.config.views[]|select(.path=="motion_live").cards[]|select(.title=="OVERVIEW").elements)+='"$$(jq '[.[]|{"type":"icon","entity":("camera.motion_live_"+.name),"icon": "mdi:cctv","style":{"color":"white","left":(.left|tostring+"%"),"top":(.top|tostring+"%"),"height":"5%","width": "5%"}}]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="motion_live").cards)+='"$$(jq '[.[]|{"entity":("camera.motion_live_"+.name),"type":"picture-entity"}]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="motion_animated_webcams_view").cards)+='"$$(jq '[.[]|{"entity":("sensor.motion_annotated_when_"+.name),"image":("/local/images/motion_annotated-"+.name+".gif"),"type":"picture-entity"}]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="motion_detected_entity_counter_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_counter_"+.name)]' motion/webcams.json)" \
@@ -204,44 +249,11 @@ lovelace.developer.json: lovelace.developer.json.tmpl
 	-mkdir -p .storage/
 	ln -s ../$@ .storage/lovelace.lovelace_developer
 
-lovelace.json: lovelace.json.tmpl
-	@export \
-	  DOMAIN_NAME="$(DOMAIN_NAME)" \
-	  HOST_IPADDR="$(HOST_IPADDR)" \
-	  HOST_NAME="$(HOST_NAME)" \
-	  HOST_NETWORK="$(HOST_NETWORK)" \
-	  HOST_NETWORK_MASK="$(HOST_NETWORK_MASK)" \
-	  HOST_PORT="$(HOST_PORT)" \
-	  HOST_THEME="$(HOST_THEME)" \
-	  INTERNET_SCAN_INTERVAL="$(INTERNET_SCAN_INTERVAL)" \
-	  INTRANET_SCAN_INTERVAL="$(INTRANET_SCAN_INTERVAL)" \
-	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
-	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
-	  MOTION_GROUP="$(MOTION_GROUP)" \
-	  MOTION_DEVICE="$(MOTION_DEVICE)" \
-	  MOTION_CLIENT="$(MOTION_CLIENT)" \
-	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
-	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
-	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
-	  MQTT_HOST="$(MQTT_HOST)" \
-	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
-	  MQTT_PORT="$(MQTT_PORT)" \
-	  MQTT_USERNAME="$(MQTT_USERNAME)" \
-	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
-	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
-	  NETDATA_URL="$(NETDATA_URL)" \
-	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
-	&& cat $< \
-	  | envsubst \
-	 > $@
-	@echo "MADE $@"
-	rm -f .storage/lovelace
-	-mkdir -p .storage/
-	ln -s ../$@ .storage/lovelace
-
 lovelace_dashboards.json: lovelace_dashboards.json.tmpl
 	@export \
 	  DOMAIN_NAME="$(DOMAIN_NAME)" \
+	  HOST_LATITUDE="$(HOST_LATITUDE)" \
+	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
 	  HOST_IPADDR="$(HOST_IPADDR)" \
 	  HOST_NAME="$(HOST_NAME)" \
 	  HOST_NETWORK="$(HOST_NETWORK)" \
