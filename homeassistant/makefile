@@ -144,7 +144,7 @@ secrets.yaml: secrets.yaml.tmpl makefile $(PWD)
 	&& cat $< | envsubst > $@
 
 lovelace.json: lovelace.json.tmpl
-	export \
+	@export \
 	  DOMAIN_NAME="$(DOMAIN_NAME)" \
 	  HOST_LATITUDE="$(HOST_LATITUDE)" \
 	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
