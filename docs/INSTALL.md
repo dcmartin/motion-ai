@@ -1,27 +1,168 @@
-## &#9995; - Installing `motion` _add-on_
-Installation of the _add-on_ is through the Home Assistant Supervisor and the **Add-on Store**.
+# `INSTALL.md`
 
-## Step 1
-Browse to the Home Assistant Web interface (n.b. don't forget `port` if not `80`) and visit the **Supervisor** via the icon in the lower left panel (see below).
+The `motion-ai` solution is composed of multiple components
+
++ [Home Assistant](http://home-assistant.io) - open-source home automation system
++ [Open Horizon](http://github.com/dcmartin/open-horizon) - open-source edge AI platform
+
+Home Assistant _add-ons_:
+
++ `MQTT` - messaging broker for all components
++ `motion` _add-on_ for Home Assistant - captures images and video of motion (n.b. [motion-project.github.io](http://motion-project.github.io))
+
+Open Horizon AI _services_:
+
++ `yolo4motion` - [YOLO](https://pjreddie.com/darknet/yolo/) object detection and classification
++ `face4motion` - [FACE](http://github.com/dcmartin/openface) detection
++ `alpr4motion` - [ALPR](http://github.com/dcmartin/openface) license plate detection and classification
++ `pose4motion` - [POSE](http://github.com/dcmartin/openpose) human pose estimation
+
+## Installation
+
+Installation is performed in three (3) steps:
+
+1. Install `motion-ai` software from [this](http://gitub.com/motion-ai/home-assistant) repository
+2. Configure system for cameras, messaging, and Open Horizon _services_
+2. Install _add-ons_ for `MQTT` and `motion` through Home Assistant Web interface
+3. Start selected Open Horizon AI agents (e.g. `yolo4motion`)
+
+To get started flash distribution image to micro-SD card, configure for `ssh` and WiFi, insert into device, boot, update and upgrade (n.b. see [here](DEBIAN.md) for additional information).
+
+#  &#10122; - Install `motion-ai`
+
+Access via `ssh` or console; the following commands will complete the configuration and installation of `motion-ai`
+
+```
+# enable appropriate permissions for the account
+for g in $(groups pi | awk -F: '{ print $2 }'); do sudo addgroup ${USER} ${g}; done
+```
+```
+# install the minimum required software (n.b. `git` and `jq`)
+sudo apt install -qq -y git jq
+```
+```
+# clone the repository into location with sufficient space
+mkdir motion-ai
+cd motion-ai
+git clone git@github.com:dcmartin/motion-ai.git .
+```
+```
+# download and install Home Assistant, Docker, NetData, and supporting components
+./sh/get.hassio.sh
+# add current user to docker group
+sudo addgroup ${USER} docker
+```
+```
+# copy template for webcams.json
+cp homeassistant/motion/webcams.json.tmpl webcams.json
+# build YAML files based on configuration options
+make
+# reboot
+sudo reboot
+```
+
+When the system has restarted, access via `ssh` and  continue with the next step.
+
+## &#10123; - Configure `motion-ai`
+
+Specify options forthe `motion` _add-on_ as well as the `yolo4motion`, `face4motion`, and `alpr4motion` as appropriate.  Relevant variables include:
+
+### `motion` 
++ `MOTION_GROUP` - identifier for a group of devices; default: `motion`
++ `MOTION_DEVICE` - identifier for this device; default: _hostname_ without `-` and other special characters
++ `MOTION_CLIENT` - identifier for device to listen; default: `MOTION_DEVICE`; use `+` for all devices in _group_
++ `MQTT_HOST` - IPv4 address of MQTT broker; default: `127.0.0.1`
++ `MQTT_PORT` - Port number; default: `1883`
++ `MQTT_USERNAME` - credential identifier; default: `username`
++ `MQTT_PASSWORD` - credential password; default: `password`
++ `MOTIONCAM_USERNAME` - credential identifier; default: `username`
++ `MOTIONCAM_PASSWORD` - credential password; default: `password`
++ `NETCAM_USERNAME` - credential identifier; default: `username`
++ `NETCAM_PASSWORD`- credential password; default: `password`
+
+### `yolo4motion`
++ `YOLO_CONFIG` - may be `tiny`, `tiny-v2`, `tiny-v3`, `v2`, or `v3`; default: `tiny` _(pre-loaded)_
++ `YOLO_ENTITY` - entity to detect; default: `all`
++ `YOLO_SCALE` - size for image scaling prior to detect; default: `none`
++ `YOLO_THRESHOLD` - threshold for entity detection; default: `0.25`
++ `LOG_LEVEL` - logging level; default: `info`
++ `LOG_TO` - logging output; default: `/dev/stderr`
+
+These variables' values may be specified by environment variables or persistently through files of the same name; for example:
+
+```
+echo 'pi31' > MOTION_DEVICE
+echo '+' > MOTION_CLIENT
+```
+```
+# specify camera(s); default is one camera named `local`
+cp homeassistant/motion/webcams.json.tmpl  webcams.json
+```
+```
+# specify credentials to access motion-ai cameras
+echo 'username' > MOTIONCAM_PASSWORD
+echo 'password' > MOTIONCAM_PASSWORD
+```
+```
+# specify credential to access third-party network cameras
+echo 'username' > NETCAM_PASSWORD
+echo 'password' > NETCAM_PASSWORD
+```
+```
+# specify MQTT options
+echo '192.168.1.50' > MQTT_HOST
+echo 'username' > MQTT_USERNAME
+echo 'password' > MQTT_PASSWORD
+```
+
+
+Once Home Assistant has been downloaded and starts the Web UI may be reached on the specified port.
+
+Changes may be made for a variety of [options](OPTIONS.md); when changes are made (e.g. to the `MQTT_HOST`) the following command **must** be run for those changes to take effect:
+
+```
+make restart
+```
+### `webcams.json`
+
+This JSON file contains information about the cameras which will be in the generated YAML; more cameras require more computational resources.  Those details include:
+
++ `name` : a unique name for the camera (e.g. `kitchencam`)
++ `mjpeg_url` : location of "live" motion JPEG stream from camera
++ `username` and `password` : credentials for access via the `mjpeg_url`
++ `icon` : specified from the [Material Design Icons](https://materialdesignicons.com/) selection.
+
+For example:
+
+```
+[
+  { "name": "poolcam", "mjpeg_url": "http://192.168.1.251:8090/1", "icon": "water", "username": "!secret motioncam-username", "password": "!secret motioncam-password" },
+  { "name": "road", "mjpeg_url": "http://192.168.1.251:8090/2", "icon": "road", "username": "!secret motioncam-username", "password": "!secret motioncam-password" },
+  { "name": "dogshed", "mjpeg_url": "http://192.168.1.251:8090/3", "icon": "dog", "username": "!secret motioncam-username", "password": "!secret motioncam-password" },
+  { "name": "dogshedfront", "mjpeg_url": "http://192.168.1.251:8090/4", "icon": "home-floor-1", "username": "!secret motioncam-username", "password": "!secret motioncam-password" },
+  { "name": "sheshed", "mjpeg_url": "http://192.168.1.251:8090/5", "icon": "window-shutter-open", "username": "!secret motioncam-username", "password": "!secret motioncam-password" },
+  { "name": "dogpond", "mjpeg_url": "http://192.168.1.251:8090/6", "icon": "waves", "username": "!secret motioncam-username", "password": "!secret motioncam-password" },
+  { "name": "pondview", "mjpeg_url": "http://192.168.1.251:8090/7", "icon": "waves", "username": "!secret motioncam-username", "password": "!secret motioncam-password" }
+]
+```
+
+# &#10124; - Install _add-on(s)_
+Install the requiste _add-ons_ for Home Assistant, including the `MQTT` broker and the appropriate version of `motion`.  Browse to the Home Assistant Web interface (n.b. don't forget `port` if not `80`) and visit the **Supervisor** via the icon in the lower left panel (see below).
 
 [![example](samples/supervisor.png?raw=true "supervisor")](http://github.com/dcmartin/hassio-addons/tree/master/motion/samples/supervisor.png)
 
-## Step 2
 Select the `Add-on Store` and type in the address of this repository, for example:
 
 [![example](samples/add-repository.png?raw=true "add-repository")](http://github.com/dcmartin/hassio-addons/tree/master/motion/samples/add-repository.png)
 
-## Step 3
 When the system reloads, select the **Motion Server** _add-on_ from those available; when utilizing a locally attached USB camera, select the **Motion Video0** _add-on_; for example:
 
 [![example](samples/dcmartin-repository.png?raw=true "dcmartin-repository")](http://github.com/dcmartin/hassio-addons/tree/master/motion/samples/dcmartin-repository.png)
 
-## Step 4
 After selecting the appropriate _add-on_, install by clicking on the `'INSTALL` button, for example:
 
  [![example](samples/motion-server-addon.png?raw=true "motion-server-addon")](http://github.com/dcmartin/hassio-addons/tree/master/motion/samples/motion-server-addon.png)
 
-## Step 5
 Configure the add-on using the following options:
 
 + `group` - the identifier for the group of cameras; default: `motion`
@@ -85,79 +226,4 @@ For network cameras that deposit video via FTP; the `username` and `password` ap
 
 ### Complete example configuration for `motion` _add-on_
 ```
-log_level: debug
-log_motion_level: error
-log_motion_type: ALL
-default:
-  brightness: 100
-  changes: 'on'
-  contrast: 50
-  despeckle: EedDl
-  event_gap: 10
-  framerate: 2
-  hue: 50
-  interval: 60
-  lightswitch: 0
-  minimum_motion_frames: 10
-  movie_max: 60
-  movie_output: 'off'
-  movie_quality: 80
-  netcam_userpass: '!secret motioncam-userpass'
-  palette: 15
-  picture_quality: 80
-  post_pictures: best
-  saturation: 0
-  stream_quality: 50
-  text_scale: 2
-  threshold_percent: 1
-  username: '!secret motioncam-username'
-  password: '!secret motioncam-password'
-  width: 1920
-  height: 1080
-mqtt:
-  host: 192.168.1.50
-  port: '1883'
-  username: username
-  password: password
-group: motion
-device: netcams
-client: netcams
-timezone: America/Los_Angeles
-cameras:
-  - name: poolcam
-    type: netcam
-    icon: water
-    netcam_url: 'http://192.168.1.162/nphMotionJpeg?Resolution=640x480&Quality=Clarity'
-    netcam_userpass: '!secret netcam-userpass'
-    width: 640
-    height: 480
-    framerate: 5
-  - name: road
-    type: netcam
-    icon: road
-    netcam_url: 'http://192.168.1.36:8081/'
-    netcam_userpass: '!secret netcam-userpass'
-    width: 640
-    height: 480
-    framerate: 5
-  - name: dogshed
-    type: netcam
-    icon: dog
-    netcam_url: 'rtsp://192.168.1.221/live'
-  - name: dogshedfront
-    type: netcam
-    icon: home-floor-1
-    netcam_url: 'rtsp://192.168.1.222/live'
-  - name: sheshed
-    type: netcam
-    icon: window-shutter-open
-    netcam_url: 'rtsp://192.168.1.223/live'
-  - name: dogpond
-    type: netcam
-    icon: waves
-    netcam_url: 'rtsp://192.168.1.224/live'
-  - name: pondview
-    type: netcam
-    icon: waves
-    netcam_url: 'rtsp://192.168.1.225/live'
-```
+l```

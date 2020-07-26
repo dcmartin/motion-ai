@@ -78,30 +78,3 @@ Provides a local MQTT broker; an MQTT broker is **_required_** to use the `motio
 ## `Configurator`
 Configure Home Assistant through an integrated Web user-interface; more instructions [here](https://www.home-assistant.io/addons/configurator)
 
-## `DNSmasq`
-If you want to use the Home Assistant [DNS](https://www.home-assistant.io/addons/dnsmasq/) _addon_, the existing DNS resolver for Ubuntu must be disabled.  This method works on Ubuntu Releases 17.04 (Zasty), 17.10 (Artful), 18.04 (Bionic) and 18.10 (Cosmic):
-
-Disable and stop the systemd-resolved service:
-
-```
-sudo systemctl disable systemd-resolved.service
-sudo systemctl stop systemd-resolved
-```
-
-Set DNS to `default`
-
-```
-sudo echo 'dns=default' >> /etc/NetworkManager/NetworkManager.conf
-```
-
-Delete  /etc/resolv.conf
-
-```
-sudo rm /etc/resolv.conf
-```
-
-Restart network-manager
-
-```
-sudo service network-manager restart
-```
