@@ -100,7 +100,7 @@ In addition to the nVidia Jetson Nano developer kit, there are also the followin
 
 <hr>
 
-# Example operational-scenario and use-case: [Age-At-Home](http://www.age-at-home.com)
+# Example: [Age-At-Home](http://www.age-at-home.com)
 This system may be used to build solutions for various operational scenarios, e.g. monitoring the elderly to determine patterns of daily activity and alert care-givers and loved ones when aberrations occur; see the [Age-At-Home](http://www.age-at-home.com/) project for more information; example below:
 
 <img src="docs/samples/age-at-home.png" width="512">
