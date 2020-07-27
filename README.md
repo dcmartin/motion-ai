@@ -137,7 +137,7 @@ git remote add upstream git@github.com:dcmartin/motion-ai.git
 Please make sure you keep your fork up to date by regularly pulling from upstream. 
 
 ```
-git fetch upstream master
+git fetch upstream
 get merge upstream/master
 ```
 
