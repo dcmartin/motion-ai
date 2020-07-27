@@ -2,11 +2,12 @@
 # homeassistant/sensor/motion/detected_person.yaml
 ###
 
+# array of person count
 - platform: template
   sensors:
     motion_detected_person:
-      friendly_name: Detected person
-      icon_template: 'mdi:motion-sensor'
+      friendly_name: Detected person count
+      icon_template: 'mdi:counter'
       entity_id:
         - counter.motion_detected_counter
         - sensor.motion_detected_ago
@@ -23,40 +24,179 @@
           {% else %}null{% endif %}
         {% else %}null{% endif %}
 
+# sum of person entity count
+- platform: template
+  sensors:
+    motion_detected_person_count:
+      friendly_name: Count of person(s)
+      unit_of_measurement: 'person'
+      icon_template: 'mdi:account'
+      entity_id:
+        - binary_sensor.motion_detected_person
+        - binary_sensor.motion_detected_person_expired
+        - sensor.time
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_person','on') or is_state('binary_sensor.motion_detected_person_expired','off') %}
+          {% set s = states('sensor.motion_detected_person') %}
+          {% if s|lower != 'unknown' and s|lower != none %}
+            {% set s = s|from_json %}
+            {% if s|lower != 'unknown' and s|lower != none and s is iterable %}
+              {{ s|sum|int }}
+            {% else %}null{% endif %}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+
+## sensor from counter
+
+- platform: template
+  sensors:
+    motion_detected_person_counter:
+      unit_of_measurement: 'person'
+      entity_id:
+        - counter.motion_detected_person_counter
+      value_template: >
+        {{ states('counter.motion_detected_person_counter') }}
+
+## TODAY
+
 - platform: history_stats
-  name: motion_detected_person_ratio_today
+  name: motion_today_person_ratio
   entity_id: binary_sensor.motion_detected_person
   state: 'on'
   type: ratio
   start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
   end: '{{ now() }}'
 
-- platform: template
-  sensors:
-    motion_detected_person_ratio_duration:
-      entity_id:
-        - sensor.motion_detected_person_ratio_today
-      value_template: >
-        {{ state_attr('sensor.motion_detected_person_ratio_today','value') }}
-        
 - platform: history_stats
-  name: motion_detected_person_count_today
+  name: motion_today_person_counter
   entity_id: binary_sensor.motion_detected_person
   state: 'on'
   type: count
   start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
   end: '{{ now() }}'
 
+- platform: history_stats
+  name: motion_today_person_time
+  entity_id: binary_sensor.motion_detected_person
+  state: 'on'
+  type: time
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+
 - platform: template
   sensors:
-    motion_detected_person_today:
+    motion_person_ratio_today:
+      friendly_name: Today person ratio
+      unit_of_measurement: '%'
+      icon_template: 'mdi:percent'
+      entity_id:
+        - sensor.motion_today_person_ratio
+      value_template: >
+        {{ states('sensor.motion_today_person_ratio') }}
+
+- platform: template
+  sensors:
+    motion_person_counter_today:
+      friendly_name: Today person counter
+      unit_of_measurement: 'events'
+      icon_template: 'mdi:counter'
+      entity_id:
+        - sensor.motion_today_person_counter
+      value_template: >-
+        {{ states('sensor.motion_today_person_counter')|int }}
+
+- platform: template
+  sensors:
+    motion_person_time_today:
+      friendly_name: Today person time
+      unit_of_measurement: 'hours'
+      icon_template: 'mdi:timer-outline'
+      entity_id:
+        - sensor.motion_today_person_time
+      value_template: >
+        {{ states('sensor.motion_today_person_time')|float }}
+
+- platform: template
+  sensors:
+    motion_person_status_today:
       friendly_name: Today person
       icon_template: 'mdi:account'
       entity_id:
-        - sensor.motion_detected_person_ratio_today
-        - sensor.motion_detected_person_count_today
+        - sensor.motion_person_ratio_today
+        - sensor.motion_person_counter_today
+        - sensor.motion_person_time_today
       value_template: >-
-        {% set s = states('sensor.motion_detected_person_count_today') %}
-        {% if s|lower != 'unknown' and s|int > 0  %}
-          {{ states('sensor.motion_detected_person_count_today') }} occurences; {{ states('sensor.motion_detected_person_ratio_today') -}}%; {{ states('sensor.motion_detected_person_ratio_duration') }}
+        {% set c = states('sensor.motion_person_counter_today') %}
+        {% set r = states('sensor.motion_person_ratio_today') %}
+        {% set t = states('sensor.motion_person_time_today') %}
+        {% if c|lower != 'unknown' and r|lower != 'unknown' and t|lower != 'unknown' %}
+          {{ c -}}; {{ t }} hours; {{ r }}%
         {% else %}No persons detected today{% endif %}
+
+- platform: template
+  sensors:
+    motion_person_last_date:
+      friendly_name: Last person date
+      icon_template: 'mdi:clock'
+      entity_id:
+        - sensor.motion_detected_person_counter
+      value_template: >
+        {% set s = states('sensor.motion_detected_date') %}
+        {% if s is not none and s|lower != 'unknown' and s|int > 0 %}
+          {{ s }}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_person_last_ago:
+      friendly_name: Person last ago
+      icon_template: 'mdi:timer-outline'
+      unit_of_measurement: seconds
+      entity_id:
+        - sensor.motion_person_last_date
+        - sensor.time
+      value_template: >
+        {% set s = states('sensor.motion_person_last_date') %}
+        {% if s is not none and s|lower != 'unknown' and s|int > 0 %}
+          {{ as_timestamp(now())|int - s|int }}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_person_last_when:
+      friendly_name: Last person when
+      icon_template: 'mdi:clock-outline'
+      entity_id:
+        - sensor.motion_detected_person_counter
+      value_template: >
+        {% set s = states('sensor.motion_detected_when') %}
+        {% if s is not none and s|lower != 'unknown' and s|length > 0 %}
+          {{ s }}
+        {% else %}Never{% endif %}
+
+- platform: template
+  sensors:
+    motion_person_last_where:
+      friendly_name: Last person where
+      icon_template: 'mdi:map-marker'
+      entity_id:
+        - sensor.motion_detected_person_counter
+      value_template: >
+        {% set s = states('sensor.motion_detected_camera') %}
+        {% if s is not none and s|lower != 'unknown' and s|length > 0 %}
+          {{ s }}
+        {% else %}None{% endif %}
+
+- platform: template
+  sensors:
+    motion_person_last_elapsed:
+      friendly_name: Last person elapsed
+      icon_template: 'mdi:timeer'
+      entity_id:
+        - sensor.motion_detected_person_counter
+      value_template: >
+        {% set s = states('sensor.motion_detected_elapsed') %}
+        {% if s is not none and s|lower != 'unknown' and s|length > 0 %}
+          {{ s }}
+        {% else %}Zero{% endif %}
