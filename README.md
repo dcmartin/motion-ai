@@ -12,7 +12,7 @@ To provide for multiple operational scenarios and use-cases, e.g. the elder's _a
 
 An AI's **prediction quality** is dependent on the  _variety_, _volume_, and _veracity_ of the training data (n.b. see [_Understanding AI_](https://www.linkedin.com/pulse/understanding-ai-david-c-martin/), as the underlying deep, convolutional, neural-networks -- and other algorithms -- must be trained using information that represents the scenario, use-case, and environment.
 
-The Motion &Atilde;&#128065; systemprovides a _personal AI_ incorporating both a wide variety artificial intelligence, machine learning, and statistical models as well as a closed-loop learning cycle (n.b. see [Building a Better Bot](https://www.linkedin.com/pulse/building-better-bot-david-c-martin/)); increasing the volume, variety, and veracity of the corpus of knowledge.
+The Motion &Atilde;&#128065; systemprovides a _personal AI_ incorporating both a wide variety artificial intelligence, machine learning, and statistical models as well as a closed-loop learning cycle (n.b. see [_Building a Better Bot_](https://www.linkedin.com/pulse/building-better-bot-david-c-martin/)); increasing the volume, variety, and veracity of the corpus of knowledge.
 
 ## Composition
 The `motion-ai` solution is composed of two primary components:
@@ -84,11 +84,7 @@ Data may be saved locally and processed to produce historical graphs as well as 
 + ![Supports ncs2 Architecture][ncs2-shield] -`armv7`- with Intel/Movidius  Neural Compute Stick v2
 
 ## Installation
-[Installation](docs/INSTALL.md) is performed in three (3) steps:
-
-+ Install `motion-ai` software from [this](http://gitub.com/motion-ai/home-assistant) repository
-+ Install _add-ons_ for `MQTT` and `motion` through Home Assistant Web interface
-+ Start selected Open Horizon AI agents (e.g. `yolo4motion`)
+Installation is performed in five (5) steps; see [detailed instructions](docs/INSTALL.md).
 
 ### Recommended hardware: nVidia Jetson Nano (aka `tegra`)
 In addition to the nVidia Jetson Nano developer kit, there are also the following recommended components:
@@ -102,10 +98,14 @@ In addition to the nVidia Jetson Nano developer kit, there are also the followin
 
 <img src="docs/samples/jetson-etc.png" width="512">
 
-# Age-At-Home
+<hr>
+
+# Example operational-scenario and use-case: [Age-At-Home](http://www.age-at-home.com)
 This system may be used to build solutions for various operational scenarios, e.g. monitoring the elderly to determine patterns of daily activity and alert care-givers and loved ones when aberrations occur; see the [Age-At-Home](http://www.age-at-home.com/) project for more information; example below:
 
 <img src="docs/samples/age-at-home.png" width="512">
+
+<hr>
 
 # Changelog & Releases
 
@@ -131,7 +131,7 @@ David C Martin (github@dcmartin.com)
 Add `motion-ai` as upstream to your repository:
 
 ```
-git remote add upstream git@github.com:motion-ai/home-assistant.git
+git remote add upstream git@github.com:dcmartin/motion-ai.git
 ```
 
 Please make sure you keep your fork up to date by regularly pulling from upstream. 
