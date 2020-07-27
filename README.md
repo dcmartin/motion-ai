@@ -4,15 +4,15 @@ This system is a demonstration and proof-of-concept for **edge AI** providing im
 <img src="docs/samples/example-motion-detection.gif" width=756>
 
 ### What  is _edge AI_?
-The edge of the network is where connectivity is lost and privacy is challenged and better predictions come from better information.
+The edge of the network is where connectivity is lost and privacy is challenged.
 
 Low-cost computing (e.g. RaspberryPi, nVidia Jetson Nano, Intel NUC, ..) as well as hardware accelerators (e.g. Google Coral TPU, Intel Movidius Neural Compute Stick v2) provide the opportunity to utilize artificial intelligence in the privacy and safety of a home or business.
 
 To provide for multiple operational scenarios and use-cases, e.g. the elder's _activities of daily living_ (ADL), the platform is relatively agnostic toward AI models or hardware and more dependent on system availability for development and testing.
 
-An AI's **prediction quality** is dependent on the  _variety_, _volume_, and _veracity_ of the training data (n.b. see [_Understanding AI_](https://www.linkedin.com/pulse/understanding-ai-david-c-martin/), as the underlying deep, convolutional, neural-networks -- and other algorithms -- must be trained using information that represents the scenario, use-case, and environment.
+An AI's **prediction quality** is dependent on the  _variety_, _volume_, and _veracity_ of the training data (n.b. see [_Understanding AI_](https://www.linkedin.com/pulse/understanding-ai-david-c-martin/), as the underlying deep, convolutional, neural-networks -- and other algorithms -- must be trained using information that represents the scenario, use-case, and environment; better predictions come from better information.
 
-The Motion &Atilde;&#128065; systemprovides a _personal AI_ incorporating both a wide variety artificial intelligence, machine learning, and statistical models as well as a closed-loop learning cycle (n.b. see [_Building a Better Bot_](https://www.linkedin.com/pulse/building-better-bot-david-c-martin/)); increasing the volume, variety, and veracity of the corpus of knowledge.
+The Motion &Atilde;&#128065; system provides a _personal AI_ incorporating both a wide variety artificial intelligence, machine learning, and statistical models as well as a closed-loop learning cycle (n.b. see [_Building a Better Bot_](https://www.linkedin.com/pulse/building-better-bot-david-c-martin/)); increasing the volume, variety, and veracity of the corpus of knowledge.
 
 ## Composition
 The `motion-ai` solution is composed of two primary components:
