@@ -18,7 +18,7 @@ The Motion &Atilde;&#128065; systemprovides a _personal AI_ incorporating both a
 The `motion-ai` solution is composed of two primary components:
 
 + [Home Assistant](http://home-assistant.io) - open-source home automation system
-+ [Open Horizon](http://github.com/dcmartin/open-horizon) - open-source edge AI platform
++ [Open Horizon](http://github.com/open-horizon) - [edge AI](http://github.com/dcmartin/open-horizon)  platform
 
 Home Assistant _add-ons_:
 
