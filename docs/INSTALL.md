@@ -118,7 +118,7 @@ Changes may be made for a variety of [options](OPTIONS.md); when changes are mad
 ```
 make restart
 ```
-## &#10124; Define `webcams.json`
+# &#10124; Define `webcams.json`
 
 This JSON file contains information about the cameras which will be in the generated YAML; more cameras require more computational resources.  Those details include:
 
