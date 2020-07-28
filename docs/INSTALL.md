@@ -21,7 +21,7 @@ Open Horizon AI _services_:
 
 Installation is performed in five (5) steps:
 
-1. Install `motion-ai` software from [this](http://gitub.com/dcmartin/hassio-addons) repository
+1. Install `motion-ai` software from [this](http://github.com/dcmartin/motion-ai) repository
 2. Configure system messaging
 2. Configure cameras
 2. Install _add-ons_ 
