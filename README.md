@@ -84,9 +84,14 @@ Data may be saved locally and processed to produce historical graphs as well as 
 + ![Supports ncs2 Architecture][ncs2-shield] -`armv7`- with Intel/Movidius  Neural Compute Stick v2
 
 ## Installation
-Installation is performed in five (5) steps; see [detailed instructions](docs/INSTALL.md).
+Installation is performed in five (5) steps; see [detailed instructions](docs/INSTALL.md).  The software has been tested on the following devices:
 
-### Recommended hardware: nVidia Jetson Nano (aka `tegra`)
++ RaspberryPi Model 3B+ and Model 4 (2 GB); Debian Buster
++ nVidia Jetson Nano and TX2; Ubuntu 18.04
++ VirtualBox VM; Ubuntu 18.04
++ Generic AMD64 w/ nVidia GPU; Ubuntu 18.04
+
+### Accelerated hardware 1: nVidia Jetson Nano (aka `tegra`)
 In addition to the nVidia Jetson Nano developer kit, there are also the following recommended components:
 
 1. 4 amp power-supply
@@ -97,6 +102,11 @@ In addition to the nVidia Jetson Nano developer kit, there are also the followin
 6. USB3/SATA cable and/or enclosure
 
 <img src="docs/samples/jetson-etc.png" width="512">
+
+### Accelerated hardware 2: RaspberryPi 4 with Intel NCS2  (aka `ncs2`)
+This configuration includes dual OLED displays to provide display of annotations text and image, as well as a USB-attached camera (n.b. Playstation3 PS/Eye camera).  The Intel/NCS2 implemtation is still in _alpha_ mode and not in the `master` branch.
+
+<img src="docs/samples/pi4-ncs2-oled.png" width="512">
 
 <hr>
 
