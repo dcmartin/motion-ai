@@ -1,5 +1,5 @@
 #  Motion &Atilde;&#128065;
-This system is a demonstration and proof-of-concept for **edge AI** providing improved situational awareness from a collection of network accessible video and audio sources.
+An open-source platform for situational awareness from a network of video and audio sources.  Utilizing Home Assistant and its addons and Open Horizon  edge fabric (from IBM and LINUX Foundation), the system enables edge AI inferencing on low-cost devices (e.g. RaspberryPi) and integrates object detection and classification into a dashboard of daily activity.
 
 <img src="docs/samples/example-motion-detection.gif" width=756>
 
