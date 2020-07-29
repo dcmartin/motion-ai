@@ -1,5 +1,5 @@
 #  Motion &Atilde;&#128065;
-An open-source software solution for situational awareness from a network of video and audio sources.  Utilizing [Home Assistant](http://home-assistant.io) [addons](http://github.com/motion-ai/addons) and LINUX Foundation [Open Horizon](http://github.com/open-horizon) edge fabric [services](https://github.com/motion-ai/open-horizon), the system enables _edge AI_ inferencing on low-cost devices (e.g. RaspberryPi) and integrates object detection and classification into a dashboard of daily activity.
+An open-source software solution for situational awareness from a network of video and audio sources.  Utilizing [Home Assistant](http://home-assistant.io), [addons](http://github.com/motion-ai/addons), the LINUX Foundation [Open Horizon](http://github.com/open-horizon) edge fabric, and [edge AI services](https://github.com/motion-ai/open-horizon), the system enables _personal_ AI on low-cost devices (e.g. RaspberryPi); integrating object detection and classification into a dashboard of daily activity.
 
 <img src="docs/samples/example-motion-detection.gif" width=756>
 
