@@ -22,8 +22,35 @@ Then configure by appending the desired nameservers, one per line; for example:
 echo 'nameserver 192.168.1.50' | sudo tee -a /etc/resolvconf/resolv.conf.d/head
 echo 'nameserver 1.1.1.1' | sudo tee -a /etc/resolvconf/resolv.conf.d/head
 ```
+### `DNSmasq`
+If you want to use the Home Assistant [DNS](https://www.home-assistant.io/addons/dnsmasq/) _addon_, the existing DNS resolver for Ubuntu must be disabled.  This method works on Ubuntu Releases 17.04 (Zasty), 17.10 (Artful), 18.04 (Bionic) and 18.10 (Cosmic):
 
-## Static IP _(optional)_
+Disable and stop the systemd-resolved service:
+
+```
+sudo systemctl disable systemd-resolved.service
+sudo systemctl stop systemd-resolved
+```
+
+Set DNS to `default`
+
+```
+sudo echo 'dns=default' >> /etc/NetworkManager/NetworkManager.conf
+```
+
+Delete  /etc/resolv.conf
+
+```
+sudo rm /etc/resolv.conf
+```
+
+Restart network-manager
+
+```
+sudo service network-manager restart
+```
+
+### Static IP _(optional)_
 To use static IP addresses, change the `/etc/network/interfaces` file, for example to configure a system with both wired (`eth0`) and wireless (`wlan0`) networking (presuming host is also running `dnsmasq` addon):
 
 ```
