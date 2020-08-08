@@ -54,6 +54,7 @@ docker rm -f ${NAME} &> /dev/null
 echo "Starting new container: ${NAME}; id: ${ID}; architecture: ${ARCH}; version: ${VERS}; host: ${EXT_PORT}; service: ${INT_PORT}" &> /dev/stderr
 
 CID=$(docker run -d \
+  --hostname kafka \
   --name ${NAME} \
   --restart=unless-stopped \
   -p ${ZOOKEEPER_PORT}:${ZOOKEEPER_PORT} \
