@@ -63,7 +63,11 @@ echo 'Updating apt ...' &> /dev/stderr \
   && sudo apt upgrade -qq -y \
   && echo 'Installing prerequisites ...' &> /dev/stderr \
   && sudo apt install -qq -y software-properties-common apparmor-utils apt-transport-https avahi-daemon ca-certificates curl dbus jq socat iperf3 netdata \
-  && echo 'Skipping network-manager; sudo apt install -qq -y network-manager to install' \
-  && echo 'Installing HA using ./sh/hassio-install.sh script' \
+  && echo 'Modifying /etc/netdata/netdata.conf to enable access from any host' \
+  && sudo sed -i 's/127.0.0.1/\*/' /etc/netdata/netdata.conf \
+  && echo 'Restarting netdata' \
+  && sudo systemctl restart netdata \
+  && echo 'Skipping network-manager; install with command: sudo apt install -qq -y network-manager' \
+  && echo 'Installing HA using LOCAL ./sh/hassio-install.sh script' \
   && sudo ./sh/hassio-install.sh -d $(pwd -P) $(machine) \
   || echo 'Failed to get Home Assistant' &> /dev/stderr
