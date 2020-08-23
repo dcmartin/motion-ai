@@ -52,9 +52,20 @@
     - max
   value_template: >-
     {% if value_json is defined %}
-      {{ '%0.1f' | format(value_json.result|first)|float }}
+      {{ '%0.1f' | format(value_json.result|first|float) }}
     {% else %}null{% endif %}
 
+- platform: template
+  sensors:
+    netdata_cpu:
+      entity_id:
+        - sensor.netdata_system_cpu
+      unit_of_measurement: '%'
+      value_template: >
+        {% set s = states('sensor.netdata_system_cpu') %}
+        {% if s is not none and s|lower != 'unknown' %}
+          {{ s }}
+        {%- else -%}null{%- endif -%}
 
 # {
 #    "api": 1,
@@ -106,5 +117,156 @@
     - max
   value_template: >
     {%- if value_json is defined -%}
-      {{ '%0.0f' | format(value_json.result|first)|float }}
+      {{ '%0.1f' | format(value_json.result|first|float) }}
     {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    netdata_ram:
+      entity_id:
+        - sensor.netdata_system_ram
+      unit_of_measurement: '%'
+      value_template: >
+        {% set s = states('sensor.netdata_system_ram') %}
+        {% if s is not none and s|lower != 'unknown' %}
+          {{ s }}
+        {%- else -%}null{%- endif -%}
+
+- platform: rest
+  name: netdata_system_net
+  resource: http://127.0.0.1:19999/api/v1/data?chart=system.net&format=array&points=480&group=average%3Eime=0&options=absolute%7Cjsonwrap%7Cnonzero&after=-480
+  force_update: true
+  method: GET
+  timeout: 5
+  json_attributes:
+    - api
+    - id
+    - name
+    - view_update_every
+    - update_every
+    - first_entry
+    - last_entry
+    - before
+    - after
+    - dimension_names
+    - dimension_ids
+    - latest_values
+    - view_latest_values
+    - dimensions
+#    - points
+#    - format
+#    - result
+    - min
+    - max
+  value_template: >
+    {%- if value_json is defined -%}
+      {{ '%0.1f' | format(value_json.result|first|float) }}
+    {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    netdata_network_receive:
+      entity_id:
+        - sensor.netdata_system_net
+      unit_of_measurement: 'Bps'
+      value_template: >
+        {% set s = state_attr('sensor.netdata_system_net','latest_values') %}
+        {% if s is not none and s|lower != 'unknown' %}
+          {{ '%0.1f' | format(states.sensor.netdata_system_net.attributes.latest_values[0]|float) }}
+        {%- else -%}null{%- endif -%}
+
+- platform: statistics
+  entity_id: sensor.netdata_network_receive
+  name: netdata_network_receive_statistics
+  sampling_size: 200
+  max_age:
+    hours: 24
+
+- platform: template
+  sensors:
+    netdata_network_receive_mean:
+      entity_id:
+        - sensor.netdata_network_receive_statistics
+      unit_of_measurement: 'Bps'
+      value_template: >
+        {% if states('sensor.netdata_network_receive_statistics')|lower != 'unavailable' %}
+          {{ states.sensor.netdata_network_receive_statistics.state }}
+        {%- else -%}null{%- endif -%}
+    netdata_network_receive_min:
+      entity_id:
+        - sensor.netdata_network_receive_statistics
+      unit_of_measurement: 'Bps'
+      value_template: >
+        {% if states('sensor.netdata_network_receive_statistics')|lower != 'unavailable' %}
+          {{ states.sensor.netdata_network_receive_statistics.attributes.min_value }}
+        {%- else -%}null{%- endif -%}
+    netdata_network_receive_max:
+      entity_id:
+        - sensor.netdata_network_receive_statistics
+      unit_of_measurement: 'Bps'
+      value_template: >
+        {% if states('sensor.netdata_network_receive_statistics')|lower != 'unavailable' %}
+          {{ states.sensor.netdata_network_receive_statistics.attributes.max_value }}
+        {%- else -%}null{%- endif -%}
+    netdata_network_receive_standard_deviation:
+      entity_id:
+        - sensor.netdata_network_receive_statistics
+      unit_of_measurement: 'Bps'
+      value_template: >
+        {% if states('sensor.netdata_network_receive_statistics')|lower != 'unavailable' %}
+          {{ states.sensor.netdata_network_receive_statistics.attributes.standard_deviation }}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    netdata_network_send:
+      entity_id:
+        - sensor.netdata_system_net
+      unit_of_measurement: 'Bps'
+      value_template: >
+        {% set s = state_attr('sensor.netdata_system_net','latest_values') %}
+        {% if s is not none and s|lower != 'unknown' %}
+          {{ '%0.1f' | format(states.sensor.netdata_system_net.attributes.latest_values[1]|float|abs) }}
+        {%- else -%}null{%- endif -%}
+
+- platform: statistics
+  entity_id: sensor.netdata_network_send
+  name: netdata_network_send_statistics
+  sampling_size: 200
+  max_age:
+    hours: 24
+
+- platform: template
+  sensors:
+    netdata_network_send_mean:
+      entity_id:
+        - sensor.netdata_network_send_statistics
+      unit_of_measurement: 'Bps'
+      value_template: >
+        {% if states('sensor.netdata_network_send_statistics')|lower != 'unavailable' %}
+          {{ states.sensor.netdata_network_send_statistics.state }}
+        {%- else -%}null{%- endif -%}
+    netdata_network_send_min:
+      entity_id:
+        - sensor.netdata_network_send_statistics
+      unit_of_measurement: 'Bps'
+      value_template: >
+        {% if states('sensor.netdata_network_send_statistics')|lower != 'unavailable' %}
+          {{ states.sensor.netdata_network_send_statistics.attributes.min_value }}
+        {%- else -%}null{%- endif -%}
+    netdata_network_send_max:
+      entity_id:
+        - sensor.netdata_network_send_statistics
+      unit_of_measurement: 'Bps'
+      value_template: >
+        {% if states('sensor.netdata_network_send_statistics')|lower != 'unavailable' %}
+          {{ states.sensor.netdata_network_send_statistics.attributes.max_value }}
+        {%- else -%}null{%- endif -%}
+    netdata_network_send_standard_deviation:
+      entity_id:
+        - sensor.netdata_network_send_statistics
+      unit_of_measurement: 'Bps'
+      value_template: >
+        {% if states('sensor.netdata_network_send_statistics')|lower != 'unavailable' %}
+          {{ states.sensor.netdata_network_send_statistics.attributes.standard_deviation }}
+        {%- else -%}null{%- endif -%}

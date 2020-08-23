@@ -9,21 +9,17 @@ motion.restart()
   local cameras=($(motion.status ${host} ${port} | jq -r '.cameras[].camera'))
 
   echo -n '{"host":"'${host}'","port":'${port}',"cameras":['
-  if [ ! -z "${camera:-}" ] && [ ${#cameras[@]} -gt 0 ]; then
+  if [ ${#cameras[@]} -gt 0 ]; then
     i=1; j=0
     for c in ${cameras[@]}; do
-      if [ "${c:-}" = "${camera}" ]; then
+      if [ -z "${camera:-}" ] || [ "${c:-}" = "${camera}" ]; then
         if [ ${j} -gt 1 ]; then echo ','; fi
-        r=$(curl -sqSL --connect-timeout 10 ${host}:${port}/${i}/action/restart &> /dev/null && echo '{}' | jq '.id='${i}'|.camera="'${camera}'"|.status="restarted"')
+        r=$(curl -sqSL --connect-timeout 10 ${host}:${port}/${i}/action/restart &> /dev/null && echo '{}' | jq '.id='${i}'|.camera="'${c}'"|.status="restarted"')
         echo -n "${r}"
         j=$((j+1))
       fi
       i=$((i+1))
     done
-  else
-    r=$(curl --connect-timeout 10 -sqSL ${host}:${port}/0/action/restart 2> /dev/null \
-       | jq '.id='0'|.status=(.status=="restarted")')
-    echo -n "${r}"
   fi
   echo ']}'
 }

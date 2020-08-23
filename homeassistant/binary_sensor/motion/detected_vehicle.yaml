@@ -6,14 +6,27 @@
   sensors:
     motion_detected_vehicle:
       friendly_name: Detected vehicle
+      icon_template: 'mdi:motion-sensor'
+      device_class: occupancy
       entity_id:
         - sensor.motion_detected_vehicle
-        - sensor.motion_detected_ago
       value_template: >-
-        {% if states.sensor.motion_event_annotated|lower != 'none'
-              and states.sensor.motion_detected_vehicle.state|lower != 'none'
-              and states.sensor.motion_detected_vehicle.state|lower != 'unknown'
-              and states.sensor.motion_detected_vehicle.state|from_json != 'null'
-              and states.sensor.motion_detected_vehicle.state|from_json is iterable %}
-          {{ states.sensor.motion_detected_vehicle.state|from_json|sum|int > 0 }}
-        {% else %}null{% endif %}
+        {% set s = states('sensor.motion_detected_vehicle') %}
+        {% if s|lower != 'unknown' and s|lower != 'none' %}
+          {% set s = s|from_json %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and s is iterable %}
+            {{ s|sum|int > 0 }}
+          {% else %}false{% endif %}
+        {% else %}false{% endif %}
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_expired:
+      friendly_name: Detected vehicle expired
+      icon_template: 'mdi:motion-sensor-off'
+      device_class: occupancy
+      entity_id:
+        - sensor.motion_detected_vehicle_ago
+        - input_number.motion_detected_entity_ago
+      value_template: >-
+        {{ states('sensor.motion_detected_vehicle_ago')|int > states('input_number.motion_detected_entity_ago')|int }}
