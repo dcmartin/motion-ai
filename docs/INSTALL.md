@@ -19,53 +19,62 @@ Open Horizon AI _services_:
 
 ## Installation
 
-Installation is performed in three (3) steps:
+Installation is performed in five (5) steps:
 
-1. Install `motion-ai` software from [this](http://gitub.com/motion-ai/home-assistant) repository
-2. Configure system for cameras, messaging, and Open Horizon _services_
-2. Install _add-ons_ for `MQTT` and `motion` through Home Assistant Web interface
-3. Start selected Open Horizon AI agents (e.g. `yolo4motion`)
+1. Install `motion-ai` software from [this](http://github.com/dcmartin/motion-ai) repository
+2. Configure system messaging
+2. Configure cameras
+2. Install _add-ons_ 
+3. Start selected AI _services_ (e.g. `yolo4motion`)
 
-To get started flash distribution image to micro-SD card, configure for `ssh` and WiFi, insert into device, boot, update and upgrade (n.b. see [here](DEBIAN.md) for additional information).
 
-#  &#10122; - Install `motion-ai`
+
+#  &#10122; Install `motion-ai`
+To get started flash a supported LINUX distribution image to a micro-SD card, enable `ssh` and configure WiFi; insert into device, boot, update and upgrade (n.b. see [here](DEBIAN.md) for additional information).
 
 Access via `ssh` or console; the following commands will complete the configuration and installation of `motion-ai`
 
 ```
-# enable appropriate permissions for the account
+# 1. enable appropriate permissions for the account
 for g in $(groups pi | awk -F: '{ print $2 }'); do sudo addgroup ${USER} ${g}; done
 ```
 ```
-# install the minimum required software (n.b. `git` and `jq`)
+# 2. install the minimum required software (n.b. `git` and `jq`)
 sudo apt install -qq -y git jq
 ```
 ```
-# clone the repository into location with sufficient space
+# 3. clone the repository into location with sufficient space
 mkdir motion-ai
 cd motion-ai
 git clone git@github.com:dcmartin/motion-ai.git .
 ```
 ```
-# download and install Home Assistant, Docker, NetData, and supporting components
+# 4. download and install Home Assistant, Docker, NetData, and supporting components
 ./sh/get.hassio.sh
-# add current user to docker group
+```
+```
+# 5. add current user to docker group
 sudo addgroup ${USER} docker
 ```
 ```
-# copy template for webcams.json
+# 6. copy template for webcams.json
 cp homeassistant/motion/webcams.json.tmpl webcams.json
-# build YAML files based on configuration options
+```
+```
+# 7. build YAML files based on configuration options
 make
-# reboot
+```
+```
+# 8. reboot
 sudo reboot
 ```
 
-When the system has restarted, access via `ssh` and  continue with the next step.
+When the system has restarted, access via `ssh` and  continue with the next step.  
 
-## &#10123; - Configure `motion-ai`
+## &#10123; Configure `motion-ai`
+Once Home Assistant has been downloaded and starts the Web UI may be reached on the specified port; default: `8123`.
 
-Specify options forthe `motion` _add-on_ as well as the `yolo4motion`, `face4motion`, and `alpr4motion` as appropriate.  Relevant variables include:
+Specify options for the `motion` _add-on_, as well as the AI _services, as appropriate.  Relevant variables include:
 
 ### `motion` 
 + `MOTION_GROUP` - identifier for a group of devices; default: `motion`
@@ -88,28 +97,30 @@ Specify options forthe `motion` _add-on_ as well as the `yolo4motion`, `face4mot
 + `LOG_LEVEL` - logging level; default: `info`
 + `LOG_TO` - logging output; default: `/dev/stderr`
 
-These variables' values may be specified by environment variables or persistently through files of the same name; for example:
+These variables' values may be specified by environment variables or persistently through files of the same name; for example in the `motion-ai` installation directory:
 
 ```
+# 1. specify a MQTT save device identifier
 echo 'pi31' > MOTION_DEVICE
 echo '+' > MOTION_CLIENT
 ```
+
 ```
-# specify camera(s); default is one camera named `local`
-cp homeassistant/motion/webcams.json.tmpl  webcams.json
-```
-```
-# specify credentials to access motion-ai cameras
+# 2. specify credentials to access motion-ai cameras
+>>>>>>> 6cb7e0a719727864553d6d655d309373e982a939
 echo 'username' > MOTIONCAM_PASSWORD
 echo 'password' > MOTIONCAM_PASSWORD
 ```
+
 ```
-# specify credential to access third-party network cameras
+# 3. specify credential to access third-party network cameras
 echo 'username' > NETCAM_PASSWORD
 echo 'password' > NETCAM_PASSWORD
 ```
+
 ```
-# specify MQTT options
+# 4. specify MQTT options
+>>>>>>> 6cb7e0a719727864553d6d655d309373e982a939
 echo '192.168.1.50' > MQTT_HOST
 echo 'username' > MQTT_USERNAME
 echo 'password' > MQTT_PASSWORD
@@ -123,7 +134,7 @@ Changes may be made for a variety of [options](OPTIONS.md); when changes are mad
 ```
 make restart
 ```
-### `webcams.json`
+# &#10124; Define `webcams.json`
 
 This JSON file contains information about the cameras which will be in the generated YAML; more cameras require more computational resources.  Those details include:
 
@@ -131,6 +142,13 @@ This JSON file contains information about the cameras which will be in the gener
 + `mjpeg_url` : location of "live" motion JPEG stream from camera
 + `username` and `password` : credentials for access via the `mjpeg_url`
 + `icon` : specified from the [Material Design Icons](https://materialdesignicons.com/) selection.
+
+#### Copy the provided template:
+
+```
+# specify camera(s); default is one camera named `local`
+cp homeassistant/motion/webcams.json.tmpl  webcams.json
+```
 
 For example:
 
@@ -146,22 +164,24 @@ For example:
 ]
 ```
 
-# &#10124; - Install _add-on(s)_
+# &#10125; Install _add-on(s)_
 Install the requiste _add-ons_ for Home Assistant, including the `MQTT` broker and the appropriate version of `motion`.  Browse to the Home Assistant Web interface (n.b. don't forget `port` if not `80`) and visit the **Supervisor** via the icon in the lower left panel (see below).
 
-[![example](samples/supervisor.png?raw=true "supervisor")](http://github.com/dcmartin/hassio-addons/tree/master/motion/samples/supervisor.png)
+<img src="https://raw.githubusercontent.com/dcmartin/addons/master/docs/samples/supervisor-add-on-store.png" width="640">
 
 Select the `Add-on Store` and type in the address of this repository, for example:
 
-[![example](samples/add-repository.png?raw=true "add-repository")](http://github.com/dcmartin/hassio-addons/tree/master/motion/samples/add-repository.png)
+<img src="https://raw.githubusercontent.com/dcmartin/addons/master/docs/samples/supervisor-manage-repositories.png" width="640">
+
+<img src="https://raw.githubusercontent.com/dcmartin/addons/master/docs/samples/supervisor-add-on-store-repositories.png" width="640">
 
 When the system reloads, select the **Motion Server** _add-on_ from those available; when utilizing a locally attached USB camera, select the **Motion Video0** _add-on_; for example:
 
-[![example](samples/dcmartin-repository.png?raw=true "dcmartin-repository")](http://github.com/dcmartin/hassio-addons/tree/master/motion/samples/dcmartin-repository.png)
+<img src="https://raw.githubusercontent.com/dcmartin/addons/master/docs/samples/dcmartin-addons.png" width="640">
 
-After selecting the appropriate _add-on_, install by clicking on the `'INSTALL` button, for example:
+After selecting the appropriate _add-on_, install by clicking on the `INSTALL` button, for example:
 
- [![example](samples/motion-server-addon.png?raw=true "motion-server-addon")](http://github.com/dcmartin/hassio-addons/tree/master/motion/samples/motion-server-addon.png)
+<img src="https://raw.githubusercontent.com/dcmartin/addons/master/docs/samples/motion-server-addon.png" width="640">
 
 Configure the add-on using the following options:
 
@@ -171,59 +191,87 @@ Configure the add-on using the following options:
 + `mqtt` - `host`, `port`, `username`, and `password` for MQTT server
 + `cameras` - an array of `dict` structure for each camera
 
-For more information on configuring, please refer to the [`motion`](http://github.com/dcmartin/hassio-addons/tree/master/motion/README.md) documentation.
+For more information on configuring, please refer to the [`motion`](http://github.com/dcmartin/hassio-addons/tree/master/motion/DOCS.md) documentation.
 
-#### &#9995; Naming
-A `group`, `device`, or `camera` _name_ may **ONLY** include lower-case letters (`a-z`), numbers (`0-9`), and _underscore_ (`_`) as they are used in `MQTT` _topics_.
+# &#10126; Start AI _services_
+Specify options for the AI _services_, i.e. `yolo4motion`, `face4motion`, etc.. as appropriate.  Relevant variables include:
 
-## Camera `type`
+### _service logging_
+In addition to those above, the level of logging and desired output location are shared across all _services_.
 
-### `local` camera
-The local camera is only defined to exist and be `/dev/video0` in the [Motion Video0](http://github.com/dcmartin/hassio-addons/tree/master/motion-video0/README.md) _add-on_; changing this device requires specification through the add-on [configuration](http://github.com/dcmartin/hassio-addons/tree/master/motion-video0/config.json).  The device connected to `/dev/video0` may be a [RaspberryPi v2]() camera, a Playstation3 [Eye]() camera, or any [VL42]() camera.
++ `LOG_LEVEL` - logging level; default: `info`
++ `LOG_TO` - logging output; default: `/dev/stderr`
+
+## `yolo4motion`
++ `YOLO_CONFIG` - may be `tiny`, `tiny-v2`, `tiny-v3`, `v2`, or `v3`; default: `tiny` _(pre-loaded)_
++ `YOLO_ENTITY` - entity to detect; default: `all`
++ `YOLO_SCALE` - size for image scaling prior to detect; default: `none`
++ `YOLO_THRESHOLD` - threshold for entity detection; default: `0.25`
+
+The `tiny` model (aka `tiny-v2`) only detects [these](https://github.com/dcmartin/openyolo/blob/master/darknet/data/voc.names) entities; the remaining models detect [these](https://github.com/dcmartin/openyolo/blob/master/darknet/data/coco.names) entities.
+
+**Note:** The Docker container and the model's weights must be downloaded from the Internet; there may be a considerable delay given the device Internet connection bandwidth.  The container is only downloaded one time, but the model's weights  are downloaded each time the container is started.
+
+For example:
 
 ```
-[
-  {
-    "name": "kitchencam",
-    "type": "local",
-    "netcam_url": "http://127.0.0.1:8090/1",
-    "icon": "stove",
-    "netcam_userpass": "username:password"
+echo debug > LOG_LEVEL
+echo tiny-v3 > YOLO_CONFIG
+./sh/yolo4motion.sh
+... deleted ...
+{
+  "name": "yolo4motion",
+  "id": "6d1765902d260f5b6e276f26391eb135eedef5388bf15ce77fa976adcf7a13c6",
+  "service": {
+    "label": "yolo4motion",
+    "id": "com.github.dcmartin.open-horizon.yolo4motion",
+    "tag": "0.1.2",
+    "arch": "amd64",
+    "ports": {
+      "service": 80,
+      "host": 4662
+    }
+  },
+  "motion": {
+    "group": "motion",
+    "client": "+",
+    "camera": "+"
+  },
+  "yolo": {
+    "config": "tiny",
+    "entity": "all",
+    "scale": "none",
+    "threshold": 0.25
+  },
+  "mqtt": {
+    "host": "192.168.1.50",
+    "port": 1883,
+    "username": "username",
+    "password": "password"
+  },
+  "debug": {
+    "debug": false,
+    "level": "info",
+    "logto": "/dev/stderr"
   }
-]   
+}
 ```
 
-### `netcam` camera
-These cameras may use the `rtsp`, `http`, or `mjpeg` protocol specifiers (n.b.  [`netcam_url`](https://motion-project.github.io/motion_config.html#netcam_url)) section of the [Motion Project](https://motion-project.github.io/motion_guide.html) documentation.
+## `face4motion.sh`
++ `FACE_THRESHOLD` - floating point value between `0.0` and `0.99`; default: `0.5`
+
+## `alpr4motion.sh`
++ `ALPR_COUNTRY` - designation for country specific license plates, may be `us` or `eu`; default: `us`
++ `ALPR_PATTERN` - pattern for plate recognition, may be regular expression; default: `none`
++ `ALPR_TOPN` - integer value between `1` and `20` limiting number `tag` predictions per `plate` 
+
+#  &#9989; - COMPLETE
+
+## Watch `MQTT` traffic (_optional_)
+To monitor the `MQTT` traffic from one or more `motion` devices use the `./sh/watch.sh` script which runs a `MQTT` client to listen for various _topics_, including motion detection events, annotations, detections, and a specified detected entity (n.b. currently limited per device).  The script outputs information to `/dev/stderr` and runs in the background.  The shell script will utilize existing values for the `MQTT` host, etc.. as well as the `MOTION_CLIENT`, but those may be specified as well; for example:
 
 ```
-[
-  {
-    "name": "pondlive",
-    "type": "netcam",
-    "netcam_url": "mjpeg://192.168.1.174/img/video.mjpeg",
-    "icon": "waves",
-    "netcam_userpass": "!secret netcam-userpass"
-  }
-]
+echo motion > MOTION_GROUP
+echo + > MOTION_CLIENT
+./sh/watch.sh
 ```
-
-### `ftpd` camera
-For network cameras that deposit video via FTP; the `username` and `password` apply the the `netcam_url` for access to the camera (n.b. direct, not through the `motion` port).  If using this type of camera, please install an appropriate **FTP** _add-on_, e.g.  [`addon-ftp`](https://github.com/hassio-addons/addon-ftp).
-
-
-```
-[
-  {
-    "name": "backyard",
-    "type": "ftpd",
-    "netcam_url": "http://192.168.1.183/img/video.mjpeg",
-    "icon": "texture-box",
-    "netcam_userpass": "!secret netcam-userpass"
-  }
-]
-```
-
-### Complete example configuration for `motion` _add-on_
-```
-l```
