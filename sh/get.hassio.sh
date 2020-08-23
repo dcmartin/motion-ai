@@ -63,7 +63,7 @@ fi
 CONFIG="/etc/docker/daemon.json" \
   && jq '."log-driver"="journald"|."storage-driver"="overlay2"' ${CONFIG} > /tmp/daemon.json \
   && sudo mv -f /tmp/daemon.json ${CONFIG} \
-  && sudo systemctl restart docker \
+  && sudo systemctl restart docker
 
 echo 'Updating apt ...' &> /dev/stderr \
   && sudo apt update -qq -y \
