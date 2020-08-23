@@ -22,7 +22,6 @@ Then configure by appending the desired nameservers, one per line; for example:
 echo 'nameserver 192.168.1.50' | sudo tee -a /etc/resolvconf/resolv.conf.d/head
 echo 'nameserver 1.1.1.1' | sudo tee -a /etc/resolvconf/resolv.conf.d/head
 ```
-
 ### `DNSmasq`
 If you want to use the Home Assistant [DNS](https://www.home-assistant.io/addons/dnsmasq/) _addon_, the existing DNS resolver for Ubuntu must be disabled.  This method works on Ubuntu Releases 17.04 (Zasty), 17.10 (Artful), 18.04 (Bionic) and 18.10 (Cosmic):
 

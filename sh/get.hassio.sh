@@ -42,39 +42,56 @@ machine()
   echo "${machine:-}"
 }
 
+###
+### MAIN
+###
+
+export DEBIAN_FRONTEND=noninteractive
+
+if [ "${USER:-null}" != 'root' ]; then
+  echo "Please run as root; sudo ${0} ${*}" &> /dev/stderr
+  exit 1
+fi
+
 if [ -z "$(command -v curl)" ]; then
   echo 'Install curl; sudo apt install -qq -y curl' &> /dev/stderr
   exit 1
 fi
 
-export DEBIAN_FRONTEND=noninteractive
+systemctl status ModemManager &> /dev/null && systemctl stop ModemManager && systemctl disable ModemManager
 
-sudo systemctl stop ModemManager
-sudo systemctl disable ModemManager
+## DOCKER
 
 if [ -z "$(command -v docker)" ]; then
   echo 'Getting Docker ..' &> /dev/stderr \
     && curl -sSL -o get.docker.sh 'get.docker.com' \
     && echo 'Installing Docker ..' &> /dev/stderr \
-    && sudo bash ./get.docker.sh \
+    && bash ./get.docker.sh \
     || echo 'Failed to install Docker' &> /dev/stderr
 fi
 
-CONFIG="/etc/docker/daemon.json" \
-  && jq '."log-driver"="journald"|."storage-driver"="overlay2"' ${CONFIG} > /tmp/daemon.json \
-  && sudo mv -f /tmp/daemon.json ${CONFIG} \
-  && sudo systemctl restart docker
+CONFIG="/etc/docker/daemon.json"
+if [ -s ${CONFIG} ]; then
+  jq '."log-driver"="journald"|."storage-driver"="overlay2"' ${CONFIG} > /tmp/daemon.json
+  mv -f /tmp/daemon.json ${CONFIG}
+else
+  echo '{"log-driver":"journald","storage-driver":"overlay2"}' > ${CONFIG}
+fi
+systemctl restart docker
 
-echo 'Updating apt ...' &> /dev/stderr \
-  && sudo apt update -qq -y \
-  && echo 'Upgrading apt ...' &> /dev/stderr \
-  && sudo apt upgrade -qq -y \
-  && echo 'Installing prerequisites ...' &> /dev/stderr \
-  && sudo apt install -qq -y network-manager software-properties-common apparmor-utils apt-transport-https avahi-daemon ca-certificates curl dbus jq socat iperf3 netdata \
+## UPDATE, UPGRADE, PACKAGES
+
+echo 'Install pre-requisite software' &> /dev/stderr \
+  && echo 'Updating apt ...' &> /dev/stderr && apt update -qq -y \
+  && echo 'Upgrading apt ...' &> /dev/stderr && apt upgrade -qq -y \
+  && echo 'Installing packages...' &> /dev/stderr \
+  && apt install -qq -y network-manager software-properties-common apparmor-utils apt-transport-https avahi-daemon ca-certificates curl dbus jq socat iperf3 netdata \
   && echo 'Modifying /etc/netdata/netdata.conf to enable access from any host' \
-  && sudo sed -i 's/127.0.0.1/\*/' /etc/netdata/netdata.conf \
+  && sed -i 's/127.0.0.1/\*/' /etc/netdata/netdata.conf \
   && echo 'Restarting netdata' \
-  && sudo systemctl restart netdata \
-  && echo "Installing using ./sh/hassio-install.sh -d $(pwd -P) $(machine)" \
-  && sudo ./sh/hassio-install.sh -d $(pwd -P) $(machine) \
+  && systemctl restart netdata \
+  || echo 'Failed to install pre-requisite software' &> /dev/stderr
+
+echo "Installing using ${0%%/*}/hassio-install.sh -d $(pwd -P) $(machine)" \
+  && ${0%%/*}/hassio-install.sh -d $(pwd -P) $(machine) \
   || echo 'Failed to get Home Assistant' &> /dev/stderr

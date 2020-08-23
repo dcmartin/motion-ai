@@ -89,6 +89,14 @@ Specify options for the `motion` _add-on_, as well as the AI _services, as appro
 + `NETCAM_USERNAME` - credential identifier; default: `username`
 + `NETCAM_PASSWORD`- credential password; default: `password`
 
+### `yolo4motion`
++ `YOLO_CONFIG` - may be `tiny`, `tiny-v2`, `tiny-v3`, `v2`, or `v3`; default: `tiny` _(pre-loaded)_
++ `YOLO_ENTITY` - entity to detect; default: `all`
++ `YOLO_SCALE` - size for image scaling prior to detect; default: `none`
++ `YOLO_THRESHOLD` - threshold for entity detection; default: `0.25`
++ `LOG_LEVEL` - logging level; default: `info`
++ `LOG_TO` - logging output; default: `/dev/stderr`
+
 These variables' values may be specified by environment variables or persistently through files of the same name; for example in the `motion-ai` installation directory:
 
 ```
@@ -96,22 +104,30 @@ These variables' values may be specified by environment variables or persistentl
 echo 'pi31' > MOTION_DEVICE
 echo '+' > MOTION_CLIENT
 ```
+
 ```
 # 2. specify credentials to access motion-ai cameras
+>>>>>>> 6cb7e0a719727864553d6d655d309373e982a939
 echo 'username' > MOTIONCAM_PASSWORD
 echo 'password' > MOTIONCAM_PASSWORD
 ```
+
 ```
 # 3. specify credential to access third-party network cameras
 echo 'username' > NETCAM_PASSWORD
 echo 'password' > NETCAM_PASSWORD
 ```
+
 ```
 # 4. specify MQTT options
+>>>>>>> 6cb7e0a719727864553d6d655d309373e982a939
 echo '192.168.1.50' > MQTT_HOST
 echo 'username' > MQTT_USERNAME
 echo 'password' > MQTT_PASSWORD
 ```
+
+
+Once Home Assistant has been downloaded and starts the Web UI may be reached on the specified port.
 
 Changes may be made for a variety of [options](OPTIONS.md); when changes are made (e.g. to the `MQTT_HOST`) the following command **must** be run for those changes to take effect:
 

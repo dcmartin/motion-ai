@@ -146,7 +146,7 @@ David C Martin (github@dcmartin.com)
 Add `motion-ai` as upstream to your repository:
 
 ```
-git remote add upstream git@github.com:dcmartin/motion-ai.git
+git remote add upstream http://github.com/dcmartin/motion-ai.git
 ```
 
 Please make sure you keep your fork up to date by regularly pulling from upstream. 
