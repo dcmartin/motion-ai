@@ -85,7 +85,7 @@ echo 'Install pre-requisite software' &> /dev/stderr \
   && echo 'Updating apt ...' &> /dev/stderr && apt update -qq -y \
   && echo 'Upgrading apt ...' &> /dev/stderr && apt upgrade -qq -y \
   && echo 'Installing packages...' &> /dev/stderr \
-  && apt install -qq -y network-manager software-properties-common apparmor-utils apt-transport-https avahi-daemon ca-certificates curl dbus jq socat iperf3 netdata \
+  && apt install -qq -y network-manager software-properties-common apparmor-utils apt-transport-https avahi-daemon ca-certificates curl dbus jq socat iperf3 netdata git \
   && echo 'Modifying /etc/netdata/netdata.conf to enable access from any host' \
   && sed -i 's/127.0.0.1/\*/' /etc/netdata/netdata.conf \
   && echo 'Restarting netdata' \
