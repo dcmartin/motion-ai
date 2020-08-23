@@ -92,6 +92,6 @@ echo 'Install pre-requisite software' &> /dev/stderr \
   && systemctl restart netdata \
   || echo 'Failed to install pre-requisite software' &> /dev/stderr
 
-echo "Installing using ${0%%/*}/hassio-install.sh -d $(pwd -P) $(machine)" \
-  && ${0%%/*}/hassio-install.sh -d $(pwd -P) $(machine) \
+echo "Installing using ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine)" \
+  && ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine) \
   || echo 'Failed to get Home Assistant' &> /dev/stderr
