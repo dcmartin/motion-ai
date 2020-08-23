@@ -101,15 +101,15 @@ sudo raspi-config
 
 Navigate through the screens; first selecting option `3. Boot Options`:
 
-<img src="samples/raspi-config-1.png">
+<img src="https://raw.githubusercontent.com/dcmartin/addons/master/docs/samples/raspi-config-1.png">
 
 Then option `B1 Desktop / CLI`:
 
-<img src="samples/raspi-config-2.png">
+<img src="https://raw.githubusercontent.com/dcmartin/addons/master/docs/samples/raspi-config-2.png">
 
 Finally, select option `B4 Desktop Autologin Desktop GUI` with the utilized account (e.g. `dcmartin`):
 
-<img src="samples/raspi-config-3.png">
+<img src="https://raw.githubusercontent.com/dcmartin/addons/master/docs/samples/raspi-config-3.png">
 
 Select `<OK>` and exit the `rasp-config` application.  Then reboot the computer:
 
