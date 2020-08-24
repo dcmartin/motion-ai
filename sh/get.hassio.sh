@@ -58,8 +58,6 @@ if [ -z "$(command -v curl)" ]; then
   exit 1
 fi
 
-systemctl status ModemManager &> /dev/null && systemctl stop ModemManager && systemctl disable ModemManager
-
 ## DOCKER
 
 if [ -z "$(command -v docker)" ]; then
@@ -91,6 +89,8 @@ echo 'Install pre-requisite software' &> /dev/stderr \
   && echo 'Restarting netdata' \
   && systemctl restart netdata \
   || echo 'Failed to install pre-requisite software' &> /dev/stderr
+
+systemctl status ModemManager &> /dev/null && systemctl stop ModemManager && systemctl disable ModemManager
 
 echo "Installing using ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine)" \
   && ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine) \
