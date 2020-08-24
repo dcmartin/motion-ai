@@ -155,6 +155,8 @@ curl -sSL https://raw.githubusercontent.com/home-assistant/supervised-installer/
   || \
   echo "Unable to download installer; using backup" &> /dev/stderr
 
+systemctl status ModemManager &> /dev/null && systemctl stop ModemManager && systemctl disable ModemManager
+
 echo "Installing using ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine)" \
   && ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine) \
   || echo 'Failed to get Home Assistant' &> /dev/stderr
