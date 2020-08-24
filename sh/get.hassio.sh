@@ -77,6 +77,8 @@ else
 fi
 systemctl restart docker
 
+addgroup ${USER} docker
+
 ## UPDATE, UPGRADE, PACKAGES
 
 echo 'Install pre-requisite software' &> /dev/stderr \
