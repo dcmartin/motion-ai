@@ -1,14 +1,20 @@
 #  Motion &Atilde;&#128065;
-This system is a demonstration and proof-of-concept for **edge AI** providing improved situational awareness from a collection of network accessible video and audio sources.
+An open-source software solution for situational awareness from a network of video and audio sources.  Utilizing [Home Assistant](http://home-assistant.io), [addons](http://github.com/motion-ai/addons), the LINUX Foundation [Open Horizon](http://github.com/open-horizon) edge fabric, and [edge AI services](https://github.com/motion-ai/open-horizon), the system enables _personal_ AI on low-cost devices (e.g. RaspberryPi); integrating object detection and classification into a dashboard of daily activity.
+
++ Use this [guide](docs/QUICKSTART.md) to get started.
++ Visit us on the [Web](http://www.motion-ai.com)
++ Find us on [Facebook](https://www.facebook.com/groups/motionai/)
++ Connect with us on [LinkedIn](https://www.linkedin.com/company/motion-%C3%A3i)
++ Message us on [Slack](https://join.slack.com/t/motionai/shared_invite/zt-gdf19rup-zIseUFLoLSD0NkC5hpr~EQ)
 
 <img src="docs/samples/example-motion-detection.gif" width=756>
 
 ### What  is _edge AI_?
 The edge of the network is where connectivity is lost and privacy is challenged.
 
-Low-cost computing (e.g. RaspberryPi, nVidia Jetson Nano, Intel NUC, ..) as well as hardware accelerators (e.g. Google Coral TPU, Intel Movidius Neural Compute Stick v2) provide the opportunity to utilize artificial intelligence in the privacy and safety of a home or business.
+Low-cost computing (e.g. RaspberryPi, nVidia Jetson Nano, Intel NUC) as well as hardware accelerators (e.g. Google Coral TPU, Intel Movidius Neural Compute Stick v2) provide the opportunity to utilize artificial intelligence in the privacy and safety of a home or business.
 
-To provide for multiple operational scenarios and use-cases, e.g. the elder's _activities of daily living_ (ADL), the platform is relatively agnostic toward AI models or hardware and more dependent on system availability for development and testing.
+To provide for multiple operational scenarios and use-cases (e.g. the elder's _activities of daily living_ (ADL)), the platform is relatively agnostic toward AI models or hardware and more dependent on system availability for development and testing.
 
 An AI's **prediction quality** is dependent on the  _variety_, _volume_, and _veracity_ of the training data (n.b. see [_Understanding AI_](https://www.linkedin.com/pulse/understanding-ai-david-c-martin/), as the underlying deep, convolutional, neural-networks -- and other algorithms -- must be trained using information that represents the scenario, use-case, and environment; better predictions come from better information.
 
@@ -58,7 +64,7 @@ A more detailed interface is provided to administrators _only_, and includes bot
 
 <img src="docs/samples/example.png" width="1024">
 
-Data may be saved locally and processed to produce historical graphs as well as exported for analysis using other tools, e.g. time-series database _InfluxDB_ and analysis front-end _Grafana_.  Data may also be processed using _Jupyter_ notebooks.
+Data may be saved locally and processed to produce historical graphs as well as exported for analysis using other tools (e.g. time-series database _InfluxDB_ and analysis front-end _Grafana_).  Data may also be processed using _Jupyter_ notebooks.
 
 ## Supported architectures include:
 
@@ -111,7 +117,7 @@ This configuration includes dual OLED displays to provide display of annotations
 <hr>
 
 # Example: [Age-At-Home](http://www.age-at-home.com)
-This system may be used to build solutions for various operational scenarios, e.g. monitoring the elderly to determine patterns of daily activity and alert care-givers and loved ones when aberrations occur; see the [Age-At-Home](http://www.age-at-home.com/) project for more information; example below:
+This system may be used to build solutions for various operational scenarios (e.g. monitoring the elderly to determine patterns of daily activity and alert care-givers and loved ones when aberrations occur); see the [Age-At-Home](http://www.age-at-home.com/) project for more information; example below:
 
 <img src="docs/samples/age-at-home.png" width="512">
 
@@ -141,7 +147,7 @@ David C Martin (github@dcmartin.com)
 Add `motion-ai` as upstream to your repository:
 
 ```
-git remote add upstream git@github.com:dcmartin/motion-ai.git
+git remote add upstream http://github.com/dcmartin/motion-ai.git
 ```
 
 Please make sure you keep your fork up to date by regularly pulling from upstream. 

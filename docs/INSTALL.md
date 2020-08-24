@@ -89,6 +89,14 @@ Specify options for the `motion` _add-on_, as well as the AI _services, as appro
 + `NETCAM_USERNAME` - credential identifier; default: `username`
 + `NETCAM_PASSWORD`- credential password; default: `password`
 
+### `yolo4motion`
++ `YOLO_CONFIG` - may be `tiny`, `tiny-v2`, `tiny-v3`, `v2`, or `v3`; default: `tiny` _(pre-loaded)_
++ `YOLO_ENTITY` - entity to detect; default: `all`
++ `YOLO_SCALE` - size for image scaling prior to detect; default: `none`
++ `YOLO_THRESHOLD` - threshold for entity detection; default: `0.25`
++ `LOG_LEVEL` - logging level; default: `info`
++ `LOG_TO` - logging output; default: `/dev/stderr`
+
 These variables' values may be specified by environment variables or persistently through files of the same name; for example in the `motion-ai` installation directory:
 
 ```
@@ -96,16 +104,19 @@ These variables' values may be specified by environment variables or persistentl
 echo 'pi31' > MOTION_DEVICE
 echo '+' > MOTION_CLIENT
 ```
+
 ```
 # 2. specify credentials to access motion-ai cameras
 echo 'username' > MOTIONCAM_PASSWORD
 echo 'password' > MOTIONCAM_PASSWORD
 ```
+
 ```
 # 3. specify credential to access third-party network cameras
 echo 'username' > NETCAM_PASSWORD
 echo 'password' > NETCAM_PASSWORD
 ```
+
 ```
 # 4. specify MQTT options
 echo '192.168.1.50' > MQTT_HOST
@@ -151,19 +162,21 @@ For example:
 # &#10125; Install _add-on(s)_
 Install the requiste _add-ons_ for Home Assistant, including the `MQTT` broker and the appropriate version of `motion`.  Browse to the Home Assistant Web interface (n.b. don't forget `port` if not `80`) and visit the **Supervisor** via the icon in the lower left panel (see below).
 
-[![example](samples/supervisor.png?raw=true "supervisor")](http://github.com/dcmartin/hassio-addons/tree/master/motion/samples/supervisor.png)
+<img src="https://raw.githubusercontent.com/dcmartin/addons/master/docs/samples/supervisor-add-on-store.png" width="640">
 
 Select the `Add-on Store` and type in the address of this repository, for example:
 
-[![example](samples/add-repository.png?raw=true "add-repository")](http://github.com/dcmartin/hassio-addons/tree/master/motion/samples/add-repository.png)
+<img src="https://raw.githubusercontent.com/dcmartin/addons/master/docs/samples/supervisor-manage-repositories.png" width="640">
+
+<img src="https://raw.githubusercontent.com/dcmartin/addons/master/docs/samples/supervisor-add-on-store-repositories.png" width="640">
 
 When the system reloads, select the **Motion Server** _add-on_ from those available; when utilizing a locally attached USB camera, select the **Motion Video0** _add-on_; for example:
 
-[![example](samples/dcmartin-repository.png?raw=true "dcmartin-repository")](http://github.com/dcmartin/hassio-addons/tree/master/motion/samples/dcmartin-repository.png)
+<img src="https://raw.githubusercontent.com/dcmartin/addons/master/docs/samples/dcmartin-addons.png" width="640">
 
 After selecting the appropriate _add-on_, install by clicking on the `INSTALL` button, for example:
 
- [![example](samples/motion-server-addon.png?raw=true "motion-server-addon")](http://github.com/dcmartin/hassio-addons/tree/master/motion/samples/motion-server-addon.png)
+<img src="https://raw.githubusercontent.com/dcmartin/addons/master/docs/samples/motion-server-addon.png" width="640">
 
 Configure the add-on using the following options:
 
@@ -258,3 +271,20 @@ echo + > MOTION_CLIENT
 ./sh/watch.sh
 ```
 
+=======
+
+## `alpr4motion.sh`
++ `ALPR_COUNTRY` - designation for country specific license plates, may be `us` or `eu`; default: `us`
++ `ALPR_PATTERN` - pattern for plate recognition, may be regular expression; default: `none`
++ `ALPR_TOPN` - integer value between `1` and `20` limiting number `tag` predictions per `plate` 
+
+#  &#9989; - COMPLETE
+
+## Watch `MQTT` traffic (_optional_)
+To monitor the `MQTT` traffic from one or more `motion` devices use the `./sh/watch.sh` script which runs a `MQTT` client to listen for various _topics_, including motion detection events, annotations, detections, and a specified detected entity (n.b. currently limited per device).  The script outputs information to `/dev/stderr` and runs in the background.  The shell script will utilize existing values for the `MQTT` host, etc.. as well as the `MOTION_CLIENT`, but those may be specified as well; for example:
+
+```
+echo motion > MOTION_GROUP
+echo + > MOTION_CLIENT
+./sh/watch.sh
+```

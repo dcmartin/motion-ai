@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
+function info { echo -e "[Info] $*"; }
 function error { echo -e "[Error] $*"; exit 1; }
 function warn  { echo -e "[Warning] $*"; }
 
@@ -30,14 +31,6 @@ command -v apparmor_parser > /dev/null 2>&1 || warn "No AppArmor support on host
 # Check if Modem Manager is enabled
 if systemctl list-unit-files ModemManager.service | grep enabled; then
     warn "ModemManager service is enabled. This might cause issue when using serial devices."
-fi
-
-# Detect if running on snapped docker
-if snap list docker >/dev/null 2>&1; then
-    DOCKER_BINARY=/snap/bin/docker
-    DATA_SHARE=/root/snap/docker/common/hassio
-    CONFIG=$DATA_SHARE/hassio.json
-    DOCKER_SERVICE="snap.docker.dockerd.service"
 fi
 
 # Parse command line parameters
@@ -134,6 +127,7 @@ HASSIO_VERSION=$(curl -s $URL_VERSION | jq -e -r '.supervisor')
 cat > "$CONFIG" <<- EOF
 {
     "supervisor": "${HASSIO_DOCKER}",
+    "machine": "${MACHINE}",
     "homeassistant": "${HOMEASSISTANT_DOCKER}",
     "data": "${DATA_SHARE}"
 }
@@ -141,13 +135,13 @@ EOF
 
 ##
 # Pull supervisor image
-echo "[Info] Install supervisor Docker container"
+info "Install supervisor Docker container"
 docker pull "$HASSIO_DOCKER:$HASSIO_VERSION" > /dev/null
 docker tag "$HASSIO_DOCKER:$HASSIO_VERSION" "$HASSIO_DOCKER:latest" > /dev/null
 
 ##
 # Install Hass.io Supervisor
-echo "[Info] Install supervisor startup scripts"
+info "Install supervisor startup scripts"
 curl -sL ${URL_BIN_HASSIO} > "${PREFIX}/sbin/hassio-supervisor"
 curl -sL ${URL_SERVICE_HASSIO} > "${SYSCONFDIR}/systemd/system/hassio-supervisor.service"
 
@@ -163,7 +157,7 @@ systemctl enable hassio-supervisor.service
 #
 # Install Hass.io AppArmor
 if command -v apparmor_parser > /dev/null 2>&1; then
-    echo "[Info] Install AppArmor scripts"
+    info "Install AppArmor scripts"
     mkdir -p "${DATA_SHARE}/apparmor"
     curl -sL ${URL_BIN_APPARMOR} > "${PREFIX}/sbin/hassio-apparmor"
     curl -sL ${URL_SERVICE_APPARMOR} > "${SYSCONFDIR}/systemd/system/hassio-apparmor.service"
@@ -181,11 +175,11 @@ fi
 
 ##
 # Init system
-echo "[Info] Run Hass.io"
+info "Run Hass.io"
 systemctl start hassio-supervisor.service
 
 ##
 # Setup CLI
-echo "[Info] Install cli 'ha'"
+info "Install cli 'ha'"
 curl -sL ${URL_HA} > "${PREFIX}/bin/ha"
 chmod a+x "${PREFIX}/bin/ha"
