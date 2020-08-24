@@ -107,7 +107,6 @@ echo '+' > MOTION_CLIENT
 
 ```
 # 2. specify credentials to access motion-ai cameras
->>>>>>> 6cb7e0a719727864553d6d655d309373e982a939
 echo 'username' > MOTIONCAM_PASSWORD
 echo 'password' > MOTIONCAM_PASSWORD
 ```
@@ -120,14 +119,10 @@ echo 'password' > NETCAM_PASSWORD
 
 ```
 # 4. specify MQTT options
->>>>>>> 6cb7e0a719727864553d6d655d309373e982a939
 echo '192.168.1.50' > MQTT_HOST
 echo 'username' > MQTT_USERNAME
 echo 'password' > MQTT_PASSWORD
 ```
-
-
-Once Home Assistant has been downloaded and starts the Web UI may be reached on the specified port.
 
 Changes may be made for a variety of [options](OPTIONS.md); when changes are made (e.g. to the `MQTT_HOST`) the following command **must** be run for those changes to take effect:
 
@@ -259,6 +254,24 @@ echo tiny-v3 > YOLO_CONFIG
 
 ## `face4motion.sh`
 + `FACE_THRESHOLD` - floating point value between `0.0` and `0.99`; default: `0.5`
+
+## `alpr4motion.sh`
++ `ALPR_COUNTRY` - designation for country specific license plates, may be `us` or `eu`; default: `us`
++ `ALPR_PATTERN` - pattern for plate recognition, may be regular expression; default: `none`
++ `ALPR_TOPN` - integer value between `1` and `20` limiting number `tag` predictions per `plate` 
+
+#  &#9989; - COMPLETE
+
+## Watch `MQTT` traffic (_optional_)
+To monitor the `MQTT` traffic from one or more `motion` devices use the `./sh/watch.sh` script which runs a `MQTT` client to listen for various _topics_, including motion detection events, annotations, detections, and a specified detected entity (n.b. currently limited per device).  The script outputs information to `/dev/stderr` and runs in the background.  The shell script will utilize existing values for the `MQTT` host, etc.. as well as the `MOTION_CLIENT`, but those may be specified as well; for example:
+
+```
+echo motion > MOTION_GROUP
+echo + > MOTION_CLIENT
+./sh/watch.sh
+```
+
+=======
 
 ## `alpr4motion.sh`
 + `ALPR_COUNTRY` - designation for country specific license plates, may be `us` or `eu`; default: `us`
