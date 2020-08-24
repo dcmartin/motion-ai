@@ -77,7 +77,7 @@ else
 fi
 systemctl restart docker
 
-addgroup ${USER} docker
+addgroup ${SUDO_USER:-${USER}} docker
 
 ## UPDATE, UPGRADE, PACKAGES
 
