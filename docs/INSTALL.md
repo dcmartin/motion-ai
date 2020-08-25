@@ -253,27 +253,11 @@ echo tiny-v3 > YOLO_CONFIG
 ```
 
 ## `face4motion.sh`
+
 + `FACE_THRESHOLD` - floating point value between `0.0` and `0.99`; default: `0.5`
 
 ## `alpr4motion.sh`
-+ `ALPR_COUNTRY` - designation for country specific license plates, may be `us` or `eu`; default: `us`
-+ `ALPR_PATTERN` - pattern for plate recognition, may be regular expression; default: `none`
-+ `ALPR_TOPN` - integer value between `1` and `20` limiting number `tag` predictions per `plate` 
 
-#  &#9989; - COMPLETE
-
-## Watch `MQTT` traffic (_optional_)
-To monitor the `MQTT` traffic from one or more `motion` devices use the `./sh/watch.sh` script which runs a `MQTT` client to listen for various _topics_, including motion detection events, annotations, detections, and a specified detected entity (n.b. currently limited per device).  The script outputs information to `/dev/stderr` and runs in the background.  The shell script will utilize existing values for the `MQTT` host, etc.. as well as the `MOTION_CLIENT`, but those may be specified as well; for example:
-
-```
-echo motion > MOTION_GROUP
-echo + > MOTION_CLIENT
-./sh/watch.sh
-```
-
-=======
-
-## `alpr4motion.sh`
 + `ALPR_COUNTRY` - designation for country specific license plates, may be `us` or `eu`; default: `us`
 + `ALPR_PATTERN` - pattern for plate recognition, may be regular expression; default: `none`
 + `ALPR_TOPN` - integer value between `1` and `20` limiting number `tag` predictions per `plate` 
