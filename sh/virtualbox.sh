@@ -1,7 +1,7 @@
 #!/bin/bash
 
-vms = ($(vboxmanage list vms | awk '{ print $1 }'))
-nvm = ${#vms[@]}
+vms=($(vboxmanage list vms | awk '{ print $1 }'))
+nvm=${#vms[@]}
 
 if [ ${nvm:-0} -le 0 ]; then
   echo 'No VMs; exiting'
@@ -18,7 +18,7 @@ vbox::autostart()
     if [ ! -z "${state}" ]; then
       vboxmanage modifyvm ${vm} --autostart-enabled ${state}
     fi
-    result=$(vboxmanage showvminfo ${vm} --machinereadable | egrep autostart-enabled | awk -F= '{ print $2 }'
+    result=$(vboxmanage showvminfo ${vm} --machinereadable | egrep autostart-enabled | awk -F= '{ print $2 }')
   fi
   echo ${result:-null}
 }
@@ -33,7 +33,7 @@ vbox::autostop()
     if [ ! -z "${state}" ]; then
       vboxmanage modifyvm ${vm} --autostop-type savestate
     fi
-    result=$(vboxmanage showvminfo ${vm} --machinereadable | egrep autostop-type | awk -F= '{ print $2 }'
+    result=$(vboxmanage showvminfo ${vm} --machinereadable | egrep autostop-type | awk -F= '{ print $2 }')
   fi
   echo ${result:-null}
 }
@@ -107,4 +107,5 @@ vbox::setup()
 
   systemctl restart vboxautostart-service
 }
+
 
