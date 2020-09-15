@@ -81,18 +81,29 @@ addgroup ${SUDO_USER:-${USER}} docker
 
 ## UPDATE, UPGRADE, PACKAGES
 
-echo 'Install pre-requisite software' &> /dev/stderr \
-  && echo 'Updating apt ...' &> /dev/stderr && apt update -qq -y \
+echo 'Updating apt ...' &> /dev/stderr && apt update -qq -y \
   && echo 'Upgrading apt ...' &> /dev/stderr && apt upgrade -qq -y \
-  && echo 'Installing packages...' &> /dev/stderr \
+  && echo 'Installing pre-requisite packages' &> /dev/stderr \
   && apt install -qq -y network-manager software-properties-common apparmor-utils apt-transport-https avahi-daemon ca-certificates curl dbus jq socat iperf3 netdata git \
-  && echo 'Modifying /etc/netdata/netdata.conf to enable access from any host' \
+  || echo 'Failed to install pre-requisite software' &> /dev/stderr
+
+echo 'Modifying NetworkManager to disable WiFi MAC randomization' \
+  && echo '[device]' >> /etc/NetworkManager/NetworkManager.conf \
+  && echo 'wifi.scan-rand-mac-address=no' >> /etc/NetworkManager/NetworkManager.conf \
+  && echo 'Restarting network-manager' \
+  && systemctl restart network-manager\
+  || echo 'Failed to modify NetworkManager.conf' &> /dev/stderr
+
+echo 'Modifying NetData to enable access from any host' \
   && sed -i 's/127.0.0.1/\*/' /etc/netdata/netdata.conf \
   && echo 'Restarting netdata' \
   && systemctl restart netdata \
-  || echo 'Failed to install pre-requisite software' &> /dev/stderr
+  || echo 'Failed to modify netdata.conf' &> /dev/stderr
 
-systemctl status ModemManager &> /dev/null && systemctl stop ModemManager && systemctl disable ModemManager
+echo 'Disabling ModemManager' \
+  && systemctl status ModemManager &> /dev/null \
+  && systemctl stop ModemManager \
+  && systemctl disable ModemManager
 
 echo "Installing using ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine)" \
   && ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine) \
