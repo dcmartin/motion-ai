@@ -49,6 +49,10 @@ NETDATA_URL ?= $(if $(wildcard NETDATA_URL),$(shell v=$$(cat NETDATA_URL) && ech
 # tplink
 TPLINK_DISCOVERY ?= $(if $(wildcard TPLINK_DISCOVERY),$(shell v=$$(cat TPLINK_DISCOVERY) && echo "** SPECIFIED: TPLINK_DISCOVERY: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "!! UNSPECIFIED: TPLINK_DISCOVERY unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
+# influxdb
+INFLUXDB_HOST ?= $(if $(wildcard INFLUXDB_HOST),$(shell v=$$(cat INFLUXDB_HOST) && echo "** SPECIFIED: INFLUXDB_HOST: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='a0d7b954-influxdb' && echo "!! UNSPECIFIED: INFLUXDB_HOST unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+INFLUXDB_PASSWORD ?= $(if $(wildcard INFLUXDB_PASSWORD),$(shell v=$$(cat INFLUXDB_PASSWORD) && echo "** SPECIFIED: INFLUXDB_PASSWORD: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='homeassistant' && echo "!! UNSPECIFIED: INFLUXDB_PASSWORD unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+
 # scan interval for speedtest
 # scan interval for speedtest
 INTERNET_SCAN_INTERVAL ?= $(if $(wildcard INTERNET_SCAN_INTERVAL),$(shell v=$$(cat INTERNET_SCAN_INTERVAL) && echo "** SPECIFIED: INTERNET_SCAN_INTERVAL: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="14400" && echo "!! UNSPECIFIED: INTERNET_SCAN_INTERVAL unset; default: $${v}" > /dev/stderr && echo "$${v}"))
@@ -92,6 +96,8 @@ $(ACTIONS):
 	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
 	  NETDATA_URL="$(NETDATA_URL)" \
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
+	  INFLUXDB_HOST="$(INFLUXDB_HOST)" \
+	  INFLUXDB_PASSWORD="$(INFLUXDB_PASSWORD)" \
 	&& make -C homeassistant $@
 
 .PHONY: all default run stop logs restart tidy clean realclean distclean $(PACKAGES)
