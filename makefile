@@ -51,6 +51,8 @@ TPLINK_DISCOVERY ?= $(if $(wildcard TPLINK_DISCOVERY),$(shell v=$$(cat TPLINK_DI
 
 # influxdb
 INFLUXDB_HOST ?= $(if $(wildcard INFLUXDB_HOST),$(shell v=$$(cat INFLUXDB_HOST) && echo "** SPECIFIED: INFLUXDB_HOST: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='a0d7b954-influxdb' && echo "!! UNSPECIFIED: INFLUXDB_HOST unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+INFLUXDB_DATABASE ?= $(if $(wildcard INFLUXDB_DATABASE),$(shell v=$$(cat INFLUXDB_DATABASE) && echo "** SPECIFIED: INFLUXDB_DATABASE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='$(HOST_NAME)' && echo "!! UNSPECIFIED: INFLUXDB_DATABASE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+INFLUXDB_USERNAME ?= $(if $(wildcard INFLUXDB_USERNAME),$(shell v=$$(cat INFLUXDB_USERNAME) && echo "** SPECIFIED: INFLUXDB_USERNAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='homeassistant' && echo "!! UNSPECIFIED: INFLUXDB_USERNAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 INFLUXDB_PASSWORD ?= $(if $(wildcard INFLUXDB_PASSWORD),$(shell v=$$(cat INFLUXDB_PASSWORD) && echo "** SPECIFIED: INFLUXDB_PASSWORD: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='homeassistant' && echo "!! UNSPECIFIED: INFLUXDB_PASSWORD unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 # scan interval for speedtest
@@ -97,6 +99,8 @@ $(ACTIONS):
 	  NETDATA_URL="$(NETDATA_URL)" \
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	  INFLUXDB_HOST="$(INFLUXDB_HOST)" \
+	  INFLUXDB_DATABASE="$(INFLUXDB_DATABASE)" \
+	  INFLUXDB_USERNAME="$(INFLUXDB_USERNAME)" \
 	  INFLUXDB_PASSWORD="$(INFLUXDB_PASSWORD)" \
 	&& make -C homeassistant $@
 
