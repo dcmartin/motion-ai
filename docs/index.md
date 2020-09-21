@@ -7,4 +7,4 @@ An open-source software solution for situational awareness from a network of vid
 + Connect with us on [LinkedIn](https://www.linkedin.com/company/motion-%C3%A3i)
 + Message us on [Slack](https://join.slack.com/t/motionai/shared_invite/zt-gdf19rup-zIseUFLoLSD0NkC5hpr~EQ)
 
-<img src="docs/samples/example-motion-detection.gif" width=756>
+<img src="https://github.com/dcmartin/motion-ai/raw/master/docs/samples/example-motion-detection.gif" width=756>
