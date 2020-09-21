@@ -8,9 +8,6 @@
     motion_detected_person:
       friendly_name: Detected person count
       icon_template: 'mdi:counter'
-      entity_id:
-        - counter.motion_detected_counter
-        - sensor.motion_detected_ago
       value_template: >-
         {% set options = state_attr('input_select.motion_detect_person','options') %}
         {% if options is not none and options|lower != 'unknown' and options|length > 0 %}
@@ -31,10 +28,6 @@
       friendly_name: Count of person(s)
       unit_of_measurement: 'person'
       icon_template: 'mdi:account'
-      entity_id:
-        - binary_sensor.motion_detected_person
-        - binary_sensor.motion_detected_person_expired
-        - sensor.time
       value_template: >
         {% if is_state('binary_sensor.motion_detected_person','on') or is_state('binary_sensor.motion_detected_person_expired','off') %}
           {% set s = states('sensor.motion_detected_person') %}
@@ -52,8 +45,6 @@
   sensors:
     motion_detected_person_counter:
       unit_of_measurement: 'person'
-      entity_id:
-        - counter.motion_detected_person_counter
       value_template: >
         {{ states('counter.motion_detected_person_counter') }}
 
@@ -90,8 +81,6 @@
       friendly_name: Today person ratio
       unit_of_measurement: '%'
       icon_template: 'mdi:percent'
-      entity_id:
-        - sensor.motion_today_person_ratio
       value_template: >
         {{ states('sensor.motion_today_person_ratio') }}
 
@@ -101,8 +90,6 @@
       friendly_name: Today person counter
       unit_of_measurement: 'events'
       icon_template: 'mdi:counter'
-      entity_id:
-        - sensor.motion_today_person_counter
       value_template: >-
         {{ states('sensor.motion_today_person_counter')|int }}
 
@@ -112,8 +99,6 @@
       friendly_name: Today person time
       unit_of_measurement: 'hours'
       icon_template: 'mdi:timer-outline'
-      entity_id:
-        - sensor.motion_today_person_time
       value_template: >
         {{ states('sensor.motion_today_person_time')|float }}
 
@@ -122,10 +107,6 @@
     motion_person_status_today:
       friendly_name: Today person
       icon_template: 'mdi:account'
-      entity_id:
-        - sensor.motion_person_ratio_today
-        - sensor.motion_person_counter_today
-        - sensor.motion_person_time_today
       value_template: >-
         {% set c = states('sensor.motion_person_counter_today') %}
         {% set r = states('sensor.motion_person_ratio_today') %}
@@ -139,13 +120,18 @@
     motion_person_last_date:
       friendly_name: Last person date
       icon_template: 'mdi:clock'
-      entity_id:
-        - sensor.motion_detected_person_counter
       value_template: >
-        {% set s = states('sensor.motion_detected_date') %}
-        {% if s is not none and s|lower != 'unknown' and s|int > 0 %}
-          {{ s }}
-        {% else %}null{% endif %}
+        {% if is_state('binary_sensor.motion_detected_person','on') or is_state('binary_sensor.motion_detected_person_expired','off') %}
+          {% set s = states('sensor.motion_detected_date') %}
+          {% if s is not none and s|lower != 'unknown' and s|int > 0 %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_person_last_date') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
 
 - platform: template
   sensors:
@@ -153,10 +139,8 @@
       friendly_name: Person last ago
       icon_template: 'mdi:timer-outline'
       unit_of_measurement: seconds
-      entity_id:
-        - sensor.motion_person_last_date
-        - sensor.time
       value_template: >
+        {% set t = states('sensor.time') %}
         {% set s = states('sensor.motion_person_last_date') %}
         {% if s is not none and s|lower != 'unknown' and s|int > 0 %}
           {{ as_timestamp(now())|int - s|int }}
@@ -167,10 +151,8 @@
     motion_person_last_when:
       friendly_name: Last person when
       icon_template: 'mdi:clock-outline'
-      entity_id:
-        - sensor.motion_detected_person_counter
       value_template: >
-        {% set s = states('sensor.motion_detected_when') %}
+        {% set s = states('sensor.motion_person_last_date') %}
         {% if s is not none and s|lower != 'unknown' and s|length > 0 %}
           {{ s }}
         {% else %}Never{% endif %}
@@ -180,23 +162,33 @@
     motion_person_last_where:
       friendly_name: Last person where
       icon_template: 'mdi:map-marker'
-      entity_id:
-        - sensor.motion_detected_person_counter
       value_template: >
-        {% set s = states('sensor.motion_detected_camera') %}
-        {% if s is not none and s|lower != 'unknown' and s|length > 0 %}
-          {{ s }}
-        {% else %}None{% endif %}
+        {% if is_state('binary_sensor.motion_detected_person','on') or is_state('binary_sensor.motion_detected_person_expired','off') %}
+          {% set s = states('sensor.motion_detected_camera') %}
+          {% if s is not none and s|lower != 'unknown' and s|length > 0 %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_person_last_where') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
 
 - platform: template
   sensors:
     motion_person_last_elapsed:
       friendly_name: Last person elapsed
       icon_template: 'mdi:timeer'
-      entity_id:
-        - sensor.motion_detected_person_counter
       value_template: >
-        {% set s = states('sensor.motion_detected_elapsed') %}
-        {% if s is not none and s|lower != 'unknown' and s|length > 0 %}
-          {{ s }}
-        {% else %}Zero{% endif %}
+        {% if is_state('binary_sensor.motion_detected_person','on') or is_state('binary_sensor.motion_detected_person_expired','off') %}
+          {% set s = states('sensor.motion_detected_elapsed') %}
+          {% if s is not none and s|lower != 'unknown' and s|length > 0 %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_person_last_elapsed') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
