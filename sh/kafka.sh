@@ -63,6 +63,7 @@ CID=$(docker run -d \
   -e LOG_RETENTION_BYTES=$(echo "${KAFKA}" | jq -r '.log.retention.bytes') \
   -e ADVERTISED_HOST=$(echo "${KAFKA}" | jq -r '.host') \
   -e ADVERTISED_PORT=$(echo "${KAFKA}" | jq -r '.port') \
+  -e AUTO_CREATE_TOPICS=true \
   spotify/kafka 2> /dev/stderr)
 
 # report
