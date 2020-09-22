@@ -6,30 +6,32 @@
 - platform: template
   sensors:
     motion_face_status:
-      entity_id:
-        - counter.motion_face_counter
+      friendly_name: FACE
+      icon_template: 'mdi:image-search'
       value_template: >-
-        {% set e = state_attr('sensor.motion_event_face','event') %}
-        {% if e is not none and e|lower != 'unavailable' and e|lower != 'unknown' and e != 'null' %}
-          {% set n = utcnow().timestamp()|int %}
-          {% set end = e.end|int %}
-          {% set event = e.event %}
-          {% set device = e.device %}
-          {% set camera = e.camera %}
-          {% set elapsed = e.elapsed|int %}
-          {% set what = state_attr('sensor.motion_event_face','detected')|list %}
-          {% set count = state_attr('sensor.motion_event_face','count')|int %}
-          {% set when = end|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
-          {% set delay = n - end %}
-          FACE: {{ count }} {{ what }};
-          from {{ device -}}/{{- camera -}}/{{- event -}};
-          at {{ when }};
-          delay: {{ delay }};
-          duration: {{ elapsed }};
-          counter: {{ states('counter.motion_face_counter') -}}/{{- states('sensor.motion_face_counter') -}}
+        {% if is_state('binary_sensor.motion_face','on') %}
+          {% set e = state_attr('sensor.motion_event_face','event') %}
+          {% if e is mapping %}
+            {% set n = utcnow().timestamp()|int %}
+            {% set end = e.end|int %}
+            {% set event = e.event %}
+            {% set device = e.device %}
+            {% set camera = e.camera %}
+            {% set elapsed = e.elapsed|int %}
+            {% set what = state_attr('sensor.motion_event_face','detected')|map(attribute='entity')|list %}
+            {% set count = state_attr('sensor.motion_event_face','count') %}
+            {% set when = end|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
+            {% set delay = n - end %}
+            FACE: {{ count }} {{ what }};
+            from {{ device -}}/{{- camera -}}/{{- event -}};
+            at {{ when }};
+            delay: {{ delay }};
+            duration: {{ elapsed }};
+            counter: {{ states('counter.motion_face_counter') -}}/{{- states('sensor.motion_face_counter') -}}
+          {% else %}Never{% endif %}
         {% else %}
           {% set s = states('sensor.motion_face_status') %}
-          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
             {{ s }}
           {% else %}NO STATUS{% endif %}
         {% endif %}
@@ -38,11 +40,7 @@
 - platform: template
   sensors:
     motion_face_count:
-      friendly_name: Face count
-      entity_id:
-        - counter.motion_face_counter
-        - binary_sensor.motion_face
-        - binary_sensor.motion_face_expired
+      friendly_name: Annotated count
       unit_of_measurement: entities
       value_template: >
         {% if is_state('binary_sensor.motion_face','on') or is_state('binary_sensor.motion_face_expired','off') %}
@@ -56,13 +54,10 @@
 - platform: template
   sensors:
     motion_face_count_entity:
-      friendly_name: Face count entity
-      entity_id:
-        - counter.motion_face_counter
-        - binary_sensor.motion_face_expired
+      friendly_name: Annotated count entity
       unit_of_measurement: entities
       value_template: >-
-        {% if is_state('binary_sensor.motion_face_expired','off') %}
+        {% if is_state('binary_sensor.motion_face','on') or is_state('binary_sensor.motion_face_expired','off') %}
           {% set detected = state_attr('sensor.motion_event_face','detected') %}
           {% if detected is not none and detected|lower != 'unknown' and detected != 'null' %}
             {% set count = detected|selectattr('entity','==',states('sensor.motion_detect_entity'))|map(attribute='count')|sum %}
@@ -76,9 +71,7 @@
 - platform: template
   sensors:
     motion_face_counter:
-      friendly_name: Face counter
-      entity_id:
-        - counter.motion_face_counter
+      friendly_name: Annotated counter
       unit_of_measurement: count
       value_template: >
         {{ states('counter.motion_face_counter')|int }}
@@ -88,22 +81,28 @@
   sensors:
     # date
     motion_face_date:
-      entity_id:
-        - counter.motion_face_counter
       unit_of_measurement: seconds
       value_template: >-
-        {% set e = state_attr('sensor.motion_event_face','event') %}
-        {% if e is not none and e|lower != 'unavailable' and e|lower != 'unknown' and e != 'null' %}
-          {{ e.end|int }}
-        {% else %}null{% endif %}
+        {% if is_state('binary_sensor.motion_face','on') or is_state('binary_sensor.motion_face_expired','off') %}
+          {% set e = state_attr('sensor.motion_event_face','event') %}
+          {% if e is mapping %}
+            {% set s = e.end %}
+            {% if s is not none and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
+              {{ s|int }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        {% else %}
+          {% set s = states('sensor.motion_face_date') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
 
 ## when
 - platform: template
   sensors:
     motion_face_when:
-      friendly_name: Face at
-      entity_id:
-        - sensor.motion_face_date
+      friendly_name: Annotated at
       value_template: >-
         {% set s = states('sensor.motion_face_date')|int %}
         {% if s > 0 %}
@@ -114,40 +113,58 @@
 - platform: template
   sensors:
     motion_face_ago:
-      friendly_name: Face ago
-      entity_id:
-        - sensor.motion_face_date
-        - sensor.time
+      friendly_name: Annotated ago
       unit_of_measurement: seconds
       value_template: >
+        {% set t = states('sensor.time') %}
         {% set s = states('sensor.motion_face_date')|int %}
         {% if s > 0 %}
           {% set s = utcnow().timestamp()|int - s %}
           {% if s < 86400 %}{{ s }}{%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif -%}
 
+## elapsed
+- platform: template
+  sensors:
+    motion_face_elapsed:
+      friendly_name: Any face elapsed
+      unit_of_measurement: seconds
+      value_template: >
+        {% if is_state('binary_sensor.motion_face','on') or is_state('binary_sensor.motion_face_expired','off') %}
+          {% set e = state_attr('sensor.motion_event_face','event') %}
+          {% if e is mapping %}
+            {% set s = e.elapsed %}
+            {% if s is not none and s|lower != 'unknown' and s != 'null' %}
+              {{ s|int }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        {% else %}
+          {% set s = states('sensor.motion_face_date') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
 ## delay
 - platform: template
   sensors:
     motion_face_delay:
       friendly_name: Any face delay
-      entity_id:
-        - sensor.motion_face_date
       unit_of_measurement: seconds
       value_template: >
-        {% set s = states('sensor.motion_face_date') %}
-        {% if s is not none and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
-          {{ utcnow().timestamp()|int - s|int }}
+        {% set e = state_attr('sensor.motion_event_face','event') %}
+        {% if e is mapping %}
+          {% set s = e.end %}
+          {% if s is not none and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
+            {{ utcnow().timestamp()|int - s|int }}
+          {%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif -%}
 
 ## percent
 - platform: template
   sensors:
     motion_face_percent:
-      friendly_name: Face percent
-      entity_id:
-        - sensor.motion_end_counter
-        - sensor.motion_face_counter
+      friendly_name: Annotated percent
       unit_of_measurement: '%'
       value_template: >-
         {% if states('sensor.motion_face_counter')|int > 0 and states('sensor.motion_end_counter')|int > 0 %}
@@ -159,9 +176,7 @@
 - platform: template
   sensors:
     motion_face_device:
-      friendly_name: Face device
-      entity_id:
-        - counter.motion_face_counter
+      friendly_name: Annotated device
       value_template: >-
         {% if state_attr('sensor.motion_event_face','event')|lower != 'none' %}
           {{ states.sensor.motion_event_face.attributes.event.device }}
@@ -171,387 +186,352 @@
 - platform: template
   sensors:
     motion_face_camera:
-      friendly_name: Face camera
-      entity_id:
-        - counter.motion_face_counter
+      friendly_name: Annotated camera
       value_template: >-
         {% if state_attr('sensor.motion_event_face','event')|lower != 'none' %}
           {{ states.sensor.motion_event_face.attributes.event.camera }}
         {% else %}null{% endif %}
 
-## snapshot
+## detected
 - platform: template
   sensors:
-    motion_face_snapshot:
-      friendly_name: Face snapshot
-      entity_id:
-        - sensor.motion_event_face
+    motion_face_counts:
+      friendly_name: Annotated counts
       value_template: >-
-        {% set event = state_attr('sensor.motion_event_face','event') %}
-        {% if event is not none and event|lower != 'unknown' and event != 'null' %}
-          {% set ep = '/local/images/motion_face-' + event.camera + '.jpg' %}
-          {% set bu = states('sensor.motion_base_url') %}
-          {% if bu is not none and bu|lower != 'unknown' and bu|length > 0 %}
-            {% set p = bu + ep %}
-          {% endif %}
-        {% endif %}
-        {% if p is defined and p is not none and p|lower != 'unknown' and p|length > 0 %}
-          {{ p }}
-        {% else %}
-          {{ states('sensor.motion_nosignal_picture') }}
-        {% endif %}
+        {% set detected = state_attr('sensor.motion_event_face','detected') %}
+        {% if detected is not none and detected|lower != 'unknown' and detected|length > 0  %}
+          {{ detected|map(attribute='count')|list }}
+        {% else %}null{% endif %}
 
-#- platform: template
-#  sensors:
-#    motion_face_picture:
-#      friendly_name: Face picture
-#      entity_id:
-#        - counter.motion_face_counter
-#      value_template: >-
-#        {% set ep = state_attr('camera.motion_event_face','entity_picture') %}
-#        {% if ep is not none and ep|lower != 'unknown' and ep|length > 0 %}
-#          {% set bu = states('sensor.motion_base_url') %}
-#          {% if bu is not none and bu|lower != 'unknown' and bu|length > 0 %}
-#            {% set p = bu + ep %}
-#          {% endif %}
-#        {% else %}
-#          {% set p = states('sensor.motion_noisesignal_picture') %}
-#        {% endif %}
-#        {% if p is defined and p is not none and p|lower != 'unknown' and p|length > 0 %}
-#          {{ p }}
-#        {% else %}
-#          {{ states('sensor.motion_nosignal_picture') }}
-#        {% endif %}
+## list
+- platform: template
+  sensors:
+    motion_face_list:
+      friendly_name: Annotated entity list
+      value_template: >-
+        {% set detected = state_attr('sensor.motion_event_face','detected') %}
+        {% if detected is not none and detected|lower != 'unknown' and detected|length > 0 %}
+          {{ detected|map(attribute='entity')|list }}
+        {% else %}null{% endif %}
 
 ###
 # statistics
 ###
 
 ## ago
-#- platform: template
-#  sensors:
-#    motion_face_ago_mean:
-#      friendly_name: Face ago avg
-#      entity_id:
-#        - sensor.motion_face_ago_statistics
-#      unit_of_measurement: seconds
-#      value_template: >-
-#        {% if states('sensor.motion_face_ago_statistics') != 'unknown' %}
-#          {{ states.sensor.motion_face_ago_statistics.state|float }}
-#        {%- else -%}null{%- endif -%}
-#    motion_face_ago_min_value:
-#      friendly_name: Face ago min
-#      entity_id:
-#        - sensor.motion_face_ago_statistics
-#      unit_of_measurement: seconds
-#      value_template: >-
-#        {% if states('sensor.motion_face_ago_statistics') != 'unknown' %}
-#          {{ states.sensor.motion_face_ago_statistics.attributes.min_value|int }}
-#        {%- else -%}null{%- endif -%}
-#    motion_face_ago_max_value:
-#      friendly_name: Face ago max
-#      entity_id:
-#        - sensor.motion_face_ago_statistics
-#      unit_of_measurement: seconds
-#      value_template: >-
-#        {% if states('sensor.motion_face_ago_statistics') != 'unknown' %}
-#          {{ states.sensor.motion_face_ago_statistics.attributes.max_value|int }}
-#        {%- else -%}null{%- endif -%}
-#    motion_face_ago_stdev:
-#      friendly_name: Face ago stdev
-#      entity_id:
-#        - sensor.motion_face_ago_statistics
-#      unit_of_measurement: seconds
-#      value_template: >
-#        {% if states('sensor.motion_face_ago_statistics') != 'unknown' %}
-#          {{ states.sensor.motion_face_ago_statistics.attributes.standard_deviation|float }}
-#        {%- else -%}null{%- endif -%}
-#    motion_face_ago_change:
-#      friendly_name: Face ago change
-#      entity_id:
-#        - sensor.motion_face_ago_statistics
-#      unit_of_measurement: seconds
-#      value_template: >
-#        {% if states('sensor.motion_face_ago_statistics') != 'unknown' %}
-#          {{ states.sensor.motion_face_ago_statistics.attributes.change|float }}
-#        {%- else -%}null{%- endif -%}
-#
-### delay
-#- platform: template
-#  sensors:
-#    motion_face_delay_mean:
-#      friendly_name: Face delay avg
-#      entity_id:
-#        - sensor.motion_face_delay_statistics
-#      unit_of_measurement: seconds
-#      value_template: >-
-#        {% if states('sensor.motion_face_delay_statistics') != 'unknown' %}
-#          {{ states.sensor.motion_face_delay_statistics.state|float }}
-#        {%- else -%}null{%- endif -%}
-#    motion_face_delay_min_value:
-#      friendly_name: Face delay min
-#      entity_id:
-#        - sensor.motion_face_delay_statistics
-#      unit_of_measurement: seconds
-#      value_template: >-
-#        {% if states('sensor.motion_face_delay_statistics') != 'unknown' %}
-#          {{ states.sensor.motion_face_delay_statistics.attributes.min_value|int }}
-#        {%- else -%}null{%- endif -%}
-#    motion_face_delay_max_value:
-#      friendly_name: Face delay max
-#      entity_id:
-#        - sensor.motion_face_delay_statistics
-#      unit_of_measurement: seconds
-#      value_template: >-
-#        {% if states('sensor.motion_face_delay_statistics') != 'unknown' %}
-#          {{ states.sensor.motion_face_delay_statistics.attributes.max_value|int }}
-#        {%- else -%}null{%- endif -%}
-#    motion_face_delay_stdev:
-#      friendly_name: Face delay stdev
-#      entity_id:
-#        - sensor.motion_face_delay_statistics
-#      unit_of_measurement: seconds
-#      value_template: >
-#        {% if states('sensor.motion_face_delay_statistics') != 'unknown' %}
-#          {{ states.sensor.motion_face_delay_statistics.attributes.standard_deviation|float }}
-#        {%- else -%}null{%- endif -%}
-#    motion_face_delay_change:
-#      friendly_name: Face delay change
-#      entity_id:
-#        - sensor.motion_face_delay_statistics
-#      unit_of_measurement: seconds
-#      value_template: >
-#        {% if states('sensor.motion_face_delay_statistics') != 'unknown' %}
-#          {{ states.sensor.motion_face_delay_statistics.attributes.change|float }}
-#        {%- else -%}null{%- endif -%}
-#
-### counter
-#- platform: template
-#  sensors:
-#    motion_face_counter_mean:
-#      friendly_name: Face counter avg
-#      entity_id:
-#        - sensor.motion_face_counter_statistics
-#      unit_of_measurement: count
-#      value_template: >-
-#        {% if states('sensor.motion_face_counter_statistics') != 'unknown' %}
-#          {{ states.sensor.motion_face_counter_statistics.state|float }}
-#        {%- else -%}null{%- endif -%}
-#    motion_face_counter_min_value:
-#      friendly_name: Face counter min
-#      entity_id:
-#        - sensor.motion_face_counter_statistics
-#      unit_of_measurement: count
-#      value_template: >-
-#        {% if states('sensor.motion_face_counter_statistics') != 'unknown' %}
-#          {{ states.sensor.motion_face_counter_statistics.attributes.min_value|int }}
-#        {%- else -%}null{%- endif -%}
-#    motion_face_counter_max_value:
-#      friendly_name: Face counter max
-#      entity_id:
-#        - sensor.motion_face_counter_statistics
-#      unit_of_measurement: count
-#      value_template: >-
-#        {% if states('sensor.motion_face_counter_statistics') != 'unknown' %}
-#          {{ states.sensor.motion_face_counter_statistics.attributes.max_value|int }}
-#        {%- else -%}null{%- endif -%}
-#    motion_face_counter_stdev:
-#      friendly_name: Face counter stdev
-#      entity_id:
-#        - sensor.motion_face_counter_statistics
-#      unit_of_measurement: count
-#      value_template: >
-#        {% if states('sensor.motion_face_counter_statistics') != 'unknown' %}
-#          {{ states.sensor.motion_face_counter_statistics.attributes.standard_deviation|float }}
-#        {%- else -%}null{%- endif -%}
-#    motion_face_counter_change:
-#      friendly_name: Face counter change
-#      entity_id:
-#        - sensor.motion_face_counter_statistics
-#      unit_of_measurement: count
-#      value_template: >
-#        {% if states('sensor.motion_face_counter_statistics') != 'unknown' %}
-#          {{ states.sensor.motion_face_counter_statistics.attributes.change|float }}
-#        {%- else -%}null{%- endif -%}
-#
-### percent
+- platform: template
+  sensors:
+    motion_face_ago_mean:
+      friendly_name: Annotated ago avg
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states('sensor.motion_face_ago_statistics') != 'unknown' %}
+          {{ states.sensor.motion_face_ago_statistics.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_face_ago_min_value:
+      friendly_name: Annotated ago min
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states('sensor.motion_face_ago_statistics') != 'unknown' %}
+          {{ states.sensor.motion_face_ago_statistics.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_face_ago_max_value:
+      friendly_name: Annotated ago max
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states('sensor.motion_face_ago_statistics') != 'unknown' %}
+          {{ states.sensor.motion_face_ago_statistics.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_face_ago_stdev:
+      friendly_name: Annotated ago stdev
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states('sensor.motion_face_ago_statistics') != 'unknown' %}
+          {{ states.sensor.motion_face_ago_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_face_ago_change:
+      friendly_name: Annotated ago change
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states('sensor.motion_face_ago_statistics') != 'unknown' %}
+          {{ states.sensor.motion_face_ago_statistics.attributes.change|float }}
+        {%- else -%}null{%- endif -%}
+
+## elapsed
+- platform: template
+  sensors:
+    motion_face_elapsed_mean:
+      friendly_name: Annotated elapsed avg
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states('sensor.motion_face_elapsed_statistics') != 'unknown' %}
+          {{ states.sensor.motion_face_elapsed_statistics.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_face_elapsed_min_value:
+      friendly_name: Annotated elapsed min
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states('sensor.motion_face_elapsed_statistics') != 'unknown' %}
+          {{ states.sensor.motion_face_elapsed_statistics.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_face_elapsed_max_value:
+      friendly_name: Annotated elapsed max
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states('sensor.motion_face_elapsed_statistics') != 'unknown' %}
+          {{ states.sensor.motion_face_elapsed_statistics.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_face_elapsed_stdev:
+      friendly_name: Annotated elapsed stdev
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states('sensor.motion_face_elapsed_statistics') != 'unknown' %}
+          {{ states.sensor.motion_face_elapsed_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_face_elapsed_change:
+      friendly_name: Annotated elapsed change
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states('sensor.motion_face_elapsed_statistics') != 'unknown' %}
+          {{ states.sensor.motion_face_elapsed_statistics.attributes.change|float }}
+        {%- else -%}null{%- endif -%}
+
+## delay
+- platform: template
+  sensors:
+    motion_face_delay_mean:
+      friendly_name: Annotated delay avg
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states('sensor.motion_face_delay_statistics') != 'unknown' %}
+          {{ states.sensor.motion_face_delay_statistics.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_face_delay_min_value:
+      friendly_name: Annotated delay min
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states('sensor.motion_face_delay_statistics') != 'unknown' %}
+          {{ states.sensor.motion_face_delay_statistics.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_face_delay_max_value:
+      friendly_name: Annotated delay max
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states('sensor.motion_face_delay_statistics') != 'unknown' %}
+          {{ states.sensor.motion_face_delay_statistics.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_face_delay_stdev:
+      friendly_name: Annotated delay stdev
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states('sensor.motion_face_delay_statistics') != 'unknown' %}
+          {{ states.sensor.motion_face_delay_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_face_delay_change:
+      friendly_name: Annotated delay change
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states('sensor.motion_face_delay_statistics') != 'unknown' %}
+          {{ states.sensor.motion_face_delay_statistics.attributes.change|float }}
+        {%- else -%}null{%- endif -%}
+
+## counter
+- platform: template
+  sensors:
+    motion_face_counter_mean:
+      friendly_name: Annotated counter avg
+      unit_of_measurement: count
+      value_template: >-
+        {% if states('sensor.motion_face_counter_statistics') != 'unknown' %}
+          {{ states.sensor.motion_face_counter_statistics.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_face_counter_min_value:
+      friendly_name: Annotated counter min
+      unit_of_measurement: count
+      value_template: >-
+        {% if states('sensor.motion_face_counter_statistics') != 'unknown' %}
+          {{ states.sensor.motion_face_counter_statistics.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_face_counter_max_value:
+      friendly_name: Annotated counter max
+      unit_of_measurement: count
+      value_template: >-
+        {% if states('sensor.motion_face_counter_statistics') != 'unknown' %}
+          {{ states.sensor.motion_face_counter_statistics.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_face_counter_stdev:
+      friendly_name: Annotated counter stdev
+      unit_of_measurement: count
+      value_template: >
+        {% if states('sensor.motion_face_counter_statistics') != 'unknown' %}
+          {{ states.sensor.motion_face_counter_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_face_counter_change:
+      friendly_name: Annotated counter change
+      unit_of_measurement: count
+      value_template: >
+        {% if states('sensor.motion_face_counter_statistics') != 'unknown' %}
+          {{ states.sensor.motion_face_counter_statistics.attributes.change|float }}
+        {%- else -%}null{%- endif -%}
+
+## percent
 - platform: template
   sensors:
     motion_face_percent_mean:
-      friendly_name: Face percent avg
-      entity_id:
-        - sensor.motion_face_percent_statistics
+      friendly_name: Annotated percent avg
       unit_of_measurement: '%'
       value_template: >-
         {% if states('sensor.motion_face_percent_statistics') != 'unknown' %}
           {{ states.sensor.motion_face_percent_statistics.state|float }}
         {%- else -%}null{%- endif -%}
     motion_face_percent_min_value:
-      friendly_name: Face percent min
-      entity_id:
-        - sensor.motion_face_percent_statistics
+      friendly_name: Annotated percent min
       unit_of_measurement: '%'
       value_template: >-
         {% if states('sensor.motion_face_percent_statistics') != 'unknown' %}
           {{ states.sensor.motion_face_percent_statistics.attributes.min_value|float }}
         {%- else -%}null{%- endif -%}
     motion_face_percent_max_value:
-      friendly_name: Face percent max
-      entity_id:
-        - sensor.motion_face_percent_statistics
+      friendly_name: Annotated percent max
       unit_of_measurement: '%'
       value_template: >-
         {% if states('sensor.motion_face_percent_statistics') != 'unknown' %}
           {{ states.sensor.motion_face_percent_statistics.attributes.max_value|float }}
         {%- else -%}null{%- endif -%}
     motion_face_percent_stdev:
-      friendly_name: Face percent stdev
-      entity_id:
-        - sensor.motion_face_percent_statistics
+      friendly_name: Annotated percent stdev
       unit_of_measurement: '%'
       value_template: >
         {% if states('sensor.motion_face_percent_statistics') != 'unknown' %}
           {{ states.sensor.motion_face_percent_statistics.attributes.standard_deviation|float }}
         {%- else -%}null{%- endif -%}
     motion_face_percent_change:
-      friendly_name: Face percent change
-      entity_id:
-        - sensor.motion_face_percent_statistics
+      friendly_name: Annotated percent change
       unit_of_measurement: '%'
       value_template: >
         {% if states('sensor.motion_face_percent_statistics') != 'unknown' %}
           {{ states.sensor.motion_face_percent_statistics.attributes.change|float }}
         {%- else -%}null{%- endif -%}
 
-### derived attributes from statistics
-#- platform: template
-#  sensors:
-#    motion_face_count_mean:
-#      friendly_name: Face count avg
-#      entity_id:
-#        - sensor.motion_face_count_statistics
-#      unit_of_measurement: entities
-#      value_template: >-
-#        {% if states('sensor.motion_face_count_statistics') != 'unknown' %}
-#          {{ states.sensor.motion_face_count_statistics.state|float }}
-#        {%- else -%}null{%- endif -%}
-#    motion_face_count_min_value:
-#      friendly_name: Face count min
-#      entity_id:
-#        - sensor.motion_face_count_statistics
-#      unit_of_measurement: entities
-#      value_template: >-
-#        {% if states('sensor.motion_face_count_statistics') != 'unknown' %}
-#          {{ states.sensor.motion_face_count_statistics.attributes.min_value|int }}
-#        {%- else -%}null{%- endif -%}
-#    motion_face_count_max_value:
-#      friendly_name: Face count max
-#      entity_id:
-#        - sensor.motion_face_count_statistics
-#      unit_of_measurement: entities
-#      value_template: >-
-#        {% if states('sensor.motion_face_count_statistics') != 'unknown' %}
-#          {{ states.sensor.motion_face_count_statistics.attributes.max_value|int }}
-#        {%- else -%}null{%- endif -%}
-#    motion_face_count_stdev:
-#      friendly_name: Face count stdev
-#      entity_id:
-#        - sensor.motion_face_count_statistics
-#      unit_of_measurement: entities
-#      value_template: >
-#        {% if states('sensor.motion_face_count_statistics') != 'unknown' %}
-#          {{ states.sensor.motion_face_count_statistics.attributes.standard_deviation|float }}
-#        {%- else -%}null{%- endif -%}
-#    motion_face_count_change:
-#      friendly_name: Face count change
-#      entity_id:
-#        - sensor.motion_face_count_statistics
-#      unit_of_measurement: entities
-#      value_template: >
-#        {% if states('sensor.motion_face_count_statistics') != 'unknown' %}
-#          {{ states.sensor.motion_face_count_statistics.attributes.change|float }}
-#        {%- else -%}null{%- endif -%}
-#
-## counter
-#- platform: statistics
-#  name: motion_face_counter_statistics
-#  entity_id: sensor.motion_face_counter
-#  sampling_size: 1000
-#  max_age:
-#    hours: 72
-#- platform: statistics
-#  name: motion_face_counter_stdev_statistics
-#  entity_id: sensor.motion_face_counter_stdev
-#  sampling_size: 1000
-#  max_age:
-#    hours: 72
-#
-## count
-#- platform: statistics
-#  name: motion_face_count_statistics
-#  entity_id: sensor.motion_face_count
-#  sampling_size: 1000
-#  max_age:
-#    hours: 72
-#- platform: statistics
-#  name: motion_face_count_stdev_statistics
-#  entity_id: sensor.motion_face_count_stdev
-#  sampling_size: 1000
-#  max_age:
-#    hours: 72
-#
-## ago
-#- platform: statistics
-#  name: motion_face_ago_statistics
-#  entity_id: sensor.motion_face_ago
-#  sampling_size: 1000
-#  max_age:
-#    hours: 72
-#- platform: statistics
-#  name: motion_face_ago_stdev_statistics
-#  entity_id: sensor.motion_face_ago_stdev
-#  sampling_size: 1000
-#  max_age:
-#    hours: 72
-#
-## elapsed
-#- platform: statistics
-#  name: motion_face_elapsed_statistics
-#  entity_id: sensor.motion_face_elapsed
-#  sampling_size: 1000
-#  max_age:
-#    hours: 72
-#- platform: statistics
-#  name: motion_face_elapsed_stdev_statistics
-#  entity_id: sensor.motion_face_elapsed_stdev
-#  sampling_size: 1000
-#  max_age:
-#    hours: 72
-#
-## delay
-#- platform: statistics
-#  name: motion_face_delay_statistics
-#  entity_id: sensor.motion_face_delay
-#  sampling_size: 1000
-#  max_age:
-#    hours: 72
-#- platform: statistics
-#  name: motion_face_delay_stdev_statistics
-#  entity_id: sensor.motion_face_delay_stdev
-#  sampling_size: 1000
-#  max_age:
-#    hours: 72
-#
-## percent
-#- platform: statistics
-#  name: motion_face_percent_statistics
-#  entity_id: sensor.motion_face_percent
-#  sampling_size: 1000
-#  max_age:
-#    hours: 72
-#- platform: statistics
-#  name: motion_face_percent_stdev_statistics
-#  entity_id: sensor.motion_face_percent_stdev
-#  sampling_size: 1000
-#  max_age:
-#    hours: 72
+## derived attributes from statistics
+- platform: template
+  sensors:
+    motion_face_count_mean:
+      friendly_name: Annotated count avg
+      unit_of_measurement: entities
+      value_template: >-
+        {% if states('sensor.motion_face_count_statistics') != 'unknown' %}
+          {{ states.sensor.motion_face_count_statistics.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_face_count_min_value:
+      friendly_name: Annotated count min
+      unit_of_measurement: entities
+      value_template: >-
+        {% if states('sensor.motion_face_count_statistics') != 'unknown' %}
+          {{ states.sensor.motion_face_count_statistics.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_face_count_max_value:
+      friendly_name: Annotated count max
+      unit_of_measurement: entities
+      value_template: >-
+        {% if states('sensor.motion_face_count_statistics') != 'unknown' %}
+          {{ states.sensor.motion_face_count_statistics.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_face_count_stdev:
+      friendly_name: Annotated count stdev
+      unit_of_measurement: entities
+      value_template: >
+        {% if states('sensor.motion_face_count_statistics') != 'unknown' %}
+          {{ states.sensor.motion_face_count_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_face_count_change:
+      friendly_name: Annotated count change
+      unit_of_measurement: entities
+      value_template: >
+        {% if states('sensor.motion_face_count_statistics') != 'unknown' %}
+          {{ states.sensor.motion_face_count_statistics.attributes.change|float }}
+        {%- else -%}null{%- endif -%}
+
+# counter
+- platform: statistics
+  name: motion_face_counter_statistics
+  entity_id: sensor.motion_face_counter
+  sampling_size: 1000
+  max_age:
+    hours: 72
+- platform: statistics
+  name: motion_face_counter_stdev_statistics
+  entity_id: sensor.motion_face_counter_stdev
+  sampling_size: 1000
+  max_age:
+    hours: 72
+
+# count
+- platform: statistics
+  name: motion_face_count_statistics
+  entity_id: sensor.motion_face_count
+  sampling_size: 1000
+  max_age:
+    hours: 72
+- platform: statistics
+  name: motion_face_count_stdev_statistics
+  entity_id: sensor.motion_face_count_stdev
+  sampling_size: 1000
+  max_age:
+    hours: 72
+
+# ago
+- platform: statistics
+  name: motion_face_ago_statistics
+  entity_id: sensor.motion_face_ago
+  sampling_size: 1000
+  max_age:
+    hours: 72
+- platform: statistics
+  name: motion_face_ago_stdev_statistics
+  entity_id: sensor.motion_face_ago_stdev
+  sampling_size: 1000
+  max_age:
+    hours: 72
+
+# elapsed
+- platform: statistics
+  name: motion_face_elapsed_statistics
+  entity_id: sensor.motion_face_elapsed
+  sampling_size: 1000
+  max_age:
+    hours: 72
+- platform: statistics
+  name: motion_face_elapsed_stdev_statistics
+  entity_id: sensor.motion_face_elapsed_stdev
+  sampling_size: 1000
+  max_age:
+    hours: 72
+
+# delay
+- platform: statistics
+  name: motion_face_delay_statistics
+  entity_id: sensor.motion_face_delay
+  sampling_size: 1000
+  max_age:
+    hours: 72
+- platform: statistics
+  name: motion_face_delay_stdev_statistics
+  entity_id: sensor.motion_face_delay_stdev
+  sampling_size: 1000
+  max_age:
+    hours: 72
+
+# percent
+- platform: statistics
+  name: motion_face_percent_statistics
+  entity_id: sensor.motion_face_percent
+  sampling_size: 1000
+  max_age:
+    hours: 72
+- platform: statistics
+  name: motion_face_percent_stdev_statistics
+  entity_id: sensor.motion_face_percent_stdev
+  sampling_size: 1000
+  max_age:
+    hours: 72

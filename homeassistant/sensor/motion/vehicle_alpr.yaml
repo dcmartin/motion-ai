@@ -7,49 +7,40 @@
   sensors:
     motion_vehicle_alpr_status:
       friendly_name: Detected_entity status
-      entity_id:
-        - counter.motion_vehicle_alpr_counter
       value_template: >-
-        {%- set e = state_attr('sensor.motion_event_annotated','event') -%}
-        {% if e is not none and e|lower != 'unavailable' and e|lower != 'unknown' and e != 'null' %}
-          Counter: {{ states('counter.motion_vehicle_alpr_counter') -}}/{{- states('sensor.motion_vehicle_alpr_counter') -}};
-          {%- set detected = state_attr('sensor.motion_event_annotated','detected') %}
-          {%- set when = e.end|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
-          {#- set what = states('sensor.motion_detect_entity') #}
-          {%- set what = 'person' %}
-          {%- set count = detected|selectattr('entity','==',what)|map(attribute='count')|sum %}
-          {{ count }} {{ what }}; from {{ e.device -}}/{{- e.camera -}}/{{- e.event -}}; at {{ when }}
-        {% else %}NO STATUS{% endif %}
-
-## snapshot
-- platform: template
-  sensors:
-    motion_vehicle_alpr_snapshot:
-      friendly_name: person face snapshot
-      entity_id:
-        - counter.motion_vehicle_alpr_counter
-      value_template: >-
-        {% set event = state_attr('sensor.motion_event_face','event') %}
-        {% if event is not none and event|lower != 'unknown' and event != 'null' %}
-          {% set ep = '/local/images/motion_vehicle_alpr-' + event.camera + '.jpg' %}
-          {% set bu = states('sensor.motion_base_url') %}
-          {% if bu is not none and bu|lower != 'unknown' and bu|length > 0 %}
-            {% set p = bu + ep %}
-          {% endif %}
-        {% endif %}
-        {% if p is defined and p is not none and p|lower != 'unknown' and p|length > 0 %}
-          {{ p }}
+        {% if is_state('binary_sensor.motion_vehicle_alpr_detected','on') %}
+          {% set e = state_attr('sensor.motion_event_annotated','event') %}
+          {% if e is mapping %}
+            {% set n = utcnow().timestamp()|int %}
+            {% set end = e.end|int %}
+            {% set event = e.event %}
+            {% set device = e.device %}
+            {% set camera = e.camera %}
+            {% set elapsed = e.elapsed|int %}
+            {% set what = state_attr('sensor.motion_event_annotated','detected') %}
+            {% if what is none or what|lower == 'unknown' or what|length == 0 %}{% set what = 'nothing' %}{% endif %}
+            {% set count = state_attr('sensor.motion_event_alpr','count')|int %}
+            {% set when = end|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
+            {% set delay = n - end %}
+            PERSON FACE DETECTED: {{ count }} {{ what }};
+            from {{ device -}}/{{- camera -}}/{{- event -}};
+            at {{ when }};
+            delay: {{ delay }};
+            duration: {{ elapsed }};
+            counter: {{ states('counter.motion_alpr_detected_counter') -}}/{{- states('sensor.motion_alpr_detected_counter') -}}
+          {% else %}Never{% endif %}
         {% else %}
-          {{ states('sensor.motion_nosignal_picture') }}
+          {% set s = states('sensor.motion_vehicle_alpr_status') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
+            {{ s }}
+          {% else %}NO STATUS{% endif %}
         {% endif %}
 
 ## counter
 - platform: template
   sensors:
     motion_vehicle_alpr_counter:
-      friendly_name: person face counter
-      entity_id:
-        - counter.motion_vehicle_alpr_counter
+      friendly_name: vehicle alpr counter
       unit_of_measurement: count
       value_template: >
         {% set value = states('counter.motion_vehicle_alpr_counter') %}
@@ -63,44 +54,69 @@
     # device
     motion_vehicle_alpr_device:
       friendly_name: Detected_entity device
-      entity_id:
-        - counter.motion_vehicle_alpr_counter
       value_template: >-
-        {{ state_attr('sensor.motion_event_annotated','event').device }}
+        {% if is_state('binary_sensor.motion_vehicle_alpr_detected','on') %}
+          {% set e = state_attr('sensor.motion_event_alpr','event') %}
+          {% if e is mapping %}
+            {% set s = e.device %}
+            {% if s is not none and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
+              {{ s }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        {% else %}
+          {% set s = states('sensor.motion_vehicle_alpr_device') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
 
 ## camera
 - platform: template
   sensors:
     motion_vehicle_alpr_camera:
       friendly_name: Detected_entity camera
-      entity_id:
-        - counter.motion_vehicle_alpr_counter
       value_template: >-
-        {{ state_attr('sensor.motion_event_annotated','event').camera }}
+        {% if is_state('binary_sensor.motion_vehicle_alpr_detected','on') %}
+          {% set e = state_attr('sensor.motion_event_alpr','event') %}
+          {% if e is mapping %}
+            {% set s = e.camera %}
+            {% if s is not none and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
+              {{ s }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        {% else %}
+          {% set s = states('sensor.motion_vehicle_alpr_camera') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
 
 ## date
 - platform: template
   sensors:
     motion_vehicle_alpr_date:
-      entity_id:
-        - counter.motion_vehicle_alpr_counter
       unit_of_measurement: seconds
       value_template: >-
-        {% set e = state_attr('sensor.motion_event_annotated','event') %}
-        {% if e is not none and e|lower != 'unavailable' and e|lower != 'unknown' and e != 'null' %}
-          {% set s = e.end %}
-          {% if s is not none and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
-            {{ s|int }}
+        {% if is_state('binary_sensor.motion_vehicle_alpr_detected','on') %}
+          {% set e = state_attr('sensor.motion_event_alpr','event') %}
+          {% if e is mapping %}
+            {% set s = e.end %}
+            {% if s is not none and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
+              {{ s|int }}
+            {%- else -%}null{%- endif -%}
           {%- else -%}null{%- endif -%}
-        {%- else -%}null{%- endif -%}
+        {% else %}
+          {% set s = states('sensor.motion_vehicle_alpr_date') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
 
 ## when - human readable
 - platform: template
   sensors:
     motion_vehicle_alpr_when:
       friendly_name: Detected_entity at
-      entity_id:
-        - sensor.motion_vehicle_alpr_date
       value_template: >-
         {% set s = states('sensor.motion_vehicle_alpr_date')|int %}
         {% if s > 0 %}
@@ -112,11 +128,9 @@
   sensors:
     motion_vehicle_alpr_ago:
       friendly_name: Detected_entity ago
-      entity_id:
-        - sensor.motion_vehicle_alpr_date
-        - sensor.time
       unit_of_measurement: seconds
       value_template: >
+        {% set t = states('sensor.time') %}
         {% set s = states('sensor.motion_vehicle_alpr_date')|int %}
         {% if s > 0 %}
           {% set s = utcnow().timestamp()|int - s %}

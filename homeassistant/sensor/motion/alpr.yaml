@@ -6,28 +6,28 @@
 - platform: template
   sensors:
     motion_alpr_status:
-      entity_id:
-        - counter.motion_alpr_counter
       value_template: >-
-        {% set e = state_attr('sensor.motion_event_alpr','event') %}
-        {% if e is not none and e|lower != 'unavailable' and e|lower != 'unknown' and e != 'null' %}
-          {% set n = utcnow().timestamp()|int %}
-          {% set end = e.end|int %}
-          {% set event = e.event %}
-          {% set device = e.device %}
-          {% set camera = e.camera %}
-          {% set elapsed = e.elapsed|int %}
-          {% set what = state_attr('sensor.motion_event_alpr','detected') %}
-          {% if what is none or what|lower == 'unknown' or what|length == 0 %}{% set what = 'nothing' %}{% endif %} 
-          {% set count = state_attr('sensor.motion_event_alpr','count')|int %}
-          {% set when = end|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
-          {% set delay = n - end %}
-          ALPR: {{ count }} {{ what }};
-          from {{ device -}}/{{- camera -}}/{{- event -}};
-          at {{ when }};
-          delay: {{ delay }};
-          duration: {{ elapsed }};
-          counter: {{ states('counter.motion_alpr_counter') -}}/{{- states('sensor.motion_alpr_counter') -}}
+        {% if is_state('binary_sensor.motion_alpr','on') %}
+          {% set e = state_attr('sensor.motion_event_alpr','event') %}
+          {% if e is mapping %}
+            {% set n = utcnow().timestamp()|int %}
+            {% set end = e.end|int %}
+            {% set event = e.event %}
+            {% set device = e.device %}
+            {% set camera = e.camera %}
+            {% set elapsed = e.elapsed|int %}
+            {% set what = state_attr('sensor.motion_event_alpr','detected') %}
+            {% if what is none or what|lower == 'unknown' or what|length == 0 %}{% set what = 'nothing' %}{% endif %} 
+            {% set count = state_attr('sensor.motion_event_alpr','count')|int %}
+            {% set when = end|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
+            {% set delay = n - end %}
+            ALPR: {{ count }} {{ what }};
+            from {{ device -}}/{{- camera -}}/{{- event -}};
+            at {{ when }};
+            delay: {{ delay }};
+            duration: {{ elapsed }};
+            counter: {{ states('counter.motion_alpr_counter') -}}/{{- states('sensor.motion_alpr_counter') -}}
+          {% else %}Never{% endif %}
         {% else %}
           {% set s = states('sensor.motion_alpr_status') %}
           {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
@@ -40,10 +40,6 @@
   sensors:
     motion_alpr_count:
       friendly_name: ALPR count
-      entity_id:
-        - counter.motion_alpr_counter
-        - binary_sensor.motion_alpr
-        - binary_sensor.motion_alpr_expired
       unit_of_measurement: entities
       value_template: >
         {% if is_state('binary_sensor.motion_alpr','on') or is_state('binary_sensor.motion_alpr_expired','off') %}
@@ -58,12 +54,9 @@
   sensors:
     motion_alpr_count_entity:
       friendly_name: ALPR count entity
-      entity_id:
-        - counter.motion_alpr_counter
-        - binary_sensor.motion_alpr_expired
       unit_of_measurement: entities
       value_template: >-
-        {% if is_state('binary_sensor.motion_alpr_expired','off') %}
+        {% if is_state('binary_sensor.motion_alpr','on') or is_state('binary_sensor.motion_alpr_expired','off') %}
           {% set detected = state_attr('sensor.motion_event_alpr','detected') %}
           {% if detected is not none and detected|lower != 'unknown' and detected != 'null' %}
             {% set count = detected|selectattr('entity','==',states('sensor.motion_detect_entity'))|map(attribute='count')|sum %}
@@ -78,8 +71,6 @@
   sensors:
     motion_alpr_counter:
       friendly_name: ALPR counter
-      entity_id:
-        - counter.motion_alpr_counter
       unit_of_measurement: count
       value_template: >
         {{ states('counter.motion_alpr_counter')|int }}
@@ -89,22 +80,28 @@
   sensors:
     # date
     motion_alpr_date:
-      entity_id:
-        - counter.motion_alpr_counter
       unit_of_measurement: seconds
       value_template: >-
-        {% set e = state_attr('sensor.motion_event_alpr','event') %}
-        {% if e is not none and e|lower != 'unavailable' and e|lower != 'unknown' and e != 'null' %}
-          {{ e.end|int }}
-        {% else %}null{% endif %}
+        {% if is_state('binary_sensor.motion_alpr','on') or is_state('binary_sensor.motion_alpr_expired','off') %}
+          {% set e = state_attr('sensor.motion_event_alpr','event') %}
+          {% if e is mapping %}
+            {% set s = e.end %}
+            {% if s is not none and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
+              {{ s|int }}
+            {% else %}null{% endif %}
+          {% else %}null{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_alpr_date') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
 
 ## when
 - platform: template
   sensors:
     motion_alpr_when:
       friendly_name: ALPR at
-      entity_id:
-        - sensor.motion_alpr_date
       value_template: >-
         {% set s = states('sensor.motion_alpr_date')|int %}
         {% if s > 0 %}
@@ -116,11 +113,9 @@
   sensors:
     motion_alpr_ago:
       friendly_name: ALPR ago
-      entity_id:
-        - sensor.motion_alpr_date
-        - sensor.time
       unit_of_measurement: seconds
       value_template: >
+        {% set t = states('sensor.time') %}
         {% set s = states('sensor.motion_alpr_date')|int %}
         {% if s > 0 %}
           {% set s = utcnow().timestamp()|int - s %}
@@ -131,14 +126,15 @@
 - platform: template
   sensors:
     motion_alpr_delay:
-      friendly_name: Any alpr delay
-      entity_id:
-        - sensor.motion_alpr_date
+      friendly_name: ALPR delay
       unit_of_measurement: seconds
       value_template: >
-        {% set s = states('sensor.motion_alpr_date') %}
-        {% if s is not none and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
-          {{ utcnow().timestamp()|int - s|int }}
+        {% set e = state_attr('sensor.motion_event_alpr','event') %}
+        {% if e is mapping %}
+          {% set s = e.end %}
+          {% if s is not none and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
+            {{ utcnow().timestamp()|int - s|int }}
+          {%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif -%}
 
 ## percent
@@ -146,9 +142,6 @@
   sensors:
     motion_alpr_percent:
       friendly_name: ALPR percent
-      entity_id:
-        - sensor.motion_end_counter
-        - sensor.motion_alpr_counter
       unit_of_measurement: '%'
       value_template: >-
         {% if states('sensor.motion_alpr_counter')|int > 0 and states('sensor.motion_end_counter')|int > 0 %}
@@ -161,8 +154,6 @@
   sensors:
     motion_alpr_device:
       friendly_name: ALPR device
-      entity_id:
-        - counter.motion_alpr_counter
       value_template: >-
         {% if state_attr('sensor.motion_event_alpr','event')|lower != 'none' %}
           {{ states.sensor.motion_event_alpr.attributes.event.device }}
@@ -173,34 +164,30 @@
   sensors:
     motion_alpr_camera:
       friendly_name: ALPR camera
-      entity_id:
-        - counter.motion_alpr_counter
       value_template: >-
         {% if state_attr('sensor.motion_event_alpr','event')|lower != 'none' %}
           {{ states.sensor.motion_event_alpr.attributes.event.camera }}
         {% else %}null{% endif %}
 
 ## snapshot
-- platform: template
-  sensors:
-    motion_alpr_snapshot:
-      friendly_name: ALPR snapshot
-      entity_id:
-        - sensor.motion_event_alpr
-      value_template: >-
-        {% set event = state_attr('sensor.motion_event_alpr','event') %}
-        {% if event is not none and event|lower != 'unknown' and event != 'null' %}
-          {% set ep = '/local/images/motion_alpr-' + event.camera + '.jpg' %}
-          {% set bu = states('sensor.motion_base_url') %}
-          {% if bu is not none and bu|lower != 'unknown' and bu|length > 0 %}
-            {% set p = bu + ep %}
-          {% endif %}
-        {% endif %}
-        {% if p is defined and p is not none and p|lower != 'unknown' and p|length > 0 %}
-          {{ p }}
-        {% else %}
-          {{ states('sensor.motion_nosignal_picture') }}
-        {% endif %}
+#- platform: template
+#  sensors:
+#    motion_alpr_snapshot:
+#      friendly_name: ALPR snapshot
+#      value_template: >-
+#        {% set event = state_attr('sensor.motion_event_alpr','event') %}
+#        {% if event is not none and event|lower != 'unknown' and event != 'null' %}
+#          {% set ep = '/local/images/motion_alpr-' + event.camera + '.jpg' %}
+#          {% set bu = states('sensor.motion_base_url') %}
+#          {% if bu is not none and bu|lower != 'unknown' and bu|length > 0 %}
+#            {% set p = bu + ep %}
+#          {% endif %}
+#        {% endif %}
+#        {% if p is defined and p is not none and p|lower != 'unknown' and p|length > 0 %}
+#          {{ p }}
+#        {% else %}
+#          {{ states('sensor.motion_nosignal_picture') }}
+#        {% endif %}
 
 ###
 # statistics
@@ -211,8 +198,6 @@
   sensors:
     motion_alpr_percent_mean:
       friendly_name: ALPR percent avg
-      entity_id:
-        - sensor.motion_alpr_percent_statistics
       unit_of_measurement: '%'
       value_template: >-
         {% if states('sensor.motion_alpr_percent_statistics') != 'unknown' %}
@@ -220,8 +205,6 @@
         {%- else -%}null{%- endif -%}
     motion_alpr_percent_min_value:
       friendly_name: ALPR percent min
-      entity_id:
-        - sensor.motion_alpr_percent_statistics
       unit_of_measurement: '%'
       value_template: >-
         {% if states('sensor.motion_alpr_percent_statistics') != 'unknown' %}
@@ -229,8 +212,6 @@
         {%- else -%}null{%- endif -%}
     motion_alpr_percent_max_value:
       friendly_name: ALPR percent max
-      entity_id:
-        - sensor.motion_alpr_percent_statistics
       unit_of_measurement: '%'
       value_template: >-
         {% if states('sensor.motion_alpr_percent_statistics') != 'unknown' %}
@@ -238,8 +219,6 @@
         {%- else -%}null{%- endif -%}
     motion_alpr_percent_stdev:
       friendly_name: ALPR percent stdev
-      entity_id:
-        - sensor.motion_alpr_percent_statistics
       unit_of_measurement: '%'
       value_template: >
         {% if states('sensor.motion_alpr_percent_statistics') != 'unknown' %}
@@ -247,13 +226,12 @@
         {%- else -%}null{%- endif -%}
     motion_alpr_percent_change:
       friendly_name: ALPR percent change
-      entity_id:
-        - sensor.motion_alpr_percent_statistics
       unit_of_measurement: '%'
       value_template: >
         {% if states('sensor.motion_alpr_percent_statistics') != 'unknown' %}
           {{ states.sensor.motion_alpr_percent_statistics.attributes.change|float }}
         {%- else -%}null{%- endif -%}
+
 - platform: statistics
   name: motion_alpr_percent_statistics
   entity_id: sensor.motion_alpr_percent

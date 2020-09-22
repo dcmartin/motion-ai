@@ -116,3 +116,89 @@ Select `<OK>` and exit the `rasp-config` application.  Then reboot the computer:
 ```
 sudo reboot
 ```
+
+## Autostart for local display
+To configure a RaspberryPi with a local display, e.g. the 7" touchscreen, the system needs to be configured to auto-login as a designated user (e.g. `pi`)
+and invoke the X server. 
+
+### `raspi-config`
+Run this configuration utility as root, e.g. `sudo raspi-config` to setup automatic login.  
+
+The options are listed below; use option three (3):
+
+```
+1 Change User Password Change password for the '<you>' user
+2 Network Options      Configure network settings
+3 Boot Options         Configure options for start-up
+4 Localisation Options Set up language and regional settings to match your location
+5 Interfacing Options  Configure connections to peripherals
+6 Overclock            Configure overclocking for your Pi
+7 Advanced Options     Configure advanced settings
+8 Update               Update this tool to the latest version
+9 About raspi-config   Information about this configuration tool
+```
+
+The options are listed below; use option one (1):
+
+```
+B1 Desktop / CLI            Choose whether to boot into a desktop environment or the command line
+B2 Wait for Network at Boot Choose whether to wait for network connection during boot
+B3 Splash Screen            Choose graphical splash screen or text boot
+```
+
+The options are listed below; use option two (2):
+
+```
+B1 Console           Text console, requiring user to login
+B2 Console Autologin Text console, automatically logged in as '<you>' user
+B3 Desktop           Desktop GUI, requiring user to login
+B4 Desktop Autologin Desktop GUI, automatically logged in as '<you>' user
+```
+
+### Install softare
+The following software is required:
+
++ X Window System
++ `openbox` to automatically start the appropriate programs
++ the [**Chromium**](https://www.chromium.org/Home) Web browser
+
+```
+sudo apt update -qq -y
+sudo apt install -qq -y xserver-xorg x11-xserver-utils xinit openbox chromium-browser
+```
+
+### `~/.bash_profile`
+This file initiates the X Window System for the graphical-user interface when the user, i.e. _`<you>`_, logs in on the console:
+
+```
+echo 'startx --' >> ~/.bash_profile
+```
+
+### `openbox`
+The `openbox` application runs when the X Window System starts; it's configuration is defined as follows:
+
++ disable any form of screen saver, screen blanking, or power management
++ set keyboard layout for US english (your mileage may vary)
++ allow quitting the X server with CTRL-ATL-Backspace
++ set browser options to always indicate clean exit
++ start browser in _kiosk_ mode with local server (**note**: may require _port_ `8123`)
+
+Use the script below to create the necessary `autostart` configuration file.
+
+```
+sudo cat > /etc/xdg/openbox/autostart << EOF
+# 1
+xset s off
+xset s noblank
+xset -dpms
+# 2
+setxkbmap -layout us 
+# 3
+setxkbmap -option terminate:ctrl_alt_bksp
+# 4
+sed -i 's/"exited_cleanly":false/"exited_cleanly":true/' ~/.config/chromium/'Local State'
+sed -i 's/"exited_cleanly":false/"exited_cleanly":true/; s/"exit_type":"[^"]\+"/"exit_type":"Normal"/' ~/.config/chromium/Default/Preferences
+# 5
+chromium-browser --disable-infobars --kiosk http://127.0.0.1/
+EOF
+```

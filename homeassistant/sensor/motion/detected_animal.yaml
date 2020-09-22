@@ -8,9 +8,6 @@
     motion_detected_animal:
       friendly_name: Detected animal count
       icon_template: 'mdi:counter'
-      entity_id:
-        - counter.motion_detected_counter
-        - sensor.motion_detected_ago
       value_template: >-
         {% set options = state_attr('input_select.motion_detect_animal','options') %}
         {% if options is not none and options|lower != 'unknown' and options|length > 0 %}
@@ -31,9 +28,6 @@
       friendly_name: Count of animal(s)
       unit_of_measurement: 'animal'
       icon_template: 'mdi:cow'
-      entity_id:
-        - sensor.motion_detected_animal
-        - sensor.time
       value_template: >
         {% if is_state('binary_sensor.motion_detected_animal','on') %}
           {{ states.sensor.motion_detected_animal.state|from_json|sum|int }}
@@ -45,8 +39,6 @@
   sensors:
     motion_detected_animal_counter:
       unit_of_measurement: 'animal'
-      entity_id:
-        - counter.motion_detected_animal_counter
       value_template: >
         {{ states('counter.motion_detected_animal_counter') }}
 
@@ -83,8 +75,6 @@
       friendly_name: Today animal ratio
       unit_of_measurement: '%'
       icon_template: 'mdi:percent'
-      entity_id:
-        - sensor.motion_today_animal_ratio
       value_template: >
         {{ states('sensor.motion_today_animal_ratio') }}
 
@@ -94,8 +84,6 @@
       friendly_name: Today animal counter
       unit_of_measurement: 'events'
       icon_template: 'mdi:counter'
-      entity_id:
-        - sensor.motion_today_animal_counter
       value_template: >-
         {{ states('sensor.motion_today_animal_counter')|int }}
 
@@ -105,8 +93,6 @@
       friendly_name: Today animal time
       unit_of_measurement: 'hours'
       icon_template: 'mdi:timer-outline'
-      entity_id:
-        - sensor.motion_today_animal_time
       value_template: >
         {{ states('sensor.motion_today_animal_time')|float }}
 
@@ -115,10 +101,6 @@
     motion_animal_status_today:
       friendly_name: Today animal
       icon_template: 'mdi:cow'
-      entity_id:
-        - sensor.motion_animal_ratio_today
-        - sensor.motion_animal_counter_today
-        - sensor.motion_animal_time_today
       value_template: >-
         {% set c = states('sensor.motion_animal_counter_today') %}
         {% set r = states('sensor.motion_animal_ratio_today') %}
@@ -132,13 +114,18 @@
     motion_animal_last_date:
       friendly_name: Last animal date
       icon_template: 'mdi:clock'
-      entity_id:
-        - sensor.motion_detected_animal_counter
       value_template: >
-        {% set s = states('sensor.motion_detected_date') %}
-        {% if s is not none and s|lower != 'unknown' and s|int > 0 %}
-          {{ s }}
-        {% else %}null{% endif %}
+        {% if is_state('binary_sensor.motion_detected_animal','on') %}
+          {% set s = states('sensor.motion_detected_date') %}
+          {% if s is not none and s|lower != 'unknown' and s|int > 0 %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_animal_last_date') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
 
 - platform: template
   sensors:
@@ -146,10 +133,8 @@
       friendly_name: Person last ago
       icon_template: 'mdi:timer-outline'
       unit_of_measurement: seconds
-      entity_id:
-        - sensor.motion_animal_last_date
-        - sensor.time
       value_template: >
+        {% set t = states('sensor.time') %}
         {% set s = states('sensor.motion_animal_last_date') %}
         {% if s is not none and s|lower != 'unknown' and s|int > 0 %}
           {{ as_timestamp(now())|int - s|int }}
@@ -160,12 +145,10 @@
     motion_animal_last_when:
       friendly_name: Last animal when
       icon_template: 'mdi:clock-outline'
-      entity_id:
-        - sensor.motion_detected_animal_counter
       value_template: >
-        {% set s = states('sensor.motion_detected_when') %}
-        {% if s is not none and s|lower != 'unknown' and s|length > 0 %}
-          {{ s }}
+        {% set s = states('sensor.motion_animal_last_date')|int %}
+        {% if s > 0 %}
+          {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}
         {% else %}Never{% endif %}
 
 - platform: template
@@ -173,23 +156,33 @@
     motion_animal_last_where:
       friendly_name: Last animal where
       icon_template: 'mdi:map-marker'
-      entity_id:
-        - sensor.motion_detected_animal_counter
       value_template: >
-        {% set s = states('sensor.motion_detected_camera') %}
-        {% if s is not none and s|lower != 'unknown' and s|length > 0 %}
-          {{ s }}
-        {% else %}None{% endif %}
+        {% if is_state('binary_sensor.motion_detected_animal','on') %}
+          {% set s = states('sensor.motion_detected_camera') %}
+          {% if s is not none and s|lower != 'unknown' and s|length > 0 %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_animal_where') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
 
 - platform: template
   sensors:
     motion_animal_last_elapsed:
       friendly_name: Last animal elapsed
       icon_template: 'mdi:timeer'
-      entity_id:
-        - sensor.motion_detected_animal_counter
       value_template: >
-        {% set s = states('sensor.motion_detected_elapsed') %}
-        {% if s is not none and s|lower != 'unknown' and s|length > 0 %}
-          {{ s }}
-        {% else %}Zero{% endif %}
+        {% if is_state('binary_sensor.motion_detected_animal','on') %}
+          {% set s = states('sensor.motion_detected_elapsed') %}
+          {% if s is not none and s|lower != 'unknown' and s|length > 0 %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_animal_where') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
