@@ -7,16 +7,6 @@ function info { echo -e "\e[32m[info] $*\e[39m"; }
 function warn  { echo -e "\e[33m[warn] $*\e[39m"; }
 function error { echo -e "\e[31m[error] $*\e[39m"; exit 1; }
 
-warn ""
-warn "If you want more control over your own system, run"
-warn "Home Assistant as a VM or run Home Assistant Core"
-warn "via a Docker container."
-warn ""
-warn "If you want to abort, hit ctrl+c within 10 seconds..."
-warn ""
-
-sleep 10
-
 ARCH=$(uname -m)
 
 IP_ADDRESS=$(hostname -I | awk '{ print $1 }')
@@ -97,10 +87,6 @@ fi
 
 # Create config for NetworkManager
 info "Creating NetworkManager configuration"
-curl -sL "${URL_NM_CONF}" > "${FILE_NM_CONF}"
-if [ ! -f "$FILE_NM_CONNECTION" ]; then
-    curl -sL "${URL_NM_CONNECTION}" > "${FILE_NM_CONNECTION}"
-fi
 
 warn "Changes is needed to the /etc/network/interfaces file"
 info "If you have modified the network on the host manualy, those can now be overwritten"
@@ -113,6 +99,8 @@ if [[ "$answer" =~ "y" ]] || [[ "$answer" =~ "Y" ]]; then
     curl -sL "${URL_INTERFACES}" > "${FILE_INTERFACES}";
 fi
 
+=======
+>>>>>>> 1500ed1... lgtm
 info "Restarting NetworkManager"
 systemctl restart "${SERVICE_NM}"
 
@@ -260,4 +248,3 @@ info
 info "Home Assistant supervised is now installed"
 info "First setup will take some time, when it's ready you can reach it here:"
 info "http://${IP_ADDRESS}:8123"
-info
