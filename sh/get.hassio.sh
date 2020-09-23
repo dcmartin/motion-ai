@@ -149,7 +149,7 @@ curl -sSL https://raw.githubusercontent.com/home-assistant/supervised-installer/
   && \
   mv -f /tmp/hassio-install.sh ${0%/*}/hassio-install.sh \
   && \
-  mv /tmp/installer.sh ${0%/*}/hassio-install.sh \
+  mv -f /tmp/installer.sh ${0%/*}/hassio-install.sh \
   && \
   chmod 755 ${0%/*}/hassio-install.sh \
   || \
