@@ -111,7 +111,11 @@ curl -sSL https://raw.githubusercontent.com/home-assistant/supervised-installer/
   && \
   mv -f /tmp/hassio-install.sh ${0%/*}/hassio-install.sh \
   && \
-  chmod 755 ${0%/*}/hassio-install.sh
+  mv /tmp/installer.sh ${0%/*}/hassio-install.sh \
+  && \
+  chmod 755 ${0%/*}/hassio-install.sh \
+  || \
+  echo "Unable to download installer; using backup" &> /dev/stderr
 
 echo "Installing using ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine)" \
   && ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine) \
