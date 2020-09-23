@@ -99,8 +99,6 @@ if [[ "$answer" =~ "y" ]] || [[ "$answer" =~ "Y" ]]; then
     curl -sL "${URL_INTERFACES}" > "${FILE_INTERFACES}";
 fi
 
-=======
->>>>>>> 1500ed1... lgtm
 info "Restarting NetworkManager"
 systemctl restart "${SERVICE_NM}"
 
@@ -248,3 +246,4 @@ info
 info "Home Assistant supervised is now installed"
 info "First setup will take some time, when it's ready you can reach it here:"
 info "http://${IP_ADDRESS}:8123"
+info
