@@ -15,6 +15,7 @@ lookup_ipaddr()
 
   local net="${1:-}"
   local ipaddr
+  local ipaddrs=$(ip addr | egrep -A2 'UP' | egrep 'inet ' | awk '{ print $2 }' | awk -F/ 'BEGIN { x=0; printf("["); } { if (x++>0) printf(",\"%s\"", $1); else printf("\"%s\"",$1) } END { printf("]"); }')
   local result
 
   if [ -z "${net:-}" ]; then
@@ -40,8 +41,9 @@ rtsp_test()
   local ip="${1:-}"
   local connect=${2:-${RTSP_CONNECT_TIME:-5}}
   local maxtime=${3:-${RTSP_MAX_TIME:-15}}
-  local code=$(curl --connect-timeout ${connect} --max-time ${maxtime} -sSL -w '%{http_code}' "rtsp://${ip}/" 2> /dev/null)
   local result
+  local code=$(curl --connect-timeout ${connect} --max-time ${maxtime} -sSL -w '%{http_code}' "rtsp://${ip}/" 2> /dev/null)
+  local err=$?
 
   if [ ! -z "${code:-}" ]; then
     result='{"ip":"'${ip}'","code":"'${code}'"}'
@@ -54,7 +56,17 @@ rtsp_test()
         result=$(echo "${result}" | jq '.status="notfound"')
         ;;
       *)
-        result=$(echo "${result}" | jq '.status=null')
+        case ${err} in
+          7)
+            result=$(echo "${result}" | jq '.status="noconnect"')
+            ;;
+          52)
+            result=$(echo "${result}" | jq '.status="empty"')
+            ;;
+          *)
+            result=$(echo "${result}" | jq '.status='${err:-null})
+            ;;
+        esac
         ;;
     esac
   else
@@ -120,7 +132,7 @@ find_rtsp()
 ### MAIN
 ###
 
-if [ "${USER:-null}" != 'root' ]; then
+if [ "${USER:-root}" != 'root' ]; then
   echo "Please run as root; sudo ${0} ${*}" &> /dev/stderr
   exit 1
 fi
