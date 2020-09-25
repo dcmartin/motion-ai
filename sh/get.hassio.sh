@@ -84,7 +84,24 @@ addgroup ${SUDO_USER:-${USER}} docker
 echo 'Updating apt ...' &> /dev/stderr && apt update -qq -y \
   && echo 'Upgrading apt ...' &> /dev/stderr && apt upgrade -qq -y \
   && echo 'Installing pre-requisite packages' &> /dev/stderr \
-  && apt install -qq -y network-manager software-properties-common apparmor-utils apt-transport-https avahi-daemon ca-certificates curl dbus jq socat iperf3 netdata git \
+  && apt install -qq -y \
+    network-manager \
+    software-properties-common \
+    apparmor-utils \
+    apt-transport-https \
+    avahi-daemon \
+    ca-certificates \
+    dbus \
+    jq \
+    socat \
+    iperf3 \
+    netdata \
+    git \
+    xserver-xorg \
+    x11-xserver-utils \
+    xinit \
+    openbox \
+    chromium-browser \
   || echo 'Failed to install pre-requisite software' &> /dev/stderr
 
 echo 'Modifying NetworkManager to disable WiFi MAC randomization' \
