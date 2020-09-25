@@ -88,6 +88,8 @@ echo 'Updating apt ...' &> /dev/stderr && apt update -qq -y \
   || echo 'Failed to install pre-requisite software' &> /dev/stderr
 
 echo 'Modifying NetworkManager to disable WiFi MAC randomization' \
+  && echo '[connection]' > /etc/NetworkManager/NetworkManager.conf \
+  && echo 'wifi.mac-address-randomization=1' >> /etc/NetworkManager/NetworkManager.conf \
   && echo '[device]' >> /etc/NetworkManager/NetworkManager.conf \
   && echo 'wifi.scan-rand-mac-address=no' >> /etc/NetworkManager/NetworkManager.conf \
   && echo 'Restarting network-manager' \
