@@ -87,7 +87,7 @@
 - platform: template
   sensors:
     motion_face_detected_today:
-      friendly_name: Today detected entity
+      friendly_name: FACE Today detected entity
       value_template: >-
         {% set s = states('sensor.motion_face_detected_count_today') %}
         {% if s|lower != 'unknown' and s|int > 0  %}
@@ -100,9 +100,9 @@
     motion_face_detected_count_loop:
       unit_of_measurement: entities
       value_template: >
-        {% set detected = state_attr('sensor.motion_event_annotated','detected') %}
+        {% set detected = state_attr('sensor.motion_event_face','detected') %}
         {% if detected is not none and detected|lower != 'unavailable' and detected|lower != 'unknown' and detected != 'null' %}
-          {% set s = detected|selectattr('entity','==',states('sensor.motion_detect_entity'))|map(attribute='count')|sum %}
+          {% set s = detected|length %}
           {% if s is not none and s|lower != 'unknown' and s != 'null' %}
             {{ s|int }}
           {% else %}null{% endif %}
@@ -133,38 +133,44 @@
           {{ value|int }}
         {% else %}null{% endif %}
 
-## event 
-- platform: template
-  sensors:
-    # device
-    motion_face_detected_event:
-      friendly_name: FACE Detected event
-      value_template: >-
-        {% if is_state('binary_sensor.motion_face_detected','on') or is_state('binary_sensor.motion_face_detected_expired','off') %} 
-          {% set s = state_attr('sensor.motion_event_annotated','event').event %}
-          {% if s is not none and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'unknown' and s != 'null' %}
-            {{ s }}
-          {% else %}null{% endif %}
-        {% else %}
-          {% set s = states('sensor.motion_face_detected_event') %}
-          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
-            {{ s }}
-          {% else %}null{% endif %}
-        {% endif %}
-
 - platform: template
   sensors:
     motion_face_detected_elapsed:
       friendly_name: FACE detected elapsed
       value_template: >-
-        {% if is_state('binary_sensor.motion_face_detected','on') or is_state('binary_sensor.motion_face_detected_expired','off') %} 
-          {% set s = state_attr('sensor.motion_event_annotated','event').elapsed %}
-          {% if s is not none and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'unknown' and s != 'null' %}
-            {{ s }}
+        {% if is_state('binary_sensor.motion_face_detected','on') or is_state('binary_sensor.motion_face_detected_expired','off') %}
+          {% set e = state_attr('sensor.motion_event_face','event') %}
+          {% if e is mapping %}
+            {% set s = e.elapsed %}
+            {% if s is not none and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
+              {{ s|int }}
+            {%- else -%}null{%- endif -%}
           {% else %}null{% endif %}
         {% else %}
           {% set s = states('sensor.motion_face_detected_elapsed') %}
-          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+## event
+- platform: template
+  sensors:
+    # device
+    motion_face_detected_event:
+      friendly_name: FACE detected event
+      value_template: >-
+        {% if is_state('binary_sensor.motion_face_detected','on') or is_state('binary_sensor.motion_face_detected_expired','off') %}
+          {% set e = state_attr('sensor.motion_event_face','event') %}
+          {% if e is mapping %}
+            {% set s = e.event %}
+            {% if s is not none and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
+              {{ s|int }}
+            {%- else -%}null{%- endif -%}
+          {% else %}null{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_face_detected_event') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
             {{ s }}
           {% else %}null{% endif %}
         {% endif %}
@@ -172,18 +178,20 @@
 ## device
 - platform: template
   sensors:
-    # device
     motion_face_detected_device:
       friendly_name: FACE detected device
       value_template: >-
-        {% if is_state('binary_sensor.motion_face_detected','on') or is_state('binary_sensor.motion_face_detected_expired','off') %} 
-          {% set s = state_attr('sensor.motion_event_annotated','event').device %}
-          {% if s is not none and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'unknown' and s != 'null' %}
-            {{ s }}
+        {% if is_state('binary_sensor.motion_face_detected','on') or is_state('binary_sensor.motion_face_detected_expired','off') %}
+          {% set e = state_attr('sensor.motion_event_face','event') %}
+          {% if e is mapping %}
+            {% set s = e.device %}
+            {% if s is not none and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
+              {{ s|int }}
+            {%- else -%}null{%- endif -%}
           {% else %}null{% endif %}
         {% else %}
           {% set s = states('sensor.motion_face_detected_device') %}
-          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
             {{ s }}
           {% else %}null{% endif %}
         {% endif %}
@@ -193,15 +201,19 @@
   sensors:
     motion_face_detected_camera:
       friendly_name: FACE detected camera
+      icon_template: 'mdi:camera'
       value_template: >-
-        {% if is_state('binary_sensor.motion_face_detected','on') or is_state('binary_sensor.motion_face_detected_expired','off') %} 
-          {% set s = state_attr('sensor.motion_event_annotated','event').camera %}
-          {% if s is not none and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'unknown' and s != 'null' %}
-            {{ s }}
+        {% if is_state('binary_sensor.motion_face_detected','on') %}
+          {% set e = state_attr('sensor.motion_event_face','event') %}
+          {% if e is mapping %}
+            {% set s = e.camera %}
+            {% if s is not none and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
+              {{ s }}
+            {%- else -%}null{%- endif -%}
           {% else %}null{% endif %}
         {% else %}
           {% set s = states('sensor.motion_face_detected_camera') %}
-          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
             {{ s }}
           {% else %}null{% endif %}
         {% endif %}
@@ -212,8 +224,8 @@
     motion_face_detected_date:
       unit_of_measurement: seconds
       value_template: >-
-        {% if is_state('binary_sensor.motion_face_detected','on') or is_state('binary_sensor.motion_face_detected_expired','off') %} 
-          {% set e = state_attr('sensor.motion_event_annotated','event') %}
+        {% if is_state('binary_sensor.motion_face_detected','on') or is_state('binary_sensor.motion_face_detected_expired','off') %}
+          {% set e = state_attr('sensor.motion_event_face','event') %}
           {% if e is mapping %}
             {% set s = e.end %}
             {% if s is not none and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
@@ -222,11 +234,10 @@
           {%- else -%}null{%- endif -%}
         {% else %}
           {% set s = states('sensor.motion_face_detected_date') %}
-          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
             {{ s }}
           {% else %}null{% endif %}
         {% endif %}
-
 ## when - human readable
 - platform: template
   sensors:
@@ -259,9 +270,9 @@
       friendly_name: FACE detected list
       value_template: >-
         {% if is_state('binary_sensor.motion_face_detected','on') or is_state('binary_sensor.motion_face_detected_expired','off') %} 
-          {% set detected = state_attr('sensor.motion_event_annotated','detected') %}
+          {% set detected = state_attr('sensor.motion_event_face','detected') %}
           {% if detected is not none and detected|lower != 'unknown' and detected|length > 0 %}
-            {{ detected|map(attribute='entity')|list }}
+            {{ detected|list }}
           {% else %}null{% endif %}
         {%- else -%}null{%- endif -%}
 
@@ -274,9 +285,9 @@
       value_template: >-
         {% if states.counter.motion_face_detected_counter|lower != 'none'
               and states.counter.motion_face_detected_counter.state != 'null'
-              and states.counter.motion_annotated_counter|lower != 'none'
-              and states.counter.motion_annotated_counter.state|int > 0 %}
-          {% set value = states.counter.motion_face_detected_counter.state|int / states.counter.motion_annotated_counter.state|int * 100.0 %}
+              and states.counter.motion_face_counter|lower != 'none'
+              and states.counter.motion_face_counter.state|int > 0 %}
+          {% set value = states.counter.motion_face_detected_counter.state|int / states.counter.motion_face_counter.state|int * 100.0 %}
           {{ "%.2f"|format(value|float) }}
         {%- else -%}null{%- endif -%}
 
@@ -288,42 +299,42 @@
 - platform: template
   sensors:
     motion_face_detected_ago_mean:
-      friendly_name: Avg ago found
+      friendly_name: FACE Avg ago found
       unit_of_measurement: seconds
       value_template: >-
         {% if states('sensor.motion_face_detected_ago_statistics') != 'unknown' %}
           {{ states.sensor.motion_face_detected_ago_statistics.state|float }}
         {%- else -%}null{%- endif -%}
     motion_face_detected_ago_min_value:
-      friendly_name: Min ago found
+      friendly_name: FACE Min ago found
       unit_of_measurement: seconds
       value_template: >-
         {% if states('sensor.motion_face_detected_ago_statistics') != 'unknown' %}
           {{ states.sensor.motion_face_detected_ago_statistics.attributes.min_value|int }}
         {%- else -%}null{%- endif -%}
     motion_face_detected_ago_max_value:
-      friendly_name: Max ago found
+      friendly_name: FACE Max ago found
       unit_of_measurement: seconds
       value_template: >-
         {% if states('sensor.motion_face_detected_ago_statistics') != 'unknown' %}
           {{ states.sensor.motion_face_detected_ago_statistics.attributes.max_value|int }}
         {%- else -%}null{%- endif -%}
     motion_face_detected_ago_stdev:
-      friendly_name: StDev ago found
+      friendly_name: FACE StDev ago found
       unit_of_measurement: seconds
       value_template: >
         {% if states('sensor.motion_face_detected_ago_statistics') != 'unknown' %}
           {{ states.sensor.motion_face_detected_ago_statistics.attributes.standard_deviation|float }}
         {%- else -%}null{%- endif -%}
     motion_face_detected_ago_change:
-      friendly_name: Change ago found
+      friendly_name: FACE Change ago found
       unit_of_measurement: seconds
       value_template: >
         {% if states('sensor.motion_face_detected_ago_statistics') != 'unknown' %}
           {{ states.sensor.motion_face_detected_ago_statistics.attributes.change|float }}
         {%- else -%}null{%- endif -%}
     motion_face_detected_ago_stdev_change:
-      friendly_name: StDev change ago found
+      friendly_name: FACE StDev change ago found
       unit_of_measurement: seconds
       value_template: >
         {% if states.sensor.motion_face_detected_ago_stdev_statistics|lower != 'none' %}
@@ -349,35 +360,35 @@
 - platform: template
   sensors:
     motion_face_detected_counter_mean:
-      friendly_name: Avg counter found
+      friendly_name: FACE Avg counter found
       unit_of_measurement: count
       value_template: >-
         {% if states('sensor.motion_face_detected_counter_statistics') != 'unknown' %}
           {{ states.sensor.motion_face_detected_counter_statistics.state|float }}
         {%- else -%}null{%- endif -%}
     motion_face_detected_counter_min_value:
-      friendly_name: Min counter found
+      friendly_name: FACE Min counter found
       unit_of_measurement: count
       value_template: >-
         {% if states('sensor.motion_face_detected_counter_statistics') != 'unknown' %}
           {{ states.sensor.motion_face_detected_counter_statistics.attributes.min_value|int }}
         {%- else -%}null{%- endif -%}
     motion_face_detected_counter_max_value:
-      friendly_name: Max counter found
+      friendly_name: FACE Max counter found
       unit_of_measurement: count
       value_template: >-
         {% if states('sensor.motion_face_detected_counter_statistics') != 'unknown' %}
           {{ states.sensor.motion_face_detected_counter_statistics.attributes.max_value|int }}
         {%- else -%}null{%- endif -%}
     motion_face_detected_counter_stdev:
-      friendly_name: StDev counter found
+      friendly_name: FACE StDev counter found
       unit_of_measurement: count
       value_template: >
         {% if states('sensor.motion_face_detected_counter_statistics') != 'unknown' %}
           {{ states.sensor.motion_face_detected_counter_statistics.attributes.standard_deviation|float }}
         {%- else -%}null{%- endif -%}
     motion_face_detected_counter_change:
-      friendly_name: Change counter found
+      friendly_name: FACE Change counter found
       unit_of_measurement: count
       value_template: >
         {% if states('sensor.motion_face_detected_counter_statistics') != 'unknown' %}

@@ -8,27 +8,21 @@
     motion_person_face_status:
       friendly_name: Person w/ face status
       value_template: >-
-        {% if is_state('binary_sensor.motion_person_face_detected','on') %}
-          {% set e = state_attr('sensor.motion_event_annotated','event') %}
-          {% if e is mapping %}
-            {% set n = utcnow().timestamp()|int %}
-            {% set end = e.end|int %}
-            {% set event = e.event %}
-            {% set device = e.device %}
-            {% set camera = e.camera %}
-            {% set elapsed = e.elapsed|int %}
-            {% set what = state_attr('sensor.motion_event_annotated','detected') %}
-            {% if what is none or what|lower == 'unknown' or what|length == 0 %}{% set what = 'nothing' %}{% endif %}
-            {% set count = state_attr('sensor.motion_event_face','count')|int %}
-            {% set when = end|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
-            {% set delay = n - end %}
-            PERSON FACE DETECTED: {{ count }} {{ what }};
-            from {{ device -}}/{{- camera -}}/{{- event -}};
-            at {{ when }};
-            delay: {{ delay }};
-            duration: {{ elapsed }};
-            counter: {{ states('counter.motion_face_detected_counter') -}}/{{- states('sensor.motion_face_detected_counter') -}}
-          {% else %}Never{% endif %}
+        {% if is_state('binary_sensor.motion_person_face','on') %}
+          {% set n = utcnow().timestamp()|int %}
+          {% set end = states('sensor.motion_person_face_date') %}
+          {% set event = states('sensor.motion_person_face_event') %}
+          {% set device = states('sensor.motion_person_face_device') %}
+          {% set camera = states('sensor.motion_person_face_camera') %}
+          {% set elapsed = states('sensor.motion_person_face_elapsed') %}
+          {% set when = end|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
+          {% set delay = n - end|int %}
+          PERSON FACE DETECTED: 
+          from {{ device -}}/{{- camera -}}/{{- event -}};
+          at {{ when }};
+          delay: {{ delay }};
+          duration: {{ elapsed }};
+          counter: {{ states('counter.motion_face_detected_counter') -}}/{{- states('sensor.motion_face_detected_counter') -}}
         {% else %}
           {% set s = states('sensor.motion_person_face_status') %}
           {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
@@ -48,6 +42,25 @@
           {{ value|int }}
         {% else %}null{% endif %}
 
+## event
+- platform: template
+  sensors:
+    # event
+    motion_person_face_event:
+      friendly_name: Person w/ face event
+      value_template: >-
+        {% if is_state('binary_sensor.motion_person_face','on') %}
+          {% set s = states('sensor.motion_face_event') %}
+          {% if s is not none and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
+            {{ s }}
+          {%- else -%}null{%- endif -%}
+        {% else %}
+          {% set s = states('sensor.motion_person_face_event') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
 ## device
 - platform: template
   sensors:
@@ -55,13 +68,10 @@
     motion_person_face_device:
       friendly_name: Person w/ face device
       value_template: >-
-        {% if is_state('binary_sensor.motion_person_face_detected','on') %}
-          {% set e = state_attr('sensor.motion_event_face','event') %}
-          {% if e is mapping %}
-            {% set s = e.device %}
-            {% if s is not none and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
-              {{ s }}
-            {%- else -%}null{%- endif -%}
+        {% if is_state('binary_sensor.motion_person_face','on') %}
+          {% set s = states('sensor.motion_face_device') %}
+          {% if s is not none and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
+            {{ s }}
           {%- else -%}null{%- endif -%}
         {% else %}
           {% set s = states('sensor.motion_person_face_device') %}
@@ -76,13 +86,10 @@
     motion_person_face_camera:
       friendly_name: Person w/ face camera
       value_template: >-
-        {% if is_state('binary_sensor.motion_person_face_detected','on') %}
-          {% set e = state_attr('sensor.motion_event_face','event') %}
-          {% if e is mapping %}
-            {% set s = e.camera %}
-            {% if s is not none and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
-              {{ s }}
-            {%- else -%}null{%- endif -%}
+        {% if is_state('binary_sensor.motion_person_face','on') %}
+          {% set s = states('sensor.motion_face_camera') %}
+          {% if s is not none and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
+            {{ s }}
           {%- else -%}null{%- endif -%}
         {% else %}
           {% set s = states('sensor.motion_person_face_camera') %}
@@ -97,13 +104,10 @@
     motion_person_face_date:
       unit_of_measurement: seconds
       value_template: >-
-        {% if is_state('binary_sensor.motion_person_face_detected','on') %}
-          {% set e = state_attr('sensor.motion_event_face','event') %}
-          {% if e is mapping %}
-            {% set s = e.end %}
-            {% if s is not none and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
-              {{ s|int }}
-            {%- else -%}null{%- endif -%}
+        {% if is_state('binary_sensor.motion_person_face','on') %}
+          {% set s = states('sensor.motion_face_camera') %}
+          {% if s is not none and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
+            {{ s|int }}
           {%- else -%}null{%- endif -%}
         {% else %}
           {% set s = states('sensor.motion_person_face_date') %}
@@ -135,4 +139,19 @@
         {% if s > 0 %}
           {% set s = utcnow().timestamp()|int - s %}
           {% if s < 86400 %}{{ s }}{%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+
+## percent
+- platform: template
+  sensors:
+    motion_person_face_percent:
+      friendly_name: Vehicle ALPR percent
+      unit_of_measurement: '%'
+      value_template: >-
+        {% if states.counter.motion_person_face_counter|lower != 'none'
+              and states.counter.motion_person_face_counter.state != 'null'
+              and states.counter.motion_person_counter|lower != 'none'
+              and states.counter.motion_person_counter.state|int > 0 %}
+          {% set value = states.counter.motion_person_face_counter.state|int / states.counter.motion_person_counter.state|int * 100.0 %}
+          {{ "%.2f"|format(value|float) }}
         {%- else -%}null{%- endif -%}
