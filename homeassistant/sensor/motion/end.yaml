@@ -34,45 +34,33 @@
           {% else %}NO STATUS{% endif %}
         {% endif %}
 
-## count
-- platform: template
-  sensors:
-    motion_end_count:
-      friendly_name: Annotated count
-      unit_of_measurement: entities
-      value_template: >
-        {% if is_state('binary_sensor.motion_end','on') or is_state('binary_sensor.motion_end_expired','off') %}
-          {% set count = state_attr('sensor.motion_event_end','count') %}
-          {% if count is not none and count|lower != 'unknown' and count != 'null' %}
-            {{ count|int }}
-          {% else %}null{% endif %}
-        {% else %}null{% endif %}
-
-## entity_count
-- platform: template
-  sensors:
-    motion_end_count_entity:
-      friendly_name: Annotated count entity
-      unit_of_measurement: entities
-      value_template: >-
-        {% if is_state('binary_sensor.motion_end','on') or is_state('binary_sensor.motion_end_expired','off') %}
-          {% set detected = state_attr('sensor.motion_event_end','detected') %}
-          {% if detected is not none and detected|lower != 'unknown' and detected != 'null' %}
-            {% set count = detected|selectattr('entity','==',states('sensor.motion_detect_entity'))|map(attribute='count')|sum %}
-            {% if count is not none and count|lower != 'unknown' and count != 'null' %}
-              {{ count|int }}
-            {% else %}null{% endif %}
-          {% else %}null{% endif %}
-        {% else %}null{% endif %}
-
 ## counter
 - platform: template
   sensors:
     motion_end_counter:
-      friendly_name: Annotated counter
+      friendly_name: Motion counter
       unit_of_measurement: count
       value_template: >
         {{ states('counter.motion_end_counter')|int }}
+
+## event
+- platform: template
+  sensors:
+    # event
+    motion_end_event:
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if is_state('binary_sensor.motion_end','on') or is_state('binary_sensor.motion_end_expired','off') %}
+          {% set s = state_attr('sensor.motion_event_end','event') %}
+          {% if s is not none and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
+            {{ s|int }}
+          {%- else -%}null{%- endif -%}
+        {% else %}
+          {% set s = states('sensor.motion_end_event') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
 
 ## date
 - platform: template
@@ -82,15 +70,69 @@
       unit_of_measurement: seconds
       value_template: >-
         {% if is_state('binary_sensor.motion_end','on') or is_state('binary_sensor.motion_end_expired','off') %}
-          {% set e = state_attr('sensor.motion_event_end','event') %}
-          {% if e is mapping %}
-            {% set s = e.end %}
-            {% if s is not none and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
-              {{ s|int }}
-            {%- else -%}null{%- endif -%}
+          {% set s = state_attr('sensor.motion_event_end','end') %}
+          {% if s is not none and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
+            {{ s|int }}
           {%- else -%}null{%- endif -%}
         {% else %}
           {% set s = states('sensor.motion_end_date') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+## elapsed
+- platform: template
+  sensors:
+    motion_end_elapsed:
+      friendly_name: Annotated elapsed
+      unit_of_measurement: seconds
+      value_template: >
+        {% if is_state('binary_sensor.motion_end','on') or is_state('binary_sensor.motion_end_expired','off') %}
+          {% set s = state_attr('sensor.motion_event_end','elapsed') %}
+          {% if s is not none and s|lower != 'unknown' and s != 'null' %}
+            {{ s|int }}
+          {%- else -%}null{%- endif -%}
+        {% else %}
+          {% set s = states('sensor.motion_end_elapsed') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+## device
+- platform: template
+  sensors:
+    motion_end_device:
+      friendly_name: Annotated device
+      unit_of_measurement: seconds
+      value_template: >
+        {% if is_state('binary_sensor.motion_end','on') or is_state('binary_sensor.motion_end_expired','off') %}
+          {% set s = state_attr('sensor.motion_event_end','device') %}
+          {% if s is not none and s|lower != 'unknown' and s != 'null' %}
+            {{ s|int }}
+          {%- else -%}null{%- endif -%}
+        {% else %}
+          {% set s = states('sensor.motion_end_device') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+## camera
+- platform: template
+  sensors:
+    motion_end_camera:
+      friendly_name: Annotated camera
+      icon_template: 'mdi:camera'
+      value_template: >
+        {% if is_state('binary_sensor.motion_end','on') or is_state('binary_sensor.motion_end_expired','off') %}
+          {% set s = state_attr('sensor.motion_event_end','camera') %}
+          {% if s is not none and s|lower != 'unknown' and s != 'null' %}
+            {{ s|int }}
+          {%- else -%}null{%- endif -%}
+        {% else %}
+          {% set s = states('sensor.motion_end_camera') %}
           {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
             {{ s }}
           {% else %}null{% endif %}
@@ -115,102 +157,23 @@
       unit_of_measurement: seconds
       value_template: >
         {% set t = states('sensor.time') %}
-        {% set s = states('sensor.motion_end_date')|int %}
-        {% if s > 0 %}
-          {% set s = utcnow().timestamp()|int - s %}
+        {% set s = states('sensor.motion_end_date') %}
+        {% if s is not none and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
+          {% set s = utcnow().timestamp()|int - s|int %}
           {% if s < 86400 %}{{ s }}{%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif -%}
-
-## elapsed
-- platform: template
-  sensors:
-    motion_end_elapsed:
-      friendly_name: Any end elapsed
-      unit_of_measurement: seconds
-      value_template: >
-        {% if is_state('binary_sensor.motion_end','on') or is_state('binary_sensor.motion_end_expired','off') %}
-          {% set e = state_attr('sensor.motion_event_end','event') %}
-          {% if e is mapping %}
-            {% set s = e.elapsed %}
-            {% if s is not none and s|lower != 'unknown' and s != 'null' %}
-              {{ s|int }}
-            {%- else -%}null{%- endif -%}
-          {%- else -%}null{%- endif -%}
-        {% else %}
-          {% set s = states('sensor.motion_end_date') %}
-          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
-            {{ s }}
-          {% else %}null{% endif %}
-        {% endif %}
 
 ## delay
 - platform: template
   sensors:
     motion_end_delay:
-      friendly_name: Any end delay
+      friendly_name: Annotated delay
       unit_of_measurement: seconds
       value_template: >
-        {% set e = state_attr('sensor.motion_event_end','event') %}
-        {% if e is mapping %}
-          {% set s = e.end %}
-          {% if s is not none and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
-            {{ utcnow().timestamp()|int - s|int }}
-          {%- else -%}null{%- endif -%}
+        {% set s = states('sensor.motion_end_date') %}
+        {% if s is not none and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
+          {{ utcnow().timestamp()|int - s|int }}
         {%- else -%}null{%- endif -%}
-
-## percent
-- platform: template
-  sensors:
-    motion_end_percent:
-      friendly_name: Annotated percent
-      unit_of_measurement: '%'
-      value_template: >-
-        {% if states('sensor.motion_end_counter')|int > 0 and states('sensor.motion_end_counter')|int > 0 %}
-          {% set value = states.sensor.motion_end_counter.state|int / states.sensor.motion_end_counter.state|int * 100.0 %}
-          {{ "%.2f"|format(value|float) }}
-        {%- else -%}null{%- endif -%}
-
-## device
-- platform: template
-  sensors:
-    motion_end_device:
-      friendly_name: Annotated device
-      value_template: >-
-        {% if state_attr('sensor.motion_event_end','event')|lower != 'none' %}
-          {{ states.sensor.motion_event_end.attributes.event.device }}
-        {% else %}null{% endif %}
-
-## camera
-- platform: template
-  sensors:
-    motion_end_camera:
-      friendly_name: Annotated camera
-      value_template: >-
-        {% if state_attr('sensor.motion_event_end','event')|lower != 'none' %}
-          {{ states.sensor.motion_event_end.attributes.event.camera }}
-        {% else %}null{% endif %}
-
-## detected
-- platform: template
-  sensors:
-    motion_end_counts:
-      friendly_name: Annotated counts
-      value_template: >-
-        {% set detected = state_attr('sensor.motion_event_end','detected') %}
-        {% if detected is not none and detected|lower != 'unknown' and detected|length > 0  %}
-          {{ detected|map(attribute='count')|list }}
-        {% else %}null{% endif %}
-
-## list
-- platform: template
-  sensors:
-    motion_end_list:
-      friendly_name: Annotated entity list
-      value_template: >-
-        {% set detected = state_attr('sensor.motion_event_end','detected') %}
-        {% if detected is not none and detected|lower != 'unknown' and detected|length > 0 %}
-          {{ detected|map(attribute='entity')|list }}
-        {% else %}null{% endif %}
 
 ###
 # statistics
@@ -220,35 +183,35 @@
 - platform: template
   sensors:
     motion_end_ago_mean:
-      friendly_name: Annotated ago avg
+      friendly_name: Motion ago avg
       unit_of_measurement: seconds
       value_template: >-
         {% if states('sensor.motion_end_ago_statistics') != 'unknown' %}
           {{ states.sensor.motion_end_ago_statistics.state|float }}
         {%- else -%}null{%- endif -%}
     motion_end_ago_min_value:
-      friendly_name: Annotated ago min
+      friendly_name: Motion ago min
       unit_of_measurement: seconds
       value_template: >-
         {% if states('sensor.motion_end_ago_statistics') != 'unknown' %}
           {{ states.sensor.motion_end_ago_statistics.attributes.min_value|int }}
         {%- else -%}null{%- endif -%}
     motion_end_ago_max_value:
-      friendly_name: Annotated ago max
+      friendly_name: Motion ago max
       unit_of_measurement: seconds
       value_template: >-
         {% if states('sensor.motion_end_ago_statistics') != 'unknown' %}
           {{ states.sensor.motion_end_ago_statistics.attributes.max_value|int }}
         {%- else -%}null{%- endif -%}
     motion_end_ago_stdev:
-      friendly_name: Annotated ago stdev
+      friendly_name: Motion ago stdev
       unit_of_measurement: seconds
       value_template: >
         {% if states('sensor.motion_end_ago_statistics') != 'unknown' %}
           {{ states.sensor.motion_end_ago_statistics.attributes.standard_deviation|float }}
         {%- else -%}null{%- endif -%}
     motion_end_ago_change:
-      friendly_name: Annotated ago change
+      friendly_name: Motion ago change
       unit_of_measurement: seconds
       value_template: >
         {% if states('sensor.motion_end_ago_statistics') != 'unknown' %}
@@ -259,35 +222,35 @@
 - platform: template
   sensors:
     motion_end_elapsed_mean:
-      friendly_name: Annotated elapsed avg
+      friendly_name: Motion elapsed avg
       unit_of_measurement: seconds
       value_template: >-
         {% if states('sensor.motion_end_elapsed_statistics') != 'unknown' %}
           {{ states.sensor.motion_end_elapsed_statistics.state|float }}
         {%- else -%}null{%- endif -%}
     motion_end_elapsed_min_value:
-      friendly_name: Annotated elapsed min
+      friendly_name: Motion elapsed min
       unit_of_measurement: seconds
       value_template: >-
         {% if states('sensor.motion_end_elapsed_statistics') != 'unknown' %}
           {{ states.sensor.motion_end_elapsed_statistics.attributes.min_value|int }}
         {%- else -%}null{%- endif -%}
     motion_end_elapsed_max_value:
-      friendly_name: Annotated elapsed max
+      friendly_name: Motion elapsed max
       unit_of_measurement: seconds
       value_template: >-
         {% if states('sensor.motion_end_elapsed_statistics') != 'unknown' %}
           {{ states.sensor.motion_end_elapsed_statistics.attributes.max_value|int }}
         {%- else -%}null{%- endif -%}
     motion_end_elapsed_stdev:
-      friendly_name: Annotated elapsed stdev
+      friendly_name: Motion elapsed stdev
       unit_of_measurement: seconds
       value_template: >
         {% if states('sensor.motion_end_elapsed_statistics') != 'unknown' %}
           {{ states.sensor.motion_end_elapsed_statistics.attributes.standard_deviation|float }}
         {%- else -%}null{%- endif -%}
     motion_end_elapsed_change:
-      friendly_name: Annotated elapsed change
+      friendly_name: Motion elapsed change
       unit_of_measurement: seconds
       value_template: >
         {% if states('sensor.motion_end_elapsed_statistics') != 'unknown' %}
@@ -298,35 +261,35 @@
 - platform: template
   sensors:
     motion_end_delay_mean:
-      friendly_name: Annotated delay avg
+      friendly_name: Motion delay avg
       unit_of_measurement: seconds
       value_template: >-
         {% if states('sensor.motion_end_delay_statistics') != 'unknown' %}
           {{ states.sensor.motion_end_delay_statistics.state|float }}
         {%- else -%}null{%- endif -%}
     motion_end_delay_min_value:
-      friendly_name: Annotated delay min
+      friendly_name: Motion delay min
       unit_of_measurement: seconds
       value_template: >-
         {% if states('sensor.motion_end_delay_statistics') != 'unknown' %}
           {{ states.sensor.motion_end_delay_statistics.attributes.min_value|int }}
         {%- else -%}null{%- endif -%}
     motion_end_delay_max_value:
-      friendly_name: Annotated delay max
+      friendly_name: Motion delay max
       unit_of_measurement: seconds
       value_template: >-
         {% if states('sensor.motion_end_delay_statistics') != 'unknown' %}
           {{ states.sensor.motion_end_delay_statistics.attributes.max_value|int }}
         {%- else -%}null{%- endif -%}
     motion_end_delay_stdev:
-      friendly_name: Annotated delay stdev
+      friendly_name: Motion delay stdev
       unit_of_measurement: seconds
       value_template: >
         {% if states('sensor.motion_end_delay_statistics') != 'unknown' %}
           {{ states.sensor.motion_end_delay_statistics.attributes.standard_deviation|float }}
         {%- else -%}null{%- endif -%}
     motion_end_delay_change:
-      friendly_name: Annotated delay change
+      friendly_name: Motion delay change
       unit_of_measurement: seconds
       value_template: >
         {% if states('sensor.motion_end_delay_statistics') != 'unknown' %}
@@ -337,117 +300,39 @@
 - platform: template
   sensors:
     motion_end_counter_mean:
-      friendly_name: Annotated counter avg
+      friendly_name: Motion counter avg
       unit_of_measurement: count
       value_template: >-
         {% if states('sensor.motion_end_counter_statistics') != 'unknown' %}
           {{ states.sensor.motion_end_counter_statistics.state|float }}
         {%- else -%}null{%- endif -%}
     motion_end_counter_min_value:
-      friendly_name: Annotated counter min
+      friendly_name: Motion counter min
       unit_of_measurement: count
       value_template: >-
         {% if states('sensor.motion_end_counter_statistics') != 'unknown' %}
           {{ states.sensor.motion_end_counter_statistics.attributes.min_value|int }}
         {%- else -%}null{%- endif -%}
     motion_end_counter_max_value:
-      friendly_name: Annotated counter max
+      friendly_name: Motion counter max
       unit_of_measurement: count
       value_template: >-
         {% if states('sensor.motion_end_counter_statistics') != 'unknown' %}
           {{ states.sensor.motion_end_counter_statistics.attributes.max_value|int }}
         {%- else -%}null{%- endif -%}
     motion_end_counter_stdev:
-      friendly_name: Annotated counter stdev
+      friendly_name: Motion counter stdev
       unit_of_measurement: count
       value_template: >
         {% if states('sensor.motion_end_counter_statistics') != 'unknown' %}
           {{ states.sensor.motion_end_counter_statistics.attributes.standard_deviation|float }}
         {%- else -%}null{%- endif -%}
     motion_end_counter_change:
-      friendly_name: Annotated counter change
+      friendly_name: Motion counter change
       unit_of_measurement: count
       value_template: >
         {% if states('sensor.motion_end_counter_statistics') != 'unknown' %}
           {{ states.sensor.motion_end_counter_statistics.attributes.change|float }}
-        {%- else -%}null{%- endif -%}
-
-## percent
-- platform: template
-  sensors:
-    motion_end_percent_mean:
-      friendly_name: Annotated percent avg
-      unit_of_measurement: '%'
-      value_template: >-
-        {% if states('sensor.motion_end_percent_statistics') != 'unknown' %}
-          {{ states.sensor.motion_end_percent_statistics.state|float }}
-        {%- else -%}null{%- endif -%}
-    motion_end_percent_min_value:
-      friendly_name: Annotated percent min
-      unit_of_measurement: '%'
-      value_template: >-
-        {% if states('sensor.motion_end_percent_statistics') != 'unknown' %}
-          {{ states.sensor.motion_end_percent_statistics.attributes.min_value|float }}
-        {%- else -%}null{%- endif -%}
-    motion_end_percent_max_value:
-      friendly_name: Annotated percent max
-      unit_of_measurement: '%'
-      value_template: >-
-        {% if states('sensor.motion_end_percent_statistics') != 'unknown' %}
-          {{ states.sensor.motion_end_percent_statistics.attributes.max_value|float }}
-        {%- else -%}null{%- endif -%}
-    motion_end_percent_stdev:
-      friendly_name: Annotated percent stdev
-      unit_of_measurement: '%'
-      value_template: >
-        {% if states('sensor.motion_end_percent_statistics') != 'unknown' %}
-          {{ states.sensor.motion_end_percent_statistics.attributes.standard_deviation|float }}
-        {%- else -%}null{%- endif -%}
-    motion_end_percent_change:
-      friendly_name: Annotated percent change
-      unit_of_measurement: '%'
-      value_template: >
-        {% if states('sensor.motion_end_percent_statistics') != 'unknown' %}
-          {{ states.sensor.motion_end_percent_statistics.attributes.change|float }}
-        {%- else -%}null{%- endif -%}
-
-## derived attributes from statistics
-- platform: template
-  sensors:
-    motion_end_count_mean:
-      friendly_name: Annotated count avg
-      unit_of_measurement: entities
-      value_template: >-
-        {% if states('sensor.motion_end_count_statistics') != 'unknown' %}
-          {{ states.sensor.motion_end_count_statistics.state|float }}
-        {%- else -%}null{%- endif -%}
-    motion_end_count_min_value:
-      friendly_name: Annotated count min
-      unit_of_measurement: entities
-      value_template: >-
-        {% if states('sensor.motion_end_count_statistics') != 'unknown' %}
-          {{ states.sensor.motion_end_count_statistics.attributes.min_value|int }}
-        {%- else -%}null{%- endif -%}
-    motion_end_count_max_value:
-      friendly_name: Annotated count max
-      unit_of_measurement: entities
-      value_template: >-
-        {% if states('sensor.motion_end_count_statistics') != 'unknown' %}
-          {{ states.sensor.motion_end_count_statistics.attributes.max_value|int }}
-        {%- else -%}null{%- endif -%}
-    motion_end_count_stdev:
-      friendly_name: Annotated count stdev
-      unit_of_measurement: entities
-      value_template: >
-        {% if states('sensor.motion_end_count_statistics') != 'unknown' %}
-          {{ states.sensor.motion_end_count_statistics.attributes.standard_deviation|float }}
-        {%- else -%}null{%- endif -%}
-    motion_end_count_change:
-      friendly_name: Annotated count change
-      unit_of_measurement: entities
-      value_template: >
-        {% if states('sensor.motion_end_count_statistics') != 'unknown' %}
-          {{ states.sensor.motion_end_count_statistics.attributes.change|float }}
         {%- else -%}null{%- endif -%}
 
 # counter
@@ -460,20 +345,6 @@
 - platform: statistics
   name: motion_end_counter_stdev_statistics
   entity_id: sensor.motion_end_counter_stdev
-  sampling_size: 1000
-  max_age:
-    hours: 72
-
-# count
-- platform: statistics
-  name: motion_end_count_statistics
-  entity_id: sensor.motion_end_count
-  sampling_size: 1000
-  max_age:
-    hours: 72
-- platform: statistics
-  name: motion_end_count_stdev_statistics
-  entity_id: sensor.motion_end_count_stdev
   sampling_size: 1000
   max_age:
     hours: 72
@@ -516,20 +387,6 @@
 - platform: statistics
   name: motion_end_delay_stdev_statistics
   entity_id: sensor.motion_end_delay_stdev
-  sampling_size: 1000
-  max_age:
-    hours: 72
-
-# percent
-- platform: statistics
-  name: motion_end_percent_statistics
-  entity_id: sensor.motion_end_percent
-  sampling_size: 1000
-  max_age:
-    hours: 72
-- platform: statistics
-  name: motion_end_percent_stdev_statistics
-  entity_id: sensor.motion_end_percent_stdev
   sampling_size: 1000
   max_age:
     hours: 72
