@@ -30,14 +30,15 @@
           {{ is_state('input_boolean.motion_snapshot_save','on') }}
       - condition: template
         value_template: >-
-          {{ state_attr('camera.motion_event_alpr','entity_picture') is not none }}
+          {% set ep = state_attr('camera.motion_event_annotated','entity_picture') %}
+          {{ ep is not none and ep|lower != 'unknown' and ep|lower != 'unavailable' and ep|lower != 'none' and ep != 'null' }}
   action:
     - service: camera.snapshot
       data_template:
         filename: >-
           {{ '/config/www/images/motion_vehicle_alpr.jpg' }}
         entity_id: >-
-          {{ 'camera.motion_event_alpr' }}
+          {{ 'camera.motion_event_annotated' }}
 
 - id: motion_vehicle_alpr_snapshot_webcam
   alias: motion_vehicle_alpr_snapshot_webcam
@@ -53,33 +54,32 @@
           {{ is_state('input_boolean.motion_snapshot_save','on') }}
       - condition: template
         value_template: >-
-          {% set e = state_attr('sensor.motion_event_alpr','event') %}
-          {% if e is mapping %}
-            {% set ep = state_attr('camera.motion_vehicle_alpr-' + e.camera,'entity_picture') %}
+          {% set c = states('sensor.motion_vehicle_alpr_camera') %}
+          {% if c is not none and c|lower != 'unknown' and c|lower != 'unavailable' and c|lower != 'none' and c != 'null' %}
+            {% set ep = state_attr('camera.motion_event_annotated-' + c,'entity_picture') %}
             {{ ep is none or ep|lower == 'unknown' or ep|lower == 'unavailable' or ep|length == 0 }}
           {% else %}false{% endif %}
       - condition: template
         value_template: >-
-          {% set ep = state_attr('camera.motion_event_alpr','entity_picture') %}
-          {{ ep is not none and ep|lower != 'unknown' }}
+          {% set ep = state_attr('camera.motion_event_annotated','entity_picture') %}
+          {{ ep is not none and ep|lower != 'unknown' and ep|lower != 'unavailable' and ep|lower != 'none' and ep != 'null' }}
   action:
     - service: camera.snapshot
       data_template:
-        filename: >-
-          {% set e = state_attr('sensor.motion_event_alpr','event') %}
-          {{ '/config/www/images/motion_vehicle_alpr-' + e.camera + '.jpg' }}
-          {% if e is mapping %}
-          {% else %}{{ '/config/www/images/no-signal.jpg' }}{% endif %}
         entity_id: >-
-          {{ 'camera.motion_event_alpr' }}
+          {{ 'camera.motion_event_annotated' }}
+        filename: >-
+          {% set c = states('sensor.motion_vehicle_alpr_camera') %}
+          {% if c is not none and c|lower != 'unknown' and c|lower != 'unavailable' and c|lower != 'none' and c != 'null' %}
+            {{ '/config/www/images/motion_event_annotated-' + c + '.jpg' }}
+          {% else %}{{ '/config/www/images/no-signal.jpg' }}{% endif %}
     - service: local_file.update_file_path
       data_template:
-        entity_id: >-
-          {{ 'camera.motion_vehicle_alpr' }}
+        entity_id: camera.motion_vehicle_alpr
         file_path: >-
-          {% set e = state_attr('sensor.motion_event_alpr','event') %}
-          {% if e is mapping %}
-          {{ '/config/www/images/motion_alpr-' + e.camera + '.jpg' }}
+          {% set c = states('sensor.motion_vehicle_alpr_camera') %}
+          {% if c is not none and c|lower != 'unknown' and c|lower != 'unavailable' and c|lower != 'none' and c != 'null' %}
+            {{ '/config/www/images/motion_vehicle_alpr-' + c + '.jpg' }}
           {% else %}{{ '/config/www/images/no-signal.jpg' }}{% endif %}
 
 ## animated
@@ -145,7 +145,7 @@
         filename: >-
           {% set c = states('sensor.motion_vehicle_alpr_camera') %}
           {% if c is not none and c|lower != 'unavailable' and c|lower != 'none' and c|lower != 'unknown' and c|length > 0 %}
-          {{ '/config/www/images/motion_vehicle_alpr-' + c + '.gif' }}
+            {{ '/config/www/images/motion_vehicle_alpr-' + c + '.gif' }}
           {% else %}{{ '/config/www/images/no-signal.jpg' }}{% endif %}
     - service: local_file.update_file_path
       data_template:
@@ -154,6 +154,6 @@
         file_path: >-
           {% set c = states('sensor.motion_vehicle_alpr_camera') %}
           {% if c is not none and c|lower != 'unavailable' and c|lower != 'none' and c|lower != 'unknown' and c|length > 0 %}
-          {{ '/config/www/images/motion_vehicle_alpr-' + c + '.gif' }}
+            {{ '/config/www/images/motion_vehicle_alpr-' + c + '.gif' }}
           {% else %}{{ '/config/www/images/no-signal.jpg' }}{% endif %}
 
