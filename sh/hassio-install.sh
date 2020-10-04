@@ -146,9 +146,9 @@ curl -sL ${URL_BIN_HASSIO} > "${PREFIX}/sbin/hassio-supervisor"
 curl -sL ${URL_SERVICE_HASSIO} > "${SYSCONFDIR}/systemd/system/hassio-supervisor.service"
 
 sed -i "s,%%HASSIO_CONFIG%%,${CONFIG},g" "${PREFIX}"/sbin/hassio-supervisor
-sed -i -e "s,%%DOCKER_BINARY%%,${DOCKER_BINARY},g" \
-       -e "s,%%DOCKER_SERVICE%%,${DOCKER_SERVICE},g" \
-       -e "s,%%HASSIO_BINARY%%,${PREFIX}/sbin/hassio-supervisor,g" \
+sed -i -e "s,%%BINARY_DOCKER%%,${DOCKER_BINARY},g" \
+       -e "s,%%SERVICE_DOCKER%%,${DOCKER_SERVICE},g" \
+       -e "s,%%BINARY_HASSIO%%,${PREFIX}/sbin/hassio-supervisor,g" \
        "${SYSCONFDIR}/systemd/system/hassio-supervisor.service"
 
 chmod a+x "${PREFIX}/sbin/hassio-supervisor"
@@ -164,7 +164,7 @@ if command -v apparmor_parser > /dev/null 2>&1; then
     curl -sL ${URL_APPARMOR_PROFILE} > "${DATA_SHARE}/apparmor/hassio-supervisor"
 
     sed -i "s,%%HASSIO_CONFIG%%,${CONFIG},g" "${PREFIX}/sbin/hassio-apparmor"
-    sed -i -e "s,%%DOCKER_SERVICE%%,${DOCKER_SERVICE},g" \
+    sed -i -e "s,%%SERVICE_DOCKER%%,${DOCKER_SERVICE},g" \
 	   -e "s,%%HASSIO_APPARMOR_BINARY%%,${PREFIX}/sbin/hassio-apparmor,g" \
 	   "${SYSCONFDIR}/systemd/system/hassio-apparmor.service"
 
