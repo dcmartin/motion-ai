@@ -24,7 +24,7 @@
   initial_state: on
   trigger:
     platform: state
-    entity_id: counter.motion_face_detected_counter
+    entity_id: sensor.motion_face_detected_camera
   condition:
     condition: and
     conditions:
@@ -33,20 +33,31 @@
           {{ is_state('input_boolean.motion_snapshot_save','on') }}
       - condition: template
         value_template: >-
-          {% set ep = state_attr('camera.motion_event_face','entity_picture') %}
-          {{ ep is not none and ep|lower != 'unavailable' and ep|lower != 'none' and ep|lower != 'unknown' }}
+          {% set s = states('camera.motion_event_face') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'unknown' %}
+            {% set ep = state_attr('camera.motion_event_face','entity_picture') %}
+            {{ ep is not none and ep|lower != 'unavailable' and ep|lower != 'none' and ep|lower != 'unknown' }}
+          {% else %}false{% endif %}
+      - condition: template
+        value_template: >-
+          {% set c = states('sensor.motion_face_detected_camera') %}
+          {% if c is not none and c|lower != 'unavailable' and c|lower != 'unknown' and c != 'null' %}
+            {% set ep = state_attr('camera.motion_event_face_' + c,'entity_picture') %}
+            {{ ep is none or ep|lower != 'unavailable' or ep|lower != 'none' or ep|lower != 'unknown' }}
+          {% else %}false{% endif %}
   action:
-    # snapshot face cameras
+    # face_detected
     - service: camera.snapshot
       data_template:
         entity_id: >-
           {{ 'camera.motion_event_face' }}
         filename: >-
-          {{ '/config/www/images/motion_face_detected.jpg' }}
-    # update global cameras
+          {% set c = states('sensor.motion_face_detected_camera') %}
+          {{ '/config/www/images/motion_face_detected' + c + '.jpg' }}
     - service: local_file.update_file_path
       data_template:
         entity_id: >-
           {{ 'camera.motion_face_detected' }}
         file_path: >-
-          {{ '/config/www/images/motion_face_detected-${MOTION_CAMERA}.jpg' }}
+          {% set c = states('sensor.motion_face_detected_camera') %}
+          {{ '/config/www/images/motion_face_detected' + c + '.jpg' }}

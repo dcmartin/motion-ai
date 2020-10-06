@@ -1,7 +1,8 @@
 ###
-# automation/motion/end.yaml
+# homeassistant/automation/motion/end.yaml
 ###
 
+## counter 
 - id: motion_end_counter
   alias: motion_end_counter
   initial_state: on
@@ -10,18 +11,19 @@
     entity_id: binary_sensor.motion_end
   condition:
     - condition: template
-      value_template: >
+      value_template: >-
         {{ is_state('binary_sensor.motion_end','on') }}
   action:
     - service: counter.increment
       entity_id: counter.motion_end_counter
-
+ 
+## snapshot
 - id: motion_end_snapshot
   alias: motion_end_snapshot
   initial_state: on
   trigger:
     platform: state
-    entity_id: camera.motion_event_end
+    entity_id: sensor.motion_end_camera
   condition:
     condition: and
     conditions:
@@ -35,23 +37,42 @@
             {% set ep = state_attr('camera.motion_event_end','entity_picture') %}
             {{ ep is not none and ep|lower != 'unavailable' and ep|lower != 'none' and ep|lower != 'unknown' }}
           {% else %}false{% endif %}
+      - condition: template
+        value_template: >-
+          {% set c = states('sensor.motion_end_camera') %}
+          {% if c is not none and c|lower != 'unavailable' and c|lower != 'unknown' and c != 'null' %}
+            {% set ep = state_attr('camera.motion_event_end_' + c,'entity_picture') %}
+            {{ ep is none or ep|lower != 'unavailable' or ep|lower != 'none' or ep|lower != 'unknown' }}
+          {% else %}false{% endif %}
   action:
+    # end
     - service: camera.snapshot
       data_template:
         entity_id: >-
           {{ 'camera.motion_event_end' }}
         filename: >-
-          {{ '/config/www/images/motion_end.jpg' }}
+          {% set c = states('sensor.motion_end_camera') %}
+          {{ '/config/www/images/motion_end-' + c + '.jpg' }}
+    - service: local_file.update_file_path
+      data_template:
+        entity_id: >-
+          {{ 'camera.motion_end' }}
+        file_path: >-
+          {% set c = states('sensor.motion_end_camera') %}
+          {{ '/config/www/images/motion_end-' + c + '.jpg' }}
 
-- id: motion_end_composite_snapshot
-  alias: motion_end_composite_snapshot
+- id: motion_end_camera_composite
+  alias: motion_end_camera_composite
   initial_state: on
   trigger:
     platform: state
-    entity_id: camera.motion_event_composite
+    entity_id: sensor.motion_end_camera
   condition:
     condition: and
     conditions:
+      - condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_end','on') }}
       - condition: template
         value_template: >-
           {{ is_state('input_boolean.motion_snapshot_save','on') }}
@@ -59,8 +80,15 @@
         value_template: >-
           {% set s = states('camera.motion_event_composite') %}
           {% if s is not none and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'unknown' %}
-            {% set ep = state_attr('camera.motion_event_composite','entity_picture') %}
+            {% set ep = state_attr('camera.motion_end_composite','entity_picture') %}
             {{ ep is not none and ep|lower != 'unavailable' and ep|lower != 'none' and ep|lower != 'unknown' }}
+          {% else %}false{% endif %}
+      - condition: template
+        value_template: >-
+          {% set c = states('sensor.motion_end_camera') %}
+          {% if c is not none and c|lower != 'unavailable' and c|lower != 'unknown' and c != 'null' %}
+            {% set ep = state_attr('camera.motion_event_end_' + c,'entity_picture') %}
+            {{ ep is none or ep|lower != 'unavailable' or ep|lower != 'none' or ep|lower != 'unknown' }}
           {% else %}false{% endif %}
   action:
     - service: camera.snapshot
@@ -68,26 +96,44 @@
         entity_id: >-
           {{ 'camera.motion_event_composite' }}
         filename: >-
-          {{ '/config/www/images/motion_end_composite.jpg' }}
+          {% set c = states('sensor.motion_end_camera') %}
+          {{ '/config/www/images/motion_end_composite-' + c + '.jpg' }}
+    - service: local_file.update_file_path
+      data_template:
+        entity_id: >-
+          {{ 'camera.motion_end_composite' }}
+        file_path: >-
+          {% set c = states('sensor.motion_end_camera') %}
+          {{ '/config/www/images/motion_end_composite-' + c + '.jpg' }}
 
-- id: motion_end_animated_snapshot
-  alias: motion_end_animated_snapshot
+- id: motion_end_camera_animated
+  alias: motion_end_camera_animated
   initial_state: on
   trigger:
     platform: state
-    entity_id: camera.motion_event_animated
+    entity_id: sensor.motion_end_camera
   condition:
     condition: and
     conditions:
       - condition: template
         value_template: >-
+          {{ is_state('binary_sensor.motion_end','on') }}
+      - condition: template
+        value_template: >-
           {{ is_state('input_boolean.motion_snapshot_save','on') }}
       - condition: template
         value_template: >-
-          {% set s = states('camera.motion_event_animtated') %}
+          {% set s = states('camera.motion_event_animated') %}
           {% if s is not none and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'unknown' %}
-            {% set ep = state_attr('camera.motion_event_animated','entity_picture') %}
+            {% set ep = state_attr('camera.motion_end_animated','entity_picture') %}
             {{ ep is not none and ep|lower != 'unavailable' and ep|lower != 'none' and ep|lower != 'unknown' }}
+          {% else %}false{% endif %}
+      - condition: template
+        value_template: >-
+          {% set c = states('sensor.motion_end_camera') %}
+          {% if c is not none and c|lower != 'unavailable' and c|lower != 'unknown' and c != 'null' %}
+            {% set ep = state_attr('camera.motion_event_animated_' + c,'entity_picture') %}
+            {{ ep is none or ep|lower != 'unavailable' or ep|lower != 'none' or ep|lower != 'unknown' }}
           {% else %}false{% endif %}
   action:
     - service: camera.snapshot
@@ -95,26 +141,44 @@
         entity_id: >-
           {{ 'camera.motion_event_animated' }}
         filename: >-
-          {{ '/config/www/images/motion_end.gif' }}
+          {% set c = states('sensor.motion_end_camera') %}
+          {{ '/config/www/images/motion_end_animated-' + c + '.gif' }}
+    - service: local_file.update_file_path
+      data_template:
+        entity_id: >-
+          {{ 'camera.motion_end_animated' }}
+        file_path: >-
+          {% set c = states('sensor.motion_end_camera') %}
+          {{ '/config/www/images/motion_end_animated-' + c + '.gif' }}
 
-- id: motion_end_animated_mask_snapshot
-  alias: motion_end_animated_mask_snapshot
+- id: motion_end_camera_animated_mask
+  alias: motion_end_camera_animated_mask
   initial_state: on
   trigger:
     platform: state
-    entity_id: camera.motion_event_animated_mask
+    entity_id: sensor.motion_end_camera
   condition:
     condition: and
     conditions:
       - condition: template
         value_template: >-
+          {{ is_state('binary_sensor.motion_end','on') }}
+      - condition: template
+        value_template: >-
           {{ is_state('input_boolean.motion_snapshot_save','on') }}
       - condition: template
         value_template: >-
-          {% set s = states('camera.motion_event_animtated_mask') %}
+          {% set s = states('camera.motion_event_animated_mask') %}
           {% if s is not none and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'unknown' %}
             {% set ep = state_attr('camera.motion_event_animated_mask','entity_picture') %}
             {{ ep is not none and ep|lower != 'unavailable' and ep|lower != 'none' and ep|lower != 'unknown' }}
+          {% else %}false{% endif %}
+      - condition: template
+        value_template: >-
+          {% set c = states('sensor.motion_end_camera') %}
+          {% if c is not none and c|lower != 'unavailable' and c|lower != 'unknown' and c != 'null' %}
+            {% set ep = state_attr('camera.motion_event_animated_mask' + c,'entity_picture') %}
+            {{ ep is none or ep|lower != 'unavailable' or ep|lower != 'none' or ep|lower != 'unknown' }}
           {% else %}false{% endif %}
   action:
     - service: camera.snapshot
@@ -122,4 +186,12 @@
         entity_id: >-
           {{ 'camera.motion_event_animated_mask' }}
         filename: >-
-          {{ '/config/www/images/motion_end_mask.gif' }}
+          {% set c = states('sensor.motion_end_camera') %}
+          {{ '/config/www/images/motion_end_animated_mask-' + c + '.gif' }}
+    - service: local_file.update_file_path
+      data_template:
+        entity_id: >-
+          {{ 'camera.motion_end_animated_mask' }}
+        file_path: >-
+          {% set c = states('sensor.motion_end_camera') %}
+          {{ '/config/www/images/motion_end_animated_mask-' + c + '.gif' }}
