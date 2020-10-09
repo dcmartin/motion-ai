@@ -182,7 +182,7 @@ lovelace.json: lovelace.json.tmpl
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	&& cat $< \
 	  | envsubst \
-	  | jq '(.data.config.views[]|select(.path=="status").cards[]|select(.title=="OVERVIEW").elements)+='"$$(jq '[.[]|{"type":"icon","entity":("sensor.motion_annotated_ago_"+.name),"icon": "mdi:cctv","style":{"color":"white","left":(.left|tostring+"%"),"top":(.top|tostring+"%"),"height":"5%","width": "5%"}}]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="status").cards[]|select(.title=="OVERVIEW").elements)+='"$$(jq '[.[]|{"type":"icon","entity":("sensor.motion_detected_person_ago_"+.name),"icon": "mdi:cctv","style":{"color":"white","left":(.left|tostring+"%"),"top":(.top|tostring+"%"),"height":"5%","width": "5%"}}]' motion/webcams.json)" \
 	 > $@
 	@echo "MADE $@"
 	rm -f .storage/lovelace
@@ -311,7 +311,6 @@ refresh:
 
 clean: stop logclean refresh
 	@echo "making $@"
-	-sudo journalctl --vacuum-time 1
 	-rm -f secrets.yaml
 	-rm -f .storage/lovelace
 	-rm -f .storage/core.restore_state
@@ -324,6 +323,7 @@ realclean: clean
 	-rm -f www/image/motion_*.[jpg,gif]
 
 logclean:
+	-@sudo journalctl --vacuum-time 1
 	@export LOGPATH=$$(docker inspect --format '{{json .}}' homeassistant | jq -r '.LogPath') \
 	  && echo 'Attempting to remove log file (requires sudo): '"$${LOGPATH}" \
 	  && sudo LOGPATH=$${LOGPATH} /bin/rm -f $${LOGPATH}
