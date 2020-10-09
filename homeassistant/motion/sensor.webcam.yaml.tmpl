@@ -1364,6 +1364,73 @@
           {% else %}null{% endif %}
         {% else %}null{% endif %}
 
+- platform: template
+  sensors:
+    motion_detected_person_date_${MOTION_CAMERA}:
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if is_state('binary_sensor.motion_detected_person_${MOTION_CAMERA}','on') %}
+          {% set date = states('sensor.motion_detected_date_${MOTION_CAMERA}')|int %}
+          {% if date > 0 %}{{ date }}{% else %}null{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_detected_person_date_${MOTION_CAMERA}') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+- platform: template
+  sensors:
+    motion_detected_person_ago_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} PERSON
+      icon_template: 'mdi:camera-timer'
+      unit_of_measurement: seconds
+      value_template: >
+        {% set t = states('sensor.time') %}
+        {% set s = states('sensor.motion_detected_person_date_${MOTION_CAMERA}')|int %}
+        {% if s >  0 %}
+          {% set s = utcnow().timestamp()|int - s %}
+          {% if s <  86400 %}{{ s }}{% else %}null{% endif %}
+        {%- else -%}null{%- endif -%}
+
+# ago
+- platform: template
+  sensors:
+    motion_detected_person_ago_${MOTION_CAMERA}_mean:
+      friendly_name: ${MOTION_CAMERA} face ago avg
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states.sensor.motion_detected_person_ago_${MOTION_CAMERA}_statistics|lower != 'none' %}
+          {{ states.sensor.motion_detected_person_ago_${MOTION_CAMERA}_statistics.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_person_ago_${MOTION_CAMERA}_min_value:
+      friendly_name: ${MOTION_CAMERA} face min
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states.sensor.motion_detected_person_ago_${MOTION_CAMERA}_statistics|lower != 'none' %}
+          {{ states.sensor.motion_detected_person_ago_${MOTION_CAMERA}_statistics.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_person_ago_${MOTION_CAMERA}_max_value:
+      friendly_name: ${MOTION_CAMERA} face max
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states.sensor.motion_detected_person_ago_${MOTION_CAMERA}_statistics|lower != 'none' %}
+          {{ states.sensor.motion_detected_person_ago_${MOTION_CAMERA}_statistics.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_person_ago_${MOTION_CAMERA}_stdev:
+      friendly_name: ${MOTION_CAMERA} face stdev
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.motion_detected_person_ago_${MOTION_CAMERA}_statistics|lower != 'none' %}
+          {{ states.sensor.motion_detected_person_ago_${MOTION_CAMERA}_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+
+- platform: statistics
+  name: motion_detected_person_ago_${MOTION_CAMERA}_statistics
+  entity_id: sensor.motion_detected_person_ago_${MOTION_CAMERA}
+  sampling_size: 1000
+  max_age:
+    hours: 72
 
 ###
 ## face
@@ -1383,7 +1450,7 @@
 - platform: template
   sensors:
     motion_face_status_${MOTION_CAMERA}:
-      friendly_name: ${MOTION_CAMERA} face status
+      friendly_name: ${MOTION_CAMERA} FACE
       value_template: >-
         {% if states('binary_sensor.motion_face_${MOTION_CAMERA}')|lower == 'on' %}
           {% set e = state_attr('sensor.motion_event_face_${MOTION_CAMERA}','event') %}
