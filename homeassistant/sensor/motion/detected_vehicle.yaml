@@ -6,7 +6,7 @@
   sensors:
     motion_detected_vehicle_status:
       friendly_name: VEHICLE
-      icon_template: 'mdi:car'
+      icon_template: 'mdi:account'
       value_template: >-
         {% if is_state('binary_sensor.motion_detected_vehicle','on') %}
           {% set n = utcnow().timestamp()|int %}
@@ -35,7 +35,7 @@
 - platform: template
   sensors:
     motion_camera_detected_vehicle_live:
-      friendly_name: Detected vehicle camera live
+      friendly_name: Vehicle camera live
       value_template: >-
         {% set camera = states('sensor.motion_detected_vehicle_camera') %}
         {% if camera is not none and camera|lower != 'unavailable' and camera|lower != 'unknown' and camera != 'null' and camera|length > 0 %}
@@ -57,26 +57,52 @@
 - platform: template
   sensors:
     motion_detected_vehicle:
-      friendly_name: Detected vehicle count
       icon_template: 'mdi:counter'
       value_template: >-
         {% set options = state_attr('input_select.motion_detect_vehicle','options') %}
         {% if options is not none and options|lower != 'unknown' and options|length > 0 %}
-          {% set array = state_attr('sensor.motion_event_annotated','detected') %}
+          {% set array = state_attr('sensor.motion_event_annotated','results') %}
           {% if array is not none and array|lower != 'unknown' and array|length > 0 %}
-            {% for detected in array %}
+            {% for results in array %}
               {%- if loop.first -%}[{%- else -%},{%- endif -%}
-              {% if detected.entity in options %}{{ detected.count }}{% else %}0{% endif %}
+              {% if results.entity in options and results.confidence|int > states('sensor.motion_detected_vehicle_threshold')|int %}
+                1
+              {% else %}
+                0
+              {% endif %}
               {%- if loop.last -%}]{%- endif -%}
             {% endfor %}
           {% else %}null{% endif %}
         {% else %}null{% endif %}
 
+- platform: template
+  sensors:
+    motion_detected_vehicle_threshold:
+      friendly_name: Vehicle threshold
+      unit_of_measurement: '%' 
+      icon_template: 'mdi:percent'
+      value_template: >-
+        {{ states('input_number.motion_detected_vehicle_percent')|int }}
+
+#        {% set options = state_attr('input_select.motion_detect_vehicle','options') %}
+#        {% if options is not none and options|lower != 'unknown' and options|length > 0 %}
+#          {% set array = state_attr('sensor.motion_event_annotated','detected') %}
+#          {% if array is not none and array|lower != 'unknown' and array|length > 0 %}
+#            {% for detected in array %}
+#              {%- if loop.first -%}[{%- else -%},{%- endif -%}
+#              {% if detected.entity in options %}
+#                {{ detected.count }}
+#              {% else %}0{% endif %}
+#              {%- if loop.last -%}]{%- endif -%}
+#            {% endfor %}
+#          {% else %}null{% endif %}
+#        {% else %}null{% endif %}
+
 # sum of vehicle entity count
 - platform: template
   sensors:
     motion_detected_vehicle_count:
-      friendly_name: Count of vehicle(s)
+      friendly_name: Vehicle count
       unit_of_measurement: 'vehicle'
       icon_template: 'mdi:counter'
       value_template: >
@@ -157,7 +183,7 @@
   sensors:
     motion_detected_vehicle_status_today:
       friendly_name: Today vehicle
-      icon_template: 'mdi:car'
+      icon_template: 'mdi:account'
       value_template: >-
         {% set c = states('sensor.motion_detected_vehicle_counter_today') %}
         {% set r = states('sensor.motion_detected_vehicle_ratio_today') %}
