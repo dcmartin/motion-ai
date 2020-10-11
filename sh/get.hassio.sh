@@ -70,11 +70,26 @@ fi
 
 CONFIG="/etc/docker/daemon.json"
 if [ -s ${CONFIG} ]; then
-  jq '."log-driver"="journald"|."storage-driver"="overlay2"' ${CONFIG} > /tmp/daemon.json
-  mv -f /tmp/daemon.json ${CONFIG}
+  jq '."log-driver"="journald"|."storage-driver"="overlay2"' ${CONFIG} > ${CONFIG}.$$ \
+	  && mv -f ${CONFIG}.$$ ${CONFIG}
+	  || echo "Failed to update ${CONFIG}" &> /dev/stderr
 else
   echo '{"log-driver":"journald","storage-driver":"overlay2"}' > ${CONFIG}
 fi
+
+# update runtime if CUDA
+if [ -e /usr/local/cuda/bin/nvcc ]; then
+  jq '."default-runtime"="nvidia"' ${CONFIG} > ${CONFIG}.$$ \
+	  && mv -v ${CONFIG}.$$ ${CONFIG} \
+	  || echo "Failed to update ${CONFIG}" &> /dev/stderr
+  jq '.experimental=true' ${CONFIG} > ${CONFIG}.$$ \
+	  && mv -v ${CONFIG}.$$ ${CONFIG} \
+	  || echo "Failed to update ${CONFIG}" &> /dev/stderr
+  jq '.runtimes={"nvidia":{"path":"/usr/bin/nvidia-container-runtime","runtimeArgs":[]}}' ${CONFIG} > ${CONFIG}.$$ \
+	  && mv -v ${CONFIG}.$$ ${CONFIG} \
+	  || echo "Failed to update ${CONFIG}" &> /dev/stderr
+fi
+
 systemctl restart docker
 
 addgroup ${SUDO_USER:-${USER}} docker
