@@ -182,7 +182,7 @@ lovelace.json: lovelace.json.tmpl
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	&& cat $< \
 	  | envsubst \
-	  | jq '(.data.config.views[]|select(.path=="status").cards[]|select(.title=="OVERVIEW").elements)+='"$$(jq '[.[]|{"type":"icon","entity":("sensor.motion_detected_person_ago_"+.name),"icon": ("mdi:"+.icon),"style":{"color":"white","left":(.left|tostring+"%"),"top":(.top|tostring+"%"),"height":"5%","width": "5%"}}]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="status").cards[]|select(.title=="OVERVIEW").elements)+='"$$(jq '[.[]|{"type":"icon","entity":("sensor.motion_detected_person_ago_"+.name),"icon": ("mdi:"+.icon),"style":{"color":"red","left":(.left|tostring+"%"),"top":(.top|tostring+"%"),"height":"5%","width": "5%"}}]' motion/webcams.json)" \
 	 > $@
 	@echo "MADE $@"
 	rm -f .storage/lovelace
@@ -222,7 +222,7 @@ lovelace.developer.json: lovelace.developer.json.tmpl
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	&& cat $< \
 	  | envsubst \
-	  | jq '(.data.config.views[]|select(.path=="motion_live").cards[]|select(.title=="OVERVIEW").elements)+='"$$(jq '[.[]|{"type":"icon","entity":("camera.motion_live_"+.name),"icon": "mdi:cctv","style":{"color":"white","left":(.left|tostring+"%"),"top":(.top|tostring+"%"),"height":"5%","width": "5%"}}]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="motion_live").cards[]|select(.title=="OVERVIEW").elements)+='"$$(jq '[.[]|{"type":"icon","entity":("camera.motion_live_"+.name),"icon": ("mdi:"+.icon),"style":{"color":"red","left":(.left|tostring+"%"),"top":(.top|tostring+"%"),"height":"5%","width": "5%"}}]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="motion_live").cards)+='"$$(jq '[.[]|{"entity":("camera.motion_live_"+.name),"type":"picture-entity"}]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="motion_animated_webcams_view").cards)+='"$$(jq '[.[]|{"entity":("sensor.motion_annotated_when_"+.name),"camera_image":("camera.motion_end_animated_"+.name),"type":"picture-entity"}]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="entity_counter_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_counter_"+.name)]' motion/webcams.json)" \
