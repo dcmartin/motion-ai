@@ -58,6 +58,11 @@ if [ -z "$(command -v curl)" ]; then
   exit 1
 fi
 
+if [ -z "$(command -v jq)" ]; then
+  echo 'Install jq; sudo apt install -qq -y jq' &> /dev/stderr
+  exit 1
+fi
+
 ## DOCKER
 
 if [ -z "$(command -v docker)" ]; then
