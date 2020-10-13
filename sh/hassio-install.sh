@@ -7,6 +7,16 @@ function info { echo -e "\e[32m[info] $*\e[39m"; }
 function warn  { echo -e "\e[33m[warn] $*\e[39m"; }
 function error { echo -e "\e[31m[error] $*\e[39m"; exit 1; }
 
+warn ""
+warn "If you want more control over your own system, run"
+warn "Home Assistant as a VM or run Home Assistant Core"
+warn "via a Docker container."
+warn ""
+warn "If you want to abort, hit ctrl+c within 10 seconds..."
+warn ""
+
+sleep 10
+
 ARCH=$(uname -m)
 
 IP_ADDRESS=$(hostname -I | awk '{ print $1 }')
