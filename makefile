@@ -36,7 +36,7 @@ MOTION_GROUP ?= $(if $(wildcard MOTION_GROUP),$(shell v=$$(cat MOTION_GROUP) && 
 MOTION_DEVICE ?= $(if $(wildcard MOTION_DEVICE),$(shell v=$$(cat MOTION_DEVICE) && echo "== MOTION_DEVICE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(echo $(HOST_NAME) | sed -e "s/-//g" -e "s/ /_/g") && echo "** MOTION_DEVICE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MOTION_CLIENT ?= $(if $(wildcard MOTION_CLIENT),$(shell v=$$(cat MOTION_CLIENT) && echo "== MOTION_CLIENT: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$(MOTION_DEVICE) && echo "** MOTION_CLIENT unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MOTION_DETECT_ENTITY ?= $(if $(wildcard MOTION_DETECT_ENTITY),$(shell v=$$(cat MOTION_DETECT_ENTITY) && echo "== MOTION_DETECT_ENTITY: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='person' && echo "** MOTION_DETECT_ENTITY unset; default: $${v}" > /dev/stderr && echo "$${v}"))
-MOTION_EXPIRE_AFTER ?= $(if $(wildcard MOTION_EXPIRE_AFTER),$(shell v=$$(cat MOTION_EXPIRE_AFTER) && echo "== MOTION_EXPIRE_AFTER: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='60' && echo "** MOTION_EXPIRE_AFTER unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MOTION_EXPIRE_AFTER ?= $(if $(wildcard MOTION_EXPIRE_AFTER),$(shell v=$$(cat MOTION_EXPIRE_AFTER) && echo "== MOTION_EXPIRE_AFTER: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='5' && echo "** MOTION_EXPIRE_AFTER unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MOTION_FORCE_UPDATE ?= $(if $(wildcard MOTION_FORCE_UPDATE),$(shell v=$$(cat MOTION_FORCE_UPDATE) && echo "== MOTION_FORCE_UPDATE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "** MOTION_FORCE_UPDATE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 # webcam
