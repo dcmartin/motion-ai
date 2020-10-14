@@ -38,6 +38,8 @@ MOTION_CLIENT ?= $(if $(wildcard MOTION_CLIENT),$(shell v=$$(cat MOTION_CLIENT) 
 MOTION_DETECT_ENTITY ?= $(if $(wildcard MOTION_DETECT_ENTITY),$(shell v=$$(cat MOTION_DETECT_ENTITY) && echo "== MOTION_DETECT_ENTITY: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='person' && echo "** MOTION_DETECT_ENTITY unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MOTION_EXPIRE_AFTER ?= $(if $(wildcard MOTION_EXPIRE_AFTER),$(shell v=$$(cat MOTION_EXPIRE_AFTER) && echo "== MOTION_EXPIRE_AFTER: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='5' && echo "** MOTION_EXPIRE_AFTER unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MOTION_FORCE_UPDATE ?= $(if $(wildcard MOTION_FORCE_UPDATE),$(shell v=$$(cat MOTION_FORCE_UPDATE) && echo "== MOTION_FORCE_UPDATE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "** MOTION_FORCE_UPDATE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MOTION_MEDIA_SAVE ?= $(if $(wildcard MOTION_MEDIA_SAVE),$(shell v=$$(cat MOTION_MEDIA_SAVE) && echo "== MOTION_MEDIA_SAVE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "** MOTION_MEDIA_SAVE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MOTION_MEDIA_MASK ?= $(if $(wildcard MOTION_MEDIA_MASK),$(shell v=$$(cat MOTION_MEDIA_MASK) && echo "== MOTION_MEDIA_MASK: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "** MOTION_MEDIA_MASK unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 # webcam
 NETCAM_USERNAME ?= $(if $(wildcard NETCAM_USERNAME),$(shell v=$$(cat NETCAM_USERNAME) && echo "== NETCAM_USERNAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="username" && echo "** NETCAM_USERNAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
@@ -94,6 +96,8 @@ $(ACTIONS):
 	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
 	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
 	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
+	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
+	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
 	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
 	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
 	  MQTT_HOST="$(MQTT_HOST)" \
