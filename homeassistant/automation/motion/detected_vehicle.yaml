@@ -16,7 +16,48 @@
   action:
     - service: counter.increment
       entity_id: counter.motion_detected_vehicle_counter
- 
+
+## media
+- id: motion_detected_vehicle_media_animated
+  alias: motion_detected_vehicle_media_animated
+  initial_state: on
+  trigger:
+    platform: state
+    entity_id: sensor.motion_detected_vehicle_date
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ is_state('input_boolean.motion_media_save','on') }}
+      - condition: template
+        value_template: >-
+          {{ states('sensor.motion_detected_vehicle_date')|int > 0 }}
+      - condition: template
+        value_template: >-
+          {% set s = states('camera.motion_event_animated_mask') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'unknown' %}
+            {% set ep = state_attr('camera.motion_event_animated_mask','entity_picture') %}
+            {{ ep is not none and ep|lower != 'unavailable' and ep|lower != 'none' and ep|lower != 'unknown' }}
+          {% else %}false{% endif %}
+  action:
+    - service: camera.snapshot
+      data_template:
+        entity_id: >-
+          {% if is_state('input_boolean.motion_media_mask','off') %}
+            {{ 'camera.motion_event_animated' }}
+          {% else %}
+            {{ 'camera.motion_event_animated_mask' }}
+          {% endif %}
+        filename: >-
+          {% set s = states('sensor.motion_detected_vehicle_date')|int %}
+          {% set c = states('sensor.motion_detected_vehicle_camera')|string %}
+          {% set w = s|timestamp_custom("%H:%M:%S") %}
+          {% set year = s|timestamp_custom("%Y") %}
+          {% set month = s|timestamp_custom("%b") %}
+          {% set day = s|timestamp_custom("%d") %}
+          {{ '/media/motion/' + year + '-' + month + '-' + day + '/vehicle/' + w + ' at ' + c + '.gif' }}
+
 ## snapshot
 - id: motion_detected_vehicle_camera_snapshot
   alias: motion_detected_vehicle_camera_snapshot
