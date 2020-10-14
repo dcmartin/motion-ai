@@ -76,7 +76,7 @@ fi
 CONFIG="/etc/docker/daemon.json"
 if [ -s ${CONFIG} ]; then
   jq '."log-driver"="journald"|."storage-driver"="overlay2"' ${CONFIG} > ${CONFIG}.$$ \
-	  && mv -f ${CONFIG}.$$ ${CONFIG}
+	  && mv -f ${CONFIG}.$$ ${CONFIG} \
 	  || echo "Failed to update ${CONFIG}" &> /dev/stderr
 else
   echo '{"log-driver":"journald","storage-driver":"overlay2"}' > ${CONFIG}
@@ -125,6 +125,7 @@ echo 'Updating apt ...' &> /dev/stderr && apt update -qq -y \
   || echo 'Failed to install pre-requisite software' &> /dev/stderr
 
 echo 'Modifying NetworkManager to disable WiFi MAC randomization' \
+  && mkdir -p /etc/NetworkManager/conf.d \
   && echo '[connection]' > /etc/NetworkManager/conf.d/100-disable-wifi-mac-randomization.conf \
   && echo 'wifi.mac-address-randomization=1' >> /etc/NetworkManager/conf.d/100-disable-wifi-mac-randomization.conf \
   && echo '[device]' >> /etc/NetworkManager/conf.d/100-disable-wifi-mac-randomization.conf \
