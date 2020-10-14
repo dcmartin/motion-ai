@@ -23,13 +23,16 @@
   initial_state: on
   trigger:
     platform: state
-    entity_id: sensor.motion_detected_person_counter
+    entity_id: sensor.motion_detected_person_date
   condition:
     condition: and
     conditions:
       - condition: template
         value_template: >-
           {{ is_state('input_boolean.motion_media_save','on') }}
+      - condition: template
+        value_template: >-
+          {{ states('sensor.motion_detected_person_date')|int > 0 }}
       - condition: template
         value_template: >-
           {% set s = states('camera.motion_event_animated_mask') %}
@@ -41,11 +44,19 @@
     - service: camera.snapshot
       data_template:
         entity_id: >-
-          {{ 'camera.motion_event_animated_mask' }}
+          {% if is_state('input_boolean.motion_media_mask','off') %}
+            {{ 'camera.motion_event_animated' }}
+          {% else %}
+            {{ 'camera.motion_event_animated_mask' }}
+          {% endif %}
         filename: >-
+          {% set s = states('sensor.motion_detected_person_date')|int %}
           {% set c = states('sensor.motion_detected_person_camera')|string %}
-          {% set e = states('sensor.motion_detected_person_when')|string %}
-          {{ '/media/' + c + '/' + e + '.gif' }}
+          {% set w = s|timestamp_custom("%I:%M:%S %p") %}
+          {% set year = s|timestamp_custom("%Y") %}
+          {% set month = s|timestamp_custom("%b") %}
+          {% set day = s|timestamp_custom("%d") %}
+          {{ '/media/motion/' + year + '-' + month + '/' + day + '/person/' + c + ' at ' + w + '.gif' }}
 
 ## snapshot
 - id: motion_detected_person_camera_snapshot
