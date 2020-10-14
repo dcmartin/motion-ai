@@ -332,6 +332,7 @@ realclean: clean
 	-rm -f home-assistant_v2.*
 	-rm -f .storage/core.*
 	-rm -f www/image/motion_*.[jpg,gif]
+	-rm -f media/motion
 
 logclean:
 	-@sudo journalctl --vacuum-time 1
