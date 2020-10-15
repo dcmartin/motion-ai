@@ -145,8 +145,6 @@ echo 'Disabling ModemManager' \
   && systemctl stop ModemManager \
   && systemctl disable ModemManager
 
-systemctl status ModemManager &> /dev/null && systemctl stop ModemManager && systemctl disable ModemManager
-
 curl -sSL https://raw.githubusercontent.com/home-assistant/supervised-installer/master/installer.sh -o /tmp/hassio-install.sh \
   && \
   mv -f /tmp/hassio-install.sh ${0%/*}/hassio-install.sh \
@@ -156,8 +154,6 @@ curl -sSL https://raw.githubusercontent.com/home-assistant/supervised-installer/
   chmod 755 ${0%/*}/hassio-install.sh \
   || \
   echo "Unable to download installer; using backup" &> /dev/stderr
-
-systemctl status ModemManager &> /dev/null && systemctl stop ModemManager && systemctl disable ModemManager
 
 echo "Installing using ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine)" \
   && ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine) \
