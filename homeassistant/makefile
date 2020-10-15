@@ -327,12 +327,13 @@ clean: stop logclean refresh
 	-rm -f .storage/core.restore_state
 
 realclean: clean
-	-rm -f known_devices.yaml
-	-rm -f home-assistant.log
-	-rm -f home-assistant_v2.*
-	-rm -f .storage/core.*
-	-rm -f www/image/motion_*.[jpg,gif]
-	-rm -f media/motion
+	-sudo rm -f \
+	   known_devices.yaml \
+	   home-assistant.log \
+	   home-assistant_v2.* \
+	   .storage/core.* \ 
+	   www/image/motion_*.[jpg,gif] \
+	   media/motion
 
 logclean:
 	-@sudo journalctl --vacuum-time 1
