@@ -97,7 +97,11 @@ fi
 
 systemctl restart docker
 
+<<<<<<< HEAD
 addgroup ${SUDO_USER:-${USER}} docker
+=======
+addgroup ${USER} docker
+>>>>>>> 6e49495... lgtm
 
 ## UPDATE, UPGRADE, PACKAGES
 
