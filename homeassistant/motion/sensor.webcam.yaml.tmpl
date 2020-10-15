@@ -1313,68 +1313,249 @@
     hours: 72
 
 ###
-### variable detection; produce array of booleans
+## person
 ###
 
+# array of person count
 - platform: template
   sensors:
     motion_detected_person_${MOTION_CAMERA}:
+      icon_template: 'mdi:counter'
       value_template: >-
         {% set options = state_attr('input_select.motion_detect_person','options') %}
         {% if options is not none and options|lower != 'unknown' and options|length > 0 %}
-          {% set array = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','detected') %}
+          {% set array = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','results') %}
           {% if array is not none and array|lower != 'unknown' and array|length > 0 %}
-            {% for detected in array %}
+            {% for results in array %}
               {%- if loop.first -%}[{%- else -%},{%- endif -%}
-              {% if detected.entity in options %}{{ detected.count }}{% else %}0{% endif %}
+              {% if results.entity in options and results.confidence|int > states('sensor.motion_detected_person_threshold')|int %}
+                1
+              {% else %}
+                0
+              {% endif %}
               {%- if loop.last -%}]{%- endif -%}
             {% endfor %}
           {% else %}null{% endif %}
         {% else %}null{% endif %}
 
+# sum of person entity count
 - platform: template
   sensors:
-    motion_detected_vehicle_${MOTION_CAMERA}:
-      value_template: >-
-        {% set options = state_attr('input_select.motion_detect_vehicle','options') %}
-        {% if options is not none and options|lower != 'unknown' and options|length > 0 %}
-          {% set array = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','detected') %}
-          {% if array is not none and array|lower != 'unknown' and array|length > 0 %}
-            {% for detected in array %}
-              {%- if loop.first -%}[{%- else -%},{%- endif -%}
-              {% if detected.entity in options %}{{ detected.count }}{% else %}0{% endif %}
-              {%- if loop.last -%}]{%- endif -%}
-            {% endfor %}
+    motion_detected_person_count_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} person count
+      unit_of_measurement: 'person'
+      icon_template: 'mdi:counter'
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_person_${MOTION_CAMERA}','on') or is_state('binary_sensor.motion_detected_person_expired_${MOTION_CAMERA}','off') %}
+          {% set s = states('sensor.motion_detected_person') %}
+          {% if s|lower != 'unknown' and s|lower != none %}
+            {% set s = s|from_json %}
+            {% if s|lower != 'unknown' and s|lower != none and s is iterable %}
+              {{ s|sum|int }}
+            {% else %}null{% endif %}
           {% else %}null{% endif %}
         {% else %}null{% endif %}
 
+## sensor from counter
+
 - platform: template
   sensors:
-    motion_detected_animal_${MOTION_CAMERA}:
+    motion_detected_person_counter_${MOTION_CAMERA}:
+      unit_of_measurement: 'person'
+      value_template: >
+        {{ states('counter.motion_detected_person_counter_${MOTION_CAMERA}') }}
+
+## TODAY
+
+- platform: history_stats
+  name: motion_today_person_ratio_${MOTION_CAMERA}
+  entity_id: binary_sensor.motion_detected_person_${MOTION_CAMERA}
+  state: 'on'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_today_person_counter_${MOTION_CAMERA}
+  entity_id: binary_sensor.motion_detected_person_${MOTION_CAMERA}
+  state: 'on'
+  type: count
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_today_person_time_${MOTION_CAMERA}
+  entity_id: binary_sensor.motion_detected_person_${MOTION_CAMERA}
+  state: 'on'
+  type: time
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: template
+  sensors:
+    motion_detected_person_ratio_today_${MOTION_CAMERA}:
+      friendly_name: Today person ratio
+      unit_of_measurement: '%'
+      icon_template: 'mdi:percent'
+      value_template: >
+        {{ states('sensor.motion_today_person_ratio') }}
+
+- platform: template
+  sensors:
+    motion_detected_person_counter_today_${MOTION_CAMERA}:
+      friendly_name: Today person counter
+      unit_of_measurement: 'events'
+      icon_template: 'mdi:counter'
       value_template: >-
-        {% set options = state_attr('input_select.motion_detect_animal','options') %}
-        {% if options is not none and options|lower != 'unknown' and options|length > 0 %}
-          {% set array = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','detected') %}
-          {% if array is not none and array|lower != 'unknown' and array|length > 0 %}
-            {% for detected in array %}
-              {%- if loop.first -%}[{%- else -%},{%- endif -%}
-              {% if detected.entity in options %}{{ detected.count }}{% else %}0{% endif %}
-              {%- if loop.last -%}]{%- endif -%}
-            {% endfor %}
+        {{ states('sensor.motion_today_person_counter')|int }}
+
+- platform: template
+  sensors:
+    motion_detected_person_time_today_${MOTION_CAMERA}:
+      friendly_name: Today person time
+      unit_of_measurement: 'hours'
+      icon_template: 'mdi:timer-outline'
+      value_template: >
+        {{ states('sensor.motion_today_person_time')|float }}
+
+- platform: template
+  sensors:
+    motion_detected_person_status_today_${MOTION_CAMERA}:
+      friendly_name: Today person
+      icon_template: 'mdi:account'
+      value_template: >-
+        {% set c = states('sensor.motion_detected_person_counter_today') %}
+        {% set r = states('sensor.motion_detected_person_ratio_today') %}
+        {% set t = states('sensor.motion_detected_person_time_today') %}
+        {% if c|lower != 'unknown' and r|lower != 'unknown' and t|lower != 'unknown' %}
+          {{ c -}}; {{ t }} hours; {{ r }}%
+        {% else %}No persons detected today{% endif %}
+
+- platform: template
+  sensors:
+    motion_detected_person_confidence_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} person confidence
+      icon_template: 'mdi:account-check-outline'
+      unit_of_measurement: '%'
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_person_${MOTION_CAMERA}','on') %}
+          {% set s = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','results') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|length > 0 %}
+            {% set l = s|selectattr('entity','==','person')|map(attribute='confidence')|list %}
+            {% if l is not none and l|length > 0 %}
+              {% set p = s|selectattr('entity','==','person')|map(attribute='confidence')|max|int %}
+            {% endif %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% else %}
+          {% set s = states('sensor.motion_detected_person_confidence_${MOTION_CAMERA}') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
           {% else %}null{% endif %}
-        {% else %}null{% endif %}
+        {% endif %}
+
+- platform: template
+  sensors:
+    motion_detected_person_event_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} person event
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_person_${MOTION_CAMERA}','on') %}
+          {% set s = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event') %}
+          {% if s is not none and s is mapping %}
+            {% set p = s.event %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% else %}
+          {% set s = states('sensor.motion_detected_person_event_${MOTION_CAMERA}') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+- platform: template
+  sensors:
+    motion_detected_person_device_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} person device
+      icon_template: 'mdi:raspberry-pi'
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_person_${MOTION_CAMERA}','on') %}
+          {% set s = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event') %}
+          {% if s is not none and s is mapping %}
+            {% set p = s.device %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% else %}
+          {% set s = states('sensor.motion_detected_person_device_${MOTION_CAMERA}') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+
+- platform: template
+  sensors:
+    motion_detected_person_camera_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} person camera
+      icon_template: 'mdi:camera'
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_person_${MOTION_CAMERA}','on') %}
+          {% set s = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event') %}
+          {% if s is not none and s is mapping %}
+            {% set p = s.camera %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% else %}
+          {% set s = states('sensor.motion_detected_person_camera_${MOTION_CAMERA}') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+- platform: template
+  sensors:
+    motion_detected_person_elapsed_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} person elapsed
+      icon_template: 'mdi:timer'
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_person_${MOTION_CAMERA}','on') %}
+          {% set s = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event') %}
+          {% if s is not none and s is mapping %}
+            {% set p = s.elapsed %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% else %}
+          {% set s = states('sensor.motion_detected_person_elapsed_${MOTION_CAMERA}') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
 
 - platform: template
   sensors:
     motion_detected_person_date_${MOTION_CAMERA}:
-      unit_of_measurement: seconds
-      value_template: >-
+      friendly_name: ${MOTION_CAMERA} person date
+      value_template: >
         {% if is_state('binary_sensor.motion_detected_person_${MOTION_CAMERA}','on') %}
-          {% set date = states('sensor.motion_detected_date_${MOTION_CAMERA}')|int %}
-          {% if date > 0 %}{{ date }}{% else %}null{% endif %}
+          {% set s = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event') %}
+          {% if s is not none and s is mapping %}
+            {% set p = s.end %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
         {% else %}
           {% set s = states('sensor.motion_detected_person_date_${MOTION_CAMERA}') %}
-          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
             {{ s }}
           {% else %}null{% endif %}
         {% endif %}
@@ -1382,55 +1563,591 @@
 - platform: template
   sensors:
     motion_detected_person_ago_${MOTION_CAMERA}:
-      friendly_name: ${MOTION_CAMERA} PERSON
+      friendly_name: ${MOTION_CAMERA} person ago
       icon_template: 'mdi:camera-timer'
       unit_of_measurement: seconds
       value_template: >
         {% set t = states('sensor.time') %}
-        {% set s = states('sensor.motion_detected_person_date_${MOTION_CAMERA}')|int %}
-        {% if s >  0 %}
-          {% set s = utcnow().timestamp()|int - s %}
-          {% if s <  86400 %}{{ s }}{% else %}null{% endif %}
-        {%- else -%}null{%- endif -%}
+        {% set s = states('sensor.motion_detected_person_date_${MOTION_CAMERA}') %}
+        {% if s is not none and s|lower != 'unknown' and s|int > 0 %}
+          {{ as_timestamp(now())|int - s|int }}
+        {% else %}null{% endif %}
 
-# ago
 - platform: template
   sensors:
-    motion_detected_person_ago_${MOTION_CAMERA}_mean:
-      friendly_name: ${MOTION_CAMERA} face ago avg
-      unit_of_measurement: seconds
+    motion_detected_person_when_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} person when
+      icon_template: 'mdi:calendar-clock'
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_person_${MOTION_CAMERA}','on') %}
+          {% set s = states('sensor.motion_detected_person_date_${MOTION_CAMERA}') %}
+          {% if s|int > 0 %}
+            {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}
+          {% else %}Never{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_detected_person_when_${MOTION_CAMERA}') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+###
+## vehicle
+###
+
+# array of vehicle count
+- platform: template
+  sensors:
+    motion_detected_vehicle_${MOTION_CAMERA}:
+      icon_template: 'mdi:counter'
       value_template: >-
-        {% if states.sensor.motion_detected_person_ago_${MOTION_CAMERA}_statistics|lower != 'none' %}
-          {{ states.sensor.motion_detected_person_ago_${MOTION_CAMERA}_statistics.state|float }}
-        {%- else -%}null{%- endif -%}
-    motion_detected_person_ago_${MOTION_CAMERA}_min_value:
-      friendly_name: ${MOTION_CAMERA} face min
-      unit_of_measurement: seconds
+        {% set options = state_attr('input_select.motion_detect_vehicle','options') %}
+        {% if options is not none and options|lower != 'unknown' and options|length > 0 %}
+          {% set array = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','results') %}
+          {% if array is not none and array|lower != 'unknown' and array|length > 0 %}
+            {% for results in array %}
+              {%- if loop.first -%}[{%- else -%},{%- endif -%}
+              {% if results.entity in options and results.confidence|int > states('sensor.motion_detected_vehicle_threshold')|int %}
+                1
+              {% else %}
+                0
+              {% endif %}
+              {%- if loop.last -%}]{%- endif -%}
+            {% endfor %}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+
+# sum of vehicle entity count
+- platform: template
+  sensors:
+    motion_detected_vehicle_count_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} vehicle count
+      unit_of_measurement: 'vehicle'
+      icon_template: 'mdi:counter'
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_vehicle_${MOTION_CAMERA}','on') or is_state('binary_sensor.motion_detected_vehicle_expired_${MOTION_CAMERA}','off') %}
+          {% set s = states('sensor.motion_detected_vehicle') %}
+          {% if s|lower != 'unknown' and s|lower != none %}
+            {% set s = s|from_json %}
+            {% if s|lower != 'unknown' and s|lower != none and s is iterable %}
+              {{ s|sum|int }}
+            {% else %}null{% endif %}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+
+## sensor from counter
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_counter_${MOTION_CAMERA}:
+      unit_of_measurement: 'vehicle'
+      value_template: >
+        {{ states('counter.motion_detected_vehicle_counter_${MOTION_CAMERA}') }}
+
+## TODAY
+
+- platform: history_stats
+  name: motion_today_vehicle_ratio_${MOTION_CAMERA}
+  entity_id: binary_sensor.motion_detected_vehicle_${MOTION_CAMERA}
+  state: 'on'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_today_vehicle_counter_${MOTION_CAMERA}
+  entity_id: binary_sensor.motion_detected_vehicle_${MOTION_CAMERA}
+  state: 'on'
+  type: count
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_today_vehicle_time_${MOTION_CAMERA}
+  entity_id: binary_sensor.motion_detected_vehicle_${MOTION_CAMERA}
+  state: 'on'
+  type: time
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_ratio_today_${MOTION_CAMERA}:
+      friendly_name: Today vehicle ratio
+      unit_of_measurement: '%'
+      icon_template: 'mdi:percent'
+      value_template: >
+        {{ states('sensor.motion_today_vehicle_ratio') }}
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_counter_today_${MOTION_CAMERA}:
+      friendly_name: Today vehicle counter
+      unit_of_measurement: 'events'
+      icon_template: 'mdi:counter'
       value_template: >-
-        {% if states.sensor.motion_detected_person_ago_${MOTION_CAMERA}_statistics|lower != 'none' %}
-          {{ states.sensor.motion_detected_person_ago_${MOTION_CAMERA}_statistics.attributes.min_value|int }}
-        {%- else -%}null{%- endif -%}
-    motion_detected_person_ago_${MOTION_CAMERA}_max_value:
-      friendly_name: ${MOTION_CAMERA} face max
-      unit_of_measurement: seconds
+        {{ states('sensor.motion_today_vehicle_counter')|int }}
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_time_today_${MOTION_CAMERA}:
+      friendly_name: Today vehicle time
+      unit_of_measurement: 'hours'
+      icon_template: 'mdi:timer-outline'
+      value_template: >
+        {{ states('sensor.motion_today_vehicle_time')|float }}
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_status_today_${MOTION_CAMERA}:
+      friendly_name: Today vehicle
+      icon_template: 'mdi:account'
       value_template: >-
-        {% if states.sensor.motion_detected_person_ago_${MOTION_CAMERA}_statistics|lower != 'none' %}
-          {{ states.sensor.motion_detected_person_ago_${MOTION_CAMERA}_statistics.attributes.max_value|int }}
-        {%- else -%}null{%- endif -%}
-    motion_detected_person_ago_${MOTION_CAMERA}_stdev:
-      friendly_name: ${MOTION_CAMERA} face stdev
+        {% set c = states('sensor.motion_detected_vehicle_counter_today') %}
+        {% set r = states('sensor.motion_detected_vehicle_ratio_today') %}
+        {% set t = states('sensor.motion_detected_vehicle_time_today') %}
+        {% if c|lower != 'unknown' and r|lower != 'unknown' and t|lower != 'unknown' %}
+          {{ c -}}; {{ t }} hours; {{ r }}%
+        {% else %}No vehicles detected today{% endif %}
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_confidence_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} vehicle confidence
+      icon_template: 'mdi:account-check-outline'
+      unit_of_measurement: '%'
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_vehicle_${MOTION_CAMERA}','on') %}
+          {% set s = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','results') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|length > 0 %}
+            {% set l = s|selectattr('entity','==','vehicle')|map(attribute='confidence')|list %}
+            {% if l is not none and l|length > 0 %}
+              {% set p = s|selectattr('entity','==','vehicle')|map(attribute='confidence')|max|int %}
+            {% endif %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% else %}
+          {% set s = states('sensor.motion_detected_vehicle_confidence_${MOTION_CAMERA}') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_event_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} vehicle event
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_vehicle_${MOTION_CAMERA}','on') %}
+          {% set s = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event') %}
+          {% if s is not none and s is mapping %}
+            {% set p = s.event %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% else %}
+          {% set s = states('sensor.motion_detected_vehicle_event_${MOTION_CAMERA}') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_device_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} vehicle device
+      icon_template: 'mdi:raspberry-pi'
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_vehicle_${MOTION_CAMERA}','on') %}
+          {% set s = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event') %}
+          {% if s is not none and s is mapping %}
+            {% set p = s.device %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% else %}
+          {% set s = states('sensor.motion_detected_vehicle_device_${MOTION_CAMERA}') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_camera_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} vehicle camera
+      icon_template: 'mdi:camera'
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_vehicle_${MOTION_CAMERA}','on') %}
+          {% set s = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event') %}
+          {% if s is not none and s is mapping %}
+            {% set p = s.camera %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% else %}
+          {% set s = states('sensor.motion_detected_vehicle_camera_${MOTION_CAMERA}') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_elapsed_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} vehicle elapsed
+      icon_template: 'mdi:timer'
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_vehicle_${MOTION_CAMERA}','on') %}
+          {% set s = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event') %}
+          {% if s is not none and s is mapping %}
+            {% set p = s.elapsed %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% else %}
+          {% set s = states('sensor.motion_detected_vehicle_elapsed_${MOTION_CAMERA}') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_date_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} vehicle date
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_vehicle_${MOTION_CAMERA}','on') %}
+          {% set s = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event') %}
+          {% if s is not none and s is mapping %}
+            {% set p = s.end %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% else %}
+          {% set s = states('sensor.motion_detected_vehicle_date_${MOTION_CAMERA}') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_ago_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} vehicle ago
+      icon_template: 'mdi:camera-timer'
       unit_of_measurement: seconds
       value_template: >
-        {% if states.sensor.motion_detected_person_ago_${MOTION_CAMERA}_statistics|lower != 'none' %}
-          {{ states.sensor.motion_detected_person_ago_${MOTION_CAMERA}_statistics.attributes.standard_deviation|float }}
-        {%- else -%}null{%- endif -%}
+        {% set t = states('sensor.time') %}
+        {% set s = states('sensor.motion_detected_vehicle_date_${MOTION_CAMERA}') %}
+        {% if s is not none and s|lower != 'unknown' and s|int > 0 %}
+          {{ as_timestamp(now())|int - s|int }}
+        {% else %}null{% endif %}
 
-- platform: statistics
-  name: motion_detected_person_ago_${MOTION_CAMERA}_statistics
-  entity_id: sensor.motion_detected_person_ago_${MOTION_CAMERA}
-  sampling_size: 1000
-  max_age:
-    hours: 72
+- platform: template
+  sensors:
+    motion_detected_vehicle_when_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} vehicle when
+      icon_template: 'mdi:calendar-clock'
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_vehicle_${MOTION_CAMERA}','on') %}
+          {% set s = states('sensor.motion_detected_vehicle_date_${MOTION_CAMERA}') %}
+          {% if s|int > 0 %}
+            {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}
+          {% else %}Never{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_detected_vehicle_when_${MOTION_CAMERA}') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+###
+## animal
+###
+
+# array of animal count
+- platform: template
+  sensors:
+    motion_detected_animal_${MOTION_CAMERA}:
+      icon_template: 'mdi:counter'
+      value_template: >-
+        {% set options = state_attr('input_select.motion_detect_animal','options') %}
+        {% if options is not none and options|lower != 'unknown' and options|length > 0 %}
+          {% set array = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','results') %}
+          {% if array is not none and array|lower != 'unknown' and array|length > 0 %}
+            {% for results in array %}
+              {%- if loop.first -%}[{%- else -%},{%- endif -%}
+              {% if results.entity in options and results.confidence|int > states('sensor.motion_detected_animal_threshold')|int %}
+                1
+              {% else %}
+                0
+              {% endif %}
+              {%- if loop.last -%}]{%- endif -%}
+            {% endfor %}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+
+# sum of animal entity count
+- platform: template
+  sensors:
+    motion_detected_animal_count_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} animal count
+      unit_of_measurement: 'animal'
+      icon_template: 'mdi:counter'
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_animal_${MOTION_CAMERA}','on') or is_state('binary_sensor.motion_detected_animal_expired_${MOTION_CAMERA}','off') %}
+          {% set s = states('sensor.motion_detected_animal') %}
+          {% if s|lower != 'unknown' and s|lower != none %}
+            {% set s = s|from_json %}
+            {% if s|lower != 'unknown' and s|lower != none and s is iterable %}
+              {{ s|sum|int }}
+            {% else %}null{% endif %}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+
+## sensor from counter
+
+- platform: template
+  sensors:
+    motion_detected_animal_counter_${MOTION_CAMERA}:
+      unit_of_measurement: 'animal'
+      value_template: >
+        {{ states('counter.motion_detected_animal_counter_${MOTION_CAMERA}') }}
+
+## TODAY
+
+- platform: history_stats
+  name: motion_today_animal_ratio_${MOTION_CAMERA}
+  entity_id: binary_sensor.motion_detected_animal_${MOTION_CAMERA}
+  state: 'on'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_today_animal_counter_${MOTION_CAMERA}
+  entity_id: binary_sensor.motion_detected_animal_${MOTION_CAMERA}
+  state: 'on'
+  type: count
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_today_animal_time_${MOTION_CAMERA}
+  entity_id: binary_sensor.motion_detected_animal_${MOTION_CAMERA}
+  state: 'on'
+  type: time
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: template
+  sensors:
+    motion_detected_animal_ratio_today_${MOTION_CAMERA}:
+      friendly_name: Today animal ratio
+      unit_of_measurement: '%'
+      icon_template: 'mdi:percent'
+      value_template: >
+        {{ states('sensor.motion_today_animal_ratio') }}
+
+- platform: template
+  sensors:
+    motion_detected_animal_counter_today_${MOTION_CAMERA}:
+      friendly_name: Today animal counter
+      unit_of_measurement: 'events'
+      icon_template: 'mdi:counter'
+      value_template: >-
+        {{ states('sensor.motion_today_animal_counter')|int }}
+
+- platform: template
+  sensors:
+    motion_detected_animal_time_today_${MOTION_CAMERA}:
+      friendly_name: Today animal time
+      unit_of_measurement: 'hours'
+      icon_template: 'mdi:timer-outline'
+      value_template: >
+        {{ states('sensor.motion_today_animal_time')|float }}
+
+- platform: template
+  sensors:
+    motion_detected_animal_status_today_${MOTION_CAMERA}:
+      friendly_name: Today animal
+      icon_template: 'mdi:cow'
+      value_template: >-
+        {% set c = states('sensor.motion_detected_animal_counter_today') %}
+        {% set r = states('sensor.motion_detected_animal_ratio_today') %}
+        {% set t = states('sensor.motion_detected_animal_time_today') %}
+        {% if c|lower != 'unknown' and r|lower != 'unknown' and t|lower != 'unknown' %}
+          {{ c -}}; {{ t }} hours; {{ r }}%
+        {% else %}No animals detected today{% endif %}
+
+- platform: template
+  sensors:
+    motion_detected_animal_confidence_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} animal confidence
+      icon_template: 'mdi:cow'
+      unit_of_measurement: '%'
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_animal_${MOTION_CAMERA}','on') %}
+          {% set s = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','results') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|length > 0 %}
+            {% set l = s|selectattr('entity','==','animal')|map(attribute='confidence')|list %}
+            {% if l is not none and l|length > 0 %}
+              {% set p = s|selectattr('entity','==','animal')|map(attribute='confidence')|max|int %}
+            {% endif %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% else %}
+          {% set s = states('sensor.motion_detected_animal_confidence_${MOTION_CAMERA}') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+- platform: template
+  sensors:
+    motion_detected_animal_event_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} animal event
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_animal_${MOTION_CAMERA}','on') %}
+          {% set s = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event') %}
+          {% if s is not none and s is mapping %}
+            {% set p = s.event %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% else %}
+          {% set s = states('sensor.motion_detected_animal_event_${MOTION_CAMERA}') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+- platform: template
+  sensors:
+    motion_detected_animal_device_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} animal device
+      icon_template: 'mdi:raspberry-pi'
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_animal_${MOTION_CAMERA}','on') %}
+          {% set s = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event') %}
+          {% if s is not none and s is mapping %}
+            {% set p = s.device %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% else %}
+          {% set s = states('sensor.motion_detected_animal_device_${MOTION_CAMERA}') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+
+- platform: template
+  sensors:
+    motion_detected_animal_camera_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} animal camera
+      icon_template: 'mdi:camera'
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_animal_${MOTION_CAMERA}','on') %}
+          {% set s = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event') %}
+          {% if s is not none and s is mapping %}
+            {% set p = s.camera %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% else %}
+          {% set s = states('sensor.motion_detected_animal_camera_${MOTION_CAMERA}') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+- platform: template
+  sensors:
+    motion_detected_animal_elapsed_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} animal elapsed
+      icon_template: 'mdi:timer'
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_animal_${MOTION_CAMERA}','on') %}
+          {% set s = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event') %}
+          {% if s is not none and s is mapping %}
+            {% set p = s.elapsed %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% else %}
+          {% set s = states('sensor.motion_detected_animal_elapsed_${MOTION_CAMERA}') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+- platform: template
+  sensors:
+    motion_detected_animal_date_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} animal date
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_animal_${MOTION_CAMERA}','on') %}
+          {% set s = state_attr('sensor.motion_event_annotated_${MOTION_CAMERA}','event') %}
+          {% if s is not none and s is mapping %}
+            {% set p = s.end %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% else %}
+          {% set s = states('sensor.motion_detected_animal_date_${MOTION_CAMERA}') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+- platform: template
+  sensors:
+    motion_detected_animal_ago_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} animal ago
+      icon_template: 'mdi:camera-timer'
+      unit_of_measurement: seconds
+      value_template: >
+        {% set t = states('sensor.time') %}
+        {% set s = states('sensor.motion_detected_animal_date_${MOTION_CAMERA}') %}
+        {% if s is not none and s|lower != 'unknown' and s|int > 0 %}
+          {{ as_timestamp(now())|int - s|int }}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_detected_animal_when_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} animal when
+      icon_template: 'mdi:calendar-clock'
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_animal_${MOTION_CAMERA}','on') %}
+          {% set s = states('sensor.motion_detected_animal_date_${MOTION_CAMERA}') %}
+          {% if s|int > 0 %}
+            {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}
+          {% else %}Never{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_detected_animal_when_${MOTION_CAMERA}') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
 
 ###
 ## face
