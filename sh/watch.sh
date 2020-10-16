@@ -68,8 +68,8 @@ if [ "${1:-}" = 'off' ]; then exit; fi
 # MOTION_DEVICE
 if [ -s "MOTION_DEVICE" ] && [ ${MOTION_DEVICE:-null} == 'null' ]; then
   v=${MOTION_DEVICE:-$(cat MOTION_DEVICE)} && echo "** SPECIFIED: MOTION_DEVICE: ${v}" > /dev/stderr 
-else
-  v=$(hostname -s) && echo "!! UNSPECIFIED: MOTION_DEVICE unset; default: ${v}" > /dev/stderr 
+else 
+ v=$(hostname -s | sed -e "s/-//g" -e "s/ /_/g") && echo "!! UNSPECIFIED: MOTION_DEVICE unset; default: ${v}" > /dev/stderr 
 fi
 MOTION_DEVICE=${MOTION_DEVICE:-${v}}
 
