@@ -145,11 +145,9 @@ echo 'Disabling ModemManager' \
   && systemctl stop ModemManager \
   && systemctl disable ModemManager
 
-systemctl status ModemManager &> /dev/null && systemctl stop ModemManager && systemctl disable ModemManager
-
-curl -sSL https://raw.githubusercontent.com/home-assistant/supervised-installer/master/installer.sh -o /tmp/installer.sh \
+curl -sSL https://raw.githubusercontent.com/home-assistant/supervised-installer/master/installer.sh -o /tmp/hassio-install.sh \
   && \
-  mv -f /tmp/installer.sh ${0%/*}/hassio-install.sh \
+  mv -f /tmp/hassio-install.sh ${0%/*}/hassio-install.sh \
   && \
   chmod 755 ${0%/*}/hassio-install.sh \
   || \

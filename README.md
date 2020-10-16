@@ -9,7 +9,27 @@ An open-source software solution for situational awareness from a network of vid
 
 <img src="docs/samples/example-motion-detection.gif" width=756>
 
-### What  is _edge AI_?
+## QuickStart
+The following commands will install `motion-ai` on either Ubuntu18.04 or Raspbian Buster; tested on Virtualbox VM (`amd64`), nVidia Jetson Nano (`arm64`), and Raspberry Pi models 3B+ and 4/2GB (`arm`).
+
+<img src="docs/samples/install-linux.jpg" width="80%">
+
+Reboot the system when complete; for example:
+
+
+```
+sudo apt update -qq -y
+sudo apt install -qq -y make git curl jq ssh
+git clone http://github.com/dcmartin/motion-ai
+cd motion-ai
+sudo ./sh/get.hassio.sh
+cp homeassistant/motion/webcams.json.tmpl webcams.json
+make
+reboot
+```
+
+
+# What  is _edge AI_?
 The edge of the network is where connectivity is lost and privacy is challenged.
 
 Low-cost computing (e.g. RaspberryPi, nVidia Jetson Nano, Intel NUC) as well as hardware accelerators (e.g. Google Coral TPU, Intel Movidius Neural Compute Stick v2) provide the opportunity to utilize artificial intelligence in the privacy and safety of a home or business.
