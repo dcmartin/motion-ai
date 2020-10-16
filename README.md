@@ -29,7 +29,7 @@ reboot
 
 When the system reboots, install the [MQTT](https://github.com/home-assistant/hassio-addons/tree/master/mosquitto) and [Motion Classic](https://github.com/dcmartin/addon-motion-video0/) _add-ons_.
 
-change to the installation directory, download the YOLO weights (n.b. `tiny-v2` is the default) to avoid downloading each time the container is started, for example:
+Change to the installation directory, download the YOLO weights (n.b. `tiny-v2` is the default) to avoid downloading each time the container is started, for example:
 
 ```
 cd ~/motion-ai
