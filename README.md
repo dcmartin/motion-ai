@@ -16,7 +16,6 @@ The following commands will install `motion-ai` on either Ubuntu18.04 or Raspbia
 
 Reboot the system when complete; for example:
 
-
 ```
 sudo apt update -qq -y
 sudo apt install -qq -y make git curl jq ssh
@@ -28,6 +27,34 @@ make
 reboot
 ```
 
+When the system reboots, install the [MQTT](https://github.com/home-assistant/hassio-addons/tree/master/mosquitto) and [Motion Classic](https://github.com/dcmartin/addon-motion-video0/) _add-ons_.
+
+change to the installation directory, download the YOLO weights (n.b. `tiny-v2` is the default) to avoid downloading each time the container is started, for example:
+
+```
+cd ~/motion-ai
+wget http://pjreddie.com/media/files/yolov2-tiny-voc.weights
+```
+
+There are several models available (n.b. see `YOLO_CONFIG` [option](https://github.com/dcmartin/motion-ai/blob/master/docs/MOTION.md#---start-yolo4motion-service)):
+
++ `yolov3-tiny.weights`
++ `yolov2.weights`
++ `yolov3.weights`
+
+To download them all, use the following command:
+
+```
+for m in yolov3-tiny.weights yolov2.weights yolov3.weights; do wget http://pjreddie.com/media/files/${m}; done
+```
+
+After you download the weights for YOLO, run the following commands to start the AI's; for example:
+
+```
+./sh/yolo4motion.sh
+./sh/face4motion.sh
+./sh/alpr4motion.sh
+```
 
 # What  is _edge AI_?
 The edge of the network is where connectivity is lost and privacy is challenged.
