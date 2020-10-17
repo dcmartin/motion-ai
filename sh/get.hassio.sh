@@ -118,6 +118,18 @@ echo 'Updating apt ...' &> /dev/stderr && apt update -qq -y \
     netdata \
   || echo 'Failed to install pre-requisite software' &> /dev/stderr
 
+AI=(yolo face alpr)
+for m i ${AI[@]}; do
+  echo "Pulling container for AI: ${m}" \
+  && ${0%/*}/${m}4motion.sh pull \
+  || \
+  echo "Unable to pull container image for AI: ${m}; use ${0%/*}/${m}4motion.sh" &> /dev/stderr
+
+echo 'Downloading yolo weights' \
+  && ${0%/*}/get.weights.sh \
+  || \
+  echo "Unable to download weights; use ${0%/*}/get.weights.sh" &> /dev/stderr
+
 echo 'Modifying NetworkManager to disable WiFi MAC randomization' \
   && mkdir -p /etc/NetworkManager/conf.d \
   && echo '[connection]' > /etc/NetworkManager/conf.d/100-disable-wifi-mac-randomization.conf \
