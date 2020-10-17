@@ -106,6 +106,13 @@ ID=$(echo "${SERVICE:-null}" | jq -r '.id')
 EXT_PORT=$(echo "${SERVICE}" | jq -r '.ports.host')
 INT_PORT=$(echo "${SERVICE}" | jq -r '.ports.service') 
 
+# pull and exit
+if [ "${1:-}" == 'pull' ]; then
+  echo "Pulling container: ${NAME}; id: ${ID}; architecture: ${ARCH}; version: ${VERS}" &> /dev/stderr
+  docker pull "dcmartin/${ARCH}_${ID}:${VERS}" 2> /dev/stderr 
+  exit $?
+fi
+
 # cleanup
 LOGPATH=$(docker inspect --format '{{json .}}' "${LABEL}" | jq -r '.LogPath')
 if [ "${LOGPATH:-null}" != 'null' ]; then
