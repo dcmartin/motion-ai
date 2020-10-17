@@ -36,7 +36,7 @@ cd ~/motion-ai
 wget http://pjreddie.com/media/files/yolov2-tiny-voc.weights
 ```
 
-There are several models available (n.b. see `YOLO_CONFIG` [option](https://github.com/dcmartin/motion-ai/blob/master/docs/MOTION.md#---start-yolo4motion-service)):
+There are several models available (n.b. see `YOLO_CONFIG` [option](https://github.com/dcmartin/motion-ai/blob/master/docs/OPTIONS.md)):
 
 + `yolov3-tiny.weights`
 + `yolov2.weights`
