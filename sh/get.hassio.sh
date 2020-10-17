@@ -116,11 +116,6 @@ echo 'Updating apt ...' &> /dev/stderr && apt update -qq -y \
     socat \
     iperf3 \
     netdata \
-    xserver-xorg \
-    x11-xserver-utils \
-    xinit \
-    openbox \
-    chromium-browser \
   || echo 'Failed to install pre-requisite software' &> /dev/stderr
 
 echo 'Modifying NetworkManager to disable WiFi MAC randomization' \
@@ -152,8 +147,6 @@ curl -sSL https://raw.githubusercontent.com/home-assistant/supervised-installer/
   || \
   echo "Unable to download installer; using backup" &> /dev/stderr
 
-systemctl status ModemManager &> /dev/null && systemctl stop ModemManager && systemctl disable ModemManager
-
 echo "Installing using ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine)" \
-  && ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine) \
+  && yes | ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine) \
   || echo 'Failed to get Home Assistant' &> /dev/stderr
