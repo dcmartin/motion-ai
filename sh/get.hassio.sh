@@ -118,6 +118,7 @@ echo 'Updating apt ...' &> /dev/stderr && apt update -qq -y \
     ca-certificates \
     dbus \
     make \
+    mosquitto-clients \
     socat \
     iperf3 \
     netdata \
@@ -126,7 +127,7 @@ echo 'Updating apt ...' &> /dev/stderr && apt update -qq -y \
 # download AI containers and models
 if [ "${0##*/}" == 'get.motion-ai.sh' ]; then
   for m in yolo face alpr; do \
-    echo "Pulling container for AI: ${m}; using ${0%/*}/${m}4motion.sh pull"; \
+    echo "Pulling container for AI: ${m}"; \
     bash ${0%/*}/${m}4motion.sh pull \
     || \
     echo "Unable to pull container image for AI: ${m}; use ${0%/*}/${m}4motion.sh" &> /dev/stderr
@@ -137,7 +138,7 @@ if [ "${0##*/}" == 'get.motion-ai.sh' ]; then
     || \
     echo "Unable to download weights; use ${0%/*}/get.weights.sh" &> /dev/stderr
 else
-  echo "Performing base installation; skipping AI(s) and model(s)" &> /dev/stderr
+  echo "Performing base installation; skipping AI(s) and model(s)"
 fi
 
 echo 'Modifying NetworkManager to disable WiFi MAC randomization' \
