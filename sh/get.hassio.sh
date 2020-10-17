@@ -46,6 +46,11 @@ machine()
 ### MAIN
 ###
 
+if [ $(uname -s) != 'Linux' ]; then
+  echo 'Only for Ubuntu18, Rasbian Buster, or Debian 10' &> /dev/stderr
+  exit 1
+fi
+
 export DEBIAN_FRONTEND=noninteractive
 
 if [ "${USER:-null}" != 'root' ]; then
