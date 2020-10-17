@@ -27,7 +27,7 @@ make
 reboot
 ```
 
-When the system reboots, install the [MQTT](https://github.com/home-assistant/hassio-addons/tree/master/mosquitto) and [Motion Classic](https://github.com/dcmartin/addon-motion-video0/) _add-ons_.
+When the system reboots, install the [MQTT](https://github.com/home-assistant/hassio-addons/blob/master/mosquitto/README.md) and [Motion Classic](https://github.com/dcmartin/hassio-addons/blob/master/motion-video0/README.md) _add-ons_.
 
 Change to the installation directory, download the YOLO weights (n.b. `tiny-v2` is the default) to avoid downloading each time the container is started, for example:
 
@@ -75,7 +75,7 @@ The `motion-ai` solution is composed of two primary components:
 
 Home Assistant _add-ons_:
 
-+ [`motion`](http://github.com/motion-ai/addons/blob/master/motion/README.md) - _add-on_ for Home Assistant - captures images and video of motion (n.b. [motion-project.github.io](http://motion-project.github.io))
++ [`motion`](https://github.com/dcmartin/hassio-addons/blob/master/motion-video0/README.md) - _add-on_ for Home Assistant - captures images and video of motion (n.b. [motion-project.github.io](http://motion-project.github.io))
 + [`MQTT`](https://github.com/home-assistant/hassio-addons/blob/master/mosquitto/README.md) - messaging broker 
 + [`FTP`](https://github.com/hassio-addons/addon-ftp/blob/master/README.md) - optional, only required for `ftpd` type cameras
 
