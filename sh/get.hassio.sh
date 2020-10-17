@@ -112,11 +112,10 @@ echo 'Updating apt ...' &> /dev/stderr && apt update -qq -y \
     avahi-daemon \
     ca-certificates \
     dbus \
-    jq \
+    make \
     socat \
     iperf3 \
     netdata \
-    git \
     xserver-xorg \
     x11-xserver-utils \
     xinit \
