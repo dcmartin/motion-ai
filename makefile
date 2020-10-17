@@ -4,7 +4,7 @@
 
 SHELL := /bin/bash
 
-THIS_HOSTIP ?= $(shell ifconfig | egrep 'inet ' | awk '{ print $$2 }' | egrep -v '^172.|^10.|^127.|^169.' | head -1)
+THIS_HOSTIP := $(shell hostname -I | awk '{ print $$1 }')
 
 # logging
 LOGGER_DEFAULT ?= $(if $(wildcard LOGGER_DEFAULT),$(shell v=$$(cat LOGGER_DEFAULT) && echo "== LOGGER_DEFAULT: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="warn" && echo "** LOGGER_DEFAULT unset; default: $${v}" > /dev/stderr && echo "$${v}"))
