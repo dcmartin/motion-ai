@@ -118,17 +118,22 @@ echo 'Updating apt ...' &> /dev/stderr && apt update -qq -y \
     netdata \
   || echo 'Failed to install pre-requisite software' &> /dev/stderr
 
-AI=(yolo face alpr)
-for m i ${AI[@]}; do
-  echo "Pulling container for AI: ${m}" \
-  && ${0%/*}/${m}4motion.sh pull \
-  || \
-  echo "Unable to pull container image for AI: ${m}; use ${0%/*}/${m}4motion.sh" &> /dev/stderr
+# download AI containers and models
+if [ "${0##*/}" == 'get.motion-ai.sh' ]; then
+  for m in yolo face alpr; do \
+    echo "Pulling container for AI: ${m}; using ${0%/*}/${m}4motion.sh pull"; \
+    bash ${0%/*}/${m}4motion.sh pull \
+    || \
+    echo "Unable to pull container image for AI: ${m}; use ${0%/*}/${m}4motion.sh" &> /dev/stderr
+  done
 
-echo 'Downloading yolo weights' \
-  && ${0%/*}/get.weights.sh \
-  || \
-  echo "Unable to download weights; use ${0%/*}/get.weights.sh" &> /dev/stderr
+  echo 'Downloading yolo weights'; \
+    bash ${0%/*}/get.weights.sh \
+    || \
+    echo "Unable to download weights; use ${0%/*}/get.weights.sh" &> /dev/stderr
+else
+  echo "Performing base installation; skipping AI(s) and model(s)" &> /dev/stderr
+fi
 
 echo 'Modifying NetworkManager to disable WiFi MAC randomization' \
   && mkdir -p /etc/NetworkManager/conf.d \
