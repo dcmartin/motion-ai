@@ -41,6 +41,10 @@ MOTION_FORCE_UPDATE ?= $(if $(wildcard MOTION_FORCE_UPDATE),$(shell v=$$(cat MOT
 MOTION_MEDIA_SAVE ?= $(if $(wildcard MOTION_MEDIA_SAVE),$(shell v=$$(cat MOTION_MEDIA_SAVE) && echo "** SPECIFIED: MOTION_MEDIA_SAVE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="true" && echo "!! UNSPECIFIED: MOTION_MEDIA_SAVE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MOTION_MEDIA_MASK ?= $(if $(wildcard MOTION_MEDIA_MASK),$(shell v=$$(cat MOTION_MEDIA_MASK) && echo "** SPECIFIED: MOTION_MEDIA_MASK: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="true" && echo "!! UNSPECIFIED: MOTION_MEDIA_MASK unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
+MOTION_OVERVIEW_APIKEY ?= $(if $(wildcard MOTION_OVERVIEW_APIKEY),$(shell v=$$(cat MOTION_OVERVIEW_APIKEY) && echo "** SPECIFIED: MOTION_OVERVIEW_APIKEY: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="none" && echo "!! UNSPECIFIED: MOTION_OVERVIEW_APIKEY unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MOTION_OVERVIEW_MODE ?= $(if $(wildcard MOTION_OVERVIEW_MODE),$(shell v=$$(cat MOTION_OVERVIEW_MODE) && echo "** SPECIFIED: MOTION_OVERVIEW_MODE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="local" && echo "!! UNSPECIFIED: MOTION_OVERVIEW_MODE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MOTION_OVERVIEW_ZOOM ?= $(if $(wildcard MOTION_OVERVIEW_ZOOM),$(shell v=$$(cat MOTION_OVERVIEW_ZOOM) && echo "** SPECIFIED: MOTION_OVERVIEW_ZOOM: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="20" && echo "!! UNSPECIFIED: MOTION_OVERVIEW_ZOOM unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+
 # webcam
 NETCAM_USERNAME ?= $(if $(wildcard NETCAM_USERNAME),$(shell v=$$(cat NETCAM_USERNAME) && echo "** SPECIFIED: NETCAM_USERNAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="username" && echo "!! UNSPECIFIED: NETCAM_USERNAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 NETCAM_PASSWORD ?= $(if $(wildcard NETCAM_PASSWORD),$(shell v=$$(cat NETCAM_PASSWORD) && echo "** SPECIFIED: NETCAM_PASSWORD: $${v}" > /dev/stderr && echo "$${v}"),$(shell read -p "Specify NETCAM_PASSWORD: " && echo $${REPLY} | tee NETCAM_PASSWORD))
@@ -149,6 +153,10 @@ secrets.yaml: secrets.yaml.tmpl makefile $(PWD)
 	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
 	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
 	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
+	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
+	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
+	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
+	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
 	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
 	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
 	&& cat $< | envsubst > $@
@@ -176,6 +184,7 @@ lovelace.json: lovelace.json.tmpl
 	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
 	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
 	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
+	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
 	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
 	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
 	  MQTT_HOST="$(MQTT_HOST)" \
@@ -220,6 +229,7 @@ lovelace.developer.json: lovelace.developer.json.tmpl
 	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
 	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
 	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
+	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
 	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
 	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
 	  MQTT_HOST="$(MQTT_HOST)" \
@@ -291,6 +301,7 @@ lovelace_dashboards.json: lovelace_dashboards.json.tmpl
 	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
 	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
 	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
+	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
 	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
 	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
 	  MQTT_HOST="$(MQTT_HOST)" \
