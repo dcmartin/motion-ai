@@ -8,13 +8,17 @@
       friendly_name: Person detected
       icon_template: 'mdi:account-check'
       value_template: >-
-        {% set s = states('sensor.motion_detected_person') %}
-        {% if s|lower != 'unknown' and s|lower != 'none' %}
-          {% set s = s|from_json %}
-          {% if s|lower != 'unknown' and s|lower != 'none' and s is iterable %}
-            {{ s|sum|int > 0 }}
+        {% if is_state('input_boolean.motion_detected_person_tune','on') %}
+          {% set s = states('sensor.motion_detected_person') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' %}
+            {% set s = s|from_json %}
+            {% if s|lower != 'unknown' and s|lower != 'none' and s is iterable %}
+              {{ s|sum|int > 0 }}
+            {% else %}false{% endif %}
           {% else %}false{% endif %}
-        {% else %}false{% endif %}
+        {% else %}
+          {{ states('binary_sensor.motion_person_detected') }}
+        {% endif %}
 
 - platform: template
   sensors:
@@ -24,9 +28,9 @@
       value_template: >-
         {% set results = state_attr('sensor.motion_event_annotated','results') %}
         {% if results is not none and results|lower != 'unavailable' and results|lower != 'unknown' and results|length > 0 %}
-          {% set l = results|selectattr('entity','==','person')|map(attribute='confidence')|list %}
-          {% if l is not none and l|length > 0 %}
-            {% set c = results|selectattr('entity','==','person')|map(attribute='confidence')|max %}
+          {% set options = state_attr('input_select.motion_detect_person','options') %}
+          {% if options is not none and options|lower != 'unavailable' and options|lower != 'unknown' and options|length > 0 %}
+            {% set c = results|selectattr('entity','in',options)|map(attribute='confidence')|max %}
             {% if c is not none and c|lower != 'unknown' and c|float > 0 %}
               {{ c|float > states('sensor.motion_detected_person_threshold_tune')|float }}
             {% else %}false{% endif %}
