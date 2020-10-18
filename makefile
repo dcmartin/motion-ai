@@ -50,6 +50,10 @@ MOTION_DETECTED_PERSON_TUNE ?= $(if $(wildcard MOTION_DETECTED_PERSON_TUNE),$(sh
 MOTION_DETECTED_VEHICLE_TUNE ?= $(if $(wildcard MOTION_DETECTED_VEHICLE_TUNE),$(shell v=$$(cat MOTION_DETECTED_VEHICLE_TUNE) && echo "== MOTION_DETECTED_VEHICLE_TUNE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "** MOTION_DETECTED_VEHICLE_TUNE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MOTION_DETECTED_ANIMAL_TUNE ?= $(if $(wildcard MOTION_DETECTED_ANIMAL_TUNE),$(shell v=$$(cat MOTION_DETECTED_ANIMAL_TUNE) && echo "== MOTION_DETECTED_ANIMAL_TUNE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "** MOTION_DETECTED_ANIMAL_TUNE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
+MOTION_DETECTED_PERSON_DEVIATION ?= $(if $(wildcard MOTION_DETECTED_PERSON_DEVIATION),$(shell v=$$(cat MOTION_DETECTED_PERSON_DEVIATION) && echo "== MOTION_DETECTED_PERSON_DEVIATION: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='1.0' && echo "** MOTION_DETECTED_PERSON_DEVIATION unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MOTION_DETECTED_VEHICLE_DEVIATION ?= $(if $(wildcard MOTION_DETECTED_VEHICLE_DEVIATION),$(shell v=$$(cat MOTION_DETECTED_VEHICLE_DEVIATION) && echo "== MOTION_DETECTED_VEHICLE_DEVIATION: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='1.0' && echo "** MOTION_DETECTED_VEHICLE_DEVIATION unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MOTION_DETECTED_ANIMAL_DEVIATION ?= $(if $(wildcard MOTION_DETECTED_ANIMAL_DEVIATION),$(shell v=$$(cat MOTION_DETECTED_ANIMAL_DEVIATION) && echo "== MOTION_DETECTED_ANIMAL_DEVIATION: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='1.0' && echo "** MOTION_DETECTED_ANIMAL_DEVIATION unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+
 # webcam
 NETCAM_USERNAME ?= $(if $(wildcard NETCAM_USERNAME),$(shell v=$$(cat NETCAM_USERNAME) && echo "== NETCAM_USERNAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="username" && echo "** NETCAM_USERNAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 NETCAM_PASSWORD ?= $(if $(wildcard NETCAM_PASSWORD),$(shell v=$$(cat NETCAM_PASSWORD) && echo "== NETCAM_PASSWORD: $${v}" > /dev/stderr && echo "$${v}"),$(shell read -p "Specify NETCAM_PASSWORD: " && echo $${REPLY} | tee NETCAM_PASSWORD))
@@ -114,6 +118,9 @@ $(ACTIONS):
 	  MOTION_DETECTED_PERSON_TUNE="$(MOTION_DETECTED_PERSON_TUNE)" \
 	  MOTION_DETECTED_VEHICLE_TUNE="$(MOTION_DETECTED_VEHICLE_TUNE)" \
 	  MOTION_DETECTED_ANIMAL_TUNE="$(MOTION_DETECTED_ANIMAL_TUNE)" \
+	  MOTION_DETECTED_PERSON_DEVIATION="$(MOTION_DETECTED_PERSON_DEVIATION)" \
+	  MOTION_DETECTED_VEHICLE_DEVIATION="$(MOTION_DETECTED_VEHICLE_DEVIATION)" \
+	  MOTION_DETECTED_ANIMAL_DEVIATION="$(MOTION_DETECTED_ANIMAL_DEVIATION)" \
 	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
 	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
 	  MQTT_HOST="$(MQTT_HOST)" \
