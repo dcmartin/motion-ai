@@ -46,6 +46,10 @@ MOTION_OVERVIEW_MODE ?= $(if $(wildcard MOTION_OVERVIEW_MODE),$(shell v=$$(cat M
 MOTION_OVERVIEW_ZOOM ?= $(if $(wildcard MOTION_OVERVIEW_ZOOM),$(shell v=$$(cat MOTION_OVERVIEW_ZOOM) && echo "== MOTION_OVERVIEW_ZOOM: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='20' && echo "** MOTION_OVERVIEW_ZOOM unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MOTION_OVERVIEW_IMAGE ?= $(if $(wildcard MOTION_OVERVIEW_IMAGE),$(shell v=$$(cat MOTION_OVERVIEW_IMAGE) && echo "== MOTION_OVERVIEW_IMAGE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='overview.jpg' && echo "** MOTION_OVERVIEW_IMAGE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
+MOTION_DETECTED_PERSON_TUNE ?= $(if $(wildcard MOTION_DETECTED_PERSON_TUNE),$(shell v=$$(cat MOTION_DETECTED_PERSON_TUNE) && echo "== MOTION_DETECTED_PERSON_TUNE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "** MOTION_DETECTED_PERSON_TUNE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MOTION_DETECTED_VEHICLE_TUNE ?= $(if $(wildcard MOTION_DETECTED_VEHICLE_TUNE),$(shell v=$$(cat MOTION_DETECTED_VEHICLE_TUNE) && echo "== MOTION_DETECTED_VEHICLE_TUNE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "** MOTION_DETECTED_VEHICLE_TUNE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MOTION_DETECTED_ANIMAL_TUNE ?= $(if $(wildcard MOTION_DETECTED_ANIMAL_TUNE),$(shell v=$$(cat MOTION_DETECTED_ANIMAL_TUNE) && echo "== MOTION_DETECTED_ANIMAL_TUNE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "** MOTION_DETECTED_ANIMAL_TUNE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+
 # webcam
 NETCAM_USERNAME ?= $(if $(wildcard NETCAM_USERNAME),$(shell v=$$(cat NETCAM_USERNAME) && echo "== NETCAM_USERNAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="username" && echo "** NETCAM_USERNAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 NETCAM_PASSWORD ?= $(if $(wildcard NETCAM_PASSWORD),$(shell v=$$(cat NETCAM_PASSWORD) && echo "== NETCAM_PASSWORD: $${v}" > /dev/stderr && echo "$${v}"),$(shell read -p "Specify NETCAM_PASSWORD: " && echo $${REPLY} | tee NETCAM_PASSWORD))
@@ -57,7 +61,7 @@ MOTIONCAM_PASSWORD ?= $(if $(wildcard MOTIONCAM_PASSWORD),$(shell v=$$(cat MOTIO
 NETDATA_URL ?= $(if $(wildcard NETDATA_URL),$(shell v=$$(cat NETDATA_URL) && echo "== NETDATA_URL: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="http://${HOST_IPADDR}:19999/" && echo "** NETDATA_URL unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 # tplink
-TPLINK_DISCOVERY ?= $(if $(wildcard TPLINK_DISCOVERY),$(shell v=$$(cat TPLINK_DISCOVERY) && echo "== TPLINK_DISCOVERY: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "** TPLINK_DISCOVERY unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+TPLINK_DISCOVERY ?= $(if $(wildcard TPLINK_DISCOVERY),$(shell v=$$(cat TPLINK_DISCOVERY) && echo "== TPLINK_DISCOVERY: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='ualse' && echo "** TPLINK_DISCOVERY unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 # influxdb
 INFLUXDB_HOST ?= $(if $(wildcard INFLUXDB_HOST),$(shell v=$$(cat INFLUXDB_HOST) && echo "== INFLUXDB_HOST: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='a0d7b954-influxdb' && echo "** INFLUXDB_HOST unset; default: $${v}" > /dev/stderr && echo "$${v}"))
@@ -107,6 +111,9 @@ $(ACTIONS):
 	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
 	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
 	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
+	  MOTION_DETECTED_PERSON_TUNE="$(MOTION_DETECTED_PERSON_TUNE)" \
+	  MOTION_DETECTED_VEHICLE_TUNE="$(MOTION_DETECTED_VEHICLE_TUNE)" \
+	  MOTION_DETECTED_ANIMAL_TUNE="$(MOTION_DETECTED_ANIMAL_TUNE)" \
 	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
 	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
 	  MQTT_HOST="$(MQTT_HOST)" \
