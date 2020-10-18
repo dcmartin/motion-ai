@@ -1,5 +1,5 @@
 # `OPTIONS.md`
-`HOST_IPADDR`Variable|Description|Default|`!secret`
+Variable|Description|Default|`!secret`
 :-------|:-------|:-------|:-------
 `HOST_IPADDR`|Host LAN IP address or FQDN|**`hostname -I`**|`ha-ip`
 `HOST_NAME`|Host name for local reference |**`hostname -f`**|`ha-name`
