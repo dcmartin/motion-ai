@@ -66,7 +66,7 @@ fi
 if [ "${1:-}" = 'off' ]; then exit; fi
 
 # MOTION_DEVICE
-if [ -s "MOTION_DEVICE" ] && [ ${MOTION_DEVICE:-null} == 'null' ]; then
+if [ -s "MOTION_DEVICE" ] || [ ${MOTION_DEVICE:-null} != 'null' ]; then
   v=${MOTION_DEVICE:-$(cat MOTION_DEVICE)} && echo "** SPECIFIED: MOTION_DEVICE: ${v}" > /dev/stderr 
 else 
  v=$(hostname -s | sed -e "s/-//g" -e "s/ /_/g") && echo "!! UNSPECIFIED: MOTION_DEVICE unset; default: ${v}" > /dev/stderr 
@@ -74,7 +74,7 @@ fi
 MOTION_DEVICE=${MOTION_DEVICE:-${v}}
 
 # MOTION_CLIENT
-if [ -s "MOTION_CLIENT" ] && [ ${MOTION_CLIENT:-null} == 'null' ]; then
+if [ -s "MOTION_CLIENT" ] || [ ${MOTION_CLIENT:-null} != 'null' ]; then
   v=${MOTION_CLIENT:-$(cat MOTION_CLIENT)} && echo "** SPECIFIED: MOTION_CLIENT: ${v}" > /dev/stderr 
 else
   v="${MOTION_DEVICE}" && echo "!! UNSPECIFIED: MOTION_CLIENT unset; default: ${v}" > /dev/stderr 
