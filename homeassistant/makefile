@@ -176,7 +176,7 @@ secrets.yaml: secrets.yaml.tmpl makefile $(PWD)
 	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
 	&& cat $< | envsubst > $@
 
-lovelace.json: lovelace.json.tmpl
+lovelace.json: lovelace.json.tmpl motion/webcams.json
 	@export \
 	  DOMAIN_NAME="$(DOMAIN_NAME)" \
 	  HOST_LATITUDE="$(HOST_LATITUDE)" \
@@ -230,7 +230,7 @@ lovelace.json: lovelace.json.tmpl
 
 #	  | jq '(.data.config.views[]|select(.path=="motion_live").cards)+='"$$(jq '[.[]|{"entity":("camera.motion_live_"+.name),"type":"picture-entity"}]' motion/webcams.json)" \
 
-lovelace.developer.json: lovelace.developer.json.tmpl
+lovelace.developer.json: lovelace.developer.json.tmpl motion/webcams.json
 	@export \
 	  DOMAIN_NAME="$(DOMAIN_NAME)" \
 	  HOST_LATITUDE="$(HOST_LATITUDE)" \
