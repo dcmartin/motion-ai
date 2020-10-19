@@ -41,6 +41,8 @@ MOTION_FORCE_UPDATE ?= $(if $(wildcard MOTION_FORCE_UPDATE),$(shell v=$$(cat MOT
 MOTION_MEDIA_SAVE ?= $(if $(wildcard MOTION_MEDIA_SAVE),$(shell v=$$(cat MOTION_MEDIA_SAVE) && echo "== MOTION_MEDIA_SAVE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "** MOTION_MEDIA_SAVE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MOTION_MEDIA_MASK ?= $(if $(wildcard MOTION_MEDIA_MASK),$(shell v=$$(cat MOTION_MEDIA_MASK) && echo "== MOTION_MEDIA_MASK: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "** MOTION_MEDIA_MASK unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
+MOTION_YOLO_IP ?= $(if $(wildcard MOTION_YOLO_IP),$(shell v=$$(cat MOTION_YOLO_IP) && echo "== MOTION_YOLO_IP: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='127.0.0.1' && echo "** MOTION_YOLO_IP unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+
 MOTION_OVERVIEW_APIKEY ?= $(if $(wildcard MOTION_OVERVIEW_APIKEY),$(shell v=$$(cat MOTION_OVERVIEW_APIKEY) && echo "== MOTION_OVERVIEW_APIKEY: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='none' && echo "** MOTION_OVERVIEW_APIKEY unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MOTION_OVERVIEW_MODE ?= $(if $(wildcard MOTION_OVERVIEW_MODE),$(shell v=$$(cat MOTION_OVERVIEW_MODE) && echo "== MOTION_OVERVIEW_MODE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='local' && echo "** MOTION_OVERVIEW_MODE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MOTION_OVERVIEW_ZOOM ?= $(if $(wildcard MOTION_OVERVIEW_ZOOM),$(shell v=$$(cat MOTION_OVERVIEW_ZOOM) && echo "== MOTION_OVERVIEW_ZOOM: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='20' && echo "** MOTION_OVERVIEW_ZOOM unset; default: $${v}" > /dev/stderr && echo "$${v}"))
@@ -111,6 +113,7 @@ $(ACTIONS):
 	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
 	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
 	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
+	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
 	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
 	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
 	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
