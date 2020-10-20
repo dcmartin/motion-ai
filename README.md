@@ -22,7 +22,7 @@ sudo apt install -qq -y make git curl jq ssh
 git clone http://github.com/dcmartin/motion-ai
 cd motion-ai
 sudo ./sh/get.hassio.sh
-cp homeassistant/motion/webcams.json.tmpl webcams.json
+cp webcams.json.tmpl webcams.json
 make
 reboot
 ```
