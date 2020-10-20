@@ -1,0 +1,116 @@
+###
+# homeassistant/sensor/motion/device_tracker.yaml
+###
+
+- platform: template
+  sensors:
+    motion_device_tracker_status_array:
+      friendly_name: Device Tracker states
+      unit_of_measurement: 'device_tracker'
+      value_template: >-
+        [{%- for state in states.device_tracker -%}
+          {%- if loop.first -%}{%- else -%},{%- endif -%}
+          {%- set s = state.state_with_unit|lower -%}
+          {%- if s == 'on' or s == 'off' -%}1{%- else -%}0{%- endif -%}
+        {%- endfor -%}]
+
+- platform: template
+  sensors:
+    motion_device_tracker_count:
+      friendly_name: Device Tracker count
+      icon_template: 'mdi:counter'
+      unit_of_measurement: 'device_tracker'
+      value_template: >-
+        {{ states('sensor.motion_device_tracker_status_array')|from_json|length }}
+
+- platform: template
+  sensors:
+    motion_device_tracker_count_online:
+      friendly_name: Device Tracker on-line count
+      icon_template: 'mdi:counter'
+      unit_of_measurement: 'device_tracker'
+      value_template: >-
+        {{ states('sensor.motion_device_tracker_status_array')|from_json|sum }}
+
+- platform: template
+  sensors:
+    motion_device_tracker_count_offline:
+      friendly_name: Device Tracker off-line count
+      icon_template: 'mdi:counter'
+      unit_of_measurement: 'device_tracker'
+      value_template: >-
+        {{ states('sensor.motion_device_tracker_count')|int - states('sensor.motion_device_tracker_count_online')|int  }}
+
+- platform: template
+  sensors:
+    motion_device_tracker_online_percent:
+      friendly_name: Device Tracker on-line percent
+      icon_template: 'mdi:devices'
+      unit_of_measurement: '%'
+      value_template: >-
+        {% set c = states('sensor.motion_device_tracker_count')|int %}
+        {% if c > 0 %}
+          {% set o = states('sensor.motion_device_tracker_count_online')|int %}
+          {{ (o / c * 100)|int }}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_device_tracker_status:
+      friendly_name: Device Tracker on-line status 
+      icon_template: 'mdi:devices'
+      value_template: >-
+        {{ states('sensor.motion_device_tracker_count_online') -}}/{{- states('sensor.motion_device_tracker_count') -}};
+        {{ states('sensor.motion_device_tracker_online_percent') -}}%
+
+# percent statistics
+
+- platform: statistics
+  name: motion_device_tracker_online_percent_statistics
+  entity_id: sensor.motion_device_tracker_online_percent
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: template
+  sensors:
+    motion_device_tracker_online_percent_mean:
+      friendly_name: Device Tracker on-line mean
+      unit_of_measurement: '%'
+      icon_template: 'mdi:devices'
+      value_template: >-
+        {% if states('sensor.motion_device_tracker_online_percent_statistics') != 'unknown' %}
+          {{ states.sensor.motion_device_tracker_online_percent_statistics.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_device_tracker_online_percent_min_value:
+      friendly_name: Device Tracker on-line min
+      unit_of_measurement: '%'
+      icon_template: 'mdi:devices'
+      value_template: >-
+        {% if states('sensor.motion_device_tracker_online_percent_statistics') != 'unknown' %}
+          {{ states.sensor.motion_device_tracker_online_percent_statistics.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_device_tracker_online_percent_max_value:
+      friendly_name: Device Tracker on-line max
+      unit_of_measurement: '%'
+      icon_template: 'mdi:devices'
+      value_template: >-
+        {% if states('sensor.motion_device_tracker_online_percent_statistics') != 'unknown' %}
+          {{ states.sensor.motion_device_tracker_online_percent_statistics.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_device_tracker_online_percent_stdev:
+      friendly_name: Device Tracker on-line stdev
+      icon_template: 'mdi:devices'
+      unit_of_measurement: '%'
+      value_template: >
+        {% if states('sensor.motion_device_tracker_online_percent_statistics') != 'unknown' %}
+          {{ states.sensor.motion_device_tracker_online_percent_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_device_tracker_online_percent_change:
+      friendly_name: Device Tracker on-line change
+      unit_of_measurement: 'Δ'
+      icon_template: 'mdi:devices'
+      value_template: >
+        {% if states('sensor.motion_device_tracker_online_percent_statistics') != 'unknown' %}
+          {{ states.sensor.motion_device_tracker_online_percent_statistics.attributes.change|float }}
+        {%- else -%}null{%- endif -%}
