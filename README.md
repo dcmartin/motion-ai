@@ -10,7 +10,7 @@ An open-source software solution for situational awareness from a network of vid
 <img src="docs/samples/example-motion-detection.gif" width=756>
 
 ## QuickStart
-The following commands will install `motion-ai` on either Ubuntu18.04 or Raspbian Buster; tested on Virtualbox VM (`amd64`), nVidia Jetson Nano (`arm64`), and Raspberry Pi models 3B+ and 4/2GB (`arm`).
+The following commands will install `motion-ai` on either Ubuntu18.04 or Raspbian Buster; tested on Virtualbox VM (`amd64`), nVidia Jetson Nano (`arm64`), and Raspberry Pi models 3B+ and 4/2GB (`arm`).  
 
 <img src="docs/samples/install-linux.jpg" width="80%">
 
