@@ -382,15 +382,15 @@ refresh:
 clean: stop logclean refresh
 	@echo "making $@"
 	-rm -f secrets.yaml
-	-rm -f .storage/lovelace
+	-rm -f .storage/lovelace*
 
-realclean: clean
-	-rm -f .storage/core.restore_state
-	-sudo rm -f known_devices.yaml
+realclean: clean refresh
 	-sudo rm -f home-assistant.log
+
+distclean: realclean
 	-sudo rm -f home-assistant_v2.*
+	-sudo rm -f known_devices.yaml
 	-sudo rm -f .storage/core.*
-	-sudo rm -f www/images/motion_*
 	-sudo rm -fr ../media/motion
 
 logclean:
