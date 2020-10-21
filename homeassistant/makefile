@@ -389,6 +389,7 @@ realclean: clean refresh
 	-sudo rm -f home-assistant.log
 
 distclean: realclean
+	-suro rm -fr .uuid .HA_VERSION .cloud deps tts .storage
 	-sudo rm -f home-assistant_v2.*
 	-sudo rm -f known_devices.yaml
 	-sudo rm -f .storage/core.*
@@ -399,8 +400,5 @@ logclean:
 	@export LOGPATH=$$(docker inspect --format '{{json .}}' homeassistant | jq -r '.LogPath') \
 	  && echo 'Attempting to remove log file (requires sudo): '"$${LOGPATH}" \
 	  && sudo LOGPATH=$${LOGPATH} /bin/rm -f $${LOGPATH}
-
-distclean: realclean
-	rm -fr .uuid .HA_VERSION .cloud deps tts .storage
 
 .PHONY: refresh tidy all default run stop logs restart clean realclean distclean $(PACKAGES)
