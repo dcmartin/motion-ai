@@ -388,11 +388,13 @@ tidy:
 refresh: 
 	@echo "making $@"
 	-rm -f www/images/motion_*.{jpg,gif}
+	-sudo rm -f .storage/core.restore_state
 
 clean: stop logclean refresh
 	@echo "making $@"
 	-rm -f secrets.yaml
 	-rm -f .storage/lovelace*
+	-sudo rm -f .storage/core.entity_registry
 
 realclean: clean refresh
 	-sudo rm -f home-assistant.log
