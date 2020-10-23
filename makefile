@@ -31,6 +31,8 @@ MQTT_PORT ?= $(if $(wildcard MQTT_PORT),$(shell v=$$(cat MQTT_PORT) && echo "== 
 MQTT_USERNAME ?= $(if $(wildcard MQTT_USERNAME),$(shell v=$$(cat MQTT_USERNAME) && echo "== MQTT_USERNAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="username" && echo "** MQTT_USERNAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MQTT_PASSWORD ?= $(if $(wildcard MQTT_PASSWORD),$(shell v=$$(cat MQTT_PASSWORD) && echo "== MQTT_PASSWORD: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="password" && echo "** MQTT_PASSWORD unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
+IPERF_HOST ?= $(if $(wildcard IPERF_HOST),$(shell v=$$(cat IPERF_HOST) && echo "== IPERF_HOST: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="$(MQTT_HOST)" && echo "** IPERF_HOST unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+
 ## MOTION
 MOTION_GROUP ?= $(if $(wildcard MOTION_GROUP),$(shell v=$$(cat MOTION_GROUP) && echo "== MOTION_GROUP: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='motion' && echo "** MOTION_GROUP unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MOTION_DEVICE ?= $(if $(wildcard MOTION_DEVICE),$(shell v=$$(cat MOTION_DEVICE) && echo "== MOTION_DEVICE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(echo $(HOST_NAME) | sed -e "s/-//g" -e "s/ /_/g") && echo "** MOTION_DEVICE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
@@ -126,6 +128,7 @@ $(ACTIONS):
 	  MOTION_DETECTED_ANIMAL_DEVIATION="$(MOTION_DETECTED_ANIMAL_DEVIATION)" \
 	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
 	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
+	  IPERF_HOST="$(IPERF_HOST)" \
 	  MQTT_HOST="$(MQTT_HOST)" \
 	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
 	  MQTT_PORT="$(MQTT_PORT)" \

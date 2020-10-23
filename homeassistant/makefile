@@ -31,6 +31,8 @@ MQTT_PORT ?= $(if $(wildcard MQTT_PORT),$(shell v=$$(cat MQTT_PORT) && echo "** 
 MQTT_USERNAME ?= $(if $(wildcard MQTT_USERNAME),$(shell v=$$(cat MQTT_USERNAME) && echo "** SPECIFIED: MQTT_USERNAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="username" && echo "!! UNSPECIFIED: MQTT_USERNAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MQTT_PASSWORD ?= $(if $(wildcard MQTT_PASSWORD),$(shell v=$$(cat MQTT_PASSWORD) && echo "** SPECIFIED: MQTT_PASSWORD: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="password" && echo "!! UNSPECIFIED: MQTT_PASSWORD unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
+IPERF_HOST ?= $(if $(wildcard IPERF_HOST),$(shell v=$$(cat IPERF_HOST) && echo "** SPECIFIED: IPERF_HOST: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="$(MQTT_HOST)" && echo "!! UNSPECIFIED: IPERF_HOST unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+
 ## MOTION
 MOTION_GROUP ?= $(if $(wildcard MOTION_GROUP),$(shell v=$$(cat MOTION_GROUP) && echo "** SPECIFIED: MOTION_GROUP: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='motion' && echo "!! UNSPECIFIED: MOTION_GROUP unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MOTION_DEVICE ?= $(if $(wildcard MOTION_DEVICE),$(shell v=$$(cat MOTION_DEVICE) && echo "** SPECIFIED: MOTION_DEVICE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(hostname -s) && echo "!! UNSPECIFIED: MOTION_DEVICE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
@@ -100,6 +102,7 @@ $(PACKAGES): makefile
 	  HOST_LATITUDE="$(HOST_LATITUDE)" \
 	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
 	  HOST_NAME="$(HOST_NAME)" \
+	  IPERF_HOST="$(IPERF_HOST)" \
 	  MQTT_HOST="$(MQTT_HOST)" \
 	  MQTT_PORT="$(MQTT_PORT)" \
 	  MQTT_USERNAME="$(MQTT_USERNAME)" \
@@ -151,6 +154,7 @@ secrets.yaml: secrets.yaml.tmpl makefile $(PWD)
 	  INFLUXDB_PASSWORD="$(INFLUXDB_PASSWORD)" \
 	  INTERNET_SCAN_INTERVAL="$(INTERNET_SCAN_INTERVAL)" \
 	  INTRANET_SCAN_INTERVAL="$(INTRANET_SCAN_INTERVAL)" \
+	  IPERF_HOST="$(IPERF_HOST)" \
 	  MQTT_HOST="$(MQTT_HOST)" \
 	  MQTT_PORT="$(MQTT_PORT)" \
 	  MQTT_USERNAME="$(MQTT_USERNAME)" \
@@ -215,6 +219,7 @@ lovelace.json: lovelace.json.tmpl motion/webcams.json
 	  MOTION_DETECTED_ANIMAL_DEVIATION="$(MOTION_DETECTED_ANIMAL_DEVIATION)" \
 	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
 	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
+	  IPERF_HOST="$(IPERF_HOST)" \
 	  MQTT_HOST="$(MQTT_HOST)" \
 	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
 	  MQTT_PORT="$(MQTT_PORT)" \
@@ -273,6 +278,7 @@ lovelace.developer.json: lovelace.developer.json.tmpl motion/webcams.json
 	  MOTION_DETECTED_ANIMAL_DEVIATION="$(MOTION_DETECTED_ANIMAL_DEVIATION)" \
 	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
 	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
+	  IPERF_HOST="$(IPERF_HOST)" \
 	  MQTT_HOST="$(MQTT_HOST)" \
 	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
 	  MQTT_PORT="$(MQTT_PORT)" \
@@ -355,6 +361,7 @@ lovelace_dashboards.json: lovelace_dashboards.json.tmpl
 	  MOTION_DETECTED_ANIMAL_DEVIATION="$(MOTION_DETECTED_ANIMAL_DEVIATION)" \
 	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
 	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
+	  IPERF_HOST="$(IPERF_HOST)" \
 	  MQTT_HOST="$(MQTT_HOST)" \
 	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
 	  MQTT_PORT="$(MQTT_PORT)" \
