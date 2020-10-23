@@ -382,7 +382,7 @@ lovelace_dashboards.json: lovelace_dashboards.json.tmpl
 
 tidy: 
 	@echo "making $@"
-	@rm -f lovelace.json lovelace_dashboards.json lovelace.developer.json
+	@rm -f lovelace.json lovelace_dashboards.json lovelace.developer.json secrets.yaml
 	@${MAKE} -C motion clean
 
 refresh: 
@@ -392,17 +392,16 @@ refresh:
 
 clean: stop logclean refresh
 	@echo "making $@"
-	-rm -f secrets.yaml
 	-rm -f .storage/lovelace*
 	-sudo rm -f .storage/core.entity_registry
 
 realclean: clean refresh
+	-sudo rm -f home-assistant_v2.*
+	-sudo rm -f known_devices.yaml
 	-sudo rm -f home-assistant.log
 
 distclean: realclean
 	-suro rm -fr .uuid .HA_VERSION .cloud deps tts .storage
-	-sudo rm -f home-assistant_v2.*
-	-sudo rm -f known_devices.yaml
 	-sudo rm -f .storage/core.*
 	-sudo rm -fr ../media/motion
 

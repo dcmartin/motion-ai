@@ -396,10 +396,10 @@
       unit_of_measurement: seconds
       value_template: >
         {% set t = states('sensor.time') %}
-        {% set s = states('sensor.motion_end_date_${MOTION_CAMERA}')|int %}
+        {% set s = states('sensor.motion_end_date_${MOTION_CAMERA}')|float %}
         {% if s >  0 %}
-          {% set s = utcnow().timestamp()|int - s %}
-          {% if s <  86400 %}{{ s }}{%- else -%}null{%- endif -%}
+          {% set s = utcnow().timestamp()|float - s %}
+          {% if s|int <  86400 %}{{ s|float }}{%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif -%}
 
 ## elapsed
@@ -1221,6 +1221,20 @@
   max_age:
     hours: 72
 
+- platform: statistics
+  name: motion_detected_entity_ago_stdev_${MOTION_CAMERA}_statistics
+  entity_id: sensor.motion_detected_entity_ago_stdev_${MOTION_CAMERA}
+  sampling_size: 1000
+  max_age:
+    hours: 72
+
+- platform: statistics
+  name: motion_detected_entity_ago_change_${MOTION_CAMERA}_statistics
+  entity_id: sensor.motion_detected_entity_ago_change_${MOTION_CAMERA}
+  sampling_size: 1000
+  max_age:
+    hours: 72
+
 ## percent
 - platform: template
   sensors:
@@ -1407,6 +1421,7 @@
 - platform: template
   sensors:
     motion_detected_person_counter_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} person counter
       unit_of_measurement: 'person'
       value_template: >
         {{ states('counter.motion_detected_person_counter_${MOTION_CAMERA}') }}
@@ -1608,19 +1623,6 @@
 
 - platform: template
   sensors:
-    motion_detected_person_ago_${MOTION_CAMERA}:
-      friendly_name: ${MOTION_CAMERA} person ago
-      icon_template: 'mdi:camera-timer'
-      unit_of_measurement: seconds
-      value_template: >
-        {% set t = states('sensor.time') %}
-        {% set s = states('sensor.motion_detected_person_date_${MOTION_CAMERA}') %}
-        {% if s is not none and s|lower != 'unknown' and s|int > 0 %}
-          {{ as_timestamp(now())|int - s|int }}
-        {% else %}null{% endif %}
-
-- platform: template
-  sensors:
     motion_detected_person_when_${MOTION_CAMERA}:
       friendly_name: ${MOTION_CAMERA} person when
       icon_template: 'mdi:calendar-clock'
@@ -1636,6 +1638,102 @@
             {{ s }}
           {% else %}null{% endif %}
         {% endif %}
+
+## ago
+- platform: template
+  sensors:
+    motion_detected_person_ago_${MOTION_CAMERA}:
+      friendly_name: ${MOTION_CAMERA} person ago
+      icon_template: 'mdi:camera-timer'
+      unit_of_measurement: seconds
+      value_template: >
+        {% set t = states('sensor.time') %}
+        {% set s = states('sensor.motion_detected_person_date_${MOTION_CAMERA}')|int %}
+        {% if s > 0 %}
+          {% set s = utcnow().timestamp()|int - s %}
+          {% if s < 86400 %}{{ s }}{%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_detected_person_ago_${MOTION_CAMERA}_mean:
+      friendly_name: ${MOTION_CAMERA} person ago mean
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states('sensor.motion_detected_person_ago_${MOTION_CAMERA}_statistics') != 'unknown' %}
+          {{ states.sensor.motion_detected_person_ago_${MOTION_CAMERA}_statistics.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_person_ago_${MOTION_CAMERA}_min_value:
+      friendly_name: ${MOTION_CAMERA} person ago min
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states('sensor.motion_detected_person_ago_${MOTION_CAMERA}_statistics') != 'unknown' %}
+          {{ states.sensor.motion_detected_person_ago_${MOTION_CAMERA}_statistics.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_person_ago_${MOTION_CAMERA}_max_value:
+      friendly_name: ${MOTION_CAMERA} person ago max
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states('sensor.motion_detected_person_ago_${MOTION_CAMERA}_statistics') != 'unknown' %}
+          {{ states.sensor.motion_detected_person_ago_${MOTION_CAMERA}_statistics.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_person_ago_${MOTION_CAMERA}_stdev:
+      friendly_name: ${MOTION_CAMERA} person ago stdev
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states('sensor.motion_detected_person_ago_${MOTION_CAMERA}_statistics') != 'unknown' %}
+          {{ states.sensor.motion_detected_person_ago_${MOTION_CAMERA}_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_person_ago_${MOTION_CAMERA}_change:
+      friendly_name: ${MOTION_CAMERA} person ago change
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states('sensor.motion_detected_person_ago_${MOTION_CAMERA}_statistics') != 'unknown' %}
+          {{ states.sensor.motion_detected_person_ago_${MOTION_CAMERA}_statistics.attributes.change|float }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_person_ago_${MOTION_CAMERA}_stdev_change:
+      friendly_name: '${MOTION_CAMERA} person ago stdev change'
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.motion_detected_person_ago_${MOTION_CAMERA}_stdev_statistics|lower != 'none' %}
+          {{ states.sensor.motion_detected_person_ago_${MOTION_CAMERA}_stdev_statistics.attributes.change|float }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_person_ago_${MOTION_CAMERA}_stdev_mean:
+      friendly_name: '${MOTION_CAMERA} person ago stdev mean'
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.motion_detected_person_ago_${MOTION_CAMERA}_stdev_statistics|lower != 'none' %}
+          {{ states.sensor.motion_detected_person_ago_${MOTION_CAMERA}_stdev_statistics|float }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_person_ago_${MOTION_CAMERA}_change_mean:
+      friendly_name: '${MOTION_CAMERA} person ago change mean'
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.motion_detected_person_ago_${MOTION_CAMERA}_change_statistics|lower != 'none' %}
+          {{ states.sensor.motion_detected_person_ago_${MOTION_CAMERA}_change_statistics|float }}
+        {%- else -%}null{%- endif -%}
+
+# count
+- platform: statistics
+  name: motion_detected_person_ago_${MOTION_CAMERA}_statistics
+  entity_id: sensor.motion_detected_person_ago_${MOTION_CAMERA}
+  sampling_size: 1000
+  max_age:
+    hours: 72
+
+- platform: statistics
+  name: motion_detected_person_ago_${MOTION_CAMERA}_stdev_statistics
+  entity_id: sensor.motion_detected_person_ago_${MOTION_CAMERA}_stdev
+  sampling_size: 1000
+  max_age:
+    hours: 72
+
+- platform: statistics
+  name: motion_detected_person_ago_${MOTION_CAMERA}_change_statistics
+  entity_id: sensor.motion_detected_person_ago_${MOTION_CAMERA}_change
+  sampling_size: 1000
+  max_age:
+    hours: 72
 
 ###
 ## vehicle
