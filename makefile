@@ -68,6 +68,9 @@ MOTIONCAM_PASSWORD ?= $(if $(wildcard MOTIONCAM_PASSWORD),$(shell v=$$(cat MOTIO
 # netdata
 NETDATA_URL ?= $(if $(wildcard NETDATA_URL),$(shell v=$$(cat NETDATA_URL) && echo "== NETDATA_URL: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="http://${HOST_IPADDR}:19999/" && echo "** NETDATA_URL unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
+# jupyter
+JUPYTER_URL ?= $(if $(wildcard JUPYTER_URL),$(shell v=$$(cat JUPYTER_URL) && echo "== JUPYTER_URL: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="http://${HOST_IPADDR}:7777/" && echo "** JUPYTER_URL unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+
 # tplink
 TPLINK_DISCOVERY ?= $(if $(wildcard TPLINK_DISCOVERY),$(shell v=$$(cat TPLINK_DISCOVERY) && echo "== TPLINK_DISCOVERY: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "** TPLINK_DISCOVERY unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
@@ -136,6 +139,7 @@ $(ACTIONS):
 	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
 	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
 	  NETDATA_URL="$(NETDATA_URL)" \
+	  JUPYTER_URL="$(JUPYTER_URL)" \
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	  INFLUXDB_HOST="$(INFLUXDB_HOST)" \
 	  INFLUXDB_DATABASE="$(INFLUXDB_DATABASE)" \

@@ -68,6 +68,9 @@ MOTIONCAM_PASSWORD ?= $(if $(wildcard MOTIONCAM_PASSWORD),$(shell v=$$(cat MOTIO
 # netdata
 NETDATA_URL ?= $(if $(wildcard NETDATA_URL),$(shell v=$$(cat NETDATA_URL) && echo "** SPECIFIED: NETDATA_URL: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="http://${HOST_IPADDR}:19999/" && echo "!! UNSPECIFIED: NETDATA_URL unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
+# jupyter 
+JUPYTER_URL ?= $(if $(wildcard JUPYTER_URL),$(shell v=$$(cat JUPYTER_URL) && echo "** SPECIFIED: JUPYTER_URL: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="http://${HOST_IPADDR}:7777/" && echo "!! UNSPECIFIED: JUPYTER_URL unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+
 # tplink
 TPLINK_DISCOVERY ?= $(if $(wildcard TPLINK_DISCOVERY),$(shell v=$$(cat TPLINK_DISCOVERY) && echo "** SPECIFIED: TPLINK_DISCOVERY: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "!! UNSPECIFIED: TPLINK_DISCOVERY unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
@@ -147,6 +150,7 @@ secrets.yaml: secrets.yaml.tmpl makefile $(PWD)
 	  EXCHANGE_ORG_ADMIN="$(EXCHANGE_ORG_ADMIN)" \
 	  GRAFANA_URL="$(GRAFANA_URL)" \
 	  NETDATA_URL="$(NETDATA_URL)" \
+	  JUPYTER_URL="$(JUPYTER_URL)" \
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	  INFLUXDB_HOST="$(INFLUXDB_HOST)" \
 	  INFLUXDB_USERNAME="$(INFLUXDB_USERNAME)" \
@@ -227,6 +231,7 @@ lovelace.json: lovelace.json.tmpl motion/webcams.json
 	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
 	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
 	  NETDATA_URL="$(NETDATA_URL)" \
+	  JUPYTER_URL="$(JUPYTER_URL)" \
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	&& cat $< \
 	  | envsubst \
@@ -286,6 +291,7 @@ lovelace.developer.json: lovelace.developer.json.tmpl motion/webcams.json
 	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
 	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
 	  NETDATA_URL="$(NETDATA_URL)" \
+	  JUPYTER_URL="$(JUPYTER_URL)" \
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	&& cat $< \
 	  | envsubst \
@@ -369,6 +375,7 @@ lovelace_dashboards.json: lovelace_dashboards.json.tmpl
 	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
 	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
 	  NETDATA_URL="$(NETDATA_URL)" \
+	  JUPYTER_URL="$(JUPYTER_URL)" \
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	&& cat $< \
 	  | envsubst \
