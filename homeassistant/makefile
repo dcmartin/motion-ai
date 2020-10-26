@@ -121,7 +121,9 @@ run: all configuration.yaml
 stop:
 	-docker stop homeassistant
 
-restart: stop logclean tidy run
+restart: stop logclean run
+
+refresh: stop logclean tidy run
 
 logs:
 	docker logs -f homeassistant
@@ -392,17 +394,17 @@ tidy:
 	@rm -f lovelace.json lovelace_dashboards.json lovelace.developer.json secrets.yaml
 	@${MAKE} -C motion clean
 
-refresh: 
+neat: tidy
 	@echo "making $@"
 	-rm -f www/images/motion_*.{jpg,gif}
 	-sudo rm -f .storage/core.restore_state
 
-clean: stop logclean refresh
+clean: stop logclean neat
 	@echo "making $@"
 	-rm -f .storage/lovelace*
 	-sudo rm -f .storage/core.entity_registry
 
-realclean: clean refresh
+realclean: clean 
 	-sudo rm -f home-assistant_v2.*
 	-sudo rm -f known_devices.yaml
 	-sudo rm -f home-assistant.log
@@ -418,4 +420,4 @@ logclean:
 	  && echo 'Attempting to remove log file (requires sudo): '"$${LOGPATH}" \
 	  && sudo LOGPATH=$${LOGPATH} /bin/rm -f $${LOGPATH}
 
-.PHONY: refresh tidy all default run stop logs restart clean realclean distclean $(PACKAGES)
+.PHONY: refresh neat tidy all default run stop logs restart clean realclean distclean $(PACKAGES)
