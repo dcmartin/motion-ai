@@ -7,7 +7,7 @@ SHELL := /bin/bash
 THIS_HOSTIP := $(shell hostname -I | awk '{ print $$1 }')
 
 # logging
-LOGGER_DEFAULT ?= $(if $(wildcard LOGGER_DEFAULT),$(shell v=$$(cat LOGGER_DEFAULT) && echo "== LOGGER_DEFAULT: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="warn" && echo "** LOGGER_DEFAULT unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+LOGGER_DEFAULT ?= $(if $(wildcard LOGGER_DEFAULT),$(shell v=$$(cat LOGGER_DEFAULT) && echo "== LOGGER_DEFAULT: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="error" && echo "** LOGGER_DEFAULT unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 LOGGER_AUTOMATION ?= $(if $(wildcard LOGGER_AUTOMATION),$(shell v=$$(cat LOGGER_AUTOMATION) && echo "== LOGGER_AUTOMATION: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="warn" && echo "** LOGGER_AUTOMATION unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 # domain
