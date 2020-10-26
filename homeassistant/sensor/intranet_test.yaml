@@ -1,0 +1,70 @@
+###
+## homeassistant/sensor/intranet_test.yaml
+###
+
+- platform: template
+  sensors:
+    intranet_iperf_host:
+      value_template: >
+        {% set s = states('input_text.intranet_iperf_host') %}
+        {% if s is not none and s|lower != 'unknown' %}
+          {{ s }}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    intranet_scan_interval:
+      value_template: >
+        {% set s = states('input_number.intranet_scan_interval') %}
+        {% if s is not none and s|lower != 'unknown' %}
+          {{ s|int }}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    intranet_iperf_command:
+      value_template: >-
+        {%- set s = states('input_text.intranet_iperf_host') -%}
+        {%- if s is none or s|lower == 'unknown' -%}
+          {%- set s = states('input_text.motion_mqtt_broker') -%}
+          {%- if s is none or s|lower == 'unknown' or s|lower == 'null' -%}
+            {%- set s = '127.0.0.1' -%}
+          {%- endif -%}
+        {%- endif -%}
+        iperf3 -i 0 -t 1 -J -c {{ s }} | jq '{"host":"{{- s -}}","date":.start.timestamp.timesecs,"send":.end.sum_sent.bits_per_second,"receive":.end.sum_received.bits_per_second}'
+
+- platform: command_line
+  name: intranet_test
+  scan_interval: !secret intranet-scan-interval
+  command_timeout: 60
+  command: "eval {{- states('sensor.intranet_iperf_command') -}}"
+  json_attributes:
+    - date
+    - send
+    - receive
+  value_template: >
+    {%- if value_json is defined -%}True{%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    intranet_receive:
+      friendly_name: Intranet receive
+      icon_template: 'mdi:download-network-outline'
+      unit_of_measurement: Mbps
+      value_template: >
+        {% set s = state_attr('sensor.intranet_test','receive') %}
+        {% if s is not none and s|lower != 'unknown' %}
+          {{ '%0.2f' | format(s|float / 1000000.0) }}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    intranet_send:
+      friendly_name: Intranet send
+      icon_template: 'mdi:upload-network-outline'
+      unit_of_measurement: Mbps
+      value_template: >
+        {% set s = state_attr('sensor.intranet_test','send') %}
+        {% if s is not none and s|lower != 'unknown' %}
+          {{ '%0.2f' | format(s|float / 1000000.0) }}
+        {%- else -%}null{%- endif -%}
