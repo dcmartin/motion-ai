@@ -8,7 +8,7 @@ An open-source software solution for situational awareness from a network of vid
 + Message us on [Slack](https://join.slack.com/t/motionai/shared_invite/zt-gdf19rup-zIseUFLoLSD0NkC5hpr~EQ)
 
 ## QuickStart
-Start-to-finish (LAN) should take about thirty (30) minutes on a RaspberryPi4 or 2-core/2 GB VM; and a high-speed Internet connection.  There are [options](docs/OPTIONS.md) to consider; a non-executable example script may be utilized to specify commonly used options.  **Please edit the example [script](config.sh) for your environment**.
+Start-to-finish (LAN) should take about thirty (30) minutes on a RaspberryPi or virtual machine; and a high-speed Internet connection.  There are [options](docs/OPTIONS.md) to consider; a non-executable example script may be utilized to specify commonly used options.  **Please edit the example [script](config.sh) for your environment**.
 
 The listed commands will install `motion-ai` on the following:
 
