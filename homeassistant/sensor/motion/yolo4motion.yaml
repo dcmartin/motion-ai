@@ -3,15 +3,17 @@
 ###
 
 - platform: rest
-  name: motion_yolo_status
+  name: motion_yolo_test
+  scan_interval: !secret yolo-scan-interval
+  force_update: true
   json_attributes:
     - mqtt
     - timestamp
+    - yolo4motion
     - date
     - hzn
     - config
     - service
-  force_update: true
   resource_template: >-
     {% set s = states('input_text.motion_yolo_ip') %}
     {% if s is none or s|lower == 'unavailable' or s|lower == 'unknown' or s|length == 0 %}
@@ -24,60 +26,182 @@
 
 - platform: template
   sensors:
-    motion_yolo_date:
-      friendly_name: YOLO date
+    motion_yolo_scan_interval:
+      friendly_name: YOLO scan interval
+      unit_of_measurement: seconds
+      icon_template: 'mdi:camera-timer'
       value_template: >-
-        {% set s = state_attr('sensor.motion_yolo_status','date') %}
+        {% set s = states('input_number.motion_yolo_scan_interval') %}
         {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
           {{ s|int }}
         {% else %}null{% endif %}
 
 - platform: template
   sensors:
-    motion_yolo_when:
-      friendly_name: YOLO when 
+    motion_yolo_start_date:
       value_template: >-
-        {% set s = state_attr('sensor.motion_yolo_status','date') %}
+        {% set s = state_attr('sensor.motion_yolo_test','timestamp') %}
+        {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          {% set s = as_timestamp(strptime(s|string,"%FT%TZ")) %}
+          {% if s|float > 0 %}
+            {{ s|float }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_yolo_start_when:
+      friendly_name: YOLO start; when 
+      icon_template: 'mdi:calendar-clock'
+      value_template: >-
+        {% set s = states('sensor.motion_yolo_start_date') %}
+        {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|int > 0 %}
+            {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_yolo_start_ago:
+      friendly_name: 'YOLO status; start ago'
+      icon_template: 'mdi:camera-timer'
+      unit_of_measurement: seconds
+      value_template: >
+        {% set t = states('sensor.time') %}
+        {% set s = states('sensor.motion_yolo_start_date')|int %}
+        {% if s > 0 %}
+          {% set s = utcnow().timestamp()|int - s %}
+          {% if s < 86400 %}{{ s }}{%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_yolo_test_date:
+      value_template: >-
+        {% set s = state_attr('sensor.motion_yolo_test','yolo4motion') %}
+        {% if s is mapping and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          {% set s = as_timestamp(strptime(s.timestamp|string,"%FT%TZ")) %}
+          {% if s|float > 0 %}
+            {{ s|float }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_yolo_test_when:
+      friendly_name: YOLO status; when 
+      icon_template: 'mdi:calendar-clock'
+      value_template: >-
+        {% set s = states('sensor.motion_yolo_test_date') %}
+        {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|int > 0 %}
+            {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_yolo_test_ago:
+      friendly_name: 'YOLO status; test ago'
+      icon_template: 'mdi:camera-timer'
+      unit_of_measurement: seconds
+      value_template: >
+        {% set t = states('sensor.time') %}
+        {% set s = states('sensor.motion_yolo_test_date')|int %}
+        {% if s > 0 %}
+          {% set s = utcnow().timestamp()|int - s %}
+          {% if s < 86400 %}{{ s }}{%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_yolo_config:
+      friendly_name: YOLO status; config
+      value_template: >-
+        {% set s = state_attr('sensor.motion_yolo_test','config') %}
+        {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          {{ state_attr('sensor.motion_yolo_test','config').yolo.config }}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_yolo_entity:
+      friendly_name: YOLO status; entity
+      value_template: >-
+        {% set s = state_attr('sensor.motion_yolo_test','config') %}
+        {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          {{ state_attr('sensor.motion_yolo_test','config').yolo.entity }}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_yolo_scale:
+      friendly_name: YOLO status; scale
+      value_template: >-
+        {% set s = state_attr('sensor.motion_yolo_test','config') %}
+        {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          {{ state_attr('sensor.motion_yolo_test','config').yolo.scale }}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_yolo_threshold:
+      friendly_name: YOLO status; threshold
+      value_template: >-
+        {% set s = state_attr('sensor.motion_yolo_test','config') %}
+        {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          {{ state_attr('sensor.motion_yolo_test','config').yolo.darknet.threshold }}
+        {% else %}null{% endif %}
+ 
+### status details
+
+- platform: template
+  sensors:
+    motion_yolo_test_event_date:
+      unit_of_measurement: seconds
+      value_template: >-
+        {% set s = state_attr('sensor.motion_yolo_test','yolo4motion') %}
+        {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          {{ state_attr('sensor.motion_yolo_test','yolo4motion').event.end }}
+        {% else %}null{% endif %}
+ 
+- platform: template
+  sensors:
+    motion_yolo_test_event_camera:
+      friendly_name: YOLO status; annotated camera
+      icon_template: 'mdi:camera'
+      unit_of_measurement: seconds
+      value_template: >-
+        {% set s = state_attr('sensor.motion_yolo_test','yolo4motion') %}
+        {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          {{ state_attr('sensor.motion_yolo_test','yolo4motion').event.camera }}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_yolo_test_event_when:
+      friendly_name: YOLO status; annotated at
+      icon_template: 'mdi:calendar-clock'
+      value_template: >-
+        {% set s = states('sensor.motion_yolo_event_date') %}
         {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
             {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}
         {% else %}null{% endif %}
 
 - platform: template
   sensors:
-    motion_yolo_config:
-      friendly_name: YOLO config
-      value_template: >-
-        {% set s = state_attr('sensor.motion_yolo_status','config') %}
-        {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
-          {{ state_attr('sensor.motion_yolo_status','config').yolo.config }}
-        {% else %}null{% endif %}
+    motion_yolo_test_event_ago:
+      friendly_name: 'YOLO status; event ago'
+      icon_template: 'mdi:camera-timer'
+      unit_of_measurement: seconds
+      value_template: >
+        {% set t = states('sensor.time') %}
+        {% set s = states('sensor.motion_yolo_test_event_date')|int %}
+        {% if s > 0 %}
+          {% set s = utcnow().timestamp()|int - s %}
+          {% if s < 86400 %}{{ s }}{%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
 
-- platform: template
-  sensors:
-    motion_yolo_entity:
-      friendly_name: YOLO entity
-      value_template: >-
-        {% set s = state_attr('sensor.motion_yolo_status','config') %}
-        {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
-          {{ state_attr('sensor.motion_yolo_status','config').yolo.entity }}
-        {% else %}null{% endif %}
-
-- platform: template
-  sensors:
-    motion_yolo_scale:
-      friendly_name: YOLO scale
-      value_template: >-
-        {% set s = state_attr('sensor.motion_yolo_status','config') %}
-        {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
-          {{ state_attr('sensor.motion_yolo_status','config').yolo.scale }}
-        {% else %}null{% endif %}
-
-- platform: template
-  sensors:
-    motion_yolo_threshold:
-      friendly_name: YOLO threshold
-      value_template: >-
-        {% set s = state_attr('sensor.motion_yolo_status','config') %}
-        {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
-          {{ state_attr('sensor.motion_yolo_status','config').yolo.darknet.threshold }}
-        {% else %}null{% endif %}
+- platform: statistics
+  name: motion_yolo_test_event_ago_statistics
+  entity_id: sensor.motion_yolo_test_event_ago
+  sampling_size: 100
+  max_age:
+    hours: 72
