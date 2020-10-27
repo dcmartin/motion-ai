@@ -7,54 +7,46 @@ An open-source software solution for situational awareness from a network of vid
 + Connect with us on [LinkedIn](https://www.linkedin.com/company/motion-%C3%A3i)
 + Message us on [Slack](https://join.slack.com/t/motionai/shared_invite/zt-gdf19rup-zIseUFLoLSD0NkC5hpr~EQ)
 
-<img src="docs/samples/example-motion-detection.gif" width=756>
-
 ## QuickStart
-The following commands will install `motion-ai` on either Ubuntu18.04 or Raspbian Buster; tested on Virtualbox VM (`amd64`), nVidia Jetson Nano (`arm64`), and Raspberry Pi models 3B+ and 4/2GB (`arm`).  
+Start-to-finish (LAN) should take about thirty (30) minutes on a RaspberryPi4 or 2-core/2 GB VM; and a high-speed Internet connection.  There are [options](docs/OPTIONS.md) to consider; a non-executable example script may be utilized to specify commonly used options.  **Please edit the example [script](config.sh) for your environment**.
 
-<img src="docs/samples/install-linux.jpg" width="80%">
+The listed commands will install `motion-ai` on the following:
 
-Reboot the system when complete; for example:
++ RaspberryPi Model 3B+ or 4 (`arm`); 2GB recommended
++ Ubuntu18.04 or Debian10 VM (`amd64`); 2GB, 2vCPU recommended
++ nVidia Jetson Nano (`arm64`); 4GB recommended
+
+Reboot the system when completed; for example:
 
 ```
 sudo apt update -qq -y
 sudo apt install -qq -y make git curl jq ssh
 git clone http://github.com/dcmartin/motion-ai
 cd motion-ai
-sudo ./sh/get.motion-ai.sh
 cp webcams.json.tmpl webcams.json
+nano config.sh # edit!
+sudo ./sh/get.motion-ai.sh
+bash -x config.sh
 make
 reboot
 ```
 
-When the system reboots, install the [MQTT](https://github.com/home-assistant/hassio-addons/blob/master/mosquitto/README.md) and [Motion Classic](https://github.com/dcmartin/hassio-addons/blob/master/motion-video0/README.md) _add-ons_.
+When the system reboots, install the [MQTT](https://github.com/home-assistant/hassio-addons/blob/master/mosquitto/README.md) and [Motion Classic](https://github.com/dcmartin/hassio-addons/blob/master/motion-video0/README.md) _add-ons_ from the **Add-On Store**; see this [repository](https://github.com/dcmartin/hassio-addons).
 
-Change to the installation directory, download the YOLO weights (n.b. `tiny-v2` is the default) to avoid downloading each time the container is started, for example:
+Change to the installation directory and run the following commands to start the AI's; for example:
 
 ```
 cd ~/motion-ai
-wget http://pjreddie.com/media/files/yolov2-tiny-voc.weights
-```
-
-There are several models available (n.b. see `YOLO_CONFIG` [option](https://github.com/dcmartin/motion-ai/blob/master/docs/OPTIONS.md)):
-
-+ `yolov3-tiny.weights`
-+ `yolov2.weights`
-+ `yolov3.weights`
-
-To download them all, use the following command:
-
-```
-for m in yolov3-tiny.weights yolov2.weights yolov3.weights; do wget http://pjreddie.com/media/files/${m}; done
-```
-
-After you download the weights for YOLO, run the following commands to start the AI's; for example:
-
-```
 ./sh/yolo4motion.sh
 ./sh/face4motion.sh
 ./sh/alpr4motion.sh
 ```
+
+These commands only need to be run once; the AI's will automatically restart when the system is rebooted.
+
+## Example
+<img src="docs/samples/example-motion-detection.gif" width=756>
+
 
 # What  is _edge AI_?
 The edge of the network is where connectivity is lost and privacy is challenged.
