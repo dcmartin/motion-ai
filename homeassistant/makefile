@@ -238,7 +238,7 @@ lovelace.json: lovelace.json.tmpl motion/webcams.json
 	&& cat $< \
 	  | envsubst \
 	  | jq '(.data.config.views[]|select(.path=="status").cards[]|select(.title=="OVERVIEW").elements)+='"$$(jq '[.[]|{"type":"icon","entity":("sensor.motion_detected_person_ago_"+.name),"icon": ("mdi:"+.icon),"style":{"color":"red","left":(.left|tostring+"%"),"top":(.top|tostring+"%"),"height":"5%","width": "5%"}}]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="person").cards[]|select(.title=="Person count mean").entities)+='"$$(jq '[.[]|("sensor.motion_detected_person_count_"+.name+"_mean")]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="person").cards[]|select(.title=="Person count mean (μ)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_person_count_"+.name+"_mean")]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="vehicle").cards[]|select(.title=="Vehicle count mean").entities)+='"$$(jq '[.[]|("sensor.motion_detected_vehicle_count_"+.name+"_mean")]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="animal").cards[]|select(.title=="Animal count mean").entities)+='"$$(jq '[.[]|("sensor.motion_detected_animal_count_"+.name+"_mean")]' motion/webcams.json)" \
 	 > $@
