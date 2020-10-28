@@ -2,191 +2,8 @@
 # homeassistant/sensor/motion/detected_animal.yaml
 ###
 
-- platform: template
-  sensors:
-    motion_detected_animal_status:
-      friendly_name: ANIMAL
-      icon_template: 'mdi:cow'
-      value_template: >-
-        {% if is_state('binary_sensor.motion_detected_animal','on') %}
-          {% set n = utcnow().timestamp()|int %}
-          {% set end = states('sensor.motion_detected_animal_date') %}
-          {% set event = states('sensor.motion_detected_animal_event') %}
-          {% set device = states('sensor.motion_detected_animal_device') %}
-          {% set camera = states('sensor.motion_detected_animal_camera') %}
-          {% set elapsed = states('sensor.motion_detected_animal_elapsed') %}
-          {% set when = states('sensor.motion_detected_animal_when') %}
-          {% set confidence = states('sensor.motion_detected_animal_confidence')|int %}
-          {% set what = 'animal' %}
-          {% set count = states('sensor.motion_detected_animal_count') %}
-          {% set delay = n - end|int %}
-          ANIMAL: {{ count }} {{ what }} @ {{ confidence -}}%;
-          from {{ device -}}/{{- camera -}}/{{- event -}};
-          at {{ when }};
-          delay: {{ delay }};
-          duration: {{ elapsed }};
-          counter: {{ states('counter.motion_detected_animal_counter') -}}/{{- states('sensor.motion_detected_animal_counter') -}}
-        {% else %}
-          {% set s = states('sensor.motion_detected_animal_status') %}
-          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
-            {{ s }}
-          {% else %}NO STATUS{% endif %}
-        {% endif %}
 
-- platform: template
-  sensors:
-    motion_camera_detected_animal_live:
-      friendly_name: Animal camera live
-      value_template: >-
-        {% set camera = states('sensor.motion_detected_animal_camera') %}
-        {% if camera is not none and camera|lower != 'unavailable' and camera|lower != 'unknown' and camera != 'null' and camera|length > 0 %}
-          {% set ep = state_attr('camera.motion_live_' + camera,'entity_picture') %}
-          {% if ep is not none and ep|lower != 'unknown' and ep|lower != 'unavailable' and ep|length > 0 %}
-            {% set bu = states('sensor.motion_base_url') %}
-            {% if bu is not none and bu|lower != 'unknown' and bu|lower != 'unavailable' and bu|length > 0 %}
-              {% set p = bu + ep %}
-            {% endif %}
-          {% endif %}
-        {% endif %}
-        {% if p is defined and p is not none and p|lower != 'unavailable' and p|lower != 'unknown' and p|length > 0 %}
-          {{ p }}
-        {% else %}
-          {{ states('sensor.motion_nosignal_animated') }}
-        {% endif %}
- 
-# array of animal count
-- platform: template
-  sensors:
-    motion_detected_animal:
-      icon_template: 'mdi:counter'
-      value_template: >-
-        {%- set options = state_attr('input_select.motion_detect_animal','options') -%}
-        {%- if options is not none and options|lower != 'unknown' and options|length > 0 -%}
-          {%- set array = state_attr('sensor.motion_event_annotated','results') -%}
-          {%- if array is not none and array|lower != 'unknown' and array|length > 0 -%}
-            {%- for results in array -%}
-              {%- if loop.first -%}[{%- else -%},{%- endif -%}
-              {%- if results.entity in options and results.confidence|int >= states('sensor.motion_detected_animal_threshold')|int -%}
-                1
-              {%- else -%}
-                0
-              {%- endif -%}
-              {%- if loop.last -%}]{%- endif -%}
-            {%- endfor -%}
-          {%- else -%}null{%- endif -%}
-        {%- else -%}null{%- endif -%}
-
-- platform: template
-  sensors:
-    motion_detected_animal_threshold:
-      friendly_name: Animal threshold
-      unit_of_measurement: '%' 
-      icon_template: 'mdi:percent'
-      value_template: >-
-        {% if is_state('input_boolean.motion_detected_animal_tune','off') %}
-          {{ states('input_number.motion_detected_animal_percent')|int }}
-        {% else %}
-          {{ states('sensor.motion_detected_animal_threshold_tune') }}
-        {% endif %}
-
-- platform: template
-  sensors:
-    motion_detected_animal_threshold_deviation:
-      friendly_name: Animal threshold deviation
-      unit_of_measurement: '%'
-      icon_template: 'mdi:sigma-lower'
-      value_template: >-
-        {% set p = states('input_number.motion_detected_animal_percent_deviation')|float %}
-        {% if p is not none and p|lower != 'unknown' and p|lower != 'none' and p|lower != 'unavailable' %}
-          {{ states('input_number.motion_detected_animal_percent_deviation')|float }}
-        {% else %}null{% endif %}
- 
-- platform: template
-  sensors:
-    motion_detected_animal_threshold_tune:
-      friendly_name: Animal auto-threshold
-      unit_of_measurement: '%'
-      icon_template: 'mdi:percent'
-      value_template: >-
-        {% set m = states('sensor.motion_detected_animal_confidence_max_value')|float %}
-        {% set d = states('sensor.motion_detected_animal_confidence_stdev')|float %}
-        {% set p = states('sensor.motion_detected_animal_threshold_deviation')|float %}
-        {% set n = ( m - p * d )|float %}
-        {% set z = states('input_number.motion_detected_animal_percent')|float %}
-        {% if n > z %}{{ n|int }}{% else %}{{ z|int }}{% endif %}
- 
-# sum of animal entity count
-- platform: template
-  sensors:
-    motion_detected_animal_count:
-      friendly_name: Animal count
-      unit_of_measurement: 'animal'
-      icon_template: 'mdi:counter'
-      value_template: >
-        {% if is_state('binary_sensor.motion_detected_animal','on') or is_state('binary_sensor.motion_detected_animal_expired','off') %}
-          {% set s = states('sensor.motion_detected_animal') %}
-          {% if s|lower != 'unknown' and s|lower != none %}
-            {% set s = s|from_json %}
-            {% if s|lower != 'unknown' and s|lower != none and s is iterable %}
-              {{ s|sum|int }}
-            {% else %}null{% endif %}
-          {% else %}null{% endif %}
-        {% else %}null{% endif %}
-
-## count
-- platform: template
-  sensors:
-    motion_detected_animal_count_mean:
-      friendly_name: Animal count mean
-      unit_of_measurement: animal
-      value_template: >-
-        {% if states('sensor.motion_detected_animal_count_statistics') != 'unknown' %}
-          {{ states.sensor.motion_detected_animal_count_statistics.state|float }}
-        {%- else -%}null{%- endif -%}
-    motion_detected_animal_count_min_value:
-      friendly_name: Animal count min
-      unit_of_measurement: animal
-      value_template: >-
-        {% if states('sensor.motion_detected_animal_count_statistics') != 'unknown' %}
-          {{ states.sensor.motion_detected_animal_count_statistics.attributes.min_value|int }}
-        {%- else -%}null{%- endif -%}
-    motion_detected_animal_count_max_value:
-      friendly_name: Animal count max
-      unit_of_measurement: animal
-      value_template: >-
-        {% if states('sensor.motion_detected_animal_count_statistics') != 'unknown' %}
-          {{ states.sensor.motion_detected_animal_count_statistics.attributes.max_value|int }}
-        {%- else -%}null{%- endif -%}
-    motion_detected_animal_count_stdev:
-      friendly_name: Animal count stdev
-      unit_of_measurement: animal
-      value_template: >
-        {% if states('sensor.motion_detected_animal_count_statistics') != 'unknown' %}
-          {{ states.sensor.motion_detected_animal_count_statistics.attributes.standard_deviation|float }}
-        {%- else -%}null{%- endif -%}
-    motion_detected_animal_count_change:
-      friendly_name: Animal count change
-      unit_of_measurement: animal
-      value_template: >
-        {% if states('sensor.motion_detected_animal_count_statistics') != 'unknown' %}
-          {{ states.sensor.motion_detected_animal_count_statistics.attributes.change|float }}
-        {%- else -%}null{%- endif -%}
-
-- platform: statistics
-  name: motion_detected_animal_count_statistics
-  entity_id: sensor.motion_detected_animal_count
-  sampling_size: 100
-  max_age:
-    hours: 72
-
-- platform: statistics
-  name: motion_detected_animal_count_stdev_statistics
-  entity_id: sensor.motion_detected_animal_count_stdev
-  sampling_size: 100
-  max_age:
-    hours: 72
- 
-## sensor from counter
+## counters
 
 - platform: template
   sensors:
@@ -195,151 +12,150 @@
       value_template: >
         {{ states('counter.motion_detected_animal_counter') }}
 
-## TODAY
-
-- platform: history_stats
-  name: motion_today_animal_ratio
-  entity_id: binary_sensor.motion_detected_animal
-  state: 'on'
-  type: ratio
-  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
-  end: '{{ now() }}'
-
-- platform: history_stats
-  name: motion_today_animal_counter
-  entity_id: binary_sensor.motion_detected_animal
-  state: 'on'
-  type: count
-  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
-  end: '{{ now() }}'
-
-- platform: history_stats
-  name: motion_today_animal_time
-  entity_id: binary_sensor.motion_detected_animal
-  state: 'on'
-  type: time
-  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
-  end: '{{ now() }}'
-
-
 - platform: template
   sensors:
-    motion_detected_animal_ratio_today:
-      friendly_name: Today animal ratio
-      unit_of_measurement: '%'
-      icon_template: 'mdi:percent'
-      value_template: >
-        {{ states('sensor.motion_today_animal_ratio') }}
-
-- platform: template
-  sensors:
-    motion_detected_animal_counter_today:
-      friendly_name: Today animal counter
-      unit_of_measurement: 'events'
+    motion_detected_animal_ago_low_counter:
+      friendly_name: 'Animal activity high counter'
       icon_template: 'mdi:counter'
-      value_template: >-
-        {{ states('sensor.motion_today_animal_counter')|int }}
-
-- platform: template
-  sensors:
-    motion_detected_animal_time_today:
-      friendly_name: Today animal time
-      unit_of_measurement: 'hours'
-      icon_template: 'mdi:timer-outline'
       value_template: >
-        {{ states('sensor.motion_today_animal_time')|float }}
+        {% if states('counter.motion_detected_animal_ago_low_counter')|lower != 'unavailable' %}
+          {{ states('counter.motion_detected_animal_ago_low_counter')|int }}
+        {%- else -%}null{%- endif -%}
 
 - platform: template
   sensors:
-    motion_detected_animal_status_today:
-      friendly_name: Today animal
-      icon_template: 'mdi:cow'
-      value_template: >-
-        {% set c = states('sensor.motion_detected_animal_counter_today') %}
-        {% set r = states('sensor.motion_detected_animal_ratio_today') %}
-        {% set t = states('sensor.motion_detected_animal_time_today') %}
-        {% if c|lower != 'unknown' and r|lower != 'unknown' and t|lower != 'unknown' %}
-          {{ c -}}; {{ t }} hours; {{ r }}%
-        {% else %}No animals detected today{% endif %}
-
-- platform: template
-  sensors:
-    motion_detected_animal_confidence:
-      friendly_name: Animal confidence
-      icon_template: 'mdi:cow'
+    motion_detected_animal_ago_low_percent:
+      friendly_name: 'Animal activity high percent'
+      icon_template: 'mdi:percent'
       unit_of_measurement: '%'
       value_template: >
+        {% set c = states('counter.motion_detected_animal_ago_low_counter') %}
+        {% set ic = states('counter.motion_detected_animal_ago_counter') %}
+        {% if ic|int > 0 %}
+          {{ c|float / ic|float * 100.0 }}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_detected_animal_ago_high_counter:
+      friendly_name: 'Animal activity low counter'
+      icon_template: 'mdi:counter'
+      value_template: >
+        {% if states('counter.motion_detected_animal_ago_high_counter')|lower != 'unavailable' %}
+          {{ states('counter.motion_detected_animal_ago_high_counter')|int }}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_detected_animal_ago_high_percent:
+      friendly_name: 'Animal activity low percent'
+      icon_template: 'mdi:percent'
+      unit_of_measurement: '%'
+      value_template: >
+        {% set c = states('counter.motion_detected_animal_ago_high_counter') %}
+        {% set ic = states('counter.motion_detected_animal_ago_counter') %}
+        {% if ic|int > 0 %}
+          {{ c|float / ic|float * 100.0 }}
+        {%- else -%}null{%- endif -%}
+ 
+## summary
+
+- platform: template
+  sensors:
+    motion_animal_activity_metrics:
+      friendly_name: 'Animal activity metrics'
+      icon_template: 'mdi:cow-clock'
+      value_template: >-
+        {%- if states.sensor.motion_detected_animal_date is not none
+              and states.sensor.motion_detected_animal_date.state|lower != 'unknown'
+              and states.sensor.motion_detected_animal_ago.state|lower != 'unknown'
+              and states.sensor.motion_detected_animal_ago_mean.state|lower != 'unknown'
+              and states.sensor.motion_detected_animal_ago_mean.state|lower != 'null' -%}
+          {%- if states('sensor.motion_detected_animal_ago')|lower == 'null' -%}
+            NONE
+          {%- else -%}
+            {%- set a = states('sensor.motion_detected_animal_ago') -%}
+            {%- set am = states('sensor.motion_detected_animal_ago_mean')|float -%}
+            {%- set ad = states('sensor.motion_detected_animal_ago_stdev')|float -%}
+            {%- set as = states('input_number.motion_detected_animal_ago_deviation')|float -%}
+            Σ: {{ states('sensor.motion_detected_animal_counter_today')|int -}};
+            {{ a -}}s Δ; {{ am|int -}}μ; [{{- (am - as * ad)|int -}}:{{- (am + as * ad)|int -}}]
+          {%- endif -%}
+        {%- else -%}
+          Σ: {{ states('sensor.motion_detected_animal_counter_today')|int -}};
+          Δ: {{ states('input_number.motion_yolo_scan_interval')|int }} seconds
+        {%- endif -%}
+
+- platform: template
+  sensors:
+    motion_animal_activity_level:
+      friendly_name: 'Animal activity level'
+      icon_template: 'mdi:cow-question'
+      value_template: >-
+        {%- if states.sensor.motion_detected_animal_date is not none
+              and states.sensor.motion_detected_animal_date.state|lower != 'unknown'
+              and states.sensor.motion_detected_animal_ago.state|lower != 'unknown'
+              and states.sensor.motion_detected_animal_ago_mean.state|lower != 'unknown'
+              and states.sensor.motion_detected_animal_ago_mean.state|lower != 'null' -%}
+          {%- if states('sensor.motion_detected_animal_ago')|lower == 'null' -%}
+            {{ states('sensor.motion_detected_animal_status') }}
+          {%- else -%}
+            {%- if states('sensor.motion_detected_animal_counter_today')|int <= 0 -%}
+              Nothing today
+            {%- elif (states('sensor.motion_detected_animal_ago')|int / 3600)|int > 0 -%}
+              {%- set h = (states('sensor.motion_detected_animal_ago')|int / 3600)|int -%}
+              None for {{ h }} hour(s)
+            {%- elif is_state('binary_sensor.motion_detected_animal_ago_high_persistent','on') -%}
+              Low
+            {%- elif is_state('binary_sensor.motion_detected_animal_ago_high','on') -%}
+              Decreasing
+            {%- elif is_state('binary_sensor.motion_detected_animal_ago_low_persistent','on') -%}
+              High
+            {%- elif is_state('binary_sensor.motion_detected_animal_ago_low','on') -%}
+              Increasing
+            {%- else -%}
+              Normal
+            {%- endif -%}
+          {%- endif -%}
+        {%- else -%}
+          Pending
+        {%- endif -%}
+
+## status
+- platform: template
+  sensors:
+    motion_detected_animal_status:
+      friendly_name: ANIMAL
+      icon_template: 'mdi:cow'
+      value_template: >-
         {% if is_state('binary_sensor.motion_detected_animal','on') %}
-          {% set s = state_attr('sensor.motion_event_annotated','results') %}
-          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|length > 0 %}
-            {% set options = state_attr('input_select.motion_detect_animal','options') %}
-            {% if options is not none and options|lower != 'unknown' and options|length > 0 %}
-              {% set l = s|selectattr('entity','in',options)|map(attribute='confidence')|list %}
-              {% if l is not none and l|length > 0 %}
-                {% set p = s|selectattr('entity','in',options)|map(attribute='confidence')|max|int %}
-              {% endif %}
-            {% endif %}
+          {% set end = states('sensor.motion_detected_animal_date') %}
+          {% set event = states('sensor.motion_detected_animal_event') %}
+          {% set device = states('sensor.motion_detected_animal_device') %}
+          {% set camera = states('sensor.motion_detected_animal_camera') %}
+          {% set elapsed = states('sensor.motion_detected_animal_elapsed') %}
+          {% set confidence = states('sensor.motion_detected_animal_confidence')|int %}
+          {% set count = states('sensor.motion_detected_animal_count') %}
+          {% set n = utcnow().timestamp()|int %}
+          {% if n|int > 0 and end|int > 0 %}
+            {% set when = end|int|timestamp_custom("%I:%M:%S %p on %m/%d") -%}
+            {% set delay = n - end|int %}
+          {% else %}
+            {% set when = 'null' %}
+            {% set delay = 'null' %}
           {% endif %}
-        {% endif %}
-        {% if p is defined %}
-          {{ p }}
+          {{ count }} from {{ device -}}/{{- camera }} at {{ when -}}; 
+          confidence: {{ confidence -}}β 
+          delay: {{ delay -}}s; 
+          duration: {{ elapsed -}}s
         {% else %}
-          {% set s = states('sensor.motion_detected_animal_confidence') %}
-          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+          {% set s = states('sensor.motion_detected_animal_status') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
             {{ s }}
-          {% else %}null{% endif %}
+          {% else %}NO STATUS{% endif %}
         {% endif %}
 
-## confidence
-- platform: template
-  sensors:
-    motion_detected_animal_confidence_mean:
-      friendly_name: Animal confidence mean
-      unit_of_measurement: '%'
-      icon_template: 'mdi:sigma'
-      value_template: >-
-        {% if states('sensor.motion_detected_animal_confidence_statistics') != 'unknown' %}
-          {{ states.sensor.motion_detected_animal_confidence_statistics.state|float }}
-        {%- else -%}null{%- endif -%}
-    motion_detected_animal_confidence_min_value:
-      friendly_name: Animal confidence min
-      unit_of_measurement: '%'
-      value_template: >-
-        {% if states('sensor.motion_detected_animal_confidence_statistics') != 'unknown' %}
-          {{ states.sensor.motion_detected_animal_confidence_statistics.attributes.min_value|int }}
-        {%- else -%}null{%- endif -%}
-    motion_detected_animal_confidence_max_value:
-      friendly_name: Animal confidence max
-      unit_of_measurement: '%'
-      value_template: >-
-        {% if states('sensor.motion_detected_animal_confidence_statistics') != 'unknown' %}
-          {{ states.sensor.motion_detected_animal_confidence_statistics.attributes.max_value|int }}
-        {%- else -%}null{%- endif -%}
-    motion_detected_animal_confidence_stdev:
-      friendly_name: Animal confidence stdev
-      icon_template: 'mdi:sigma-lower'
-      unit_of_measurement: '%'
-      value_template: >
-        {% if states('sensor.motion_detected_animal_confidence_statistics') != 'unknown' %}
-          {{ states.sensor.motion_detected_animal_confidence_statistics.attributes.standard_deviation|float }}
-        {%- else -%}null{%- endif -%}
-    motion_detected_animal_confidence_change:
-      friendly_name: Animal confidence change
-      unit_of_measurement: delta
-      icon_template: 'mdi:delta'
-      value_template: >
-        {% if states('sensor.motion_detected_animal_confidence_statistics') != 'unknown' %}
-          {{ states.sensor.motion_detected_animal_confidence_statistics.attributes.change|float }}
-        {%- else -%}null{%- endif -%}
-
-# confidence
-- platform: statistics
-  name: motion_detected_animal_confidence_statistics
-  entity_id: sensor.motion_detected_animal_confidence
-  sampling_size: 100
-  max_age:
-    hours: 72
-
+## attributes
 - platform: template
   sensors:
     motion_detected_animal_event:
@@ -446,30 +262,602 @@
 
 - platform: template
   sensors:
-    motion_detected_animal_ago:
-      friendly_name: Animal ago
-      icon_template: 'mdi:camera-timer'
-      unit_of_measurement: seconds
-      value_template: >
-        {% set t = states('sensor.time') %}
-        {% set s = states('sensor.motion_detected_animal_date') %}
-        {% if s is not none and s|lower != 'unknown' and s|int > 0 %}
-          {{ as_timestamp(now())|int - s|int }}
-        {% else %}null{% endif %}
-
-- platform: template
-  sensors:
     motion_detected_animal_when:
       friendly_name: Animal when
       icon_template: 'mdi:calendar-clock'
       value_template: >
-        {% if is_state('binary_sensor.motion_detected_animal','on') %}
+        {% if states('sensor.motion_detected_animal_date')|int > 0 %}
           {% set s = states('sensor.motion_detected_animal_date') %}
           {% if s|int > 0 %}
             {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}
           {% else %}Never{% endif %}
         {% else %}
           {% set s = states('sensor.motion_detected_animal_when') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+## live camera
+
+- platform: template
+  sensors:
+    motion_camera_detected_animal_live:
+      friendly_name: Animal camera live
+      value_template: >-
+        {% set camera = states('sensor.motion_detected_animal_camera') %}
+        {% if camera is not none and camera|lower != 'unavailable' and camera|lower != 'unknown' and camera != 'null' and camera|length > 0 %}
+          {% set ep = state_attr('camera.motion_live_' + camera,'entity_picture') %}
+          {% if ep is not none and ep|lower != 'unknown' and ep|lower != 'unavailable' and ep|length > 0 %}
+            {% set bu = states('sensor.motion_base_url') %}
+            {% if bu is not none and bu|lower != 'unknown' and bu|lower != 'unavailable' and bu|length > 0 %}
+              {% set p = bu + ep %}
+            {% endif %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined and p is not none and p|lower != 'unavailable' and p|lower != 'unknown' and p|length > 0 %}
+          {{ p }}
+        {% else %}
+          {{ states('sensor.motion_nosignal_animated') }}
+        {% endif %}
+ 
+## array of animal count
+
+- platform: template
+  sensors:
+    motion_detected_animal:
+      icon_template: 'mdi:counter'
+      value_template: >-
+        {%- set options = state_attr('input_select.motion_detect_animal','options') -%}
+        {%- if options is not none and options|lower != 'unknown' and options|length > 0 -%}
+          {%- set array = state_attr('sensor.motion_event_annotated','results') -%}
+          {%- if array is not none and array|lower != 'unknown' and array|length > 0 -%}
+            {%- for results in array -%}
+              {%- if loop.first -%}[{%- else -%},{%- endif -%}
+              {%- if results.entity in options and results.confidence|int >= states('sensor.motion_detected_animal_threshold')|int -%}
+                1
+              {%- else -%}
+                0
+              {%- endif -%}
+              {%- if loop.last -%}]{%- endif -%}
+            {%- endfor -%}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+
+## threshold
+
+- platform: template
+  sensors:
+    motion_detected_animal_threshold:
+      friendly_name: Animal threshold
+      unit_of_measurement: 'β' 
+      icon_template: 'mdi:beta'
+      value_template: >-
+        {% if is_state('input_boolean.motion_detected_animal_tune','off') %}
+          {{ states('input_number.motion_detected_animal_percent')|int }}
+        {% else %}
+          {{ states('sensor.motion_detected_animal_threshold_tune') }}
+        {% endif %}
+
+- platform: template
+  sensors:
+    motion_detected_animal_threshold_deviation:
+      friendly_name: Animal threshold deviation
+      unit_of_measurement: 'β'
+      icon_template: 'mdi:sigma-lower'
+      value_template: >-
+        {% set p = states('input_number.motion_detected_animal_percent_deviation')|float %}
+        {% if p is not none and p|lower != 'unknown' and p|lower != 'none' and p|lower != 'unavailable' %}
+          {{ states('input_number.motion_detected_animal_percent_deviation')|float }}
+        {% else %}null{% endif %}
+ 
+- platform: template
+  sensors:
+    motion_detected_animal_threshold_tune:
+      friendly_name: Animal auto-threshold
+      unit_of_measurement: 'β'
+      icon_template: 'mdi:beta'
+      value_template: >-
+        {% set m = states('sensor.motion_detected_animal_confidence_max_value')|float %}
+        {% set d = states('sensor.motion_detected_animal_confidence_stdev')|float %}
+        {% set p = states('sensor.motion_detected_animal_threshold_deviation')|float %}
+        {% set n = ( m - p * d )|float %}
+        {% set z = states('input_number.motion_detected_animal_percent')|float %}
+        {% if n > z %}{{ n|int }}{% else %}{{ z|int }}{% endif %}
+ 
+## count
+
+- platform: template
+  sensors:
+    motion_detected_animal_count:
+      friendly_name: 'Animal count (Σ)'
+      unit_of_measurement: 'animal'
+      icon_template: 'mdi:counter'
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_animal','on') or is_state('binary_sensor.motion_detected_animal_expired','off') %}
+          {% set s = states('sensor.motion_detected_animal') %}
+          {% if s|lower != 'unknown' and s|lower != none %}
+            {% set s = s|from_json %}
+            {% if s|lower != 'unknown' and s|lower != none and s is iterable %}
+              {{ s|sum|int }}
+            {% else %}null{% endif %}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+
+- platform: statistics
+  name: motion_detected_animal_count_statistics
+  entity_id: sensor.motion_detected_animal_count
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: template
+  sensors:
+    motion_detected_animal_count_mean:
+      friendly_name: 'Animal Σ μ'
+      unit_of_measurement: 'animal'
+      value_template: >-
+        {% if states('sensor.motion_detected_animal_count_statistics') != 'unknown' %}
+          {{ states.sensor.motion_detected_animal_count_statistics.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_animal_count_min_value:
+      friendly_name: 'Animal Σ min'
+      unit_of_measurement: 'animal'
+      value_template: >-
+        {% if states('sensor.motion_detected_animal_count_statistics') != 'unknown' %}
+          {{ states.sensor.motion_detected_animal_count_statistics.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_animal_count_max_value:
+      friendly_name: 'Animal Σ max'
+      unit_of_measurement: 'animal'
+      value_template: >-
+        {% if states('sensor.motion_detected_animal_count_statistics') != 'unknown' %}
+          {{ states.sensor.motion_detected_animal_count_statistics.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_animal_count_stdev:
+      friendly_name: 'Animal Σ σ'
+      unit_of_measurement: 'animal'
+      value_template: >
+        {% if states('sensor.motion_detected_animal_count_statistics') != 'unknown' %}
+          {{ states.sensor.motion_detected_animal_count_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_animal_count_change:
+      friendly_name: 'Animal Σ Δ'
+      unit_of_measurement: 'animal'
+      value_template: >
+        {% if states('sensor.motion_detected_animal_count_statistics') != 'unknown' %}
+          {{ states.sensor.motion_detected_animal_count_statistics.attributes.change|float }}
+        {%- else -%}null{%- endif -%}
+
+- platform: statistics
+  name: motion_detected_animal_count_stdev_statistics
+  entity_id: sensor.motion_detected_animal_count_stdev
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: template
+  sensors:
+    motion_detected_animal_count_stdev_mean:
+      friendly_name: 'Animal Σ σ μ'
+      unit_of_measurement: 'animal'
+      value_template: >
+        {% if states.sensor.motion_detected_animal_count_stdev_statistics|lower != 'none' %}
+          {{ states('sensor.motion_detected_animal_count_stdev_statistics')|float }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_animal_count_stdev_change:
+      friendly_name: 'Animal Σ σ Δ'
+      unit_of_measurement: 'animal'
+      value_template: >
+        {% if states.sensor.motion_detected_animal_count_stdev_statistics|lower != 'none' %}
+          {{ states.sensor.motion_detected_animal_count_stdev_statistics.attributes.change|float }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_animal_count_stdev_stdev:
+      friendly_name: 'Animal Σ σ σ'
+      unit_of_measurement: 'animal'
+      value_template: >
+        {% if states.sensor.motion_detected_animal_count_stdev_statistics|lower != 'none' %}
+          {{ states.sensor.motion_detected_animal_count_stdev_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+
+- platform: statistics
+  name: motion_detected_animal_count_change_statistics
+  entity_id: sensor.motion_detected_animal_count_change
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: template
+  sensors:
+    motion_detected_animal_count_change_mean:
+      friendly_name: 'Animal Σ Δ μ'
+      unit_of_measurement: 'animal'
+      value_template: >
+        {% if states.sensor.motion_detected_animal_count_change_statistics|lower != 'none' %}
+          {{ states('sensor.motion_detected_animal_count_change_statistics')|float }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_animal_count_change_stdev:
+      friendly_name: 'Animal Σ Δ σ'
+      unit_of_measurement: 'animal'
+      value_template: >
+        {% if states.sensor.motion_detected_animal_count_change_statistics|lower != 'none' %}
+          {{ states.sensor.motion_detected_animal_count_change_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_animal_count_change_change:
+      friendly_name: 'Animal Σ Δ Δ'
+      unit_of_measurement: 'animal'
+      value_template: >
+        {% if states.sensor.motion_detected_animal_count_change_statistics|lower != 'none' %}
+          {{ states.sensor.motion_detected_animal_count_change_statistics.attributes.change|float }}
+        {%- else -%}null{%- endif -%}
+
+## confidence
+
+- platform: template
+  sensors:
+    motion_detected_animal_confidence:
+      friendly_name: 'Animal confidence (β)'
+      icon_template: 'mdi:beta'
+      unit_of_measurement: 'β'
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_animal','on') %}
+          {% set s = state_attr('sensor.motion_event_annotated','results') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|length > 0 %}
+            {% set options = state_attr('input_select.motion_detect_animal','options') %}
+            {% if options is not none and options|lower != 'unknown' and options|length > 0 %}
+              {% set l = s|selectattr('entity','in',options)|map(attribute='confidence')|list %}
+              {% if l is not none and l|length > 0 %}
+                {% set p = s|selectattr('entity','in',options)|map(attribute='confidence')|max|int %}
+              {% endif %}
+            {% endif %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% else %}
+          {% set s = states('sensor.motion_detected_animal_confidence') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+- platform: statistics
+  name: motion_detected_animal_confidence_statistics
+  entity_id: sensor.motion_detected_animal_confidence
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: template
+  sensors:
+    motion_detected_animal_confidence_mean:
+      friendly_name: 'Animal β μ'
+      icon_template: 'mdi:beta'
+      unit_of_measurement: 'β'
+      value_template: >-
+        {% if states('sensor.motion_detected_animal_confidence_statistics') != 'unknown' %}
+          {{ states.sensor.motion_detected_animal_confidence_statistics.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_animal_confidence_min_value:
+      friendly_name: 'Animal β min'
+      unit_of_measurement: 'β'
+      icon_template: 'mdi:beta'
+      value_template: >-
+        {% if states('sensor.motion_detected_animal_confidence_statistics') != 'unknown' %}
+          {{ states.sensor.motion_detected_animal_confidence_statistics.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_animal_confidence_max_value:
+      friendly_name: 'Animal β max'
+      unit_of_measurement: 'β'
+      icon_template: 'mdi:beta'
+      value_template: >-
+        {% if states('sensor.motion_detected_animal_confidence_statistics') != 'unknown' %}
+          {{ states.sensor.motion_detected_animal_confidence_statistics.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_animal_confidence_stdev:
+      friendly_name: 'Animal β σ'
+      unit_of_measurement: 'β'
+      icon_template: 'mdi:beta'
+      value_template: >
+        {% if states('sensor.motion_detected_animal_confidence_statistics') != 'unknown' %}
+          {{ states.sensor.motion_detected_animal_confidence_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_animal_confidence_change:
+      friendly_name: 'Animal β Δ'
+      unit_of_measurement: 'β'
+      icon_template: 'mdi:beta'
+      value_template: >
+        {% if states('sensor.motion_detected_animal_confidence_statistics') != 'unknown' %}
+          {{ states.sensor.motion_detected_animal_confidence_statistics.attributes.change|float }}
+        {%- else -%}null{%- endif -%}
+
+- platform: statistics
+  name: motion_detected_animal_confidence_stdev_statistics
+  entity_id: sensor.motion_detected_animal_confidence_stdev
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: template
+  sensors:
+    motion_detected_animal_confidence_stdev_mean:
+      friendly_name: 'Animal β σ μ'
+      unit_of_measurement: 'β'
+      value_template: >
+        {% if states.sensor.motion_detected_animal_confidence_stdev_statistics|lower != 'none' %}
+          {{ states('sensor.motion_detected_animal_confidence_stdev_statistics')|float }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_animal_confidence_stdev_change:
+      friendly_name: 'Animal β σ Δ'
+      unit_of_measurement: 'β'
+      value_template: >
+        {% if states.sensor.motion_detected_animal_confidence_stdev_statistics|lower != 'none' %}
+          {{ states.sensor.motion_detected_animal_confidence_stdev_statistics.attributes.change|float }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_animal_confidence_stdev_stdev:
+      friendly_name: 'Animal β σ σ'
+      unit_of_measurement: 'β'
+      value_template: >
+        {% if states.sensor.motion_detected_animal_confidence_stdev_statistics|lower != 'none' %}
+          {{ states.sensor.motion_detected_animal_confidence_stdev_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+
+- platform: statistics
+  name: motion_detected_animal_confidence_change_statistics
+  entity_id: sensor.motion_detected_animal_confidence_change
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: template
+  sensors:
+    motion_detected_animal_confidence_change_mean:
+      friendly_name: 'Animal β Δ μ'
+      unit_of_measurement: 'β'
+      value_template: >
+        {% if states.sensor.motion_detected_animal_confidence_change_statistics|lower != 'none' %}
+          {{ states('sensor.motion_detected_animal_confidence_change_statistics')|float }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_animal_confidence_change_stdev:
+      friendly_name: 'Animal β Δ σ'
+      unit_of_measurement: 'β'
+      value_template: >
+        {% if states.sensor.motion_detected_animal_confidence_change_statistics|lower != 'none' %}
+          {{ states.sensor.motion_detected_animal_confidence_change_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_animal_confidence_change_change:
+      friendly_name: 'Animal β Δ Δ'
+      unit_of_measurement: 'β'
+      value_template: >
+        {% if states.sensor.motion_detected_animal_confidence_change_statistics|lower != 'none' %}
+          {{ states.sensor.motion_detected_animal_confidence_change_statistics.attributes.change|float }}
+        {%- else -%}null{%- endif -%}
+
+## ago
+
+- platform: template
+  sensors:
+    motion_detected_animal_ago:
+      friendly_name: 'Animal ago (⧖)'
+      icon_template: 'mdi:camera-timer'
+      unit_of_measurement: seconds
+      value_template: >
+        {% set t = states('sensor.time') %}
+        {% set s = states('sensor.motion_detected_animal_date')|int %}
+        {% if s > 0 %}
+          {% set s = utcnow().timestamp()|int - s %}
+          {% if s < 86400 %}{{ s }}{%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+
+- platform: statistics
+  name: motion_detected_animal_ago_statistics
+  entity_id: sensor.motion_detected_animal_ago
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: template
+  sensors:
+    motion_detected_animal_ago_mean:
+      friendly_name: 'Animal ⧖ μ'
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states('sensor.motion_detected_animal_ago_statistics') != 'unknown' %}
+          {{ states.sensor.motion_detected_animal_ago_statistics.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_animal_ago_min_value:
+      friendly_name: 'Animal ⧖ min'
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states('sensor.motion_detected_animal_ago_statistics') != 'unknown' %}
+          {{ states.sensor.motion_detected_animal_ago_statistics.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_animal_ago_max_value:
+      friendly_name: 'Animal ⧖ max'
+      unit_of_measurement: seconds
+      value_template: >-
+        {% if states('sensor.motion_detected_animal_ago_statistics') != 'unknown' %}
+          {{ states.sensor.motion_detected_animal_ago_statistics.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_animal_ago_stdev:
+      friendly_name: 'Animal ⧖ σ'
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states('sensor.motion_detected_animal_ago_statistics') != 'unknown' %}
+          {{ states.sensor.motion_detected_animal_ago_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_animal_ago_change:
+      friendly_name: 'Animal ⧖ Δ'
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states('sensor.motion_detected_animal_ago_statistics') != 'unknown' %}
+          {{ states.sensor.motion_detected_animal_ago_statistics.attributes.change|float }}
+        {%- else -%}null{%- endif -%}
+
+- platform: statistics
+  name: motion_detected_animal_ago_stdev_statistics
+  entity_id: sensor.motion_detected_animal_ago_stdev
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: template
+  sensors:
+    motion_detected_animal_ago_stdev_mean:
+      friendly_name: 'Animal ⧖ σ μ'
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.motion_detected_animal_ago_stdev_statistics|lower != 'none' %}
+          {{ states('sensor.motion_detected_animal_ago_stdev_statistics')|float }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_animal_ago_stdev_change:
+      friendly_name: 'Animal ⧖ σ Δ'
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.motion_detected_animal_ago_stdev_statistics|lower != 'none' %}
+          {{ states.sensor.motion_detected_animal_ago_stdev_statistics.attributes.change|float }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_animal_ago_stdev_stdev:
+      friendly_name: 'Animal ⧖ σ σ'
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.motion_detected_animal_ago_stdev_statistics|lower != 'none' %}
+          {{ states.sensor.motion_detected_animal_ago_stdev_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+
+- platform: statistics
+  name: motion_detected_animal_ago_change_statistics
+  entity_id: sensor.motion_detected_animal_ago_change
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: template
+  sensors:
+    motion_detected_animal_ago_change_mean:
+      friendly_name: 'Animal ⧖ Δ μ'
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.motion_detected_animal_ago_change_statistics|lower != 'none' %}
+          {{ states('sensor.motion_detected_animal_ago_change_statistics')|float }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_animal_ago_change_stdev:
+      friendly_name: 'Animal ⧖ Δ σ'
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.motion_detected_animal_ago_change_statistics|lower != 'none' %}
+          {{ states.sensor.motion_detected_animal_ago_change_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_animal_ago_change_change:
+      friendly_name: 'Animal ⧖ Δ Δ'
+      unit_of_measurement: seconds
+      value_template: >
+        {% if states.sensor.motion_detected_animal_ago_change_statistics|lower != 'none' %}
+          {{ states.sensor.motion_detected_animal_ago_change_statistics.attributes.change|float }}
+        {%- else -%}null{%- endif -%}
+
+## today
+
+- platform: history_stats
+  name: motion_today_animal_ratio
+  entity_id: binary_sensor.motion_detected_animal
+  state: 'on'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_today_animal_counter
+  entity_id: binary_sensor.motion_detected_animal
+  state: 'on'
+  type: count
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_today_animal_time
+  entity_id: binary_sensor.motion_detected_animal
+  state: 'on'
+  type: time
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+
+- platform: template
+  sensors:
+    motion_detected_animal_ratio_today:
+      friendly_name: Today animal ratio
+      unit_of_measurement: '%'
+      icon_template: 'mdi:percent'
+      value_template: >
+        {{ states('sensor.motion_today_animal_ratio') }}
+
+- platform: template
+  sensors:
+    motion_detected_animal_counter_today:
+      friendly_name: Today animal counter
+      unit_of_measurement: 'events'
+      icon_template: 'mdi:counter'
+      value_template: >-
+        {{ states('sensor.motion_today_animal_counter')|int }}
+
+- platform: template
+  sensors:
+    motion_detected_animal_time_today:
+      friendly_name: Today animal time
+      unit_of_measurement: 'hours'
+      icon_template: 'mdi:timer-outline'
+      value_template: >
+        {{ states('sensor.motion_today_animal_time')|float }}
+
+- platform: template
+  sensors:
+    motion_detected_animal_status_today:
+      friendly_name: Today animal
+      icon_template: 'mdi:cow'
+      value_template: >-
+        {% set c = states('sensor.motion_detected_animal_counter_today') %}
+        {% set r = states('sensor.motion_detected_animal_ratio_today') %}
+        {% set t = states('sensor.motion_detected_animal_time_today') %}
+        {% if c|lower != 'unknown' and r|lower != 'unknown' and t|lower != 'unknown' %}
+          {{ c -}}; {{ t }} hours; {{ r }}%
+        {% else %}No animals detected today{% endif %}
+
+## activity 
+
+# begin when
+- platform: template
+  sensors:
+    motion_detected_animal_activity_begin_when:
+      friendly_name: Animal activity begin
+      icon_template: 'mdi:calendar-clock'
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_animal_activity_begin','on') %}
+          {% set s = now().timestamp()|int %}
+          {% if s|int > 0 %}
+            {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}
+          {% else %}Never{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_detected_animal_activity_begin_when') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+# activity end when
+- platform: template
+  sensors:
+    motion_detected_animal_activity_end_when:
+      friendly_name: Animal activity end
+      icon_template: 'mdi:calendar-clock'
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_animal_activity_end','on') %}
+          {% set s = now().timestamp()|int %}
+          {% if s|int > 0 %}
+            {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}
+          {% else %}Never{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_detected_animal_activity_end_when') %}
           {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
             {{ s }}
           {% else %}null{% endif %}
