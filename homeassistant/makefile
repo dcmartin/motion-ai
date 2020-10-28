@@ -298,6 +298,61 @@ lovelace.developer.json: lovelace.developer.json.tmpl motion/webcams.json
 	&& cat $< \
 	  | envsubst \
 	  | jq '(.data.config.views[]|select(.path=="motion_live").cards[]|select(.title=="OVERVIEW").elements)+='"$$(jq '[.[]|{"type":"icon","entity":("camera.motion_live_"+.name),"icon": ("mdi:"+.icon),"style":{"color":"red","left":(.left|tostring+"%"),"top":(.top|tostring+"%"),"height":"5%","width": "5%"}}]' motion/webcams.json)" \
+	 > $@
+	@echo "MADE $@"
+	rm -f .storage/lovelace.lovelace_developer
+	-mkdir -p .storage/
+	ln -s ../$@ .storage/lovelace.lovelace_developer
+
+lovelace.experimental.json: lovelace.experimental.json.tmpl motion/webcams.json
+	@export \
+	  DOMAIN_NAME="$(DOMAIN_NAME)" \
+	  HOST_LATITUDE="$(HOST_LATITUDE)" \
+	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
+	  HOST_IPADDR="$(HOST_IPADDR)" \
+	  HOST_NAME="$(HOST_NAME)" \
+	  HOST_NETWORK="$(HOST_NETWORK)" \
+	  HOST_NETWORK_MASK="$(HOST_NETWORK_MASK)" \
+	  HOST_PORT="$(HOST_PORT)" \
+	  HOST_THEME="$(HOST_THEME)" \
+	  INTERNET_SCAN_INTERVAL="$(INTERNET_SCAN_INTERVAL)" \
+	  INTRANET_SCAN_INTERVAL="$(INTRANET_SCAN_INTERVAL)" \
+	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
+	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
+	  MOTION_GROUP="$(MOTION_GROUP)" \
+	  MOTION_DEVICE="$(MOTION_DEVICE)" \
+	  MOTION_CLIENT="$(MOTION_CLIENT)" \
+	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
+	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
+	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
+	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
+	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
+	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
+	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
+	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
+	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
+	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
+	  MOTION_DETECTED_PERSON_TUNE="$(MOTION_DETECTED_PERSON_TUNE)" \
+	  MOTION_DETECTED_VEHICLE_TUNE="$(MOTION_DETECTED_VEHICLE_TUNE)" \
+	  MOTION_DETECTED_ANIMAL_TUNE="$(MOTION_DETECTED_ANIMAL_TUNE)" \
+	  MOTION_DETECTED_PERSON_DEVIATION="$(MOTION_DETECTED_PERSON_DEVIATION)" \
+	  MOTION_DETECTED_VEHICLE_DEVIATION="$(MOTION_DETECTED_VEHICLE_DEVIATION)" \
+	  MOTION_DETECTED_ANIMAL_DEVIATION="$(MOTION_DETECTED_ANIMAL_DEVIATION)" \
+	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
+	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
+	  IPERF_HOST="$(IPERF_HOST)" \
+	  MQTT_HOST="$(MQTT_HOST)" \
+	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
+	  MQTT_PORT="$(MQTT_PORT)" \
+	  MQTT_USERNAME="$(MQTT_USERNAME)" \
+	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
+	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
+	  NETDATA_URL="$(NETDATA_URL)" \
+	  JUPYTER_URL="$(JUPYTER_URL)" \
+	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
+	&& cat $< \
+	  | envsubst \
+	  | jq '(.data.config.views[]|select(.path=="motion_live").cards[]|select(.title=="OVERVIEW").elements)+='"$$(jq '[.[]|{"type":"icon","entity":("camera.motion_live_"+.name),"icon": ("mdi:"+.icon),"style":{"color":"red","left":(.left|tostring+"%"),"top":(.top|tostring+"%"),"height":"5%","width": "5%"}}]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="motion_animated_webcams_view").cards)+='"$$(jq '[.[]|{"entity":("sensor.motion_annotated_when_"+.name),"name":.name,"image":("/local/images/motion_end_animated-"+.name+".gif"),"camera_image":("camera.motion_end_animated_"+.name),"type":"picture-entity"}]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="entity_counter_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_counter_"+.name)]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="entity_count_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_count_"+.name)]' motion/webcams.json)" \
@@ -329,9 +384,9 @@ lovelace.developer.json: lovelace.developer.json.tmpl motion/webcams.json
           | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="Camera Status Counter").entities)+='"$$(jq '[.[]|("sensor.motion_status_camera_counter_"+.name)]' motion/webcams.json)" \
 	 > $@
 	@echo "MADE $@"
-	rm -f .storage/lovelace.lovelace_developer
+	rm -f .storage/lovelace.lovelace_experimental
 	-mkdir -p .storage/
-	ln -s ../$@ .storage/lovelace.lovelace_developer
+	ln -s ../$@ .storage/lovelace.lovelace_experimental
 
 lovelace_dashboards.json: lovelace_dashboards.json.tmpl
 	@export \
