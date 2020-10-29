@@ -31,13 +31,25 @@ make
 reboot
 ```
 
-When the system reboots, set the Home Assistant version to 0.116.4 and reboot; for example:
+## &#9937; Home Assistant v0.116.4
+The latest release of Home Assistant _Core_ (v0.117) does **not work** with this software.  When the commands above complete, the latest version will be installed; check with the `ha` command-line-interface:
 
 ```
-ha core update --version=0.116.4
-reboot
+% ha core info
+arch: armv7
+...
+version: 0.117.0
+...
+watchdog: true
 ```
 
+Use the `ha` command to set the Home Assistant version to 0.116.4; when completed the system should be operational.
+
+```
+% ha core update --version=0.116.4
+```
+
+### _Add-ons_
 Install the [MQTT](https://github.com/home-assistant/hassio-addons/blob/master/mosquitto/README.md) and [Motion Classic](https://github.com/dcmartin/hassio-addons/blob/master/motion-video0/README.md) _add-ons_ from the **Add-On Store**; see this [repository](https://github.com/dcmartin/hassio-addons).
 
 Change to the installation directory and run the following commands to start the AI's; for example:
