@@ -31,7 +31,14 @@ make
 reboot
 ```
 
-When the system reboots, install the [MQTT](https://github.com/home-assistant/hassio-addons/blob/master/mosquitto/README.md) and [Motion Classic](https://github.com/dcmartin/hassio-addons/blob/master/motion-video0/README.md) _add-ons_ from the **Add-On Store**; see this [repository](https://github.com/dcmartin/hassio-addons).
+When the system reboots, set the Home Assistant version to 0.116.4 and reboot; for example:
+
+```
+ha core update --version=0.116.4
+reboot
+```
+
+Install the [MQTT](https://github.com/home-assistant/hassio-addons/blob/master/mosquitto/README.md) and [Motion Classic](https://github.com/dcmartin/hassio-addons/blob/master/motion-video0/README.md) _add-ons_ from the **Add-On Store**; see this [repository](https://github.com/dcmartin/hassio-addons).
 
 Change to the installation directory and run the following commands to start the AI's; for example:
 
