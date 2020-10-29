@@ -6,101 +6,148 @@
 - platform: template
   sensors:
     motion_person_face_status:
-      friendly_name: Detected_entity status
-      entity_id:
-        - counter.motion_person_face_counter
+      friendly_name: PERSON FACE
+      icon_template: 'mdi:face'
       value_template: >-
-        {%- set e = state_attr('sensor.motion_event_face','event') -%}
-        {% if e is not none and e|lower != 'unavailable' and e|lower != 'unknown' and e != 'null' %}
-          Counter: {{ states('counter.motion_person_face_counter') -}}/{{- states('sensor.motion_person_face_counter') -}};
-          {%- set detected = state_attr('sensor.motion_event_face','detected') %}
-          {%- set when = e.end|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
-          {#- set what = states('sensor.motion_detect_entity') #}
-          {%- set what = 'person' %}
-          {%- set count = detected|selectattr('entity','==',what)|map(attribute='count')|sum %}
-          {{ count }} {{ what }}; from {{ e.device -}}/{{- e.camera -}}/{{- e.event -}}; at {{ when }}
-        {% else %}NO STATUS{% endif %}
+        {% if is_state('binary_sensor.motion_person_face','on') %}
+          {% set n = utcnow().timestamp()|int %}
+          {% set end = states('sensor.motion_person_face_date') %}
+          {% set event = states('sensor.motion_person_face_event') %}
+          {% set device = states('sensor.motion_person_face_device') %}
+          {% set camera = states('sensor.motion_person_face_camera') %}
+          {% set elapsed = states('sensor.motion_person_face_elapsed') %}
+          {% set when = end|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
+          {% set delay = n - end|int %}
+          PERSON FACE DETECTED: 
+          from {{ device -}}/{{- camera -}}/{{- event -}};
+          at {{ when }};
+          delay: {{ delay }};
+          duration: {{ elapsed }};
+          counter: {{ states('counter.motion_face_detected_counter') -}}/{{- states('sensor.motion_face_detected_counter') -}}
+        {% else %}
+          {% set s = states('sensor.motion_person_face_status') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
+            {{ s }}
+          {% else %}NO STATUS{% endif %}
+        {% endif %}
 
-## snapshot
 - platform: template
   sensors:
-    motion_person_face_snapshot:
-      friendly_name: person face snapshot
-      entity_id:
-        - counter.motion_person_face_counter
+    motion_camera_person_face_live:
+      friendly_name: Person w/ face camera live
+      icon_template: 'mdi:cctv'
       value_template: >-
-        {% set event = state_attr('sensor.motion_event_face','event') %}
-        {% if event is not none and event|lower != 'unknown' and event != 'null' %}
-          {% set ep = '/local/images/motion_person_face-' + event.camera + '.jpg' %}
-          {% set bu = states('sensor.motion_base_url') %}
-          {% if bu is not none and bu|lower != 'unknown' and bu|length > 0 %}
-            {% set p = bu + ep %}
+        {% set camera = states('sensor.motion_person_face_camera') %}
+        {% if camera is not none and camera|lower != 'unavailable' and camera|lower != 'unknown' and camera != 'null' and camera|length > 0 %}
+          {% set ep = state_attr('camera.motion_live_' + camera,'entity_picture') %}
+          {% if ep is not none and ep|lower != 'unknown' and ep|lower != 'unavailable' and ep|length > 0 %}
+            {% set bu = states('sensor.motion_base_url') %}
+            {% if bu is not none and bu|lower != 'unknown' and bu|lower != 'unavailable' and bu|length > 0 %}
+              {% set p = bu + ep %}
+            {% endif %}
           {% endif %}
         {% endif %}
-        {% if p is defined and p is not none and p|lower != 'unknown' and p|length > 0 %}
+        {% if p is defined and p is not none and p|lower != 'unavailable' and p|lower != 'unknown' and p|length > 0 %}
           {{ p }}
         {% else %}
-          {{ states('sensor.motion_nosignal_picture') }}
+          {{ states('sensor.motion_nosignal_animated') }}
         {% endif %}
 
 ## counter
 - platform: template
   sensors:
     motion_person_face_counter:
-      friendly_name: person face counter
-      entity_id:
-        - counter.motion_person_face_counter
-      unit_of_measurement: count
+      friendly_name: Person w/ face counter
+      icon_template: 'mdi:counter'
+      unit_of_measurement: person
       value_template: >
         {% set value = states('counter.motion_person_face_counter') %}
         {% if value|lower != 'unavailable' and value|lower != 'unknown' %}
           {{ value|int }}
         {% else %}null{% endif %}
 
+## event
+- platform: template
+  sensors:
+    # event
+    motion_person_face_event:
+      friendly_name: Person w/ face event
+      value_template: >-
+        {% if is_state('binary_sensor.motion_person_face','on') %}
+          {% set s = states('sensor.motion_face_event') %}
+          {% if s is not none and s|lower != 'unknown' and s != 'null' %}
+            {{ s }}
+          {%- else -%}null{%- endif -%}
+        {% else %}
+          {% set s = states('sensor.motion_person_face_event') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
 ## device
 - platform: template
   sensors:
     # device
     motion_person_face_device:
-      friendly_name: Detected_entity device
-      entity_id:
-        - counter.motion_person_face_counter
+      friendly_name: Person w/ face device
+      icon_template: 'mdi:raspberry-pi'
       value_template: >-
-        {{ state_attr('sensor.motion_event_face','event').device }}
+        {% if is_state('binary_sensor.motion_person_face','on') %}
+          {% set s = states('sensor.motion_face_device') %}
+          {% if s is not none and s|lower != 'unknown' and s != 'null' %}
+            {{ s }}
+          {%- else -%}null{%- endif -%}
+        {% else %}
+          {% set s = states('sensor.motion_person_face_device') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
 
 ## camera
 - platform: template
   sensors:
     motion_person_face_camera:
-      friendly_name: Detected_entity camera
-      entity_id:
-        - counter.motion_person_face_counter
+      friendly_name: Person w/ face camera
+      icon_template: 'mdi:camera'
       value_template: >-
-        {{ state_attr('sensor.motion_event_face','event').camera }}
+        {% if is_state('binary_sensor.motion_person_face','on') %}
+          {% set s = states('sensor.motion_face_camera') %}
+          {% if s is not none and s|lower != 'unknown' and s != 'null' %}
+            {{ s }}
+          {%- else -%}null{%- endif -%}
+        {% else %}
+          {% set s = states('sensor.motion_person_face_camera') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
 
 ## date
 - platform: template
   sensors:
     motion_person_face_date:
-      entity_id:
-        - counter.motion_person_face_counter
       unit_of_measurement: seconds
       value_template: >-
-        {% set e = state_attr('sensor.motion_event_face','event') %}
-        {% if e is not none and e|lower != 'unavailable' and e|lower != 'unknown' and e != 'null' %}
-          {% set s = e.end %}
+        {% if is_state('binary_sensor.motion_person_face','on') %}
+          {% set s = states('sensor.motion_face_camera') %}
           {% if s is not none and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
             {{ s|int }}
           {%- else -%}null{%- endif -%}
-        {%- else -%}null{%- endif -%}
+        {% else %}
+          {% set s = states('sensor.motion_person_face_date') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
 
 ## when - human readable
 - platform: template
   sensors:
     motion_person_face_when:
-      friendly_name: Detected_entity at
-      entity_id:
-        - sensor.motion_person_face_date
+      friendly_name: Person w/ face at
+      icon_template: 'mdi:calendar-clock'
       value_template: >-
         {% set s = states('sensor.motion_person_face_date')|int %}
         {% if s > 0 %}
@@ -111,14 +158,29 @@
 - platform: template
   sensors:
     motion_person_face_ago:
-      friendly_name: Detected_entity ago
-      entity_id:
-        - sensor.motion_person_face_date
-        - sensor.time
+      friendly_name: Person w/ face ago
+      icon_template: 'mdi:camera-timer'
       unit_of_measurement: seconds
       value_template: >
+        {% set t = states('sensor.time') %}
         {% set s = states('sensor.motion_person_face_date')|int %}
         {% if s > 0 %}
           {% set s = utcnow().timestamp()|int - s %}
           {% if s < 86400 %}{{ s }}{%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+
+## percent
+- platform: template
+  sensors:
+    motion_person_face_percent:
+      friendly_name: Person w/ face percent
+      icon_template: 'mdi:percent'
+      unit_of_measurement: '%'
+      value_template: >-
+        {% if states.counter.motion_person_face_counter|lower != 'none'
+              and states.counter.motion_person_face_counter.state != 'null'
+              and states.counter.motion_person_counter|lower != 'none'
+              and states.counter.motion_person_counter.state|int > 0 %}
+          {% set value = states.counter.motion_person_face_counter.state|int / states.counter.motion_person_counter.state|int * 100.0 %}
+          {{ "%.2f"|format(value|float) }}
         {%- else -%}null{%- endif -%}

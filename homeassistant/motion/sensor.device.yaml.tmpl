@@ -12,8 +12,6 @@
 - platform: template
   sensors:
     motion_apache_htdocs:
-      entity_id:
-        - input_text.motion_apache_htdocs
       friendly_name: Apache root directory
       value_template: >-
         {% set s = states('input_text.motion_apache_htdocs') %}
@@ -21,8 +19,6 @@
           {{ s }}
         {% else %}null{% endif %}
     motion_apache_host_${MOTION_DEVICE}:
-      entity_id:
-        - input_text.motion_apache_host
       friendly_name: Apache root directory
       value_template: >-
         {% set s = states('input_text.motion_apache_host') %}
@@ -30,13 +26,58 @@
           {{ s }}
         {% else %}null{% endif %}
     motion_apache_port_${MOTION_DEVICE}:
-      entity_id:
-        - input_text.motion_apache_port
       friendly_name: Apache root directory
       value_template: >-
         {% set s = states('input_text.motion_apache_port') %}
         {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
           {{ s }}
+        {% else %}null{% endif %}
+
+###
+# config
+###
+
+- platform: template
+  sensors:
+    motion_config_url_${MOTION_DEVICE}:
+      friendly_name: Motion configuration URL
+      value_template: >-
+        {% set s = states('sensor.motion_apache_host_${MOTION_DEVICE}') %}
+        {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          {% set host = s %}
+          {% set s = states('sensor.motion_apache_port_${MOTION_DEVICE}') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+            {% set port = s %}
+            {{ 'http://' + host + ':' + port + '/cgi-bin/config' }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+
+- platform: rest
+  name: motion_config_${MOTION_DEVICE}
+  json_attributes:
+    - timestamp
+    - config
+  force_update: true
+  resource_template: >-
+    {% set s = states('sensor.motion_config_url_${MOTION_DEVICE}') %}
+    {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+      {{- s -}}
+    {% else %}http://127.0.0.1:7999/cgi-bin/config{% endif %}
+  value_template: >-
+    {% if value_json is defined %}True{% else %}False{% endif %}
+
+- platform: template
+  sensors:
+    motion_config_camera_count_${MOTION_DEVICE}:
+      friendly_name: ${MOTION_DEVICE} camera count
+      icon_template: 'mdi:cctv'
+      value_template: >-
+        {% set s = state_attr('sensor.motion_config_${MOTION_DEVICE}','config') %}
+        {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          {% set s = s.cameras %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' %}
+            {{ s|list|length }}
+          {% else %}null{% endif %}
         {% else %}null{% endif %}
 
 ###
@@ -46,9 +87,6 @@
 - platform: template
   sensors:
     motion_storage_url_${MOTION_DEVICE}:
-      entity_id:
-        - sensor.motion_apache_host_${MOTION_DEVICE}
-        - sensor.motion_apache_port_${MOTION_DEVICE}
       friendly_name: Motion storage URL
       value_template: >-
         {% set s = states('sensor.motion_apache_host_${MOTION_DEVICE}') %}
@@ -82,9 +120,8 @@
   sensors:
     motion_storage_used_${MOTION_DEVICE}:
       friendly_name: ${MOTION_DEVICE} storage used
+      icon_template: 'mdi:database'
       unit_of_measurement: '%'
-      entity_id:
-        - sensor.motion_storage_${MOTION_DEVICE}
       value_template: >-
         {% set s = states('sensor.motion_storage_${MOTION_DEVICE}') %}
         {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
@@ -100,9 +137,8 @@
   sensors:
     motion_storage_available_${MOTION_DEVICE}:
       friendly_name: ${MOTION_DEVICE} storage available
+      icon_template: 'mdi:database'
       unit_of_measurement: '%'
-      entity_id:
-        - sensor.motion_storage_${MOTION_DEVICE}
       value_template: >-
         {% set s = states('sensor.motion_storage_${MOTION_DEVICE}') %}
         {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}

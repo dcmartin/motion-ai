@@ -1,0 +1,205 @@
+###
+# homeassistant/automation/motion/detected_person_notify.yaml
+###
+
+## notify
+- id: motion_detected_person_notify
+  alias: motion_detected_person_notify
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_detected_person_when
+  condition:
+    condition: template
+    value_template: >
+      {{ is_state('input_boolean.motion_detected_person_notify','on') }}
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >-
+          Detected {{ states('sensor.motion_detected_person_count') }} person(s)
+          from {{ states('sensor.motion_detected_person_camera') }}
+        notification_id: >
+          motion_detected_person-{{- states('sensor.motion_event_detected_person_camera') -}}
+        message: >-
+          Detected {{ states('sensor.motion_detected_person_count') }} person(s)
+          from {{ states('sensor.motion_detected_person_where') }}
+          for {{ states('sensor.motion_detected_person_elapsed') }} seconds
+          at {{ states('sensor.motion_detected_person_when') }}
+
+# ago low/high counters
+
+- id: motion_detected_person_ago_low_counter
+  alias: motion_detected_person_ago_low_counter
+  initial_state: on
+  trigger:
+    platform: state
+    entity_id: binary_sensor.detected_person_ago_low
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.detected_person_ago_low','on') }}
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+  action:
+    - service: agoer.increment
+      entity_id: agoer.motion_detected_person_ago_low_counter
+
+- id: motion_detected_person_ago_high_counter
+  alias: motion_detected_person_ago_high_counter
+  initial_state: on
+  trigger:
+    platform: state
+    entity_id: binary_sensor.detected_person_ago_high
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.detected_person_ago_high','on') }}
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+      - condition: template
+        value_template: >
+          {{ states('sensor.intranet_test') is not none }}
+  action:
+    - service: agoer.increment
+      entity_id: agoer.motion_detected_person_ago_high_counter
+
+## notify
+
+- id: motion_detected_person_ago_low_notify
+  alias: motion_detected_person_ago_low_notify
+  initial_state: !secret detected-person-ago-notifications
+  trigger:
+    platform: state
+    entity_id: binary_sensor.detected_person_ago_low
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.detected_person_ago_low','on') }}
+      - condition: template
+        value_template: >
+          {{ states('sensor.intranet_test') is not none and state_attr('sensor.intranet_test','date') is not none }}
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >
+          Person ago low at
+          {{ now().timestamp()|int|timestamp_custom("%a %b %d %I:%M %p %Z") }}
+        notification_id: motion_detected_person_ago_low
+        message: >
+          Current: {{ states('sensor.motion_detected_person_status') -}}; 
+          average {{ states('sensor.motion_detected_person_ago_mean') }} person(s);
+          stdev {{ state_attr('sensor.motion_detected_person_ago_stdev_statistics') }} person(s)
+
+- id: motion_detected_person_ago_low_dismiss
+  alias: motion_detected_person_ago_low_dismiss
+  initial_state: !secret detected-person-ago-notifications
+  trigger:
+    platform: state
+    entity_id: binary_sensor.detected_person_ago_low
+  condition:
+    - condition: template
+      value_template: >
+        {{ is_state('binary_sensor.detected_person_ago_low','off') }}
+  action:
+    - service: persistent_notification.dismiss
+      data_template:
+        notification_id: motion_detected_person_ago_low
+
+- id: motion_detected_person_ago_low_persistent
+  alias: motion_detected_person_ago_low_persistent
+  initial_state: !secret detected-person-ago-notifications
+  trigger:
+    platform: state
+    entity_id: binary_sensor.detected_person_ago_low_persistent
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.detected_person_ago_low_persistent','on') }}
+      - condition: template
+        value_template: >
+          {{ states('sensor.intranet_test') is not none }}
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >
+          Person ago persistently low at
+          {{ now().timestamp()|int|timestamp_custom("%a %b %d %I:%M %p %Z") }}
+        notification_id: motion_detected_person_ago_low
+        message: >-
+          Current: {{ states('sensor.motion_detected_person_status') -}}; 
+          average {{ states('sensor.motion_detected_person_ago_mean') }} person(s);
+          stdev {{ state_attr('sensor.motion_detected_person_ago_stdev_statistics') }} person(s)
+
+- id: motion_detected_person_ago_high_notify
+  alias: motion_detected_person_ago_high_notify
+  initial_state: !secret detected-person-ago-notifications
+  trigger:
+    platform: state
+    entity_id: binary_sensor.detected_person_ago_high
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.detected_person_ago_high','on') }}
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >
+          Person ago high at
+          {{ now().timestamp()|int|timestamp_custom("%a %b %d %I:%M %p %Z") }}
+        notification_id: motion_detected_person_ago_high
+        message: >
+          Current: {{ states('sensor.motion_detected_person_status') -}}; 
+          average {{ states('sensor.motion_detected_person_ago_mean') }} person(s);
+          stdev {{ state_attr('sensor.motion_detected_person_ago_stdev_statistics') }} person(s)
+
+- id: motion_detected_person_ago_high_dismiss
+  alias: motion_detected_person_ago_high_dismiss
+  initial_state: !secret detected-person-ago-notifications
+  trigger:
+    platform: state
+    entity_id: binary_sensor.detected_person_ago_high
+  condition:
+    - condition: template
+      value_template: >
+        {{ is_state('binary_sensor.detected_person_ago_high','off') }}
+  action:
+    - service: persistent_notification.dismiss
+      data_template:
+        notification_id: motion_detected_person_ago_high
+
+- id: motion_detected_person_ago_high_persistent
+  alias: motion_detected_person_ago_high_persistent
+  initial_state: !secret detected-person-ago-notifications
+  trigger:
+    platform: state
+    entity_id: binary_sensor.detected_person_ago_high_persistent
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.detected_person_ago_high_persistent','on') }}
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >
+          Person ago high at
+          {{ now().timestamp()|int|timestamp_custom("%a %b %d %I:%M %p %Z") }}
+        notification_id: motion_detected_person_ago_high
+        message: >
+          Current: {{ states('sensor.motion_detected_person_status') -}}; 
+          average {{ states('sensor.motion_detected_person_ago_mean') }} person(s);
+          stdev {{ state_attr('sensor.motion_detected_person_ago_stdev_statistics') }} person(s)

@@ -21,13 +21,6 @@ SERVICE='{"label":"face4motion","id":"com.github.dcmartin.open-horizon.face4moti
 FACE='{"country":"'${FACE_COUNTRY:-us}'","pattern":"'${FACE_PATTERN:-all}'","scale":"'${FACE_SCALE:-none}'","threshold":'${FACE_THRESHOLD:-0.5}'}'
 LOG='{"debug":'${DEBUG:-false}',"level":"'"${LOG_LEVEL:-info}"'","logto":"'"${LOGTO:-/dev/stderr}"'"}'
 
-# notify
-echo 'SERVICE: '$(echo "${SERVICE}" | jq -c '.') &> /dev/stderr
-echo 'MOTION: '$(echo "${MOTION}" | jq -c '.') &> /dev/stderr
-echo 'MQTT: '$(echo "${MQTT}" | jq -c '.') &> /dev/stderr
-echo 'FACE: '$(echo "${FACE}" | jq -c '.') &> /dev/stderr
-echo 'LOG: '$(echo "${LOG}" | jq -c '.') &> /dev/stderr
-
 # specify
 LABEL=$(echo "${SERVICE:-null}" | jq -r '.label')
 ARCH=$(echo "${SERVICE:-null}" | jq -r '.arch')
@@ -38,6 +31,20 @@ INT_PORT=$(echo "${SERVICE}" | jq -r '.ports.service')
 
 # container name
 NAME=${SERVICE_NAME:-${LABEL}}
+
+# pull and exit
+if [ "${1:-}" == 'pull' ]; then
+  echo "Pulling container: ${NAME}; id: ${ID}; architecture: ${ARCH}; version: ${VERS}" &> /dev/stderr
+  docker pull "dcmartin/${ARCH}_${ID}:${VERS}" 2> /dev/stderr 
+  exit $?
+fi
+
+# notify
+echo 'SERVICE: '$(echo "${SERVICE}" | jq -c '.') &> /dev/stderr
+echo 'MOTION: '$(echo "${MOTION}" | jq -c '.') &> /dev/stderr
+echo 'MQTT: '$(echo "${MQTT}" | jq -c '.') &> /dev/stderr
+echo 'FACE: '$(echo "${FACE}" | jq -c '.') &> /dev/stderr
+echo 'LOG: '$(echo "${LOG}" | jq -c '.') &> /dev/stderr
 
 # cleanup
 LOGPATH=$(docker inspect --format '{{json .}}' "${LABEL}" | jq -r '.LogPath')

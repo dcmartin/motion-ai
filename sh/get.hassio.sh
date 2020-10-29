@@ -46,6 +46,11 @@ machine()
 ### MAIN
 ###
 
+if [ $(uname -s) != 'Linux' ]; then
+  echo 'Only for Ubuntu18, Rasbian Buster, or Debian 10' &> /dev/stderr
+  exit 1
+fi
+
 export DEBIAN_FRONTEND=noninteractive
 
 if [ "${USER:-null}" != 'root' ]; then
@@ -56,6 +61,11 @@ fi
 >>>>>>> upstream/master
 if [ -z "$(command -v curl)" ]; then
   echo 'Install curl; sudo apt install -qq -y curl' &> /dev/stderr
+  exit 1
+fi
+
+if [ -z "$(command -v jq)" ]; then
+  echo 'Install jq; sudo apt install -qq -y jq' &> /dev/stderr
   exit 1
 fi
 
@@ -71,30 +81,96 @@ fi
 
 CONFIG="/etc/docker/daemon.json"
 if [ -s ${CONFIG} ]; then
-  jq '."log-driver"="journald"|."storage-driver"="overlay2"' ${CONFIG} > /tmp/daemon.json
-  mv -f /tmp/daemon.json ${CONFIG}
+  jq '."log-driver"="journald"|."storage-driver"="overlay2"' ${CONFIG} > ${CONFIG}.$$ \
+	  && mv -f ${CONFIG}.$$ ${CONFIG} \
+	  || echo "Failed to update ${CONFIG}" &> /dev/stderr
 else
   echo '{"log-driver":"journald","storage-driver":"overlay2"}' > ${CONFIG}
 fi
+
+# update runtime if CUDA
+if [ -e /usr/local/cuda/bin/nvcc ]; then
+  jq '."default-runtime"="nvidia"' ${CONFIG} > ${CONFIG}.$$ \
+	  && mv -v ${CONFIG}.$$ ${CONFIG} \
+	  || echo "Failed to update ${CONFIG}" &> /dev/stderr
+  jq '.experimental=true' ${CONFIG} > ${CONFIG}.$$ \
+	  && mv -v ${CONFIG}.$$ ${CONFIG} \
+	  || echo "Failed to update ${CONFIG}" &> /dev/stderr
+  jq '.runtimes={"nvidia":{"path":"/usr/bin/nvidia-container-runtime","runtimeArgs":[]}}' ${CONFIG} > ${CONFIG}.$$ \
+	  && mv -v ${CONFIG}.$$ ${CONFIG} \
+	  || echo "Failed to update ${CONFIG}" &> /dev/stderr
+fi
+
 systemctl restart docker
 
 addgroup ${SUDO_USER:-${USER}} docker
 
 ## UPDATE, UPGRADE, PACKAGES
 
-echo 'Install pre-requisite software' &> /dev/stderr \
-  && echo 'Updating apt ...' &> /dev/stderr && apt update -qq -y \
+echo 'Updating apt ...' &> /dev/stderr && apt update -qq -y \
   && echo 'Upgrading apt ...' &> /dev/stderr && apt upgrade -qq -y \
-  && echo 'Installing packages...' &> /dev/stderr \
-  && apt install -qq -y network-manager software-properties-common apparmor-utils apt-transport-https avahi-daemon ca-certificates curl dbus jq socat iperf3 netdata git \
-  && echo 'Modifying /etc/netdata/netdata.conf to enable access from any host' \
+  && echo 'Installing pre-requisite packages' &> /dev/stderr \
+  && apt install -qq -y \
+    network-manager \
+    software-properties-common \
+    apparmor-utils \
+    apt-transport-https \
+    avahi-daemon \
+    ca-certificates \
+    dbus \
+    make \
+    mosquitto-clients \
+    socat \
+    iperf3 \
+    netdata \
+  || echo 'Failed to install pre-requisite software' &> /dev/stderr
+
+# download AI containers and models
+if [ "${0##*/}" == 'get.motion-ai.sh' ]; then
+  for m in yolo face alpr; do \
+    echo "Pulling container for AI: ${m}"; \
+    bash ${0%/*}/${m}4motion.sh pull \
+    || \
+    echo "Unable to pull container image for AI: ${m}; use ${0%/*}/${m}4motion.sh" &> /dev/stderr
+  done
+
+  echo 'Downloading yolo weights'; \
+    bash ${0%/*}/get.weights.sh \
+    || \
+    echo "Unable to download weights; use ${0%/*}/get.weights.sh" &> /dev/stderr
+else
+  echo "Performing base installation; skipping AI(s) and model(s)"
+fi
+
+echo 'Modifying NetworkManager to disable WiFi MAC randomization' \
+  && mkdir -p /etc/NetworkManager/conf.d \
+  && echo '[connection]' > /etc/NetworkManager/conf.d/100-disable-wifi-mac-randomization.conf \
+  && echo 'wifi.mac-address-randomization=1' >> /etc/NetworkManager/conf.d/100-disable-wifi-mac-randomization.conf \
+  && echo '[device]' >> /etc/NetworkManager/conf.d/100-disable-wifi-mac-randomization.conf \
+  && echo 'wifi.scan-rand-mac-address=no' >> /etc/NetworkManager/conf.d/100-disable-wifi-mac-randomization.conf \
+  && echo 'Restarting network-manager' \
+  && systemctl restart network-manager\
+  || echo 'Failed to modify NetworkManager.conf' &> /dev/stderr
+
+echo 'Modifying NetData to enable access from any host' \
   && sed -i 's/127.0.0.1/\*/' /etc/netdata/netdata.conf \
   && echo 'Restarting netdata' \
   && systemctl restart netdata \
-  || echo 'Failed to install pre-requisite software' &> /dev/stderr
+  || echo 'Failed to modify netdata.conf' &> /dev/stderr
 
-systemctl status ModemManager &> /dev/null && systemctl stop ModemManager && systemctl disable ModemManager
+echo 'Disabling ModemManager' \
+  && systemctl status ModemManager &> /dev/null \
+  && systemctl stop ModemManager \
+  && systemctl disable ModemManager
+
+curl -sSL https://raw.githubusercontent.com/home-assistant/supervised-installer/master/installer.sh -o /tmp/hassio-install.sh \
+  && \
+  mv -f /tmp/hassio-install.sh ${0%/*}/hassio-install.sh \
+  && \
+  chmod 755 ${0%/*}/hassio-install.sh \
+  || \
+  echo "Unable to download installer; using backup" &> /dev/stderr
 
 echo "Installing using ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine)" \
-  && ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine) \
+  && yes | ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine) \
   || echo 'Failed to get Home Assistant' &> /dev/stderr

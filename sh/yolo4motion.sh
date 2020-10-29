@@ -58,7 +58,7 @@ MOTION='{"group":"'${MOTION_GROUP}'","client":"'${MOTION_CLIENT}'","camera":"'${
 ## YOLO
 if [ -z "${YOLO_CONFIG:-}" ] && [ -s YOLO_CONFIG ]; then YOLO_CONFIG=$(cat YOLO_CONFIG); fi; YOLO_CONFIG=${YOLO_CONFIG:-tiny-v2}
 if [ -z "${YOLO_ENTITY:-}" ] && [ -s YOLO_ENTITY ]; then YOLO_ENTITY=$(cat YOLO_ENTITY); fi; YOLO_ENTITY=${YOLO_ENTITY:-all}
-if [ -z "${YOLO_SCALE:-}" ] && [ -s YOLO_SCALE ]; then YOLO_SCALE=$(cat YOLO_SCALE); fi; YOLO_SCALE=${YOLO_SCALE:-none}
+if [ -z "${YOLO_SCALE:-}" ] && [ -s YOLO_SCALE ]; then YOLO_SCALE=$(cat YOLO_SCALE); fi; YOLO_SCALE=${YOLO_SCALE:-640x480}
 if [ -z "${YOLO_THRESHOLD:-}" ] && [ -s YOLO_THRESHOLD ]; then YOLO_THRESHOLD=$(cat YOLO_THRESHOLD); fi; YOLO_THRESHOLD=${YOLO_THRESHOLD:-0.25}
 YOLO='{"config":"'${YOLO_CONFIG}'","entity":"'${YOLO_ENTITY}'","scale":"'${YOLO_SCALE}'","threshold":'${YOLO_THRESHOLD}'}'
 
@@ -71,6 +71,24 @@ LOG='{"debug":'${DEBUG}',"level":"'"${LOG_LEVEL}"'","logto":"'"${LOGTO}"'"}'
 ## SERVICE
 if [ -z "${CONTAINER_TAG:-}" ] && [ -s CONTAINER_TAG ]; then CONTAINER_TAG=$(cat CONTAINER_TAG); fi; CONTAINER_TAG=${CONTAINER_TAG:-0.1.2}
 SERVICE='{"label":"yolo4motion","id":"'${CONTAINER_ID}'","tag":"'${CONTAINER_TAG}'","arch":"'${SERVICE_ARCH:-${BUILD_ARCH}}'","ports":{"service":'${SERVICE_PORT:-80}',"host":'${HOST_PORT:-4662}'},"mount":[{"source":"'${PWD}'/yolov2-tiny-voc.weights","target":"/openyolo/darknet/yolov2-tiny-voc.weights"},{"source":"'${PWD}'/yolov3-tiny.weights","target":"/openyolo/darknet/yolov3-tiny.weights"},{"source":"'${PWD}'/yolov2.weights","target":"/openyolo/darknet/yolov2.weights"},{"source":"'${PWD}'/yolov3.weights","target":"/openyolo/darknet/yolov3.weights"}]}'
+
+# specify
+LABEL=$(echo "${SERVICE:-null}" | jq -r '.label')
+ARCH=$(echo "${SERVICE:-null}" | jq -r '.arch')
+TAG=$(echo "${SERVICE:-null}" | jq -r '.tag')
+ID=$(echo "${SERVICE:-null}" | jq -r '.id')
+EXT_PORT=$(echo "${SERVICE}" | jq -r '.ports.host')
+INT_PORT=$(echo "${SERVICE}" | jq -r '.ports.service') 
+
+# container name
+NAME=${SERVICE_NAME:-${LABEL}}
+
+# pull and exit
+if [ "${1:-}" == 'pull' ]; then
+  echo "Pulling container: ${DOCKER_NAMESPACE:-dcmartin}/${ARCH}_${ID}:${TAG}" &> /dev/stderr
+  docker pull "${DOCKER_NAMESPACE:-dcmartin}/${ARCH}_${ID}:${TAG}" 2> /dev/stderr
+  exit $?
+fi
 
 # extra mounts
 if [ $(echo "${SERVICE}" | jq '.mount!=null') = true ]; then
@@ -97,14 +115,6 @@ echo 'MOTION: '$(echo "${MOTION}" | jq -c '.') &> /dev/stderr
 echo 'MQTT: '$(echo "${MQTT}" | jq -c '.') &> /dev/stderr
 echo 'YOLO: '$(echo "${YOLO}" | jq -c '.') &> /dev/stderr
 echo 'LOG: '$(echo "${LOG}" | jq -c '.') &> /dev/stderr
-
-# specify
-LABEL=$(echo "${SERVICE:-null}" | jq -r '.label')
-ARCH=$(echo "${SERVICE:-null}" | jq -r '.arch')
-TAG=$(echo "${SERVICE:-null}" | jq -r '.tag')
-ID=$(echo "${SERVICE:-null}" | jq -r '.id')
-EXT_PORT=$(echo "${SERVICE}" | jq -r '.ports.host')
-INT_PORT=$(echo "${SERVICE}" | jq -r '.ports.service') 
 
 # cleanup
 LOGPATH=$(docker inspect --format '{{json .}}' "${LABEL}" | jq -r '.LogPath')

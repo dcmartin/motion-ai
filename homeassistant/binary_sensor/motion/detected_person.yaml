@@ -5,28 +5,205 @@
 - platform: template
   sensors:
     motion_detected_person:
-      friendly_name: Detected person
-      icon_template: 'mdi:motion-sensor'
-      device_class: occupancy
-      entity_id:
-        - sensor.motion_detected_person
+      friendly_name: Person detected
+      icon_template: 'mdi:account-check'
       value_template: >-
-        {% set s = states('sensor.motion_detected_person') %}
-        {% if s|lower != 'unknown' and s|lower != 'none' %}
-          {% set s = s|from_json %}
-          {% if s|lower != 'unknown' and s|lower != 'none' and s is iterable %}
-            {{ s|sum|int > 0 }}
+        {% if is_state('input_boolean.motion_detected_person_tune','off') %}
+          {% set s = states('sensor.motion_detected_person') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' %}
+            {% set s = s|from_json %}
+            {% if s|lower != 'unknown' and s|lower != 'none' and s is iterable %}
+              {{ s|sum|int > 0 }}
+            {% else %}false{% endif %}
+          {% else %}false{% endif %}
+        {% else %}
+          {{ states('binary_sensor.motion_person_detected') }}
+        {% endif %}
+
+- platform: template
+  sensors:
+    motion_person_detected:
+      friendly_name: Person found
+      icon_template: 'mdi:account-circle'
+      value_template: >-
+        {% set results = state_attr('sensor.motion_event_annotated','results') %}
+        {% if results is not none and results|lower != 'unavailable' and results|lower != 'unknown' and results|length > 0 %}
+          {% set options = state_attr('input_select.motion_detect_person','options') %}
+          {% if options is not none and options|lower != 'unavailable' and options|lower != 'unknown' and options|length > 0 %}
+            {% if results|selectattr('entity','in',options)|map(attribute='confidence')|list|length > 0 %}
+              {% set c = results|selectattr('entity','in',options)|map(attribute='confidence')|max %}
+              {% if c is not none and c|lower != 'unknown' and c|float > 0 %}
+                {{ c|float >= states('sensor.motion_detected_person_threshold_tune')|float }}
+              {% else %}false{% endif %}
+            {% else %}false{% endif %}
           {% else %}false{% endif %}
         {% else %}false{% endif %}
 
 - platform: template
   sensors:
     motion_detected_person_expired:
-      friendly_name: Detected person expired
-      icon_template: 'mdi:motion-sensor-off'
+      friendly_name: Person detected expired
+      icon_template: 'mdi:account-cancel'
       device_class: occupancy
-      entity_id:
-        - sensor.motion_detected_person_ago
-        - input_number.motion_detected_entity_ago
       value_template: >-
-        {{ states('sensor.motion_detected_person_ago')|int > states('input_number.motion_detected_entity_ago')|int }}
+        {{ states('sensor.motion_detected_person_ago')|int > states('input_number.motion_detected_person_ago')|int }}
+
+## LOW / HIGH
+
+- platform: template
+  sensors:
+    motion_detected_person_ago_low:
+      friendly_name: Activity high
+      icon_template: 'mdi:account-clock-outline'
+      value_template: >-
+        {% set pad = states('input_number.motion_detected_person_ago_deviation') -%}
+        {%- set pa = states('sensor.motion_detected_person_ago') -%}
+        {%- set pam = states('sensor.motion_detected_person_ago_mean') -%}
+        {%- set pas = states('sensor.motion_detected_person_ago_stdev') -%}
+        {% if pa is not none and pa|lower != 'null' and pa|lower != 'unavailable' and pa|lower != 'unknown'
+          and pam is not none and pam|lower != 'null' and pam|lower != 'unavailable' and pam|lower != 'unknown'
+          and pas|lower != 'none' and pas|lower != 'null' and pas|lower != 'unavailable' and pas|lower != 'unknown' and pas|float > 0.0
+          and pad is not none and pad|lower != 'null' and pad|lower != 'unavailable' and pad|lower != 'unknown' %}
+          {{ ((pam|float - pa|float) / pas|float) >= pad|float }}
+        {%- else -%}null{%- endif %}
+
+- platform: template
+  sensors:
+    motion_detected_person_ago_low_persistent:
+      friendly_name: Activity high persistent
+      icon_template: 'mdi:account-clock'
+      value_template: >-
+        {% set pad = states('input_number.motion_detected_person_ago_deviation') -%}
+        {%- set pa = states('sensor.motion_detected_person_ago') -%}
+        {%- set pam = states('sensor.motion_detected_person_ago_mean') -%}
+        {%- set pas = states('sensor.motion_detected_person_ago_stdev') -%}
+        {%- set pasm = states('sensor.motion_detected_person_ago_stdev_mean') -%}
+        {% if pa is not none and pa|lower != 'null' and pa|lower != 'unavailable' and pa|lower != 'unknown'
+          and pam is not none and pam|lower != 'null' and pam|lower != 'unavailable' and pam|lower != 'unknown'
+          and pas|lower != 'none' and pas|lower != 'null' and pas|lower != 'unavailable' and pas|lower != 'unknown' and pas|float > 0.0
+          and pasm|lower != 'none' and pasm|lower != 'null' and pasm|lower != 'unavailable' and pasm|lower != 'unknown' and pasm|float > 0.0
+          and pad is not none and pad|lower != 'null' and pad|lower != 'unavailable' and pad|lower != 'unknown' %}
+          {{ ((pam|float - pa|float) / pasm|float) >= pad|float }}
+        {%- else -%}null{%- endif %}
+
+- platform: template
+  sensors:
+    motion_detected_person_ago_high:
+      friendly_name: Activity low
+      icon_template: 'mdi:account-alert-outline'
+      value_template: >-
+        {% set pad = states('input_number.motion_detected_person_ago_deviation') -%}
+        {%- set pa = states('sensor.motion_detected_person_ago') -%}
+        {%- set pam = states('sensor.motion_detected_person_ago_mean') -%}
+        {%- set pas = states('sensor.motion_detected_person_ago_stdev') -%}
+        {% if pa is not none and pa|lower != 'null' and pa|lower != 'unavailable' and pa|lower != 'unknown'
+          and pam is not none and pam|lower != 'null' and pam|lower != 'unavailable' and pam|lower != 'unknown'
+          and pas|lower != 'none' and pas|lower != 'null' and pas|lower != 'unavailable' and pas|lower != 'unknown' and pas|float > 0.0
+          and pad is not none and pad|lower != 'null' and pad|lower != 'unavailable' and pad|lower != 'unknown' %}
+          {{ ((pa|float - pam|float) / pas|float) >= pad|float }}
+        {%- else -%}null{%- endif %}
+
+- platform: template
+  sensors:
+    motion_detected_person_ago_high_persistent:
+      friendly_name: Activity low persistent
+      icon_template: 'mdi:account-alert'
+      value_template: >-
+        {% set pad = states('input_number.motion_detected_person_ago_deviation') -%}
+        {%- set pa = states('sensor.motion_detected_person_ago') -%}
+        {%- set pam = states('sensor.motion_detected_person_ago_mean') -%}
+        {%- set pas = states('sensor.motion_detected_person_ago_stdev') -%}
+        {%- set pasm = states('sensor.motion_detected_person_ago_stdev_mean') -%}
+        {% if pa is not none and pa|lower != 'null' and pa|lower != 'unavailable' and pa|lower != 'unknown'
+          and pam is not none and pam|lower != 'null' and pam|lower != 'unavailable' and pam|lower != 'unknown'
+          and pas|lower != 'none' and pas|lower != 'null' and pas|lower != 'unavailable' and pas|lower != 'unknown' and pas|float > 0.0
+          and pasm|lower != 'none' and pasm|lower != 'null' and pasm|lower != 'unavailable' and pasm|lower != 'unknown' and pasm|float > 0.0
+          and pad is not none and pad|lower != 'null' and pad|lower != 'unavailable' and pad|lower != 'unknown' %}
+          {{ ((pa|float - pam|float) / pasm|float) >= pad|float }}
+        {%- else -%}null{%- endif %}
+
+## DAY END / BEGIN
+
+- platform: template
+  sensors:
+    motion_detected_person_activity_begin:
+      friendly_name: Activity day begin
+      icon_template: 'mdi:coffee'
+      value_template: >-
+        {%- set pa = states('sensor.motion_detected_person_ago') -%}
+        {%- set pam = states('sensor.motion_detected_person_ago_mean') -%}
+        {%- set pas = states('sensor.motion_detected_person_ago_stdev') -%}
+        {%- set pac = states('sensor.motion_detected_person_ago_change') -%}
+        {%- set pass = states('sensor.motion_detected_person_ago_stdev_stdev') -%}
+        {%- set pasc = states('sensor.motion_detected_person_ago_stdev_change') -%}
+        {%- set pasm = states('sensor.motion_detected_person_ago_stdev_mean') -%}
+        {%- set pac = states('sensor.motion_detected_person_ago_change') -%}
+        {%- set pacm = states('sensor.motion_detected_person_ago_change_mean') -%}
+        {%- set pacs = states('sensor.motion_detected_person_ago_change_stdev') -%}
+        {%- if pm|lower != 'unavailable' and pm|lower != 'null'
+           and pam|lower != 'unavailable' and pam|lower != 'null'
+           and pas|lower != 'unavailable' and pas|lower != 'null'
+           and pac|lower != 'unavailable' and pac|lower != 'null'
+           and pass|lower != 'unavailable' and pass|lower != 'null'
+           and pasm|lower != 'unavailable' and pasm|lower != 'null'
+           and pasc|lower != 'unavailable' and pasc|lower != 'null'
+           and pacm|lower != 'unavailable' and pacm|lower != 'null'
+           and pacs|lower != 'unavailable' and pacs|lower != 'null' -%}
+          {{- pam|float > pa|float and pas|float < pass|float and pam|float > pass|float and pas|float > pasm|float -}}
+        {%- else -%}null{%- endif %}
+
+- platform: template
+  sensors:
+    motion_detected_person_activity_end:
+      friendly_name: Activity day end
+      icon_template: 'mdi:bed'
+      value_template: >-
+        {%- set pa = states('sensor.motion_detected_person_ago') -%}
+        {%- set pam = states('sensor.motion_detected_person_ago_mean') -%}
+        {%- set pas = states('sensor.motion_detected_person_ago_stdev') -%}
+        {%- set pac = states('sensor.motion_detected_person_ago_change') -%}
+        {%- set pass = states('sensor.motion_detected_person_ago_stdev_stdev') -%}
+        {%- set pasc = states('sensor.motion_detected_person_ago_stdev_change') -%}
+        {%- set pasm = states('sensor.motion_detected_person_ago_stdev_mean') -%}
+        {%- set pac = states('sensor.motion_detected_person_ago_change') -%}
+        {%- set pacm = states('sensor.motion_detected_person_ago_change_mean') -%}
+        {%- set pacs = states('sensor.motion_detected_person_ago_change_stdev') -%}
+        {%- if pm|lower != 'unavailable' and pm|lower != 'null'
+           and pam|lower != 'unavailable' and pam|lower != 'null'
+           and pas|lower != 'unavailable' and pas|lower != 'null'
+           and pac|lower != 'unavailable' and pac|lower != 'null'
+           and pass|lower != 'unavailable' and pass|lower != 'null'
+           and pasm|lower != 'unavailable' and pasm|lower != 'null'
+           and pasc|lower != 'unavailable' and pasc|lower != 'null'
+           and pacm|lower != 'unavailable' and pacm|lower != 'null'
+           and pacs|lower != 'unavailable' and pacs|lower != 'null' -%}
+          {{ pasc|float > pasm|float and pac|float > 0 }}
+        {%- else -%}null{%- endif %}
+
+- platform: template
+  sensors:
+    motion_detected_person_activity_none:
+      friendly_name: Activity none
+      icon_template: 'mdi:sofa'
+      value_template: >-
+        {%- set pa = states('sensor.motion_detected_person_ago') -%}
+        {%- set pam = states('sensor.motion_detected_person_ago_mean') -%}
+        {%- set pas = states('sensor.motion_detected_person_ago_stdev') -%}
+        {%- set pac = states('sensor.motion_detected_person_ago_change') -%}
+        {%- set pasm = states('sensor.motion_detected_person_ago_stdev_mean') -%}
+        {%- set pass = states('sensor.motion_detected_person_ago_stdev_stdev') -%}
+        {%- set pasc = states('sensor.motion_detected_person_ago_stdev_change') -%}
+        {%- set pac = states('sensor.motion_detected_person_ago_change') -%}
+        {%- set pacm = states('sensor.motion_detected_person_ago_change_mean') -%}
+        {%- set pacs = states('sensor.motion_detected_person_ago_change_stdev') -%}
+        {%- if pm|lower != 'unavailable' and pm|lower != 'null'
+           and pam|lower != 'unavailable' and pam|lower != 'null'
+           and pas|lower != 'unavailable' and pas|lower != 'null'
+           and pac|lower != 'unavailable' and pac|lower != 'null'
+           and pasm|lower != 'unavailable' and pasm|lower != 'null'
+           and pass|lower != 'unavailable' and pass|lower != 'null'
+           and pasc|lower != 'unavailable' and pasc|lower != 'null'
+           and pacm|lower != 'unavailable' and pacm|lower != 'null'
+           and pacs|lower != 'unavailable' and pacs|lower != 'null' -%}
+          {{ pac|float > pam|float and pac|float > 0 and pasc|float < pasm|float }}
+        {%- else -%}null{%- endif %}

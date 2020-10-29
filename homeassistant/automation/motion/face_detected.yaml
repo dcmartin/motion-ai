@@ -1,6 +1,8 @@
 ###
-# automation/motion/detected.yaml
+# homeassistant/automation/motion/face_detected.yaml
 ###
+
+## counter 
 
 - id: motion_face_detected_counter
   alias: motion_face_detected_counter
@@ -16,97 +18,37 @@
     - service: counter.increment
       entity_id: counter.motion_face_detected_counter
 
-- id: motion_face_detected_snapshot
-  alias: motion_face_detected_snapshot
+## update
+- id: motion_face_detected_camera_snapshot
+  alias: motion_face_detected_camera_snapshot
   initial_state: on
   trigger:
     platform: state
-    entity_id: binary_sensor.motion_face_detected
+    entity_id: counter.motion_face_detected_counter
   condition:
     condition: and
     conditions:
       - condition: template
         value_template: >-
-          {{ states('binary_sensor.motion_face_detected') == 'on' }}
-      - condition: template
-        value_template: >-
           {{ is_state('input_boolean.motion_snapshot_save','on') }}
       - condition: template
         value_template: >-
-          {{ state_attr('camera.motion_event_face','entity_picture') is not none }}
+          {% set s = states('camera.motion_event_face') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'unknown' %}
+            {% set ep = state_attr('camera.motion_event_face','entity_picture') %}
+            {{ ep is not none and ep|lower != 'unavailable' and ep|lower != 'none' and ep|lower != 'unknown' }}
+          {% else %}false{% endif %}
   action:
+    # face_detected
     - service: camera.snapshot
       data_template:
         entity_id: >-
           {{ 'camera.motion_event_face' }}
         filename: >-
           {{ '/config/www/images/motion_face_detected.jpg' }}
-
-- id: motion_face_detected_snapshot_webcam
-  alias: motion_face_detected_snapshot_webcam
-  initial_state: on
-  trigger:
-    platform: state
-    entity_id: binary_sensor.motion_face_detected
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >-
-          {{ states('binary_sensor.motion_face_detected') == 'on' }}
-      - condition: template
-        value_template: >-
-          {{ is_state('input_boolean.motion_snapshot_save','on') }}
-      - condition: template
-        value_template: >-
-          {% set e = state_attr('sensor.motion_event_face','event') %}
-          {% if e is not none e|lower != 'unavailable' and e|lower !='unknown' and e|length > 0 %}
-            {% set ep = state_attr('camera.motion_event_face_' + e.camera,'entity_picture') %}
-            {{ ep is none or ep|lower == 'unknown' or ep|lower == 'unavailable' }}
-          {% else %}false{% endif %}
-      - condition: template
-        value_template: >-
-          {% set ep = state_attr('camera.motion_event_face','entity_picture') %}
-          {{ ep is not none and ep|lower != 'unknown' }}
-  action:
-    - service: camera.snapshot
-      data_template:
-        entity_id: >-
-          {{ 'camera.motion_event_face' }}
-        filename: >-
-          {% set e = state_attr('sensor.motion_event_face','event') %}
-          {{ '/config/www/images/motion_face_detected-' + e.camera + '.jpg' }}
     - service: local_file.update_file_path
       data_template:
-        entity_id: camera.motion_face_detected
+        entity_id: >-
+          {{ 'camera.motion_face_detected' }}
         file_path: >-
-          {% set e = state_attr('sensor.motion_event_face','event') %}
-          {{ '/config/www/images/motion_face_detected-' + e.camera + '.jpg' }}
-
-###
-# notify detected
-###
-
-- id: motion_face_detected_notify
-  alias: motion_face_detected_notify
-  initial_state: 'on'
-  trigger:
-    - platform: state
-      entity_id: sensor.motion_face_detected_when
-  condition:
-    condition: template
-    value_template: >
-      {{ is_state('input_boolean.motion_face_detected_notify','on') }}
-  action:
-    - service: persistent_notification.create
-      data_template:
-        title: >-
-          Detected {{ states('sensor.motion_face_detected_count') }} face(s)
-          from {{ states('sensor.motion_face_detected_camera') }}
-        notification_id: >
-          face_detected-{{- states('sensor.motion_event_face_detected_camera') -}}
-        message: >-
-          Detected {{ states('sensor.motion_face_detected_count') }} face(s)
-          from {{ states('sensor.motion_face_detected_camera') }}
-          for {{ states('sensor.motion_face_detected_elapsed') }} seconds
-          at {{ states('sensor.motion_face_detected_when') }}
+          {{ '/config/www/images/motion_face_detected.jpg' }}

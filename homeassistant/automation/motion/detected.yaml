@@ -1,9 +1,8 @@
 ###
-# automation/motion/detected.yaml
+# homeassistant/automation/motion/detected.yaml
 ###
 
-## counter
-
+## counter 
 - id: motion_detected_counter
   alias: motion_detected_counter
   initial_state: on
@@ -17,11 +16,10 @@
   action:
     - service: counter.increment
       entity_id: counter.motion_detected_counter
-
+ 
 ## snapshot
-
-- id: motion_detected_snapshot
-  alias: motion_detected_snapshot
+- id: motion_detected_camera_snapshot
+  alias: motion_detected_camera_snapshot
   initial_state: on
   trigger:
     platform: state
@@ -34,20 +32,19 @@
           {{ is_state('input_boolean.motion_snapshot_save','on') }}
       - condition: template
         value_template: >-
-          {% set ep = states('camera.motion_event_annotated') %}
-          {{ ep is not none and ep|lower != 'unknown' and ep|lower != 'unavailable' and ep|lower != 'none' and ep != 'null' }}
-      - condition: template
-        value_template: >-
-          {% set ep = state_attr('camera.motion_event_annotated','entity_picture') %}
-          {{ ep is not none and ep|lower != 'unknown' and ep|lower != 'unavailable' and ep|lower != 'none' and ep != 'null' }}
+          {% set s = states('camera.motion_event_annotated') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'unknown' %}
+            {% set ep = state_attr('camera.motion_event_annotated','entity_picture') %}
+            {{ ep is not none and ep|lower != 'unavailable' and ep|lower != 'none' and ep|lower != 'unknown' }}
+          {% else %}false{% endif %}
   action:
+    # annotated
     - service: camera.snapshot
       data_template:
         entity_id: >-
           {{ 'camera.motion_event_annotated' }}
         filename: >-
           {{ '/config/www/images/motion_detected.jpg' }}
-    # force an update
     - service: local_file.update_file_path
       data_template:
         entity_id: >-
@@ -55,12 +52,12 @@
         file_path: >-
           {{ '/config/www/images/motion_detected.jpg' }}
 
-- id: motion_detected_snapshot_webcam
-  alias: motion_detected_snapshot_webcam
-  initial_state: on
+- id: motion_detected_camera_composite
+  alias: motion_detected_camera_composite
+  initial_state: off
   trigger:
     platform: state
-    entity_id: sensor.motion_detected_camera
+    entity_id: counter.motion_detected_counter
   condition:
     condition: and
     conditions:
@@ -69,35 +66,27 @@
           {{ is_state('input_boolean.motion_snapshot_save','on') }}
       - condition: template
         value_template: >-
-          {% set c = states('sensor.motion_detected_camera') %}
-          {% if c is not none and c|lower != 'unavailable' and c|lower != 'unknown' and c|length > 0 %}
-            {% set ep = state_attr('camera.motion_event_annotated_' + c,'entity_picture') %}
-            {{ ep is none or ep|lower == 'unknown' or ep|lower == 'unavailable' or ep|length == 0 }}
+          {% set s = states('camera.motion_event_composite') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'unknown' %}
+            {% set ep = state_attr('camera.motion_event_composite','entity_picture') %}
+            {{ ep is not none and ep|lower != 'unavailable' and ep|lower != 'none' and ep|lower != 'unknown' }}
           {% else %}false{% endif %}
-      - condition: template
-        value_template: >-
-          {% set ep = state_attr('camera.motion_event_annotated','entity_picture') %}
-          {{ ep is not none and ep|lower != 'unknown' and ep|lower != 'unavailable' and ep|lower != 'none' and ep != 'null' }}
   action:
     - service: camera.snapshot
       data_template:
         entity_id: >-
-          {{ 'camera.motion_event_annotated' }}
+          {{ 'camera.motion_event_composite' }}
         filename: >-
-          {% set c = states('sensor.motion_detected_camera') %}
-          {{ '/config/www/images/motion_detected-' + c + '.jpg' }}
+          {{ '/config/www/images/motion_detected_composite.jpg' }}
     - service: local_file.update_file_path
       data_template:
         entity_id: >-
-          {{ 'camera.motion_detected' }}
+          {{ 'camera.motion_detected_composite' }}
         file_path: >-
-          {% set c = states('sensor.motion_detected_camera') %}
-          {{ '/config/www/images/motion_detected-' + c + '.jpg' }}
+          {{ '/config/www/images/motion_detected_composite.jpg' }}
 
-## animated
-
-- id: motion_detected_animated
-  alias: motion_detected_animated
+- id: motion_detected_camera_animated
+  alias: motion_detected_camera_animated
   initial_state: on
   trigger:
     platform: state
@@ -110,33 +99,31 @@
           {{ is_state('input_boolean.motion_snapshot_save','on') }}
       - condition: template
         value_template: >-
-          {% set ep = states('camera.motion_event_animated') %}
-          {{ ep is not none and ep|lower != 'unknown' and ep|lower != 'unavailable' and ep|lower != 'none' and ep != 'null' }}
-      - condition: template
-        value_template: >-
-          {% set ep = state_attr('camera.motion_event_animated','entity_picture') %}
-          {{ ep is not none and ep|lower != 'unknown' and ep|lower != 'unavailable' and ep|lower != 'none' and ep != 'null' }}
+          {% set s = states('camera.motion_event_animated') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'unknown' %}
+            {% set ep = state_attr('camera.motion_event_animated','entity_picture') %}
+            {{ ep is not none and ep|lower != 'unavailable' and ep|lower != 'none' and ep|lower != 'unknown' }}
+          {% else %}false{% endif %}
   action:
     - service: camera.snapshot
       data_template:
         entity_id: >-
           {{ 'camera.motion_event_animated' }}
         filename: >-
-          {{ '/config/www/images/motion_detected.gif' }}
-    # force an update
+          {{ '/config/www/images/motion_detected_animated.gif' }}
     - service: local_file.update_file_path
       data_template:
         entity_id: >-
           {{ 'camera.motion_detected_animated' }}
         file_path: >-
-          {{ '/config/www/images/motion_detected.gif' }}
+          {{ '/config/www/images/motion_detected_animated.gif' }}
 
-- id: motion_detected_animated_webcam
-  alias: motion_detected_animated_webcam
+- id: motion_detected_camera_animated_mask
+  alias: motion_detected_camera_animated_mask
   initial_state: on
   trigger:
     platform: state
-    entity_id: sensor.motion_detected_camera
+    entity_id: counter.motion_detected_counter
   condition:
     condition: and
     conditions:
@@ -145,31 +132,21 @@
           {{ is_state('input_boolean.motion_snapshot_save','on') }}
       - condition: template
         value_template: >-
-          {% set c = states('sensor.motion_detected_camera') %}
-          {% if c is not none and c|lower != 'unavailable' and c|lower != 'unknown' and c|length > 0 %}
-            {% set ep = state_attr('camera.motion_event_animated_' + c,'entity_picture') %}
-            {{ ep is none or ep|lower == 'unknown' }}
+          {% set s = states('camera.motion_event_animated_mask') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'unknown' %}
+            {% set ep = state_attr('camera.motion_event_animated_mask','entity_picture') %}
+            {{ ep is not none and ep|lower != 'unavailable' and ep|lower != 'none' and ep|lower != 'unknown' }}
           {% else %}false{% endif %}
-      - condition: template
-        value_template: >-
-          {% set ep = states('camera.motion_event_animated') %}
-          {{ ep is not none and ep|lower != 'unknown' and ep|lower != 'unavailable' and ep|lower != 'none' and ep != 'null' }}
-      - condition: template
-        value_template: >-
-          {% set ep = state_attr('camera.motion_event_animated','entity_picture') %}
-          {{ ep is not none and ep|lower != 'unknown' and ep|lower != 'unavailable' and ep|lower != 'none' and ep != 'null' }}
   action:
     - service: camera.snapshot
       data_template:
         entity_id: >-
-          {{ 'camera.motion_event_animated' }}
+          {{ 'camera.motion_event_animated_mask' }}
         filename: >-
-          {% set c = states('sensor.motion_detected_camera') %}
-          {{ '/config/www/images/motion_detected-' + c + '.gif' }}
+          {{ '/config/www/images/motion_detected_animated_mask.gif' }}
     - service: local_file.update_file_path
       data_template:
         entity_id: >-
-          {{ 'camera.motion_detected_animated' }}
+          {{ 'camera.motion_detected_animated_mask' }}
         file_path: >-
-          {% set c = states('sensor.motion_detected_camera') %}
-          {{ '/config/www/images/motion_detected-' + c + '.gif' }}
+          {{ '/config/www/images/motion_detected_animated_mask.gif' }}

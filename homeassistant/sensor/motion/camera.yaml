@@ -2,57 +2,88 @@
 # sensor/motion/camera.yaml
 ###
 
+# update
+
+- platform: template
+  sensors:
+    motion_camera_end_update:
+      value_template: >-
+        {{ as_timestamp(states.camera.motion_event_end.last_updated) }}
+
+- platform: template
+  sensors:
+    motion_camera_annotated_update:
+      value_template: >-
+        {{ as_timestamp(states.camera.motion_event_annotated.last_updated) }}
+
+- platform: template
+  sensors:
+    motion_camera_composite_update:
+      value_template: >-
+        {{ as_timestamp(states.camera.motion_event_composite.last_updated) }}
+
+- platform: template
+  sensors:
+    motion_camera_animated_update:
+      value_template: >-
+        {{ as_timestamp(states.camera.motion_event_animated.last_updated) }}
+
+- platform: template
+  sensors:
+    motion_camera_animated_mask_update:
+      value_template: >-
+        {{ as_timestamp(states.camera.motion_event_animated_mask.last_updated) }}
+
+- platform: template
+  sensors:
+    motion_camera_face_update:
+      value_template: >-
+        {{ as_timestamp(states.camera.motion_event_face.last_updated) }}
+
+- platform: template
+  sensors:
+    motion_camera_alpr_update:
+      value_template: >-
+        {{ as_timestamp(states.camera.motion_event_alpr.last_updated) }}
+
+# status
+
 - platform: template
   sensors:
     motion_status_camera:
       friendly_name: All cameras
-      entity_id:
-        - binary_sensor.motion_status_camera
       value_template: >
         {{ states('binary_sensor.motion_status_camera')|upper }}
 
 - platform: template
   sensors:
     motion_camera_status_array:
-      entity_id:
-        - group.motion_status_camera
       value_template: >-
-        [{%- for e in state_attr('group.motion_status_camera', 'entity_id') %}
-          {% if loop.first %}{% else %},{% endif %}
-          {%- if states(e)|lower == 'on' %}1{% else %}0{% endif -%}
+        [{%- for e in state_attr('group.motion_status_camera', 'entity_id') -%}
+          {%- if loop.first -%}{%- else -%},{%- endif -%}
+          {%- if states(e)|lower == 'on' -%}1{%- else -%}0{%- endif -%}
         {%- endfor -%}]
-    motion_camera_status_on:
-      entity_id:
-        - sensor.motion_camera_status_array
+    motion_camera_on:
       icon_template: 'mdi:cctv'
-      unit_of_measurement: count
       friendly_name: Camera(s) online
       value_template: >-
         {{ states('sensor.motion_camera_status_array')|from_json|sum }}
-    motion_camera_status_count:
-      entity_id:
-        - sensor.motion_camera_status_array
+    motion_camera_count:
       icon_template: 'mdi:cctv'
       friendly_name: Camera(s) count
-      unit_of_measurement: count
       value_template: >-
         {{ states('sensor.motion_camera_status_array')|from_json|length }}
-    motion_camera_status_percent:
-      entity_id:
-        - sensor.motion_camera_status_on
-        - sensor.motion_camera_status_count
+    motion_camera_percent:
       friendly_name: Camera(s) online
       icon_template: 'mdi:cctv'
       unit_of_measurement: '%'
       value_template: >-
-        {{ '%0.1f' | format(states('sensor.motion_camera_status_on')|float / states('sensor.motion_camera_status_count')|float * 100.0) }}
+        {{ '%0.1f' | format(states('sensor.motion_camera_on')|float / states('sensor.motion_camera_count')|float * 100.0) }}
     motion_camera_status:
-      entity_id:
-        - sensor.motion_camera_status_percent
-      friendly_name: Camera(s) status
+      friendly_name: Camera on-line status
       icon_template: 'mdi:cctv'
       value_template: >-
-        {{ states('sensor.motion_camera_status_on') -}}/{{-  states('sensor.motion_camera_status_count') -}}; {{ states('sensor.motion_camera_status_percent') -}}%
+        {{ states('sensor.motion_camera_on') -}}/{{-  states('sensor.motion_camera_count') -}}; {{ states('sensor.motion_camera_percent') -}}%
 
 - platform: history_stats
   name: motion_status_camera_ratio
@@ -65,8 +96,6 @@
 - platform: template
   sensors:
     motion_status_camera_ratio_duration:
-      entity_id:
-        - sensor.motion_status_camera_ratio
       value_template: >
         {{ state_attr('sensor.motion_status_camera_ratio','value') }}
 
@@ -75,9 +104,6 @@
 - platform: template
   sensors:
     motion_status_device_camera_loop:
-      entity_id:
-        - sensor.motion_device_start
-        - sensor.motion_device
       value_template: >-
         {%- set me = states('sensor.motion_device') -%}
         {%- if me is not none and me|lower != 'unknown' and me|lower != 'unavailable' -%}
@@ -99,8 +125,6 @@
   sensors:
     motion_status_device_camera_list:
       friendly_name: Device cameras
-      entity_id:
-        - sensor.motion_status_device_camera_loop
       value_template: >-
         {% set lo = states('sensor.motion_status_device_camera_loop') %}
         {% if lo is not none and lo|lower != 'unknown' and lo|lower != 'unavailable' and lo|length > 0 %}
@@ -123,8 +147,6 @@
   sensors:
     motion_status_camera_lost_name:
       friendly_name: Lost last
-      entity_id:
-        - sensor.motion_status_camera_lost
       value_template: >
         {% set value = state_attr('sensor.motion_status_camera_lost','camera') %}
         {% if value is not none and value|lower != 'unavailable' and value|lower != 'none' and value|lower != 'unknown' and value|length > 0 %}
@@ -135,8 +157,6 @@
   sensors:
     motion_status_camera_found_name:
       friendly_name: Found last
-      entity_id:
-        - sensor.motion_status_camera_found
       value_template: >
         {% set value = state_attr('sensor.motion_status_camera_found','camera') %}
         {% if value is not none and value|lower != 'unavailable' and value|lower != 'none' and value|lower != 'unknown' and value|length > 0 %}
@@ -149,8 +169,6 @@
   sensors:
     motion_detected_entity_camera_url:
       friendly_name: Detected entity camera URL 
-      entity_id:
-        - counter.motion_detected_entity_counter
       value_template: >-
         {% set camera = state_attr('sensor.motion_event_annotated','event').camera %}
         {% set value = state_attr('sensor.motion_device_start','cameras')|selectattr('name','==',camera)|map(attribute='netcam_url')|list|first %}
@@ -162,8 +180,6 @@
   sensors:
     motion_detected_entity_camera_userpass:
       friendly_name: Detected entity camera userpass
-      entity_id:
-        - counter.motion_detected_entity_counter
       value_template: >-
         {% set camera = state_attr('sensor.motion_event_annotated','event').camera %}
         {% set value = state_attr('sensor.motion_device_start','cameras')|selectattr('name','==',camera)|map(attribute='userpass')|list|first %}
@@ -175,8 +191,6 @@
   sensors:
     motion_detected_entity_camera_username:
       friendly_name: Detected entity camera username
-      entity_id:
-        - counter.motion_detected_entity_counter
       value_template: >-
         {% set camera = state_attr('sensor.motion_event_annotated','event').camera %}
         {% set value = state_attr('sensor.motion_device_start','cameras')|selectattr('name','==',camera)|map(attribute='username')|list|first %}
@@ -188,8 +202,6 @@
   sensors:
     motion_detected_entity_camera_password:
       friendly_name: Detected entity camera password
-      entity_id:
-        - counter.motion_detected_entity_counter
       value_template: >-
         {% set camera = state_attr('sensor.motion_event_annotated','event').camera %}
         {% set value = state_attr('sensor.motion_device_start','cameras')|selectattr('name','==',camera)|map(attribute='password')|list|first %}
@@ -197,15 +209,48 @@
           {{ value }}
         {% else %}null{% endif %}
 
+# camera status
 - platform: template
   sensors:
     motion_status_camera_counter:
       friendly_name: Camera found-lost
-      entity_id:
-        - sensor.motion_status_camera_lost_counter
-        - sensor.motion_status_camera_found_counter
       value_template: >-
         {{ states('sensor.motion_status_camera_found_counter')|int - states('sensor.motion_status_camera_lost_counter')|int }}
+
+- platform: template
+  sensors:
+    motion_status_camera_counter_mean:
+      friendly_name: status_camera counter avg
+      value_template: >-
+        {% if states('sensor.motion_status_camera_counter_statistics') != 'unknown' %}
+          {{ states.sensor.motion_status_camera_counter_statistics.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_status_camera_counter_min_value:
+      friendly_name: status_camera counter min
+      value_template: >-
+        {% if states('sensor.motion_status_camera_counter_statistics') != 'unknown' %}
+          {{ states.sensor.motion_status_camera_counter_statistics.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_status_camera_counter_max_value:
+      friendly_name: status_camera counter max
+      value_template: >-
+        {% if states('sensor.motion_status_camera_counter_statistics') != 'unknown' %}
+          {{ states.sensor.motion_status_camera_counter_statistics.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_status_camera_counter_stdev:
+      friendly_name: status_camera counter stdev
+      value_template: >
+        {% if states('sensor.motion_status_camera_counter_statistics') != 'unknown' %}
+          {{ states.sensor.motion_status_camera_counter_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+
+# counter
+- platform: statistics
+  name: motion_status_camera_counter_statistics
+  entity_id: sensor.motion_status_camera_counter
+  sampling_size: 100
+  max_age:
+    hours: 72
 
 ### LOST
 
@@ -214,9 +259,6 @@
   sensors:
     motion_status_camera_lost_counter:
       friendly_name: Total lost counter
-      entity_id:
-        - counter.motion_status_camera_lost_counter
-      unit_of_measurement: count
       value_template: >
         {% if states('counter.motion_status_camera_lost_counter') != 'unknown' %}
           {{ states('counter.motion_status_camera_lost_counter')|int }}
@@ -227,36 +269,24 @@
   sensors:
     motion_status_camera_lost_counter_mean:
       friendly_name: status_camera_lost counter avg
-      entity_id:
-        - sensor.motion_status_camera_lost_counter_statistics
-      unit_of_measurement: count
       value_template: >-
         {% if states('sensor.motion_status_camera_lost_counter_statistics') != 'unknown' %}
           {{ states.sensor.motion_status_camera_lost_counter_statistics.state|float }}
         {%- else -%}null{%- endif -%}
     motion_status_camera_lost_counter_min_value:
       friendly_name: status_camera_lost counter min
-      entity_id:
-        - sensor.motion_status_camera_lost_counter_statistics
-      unit_of_measurement: count
       value_template: >-
         {% if states('sensor.motion_status_camera_lost_counter_statistics') != 'unknown' %}
           {{ states.sensor.motion_status_camera_lost_counter_statistics.attributes.min_value|int }}
         {%- else -%}null{%- endif -%}
     motion_status_camera_lost_counter_max_value:
       friendly_name: status_camera_lost counter max
-      entity_id:
-        - sensor.motion_status_camera_lost_counter_statistics
-      unit_of_measurement: count
       value_template: >-
         {% if states('sensor.motion_status_camera_lost_counter_statistics') != 'unknown' %}
           {{ states.sensor.motion_status_camera_lost_counter_statistics.attributes.max_value|int }}
         {%- else -%}null{%- endif -%}
     motion_status_camera_lost_counter_stdev:
       friendly_name: status_camera_lost counter stdev
-      entity_id:
-        - sensor.motion_status_camera_lost_counter_statistics
-      unit_of_measurement: count
       value_template: >
         {% if states('sensor.motion_status_camera_lost_counter_statistics') != 'unknown' %}
           {{ states.sensor.motion_status_camera_lost_counter_statistics.attributes.standard_deviation|float }}
@@ -266,7 +296,7 @@
 - platform: statistics
   name: motion_status_camera_lost_counter_statistics
   entity_id: sensor.motion_status_camera_lost_counter
-  sampling_size: 1000
+  sampling_size: 100
   max_age:
     hours: 72
 
@@ -277,9 +307,6 @@
   sensors:
     motion_status_camera_found_counter:
       friendly_name: Total found counter
-      entity_id:
-        - counter.motion_status_camera_found_counter
-      unit_of_measurement: count
       value_template: >
         {% if states('counter.motion_status_camera_found_counter') != 'unknown' %}
           {{ states('counter.motion_status_camera_found_counter')|int }}
@@ -290,36 +317,24 @@
   sensors:
     motion_status_camera_found_counter_mean:
       friendly_name: status_camera_found counter avg
-      entity_id:
-        - sensor.motion_status_camera_found_counter_statistics
-      unit_of_measurement: count
       value_template: >-
         {% if states('sensor.motion_status_camera_found_counter_statistics') != 'unknown' %}
           {{ states.sensor.motion_status_camera_found_counter_statistics.state|float }}
         {%- else -%}null{%- endif -%}
     motion_status_camera_found_counter_min_value:
       friendly_name: status_camera_found counter min
-      entity_id:
-        - sensor.motion_status_camera_found_counter_statistics
-      unit_of_measurement: count
       value_template: >-
         {% if states('sensor.motion_status_camera_found_counter_statistics') != 'unknown' %}
           {{ states.sensor.motion_status_camera_found_counter_statistics.attributes.min_value|int }}
         {%- else -%}null{%- endif -%}
     motion_status_camera_found_counter_max_value:
       friendly_name: status_camera_found counter max
-      entity_id:
-        - sensor.motion_status_camera_found_counter_statistics
-      unit_of_measurement: count
       value_template: >-
         {% if states('sensor.motion_status_camera_found_counter_statistics') != 'unknown' %}
           {{ states.sensor.motion_status_camera_found_counter_statistics.attributes.max_value|int }}
         {%- else -%}null{%- endif -%}
     motion_status_camera_found_counter_stdev:
       friendly_name: status_camera_found counter stdev
-      entity_id:
-        - sensor.motion_status_camera_found_counter_statistics
-      unit_of_measurement: count
       value_template: >
         {% if states('sensor.motion_status_camera_found_counter_statistics') != 'unknown' %}
           {{ states.sensor.motion_status_camera_found_counter_statistics.attributes.standard_deviation|float }}
@@ -329,6 +344,6 @@
 - platform: statistics
   name: motion_status_camera_found_counter_statistics
   entity_id: sensor.motion_status_camera_found_counter
-  sampling_size: 1000
+  sampling_size: 100
   max_age:
     hours: 72

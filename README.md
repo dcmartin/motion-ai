@@ -1,15 +1,74 @@
 #  Motion &Atilde;&#128065;
 An open-source software solution for situational awareness from a network of video and audio sources.  Utilizing [Home Assistant](http://home-assistant.io), [addons](http://github.com/motion-ai/addons), the LINUX Foundation [Open Horizon](http://github.com/open-horizon) edge fabric, and [edge AI services](https://github.com/motion-ai/open-horizon), the system enables _personal_ AI on low-cost devices (e.g. RaspberryPi); integrating object detection and classification into a dashboard of daily activity.
 
-+ Use this [guide](docs/QUICKSTART.md) to get started.
++ Watch the [introductory video](https://youtu.be/9dW5mtVOzYo).
++ Use the QuickStart (see below) or review this [guide](docs/QUICKSTART.md).
 + Visit us on the [Web](http://www.motion-ai.com)
 + Find us on [Facebook](https://www.facebook.com/groups/motionai/)
 + Connect with us on [LinkedIn](https://www.linkedin.com/company/motion-%C3%A3i)
 + Message us on [Slack](https://join.slack.com/t/motionai/shared_invite/zt-gdf19rup-zIseUFLoLSD0NkC5hpr~EQ)
 
+## QuickStart
+Start-to-finish (LAN) should take about thirty (30) minutes on a RaspberryPi or virtual machine; and a high-speed Internet connection.  There are [options](docs/OPTIONS.md) to consider; a non-executable example script may be utilized to specify commonly used options.  **Please edit the example [script](config.sh) for your environment**.
+
+The listed commands will install `motion-ai` on the following:
+
++ RaspberryPi Model 3B+ or 4 (`arm`); 2GB recommended
++ Ubuntu18.04 or Debian10 VM (`amd64`); 2GB, 2vCPU recommended
++ nVidia Jetson Nano (`arm64`); 4GB recommended
+
+Reboot the system when completed; for example:
+
+```
+sudo apt update -qq -y
+sudo apt install -qq -y make git curl jq ssh
+git clone http://github.com/dcmartin/motion-ai
+cd motion-ai
+cp webcams.json.tmpl webcams.json
+nano config.sh # edit!
+sudo ./sh/get.motion-ai.sh
+bash -x config.sh
+make
+reboot
+```
+
+## &#9937; Home Assistant v0.116.4
+The latest release of Home Assistant _Core_ (v0.117) does **not work** with this software.  When the commands above complete, the latest version will be installed; check with the `ha` command-line-interface:
+
+```
+% ha core info
+arch: armv7
+...
+version: 0.117.0
+...
+watchdog: true
+```
+
+Use the `ha` command to set the Home Assistant version to 0.116.4; when completed the system should be operational.
+
+```
+% ha core update --version=0.116.4
+```
+
+### _Add-ons_
+Install the [MQTT](https://github.com/home-assistant/hassio-addons/blob/master/mosquitto/README.md) and [Motion Classic](https://github.com/dcmartin/hassio-addons/blob/master/motion-video0/README.md) _add-ons_ from the **Add-On Store**; see this [repository](https://github.com/dcmartin/hassio-addons).
+
+Change to the installation directory and run the following commands to start the AI's; for example:
+
+```
+cd ~/motion-ai
+./sh/yolo4motion.sh
+./sh/face4motion.sh
+./sh/alpr4motion.sh
+```
+
+These commands only need to be run once; the AI's will automatically restart when the system is rebooted.
+
+## Example
 <img src="docs/samples/example-motion-detection.gif" width=756>
 
-### What  is _edge AI_?
+
+# What  is _edge AI_?
 The edge of the network is where connectivity is lost and privacy is challenged.
 
 Low-cost computing (e.g. RaspberryPi, nVidia Jetson Nano, Intel NUC) as well as hardware accelerators (e.g. Google Coral TPU, Intel Movidius Neural Compute Stick v2) provide the opportunity to utilize artificial intelligence in the privacy and safety of a home or business.
@@ -28,7 +87,7 @@ The `motion-ai` solution is composed of two primary components:
 
 Home Assistant _add-ons_:
 
-+ [`motion`](http://github.com/motion-ai/addons/blob/master/motion/README.md) - _add-on_ for Home Assistant - captures images and video of motion (n.b. [motion-project.github.io](http://motion-project.github.io))
++ [`motion`](https://github.com/dcmartin/hassio-addons/blob/master/motion-video0/README.md) - _add-on_ for Home Assistant - captures images and video of motion (n.b. [motion-project.github.io](http://motion-project.github.io))
 + [`MQTT`](https://github.com/home-assistant/hassio-addons/blob/master/mosquitto/README.md) - messaging broker 
 + [`FTP`](https://github.com/hassio-addons/addon-ftp/blob/master/README.md) - optional, only required for `ftpd` type cameras
 
@@ -154,7 +213,7 @@ Please make sure you keep your fork up to date by regularly pulling from upstrea
 
 ```
 git fetch upstream
-get merge upstream/master
+git merge upstream/master
 ```
 
 ## Stargazers
