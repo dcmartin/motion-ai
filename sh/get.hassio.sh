@@ -106,9 +106,11 @@ addgroup ${SUDO_USER:-${USER}} docker
 
 ## UPDATE, UPGRADE, PACKAGES
 
-echo 'Updating apt ...' &> /dev/stderr && apt update -qq -y \
-  && echo 'Upgrading apt ...' &> /dev/stderr && apt upgrade -qq -y \
-  && echo 'Installing pre-requisite packages' &> /dev/stderr \
+echo 'Updating ...' &> /dev/stderr \
+  && apt update -qq -y 2>&1 >> install.log \
+  && echo 'Upgrading ...' &> /dev/stderr \
+  && DEBIAN_FRONTEND=noninteractive apt upgrade -qq -y --no-install-recommends 2>&1 >> install.log \
+  && echo 'Installing pre-requisite packages ...' &> /dev/stderr \
   && DEBIAN_FRONTEND=noninteractive apt install -qq -y --no-install-recommends \
     network-manager \
     software-properties-common \
