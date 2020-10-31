@@ -124,23 +124,6 @@ echo 'Updating apt ...' &> /dev/stderr && apt update -qq -y \
     netdata \
   || echo 'Failed to install pre-requisite software' &> /dev/stderr
 
-# download AI containers and models
-if [ "${0##*/}" == 'get.motion-ai.sh' ]; then
-  for m in yolo face alpr; do \
-    echo "Pulling container for AI: ${m}"; \
-    bash ${0%/*}/${m}4motion.sh pull \
-    || \
-    echo "Unable to pull container image for AI: ${m}; use ${0%/*}/${m}4motion.sh" &> /dev/stderr
-  done
-
-  echo 'Downloading yolo weights'; \
-    bash ${0%/*}/get.weights.sh \
-    || \
-    echo "Unable to download weights; use ${0%/*}/get.weights.sh" &> /dev/stderr
-else
-  echo "Performing base installation; skipping AI(s) and model(s)"
-fi
-
 echo 'Modifying NetworkManager to disable WiFi MAC randomization' \
   && mkdir -p /etc/NetworkManager/conf.d \
   && echo '[connection]' > /etc/NetworkManager/conf.d/100-disable-wifi-mac-randomization.conf \
@@ -172,4 +155,22 @@ curl -sSL https://raw.githubusercontent.com/home-assistant/supervised-installer/
 
 echo "Installing using ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine)" \
   && yes | ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine) \
-  || echo 'Failed to get Home Assistant' &> /dev/stderr
+  || echo 'Failed to get Home Assistant' &> /dev/stderr && exit
+
+# download AI containers and models
+if [ "${0##*/}" == 'get.motion-ai.sh' ]; then
+  for m in yolo face alpr; do \
+    echo "Pulling container for AI: ${m}"; \
+    bash ${0%/*}/${m}4motion.sh pull \
+    || \
+    echo "Unable to pull container image for AI: ${m}; use ${0%/*}/${m}4motion.sh" &> /dev/stderr
+  done
+
+  echo 'Downloading yolo weights'; \
+    bash ${0%/*}/get.weights.sh \
+    || \
+    echo "Unable to download weights; use ${0%/*}/get.weights.sh" &> /dev/stderr
+else
+  echo "Skipping AI(s) and model(s)"
+fi
+
