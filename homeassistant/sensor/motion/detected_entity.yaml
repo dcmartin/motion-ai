@@ -23,18 +23,18 @@
             {% set count = state_attr('sensor.motion_event_annotated','detected')|selectattr('entity','==',what)|map(attribute='count')|sum|int %}
             {% set when = end|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
             {% set delay = n - end %}
-            ENTITY: {{ count }} {{ what }};
+            FOUND: {{ count }} {{ what }};
             from {{ device -}}/{{- camera -}}/{{- event -}};
             at {{ when }};
             delay: {{ delay }};
             duration: {{ elapsed }};
             counter: {{ states('counter.motion_detected_entity_counter') -}}/{{- states('sensor.motion_detected_entity_counter') -}}
-          {% else %}Never{% endif %}
+          {% else %}Pending{% endif %}
         {% else %}
           {% set s = states('sensor.motion_detected_entity_status') %}
           {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
             {{ s }}
-          {% else %}NO STATUS{% endif %}
+          {% else %}Pending{% endif %}
         {% endif %}
 
 - platform: template
@@ -247,22 +247,7 @@
         {% set s = states('sensor.motion_detected_entity_date')|int %}
         {% if s > 0 %}
           {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}
-        {% else %}Never{% endif %}
-
-## ago
-- platform: template
-  sensors:
-    motion_detected_entity_ago:
-      friendly_name: Entity ago
-      icon_template: 'mdi:camera-timer'
-      unit_of_measurement: seconds
-      value_template: >
-        {% set t = states('sensor.time') %}
-        {% set s = states('sensor.motion_detected_entity_date')|int %}
-        {% if s > 0 %}
-          {% set s = utcnow().timestamp()|int - s %}
-          {% if s < 86400 %}{{ s }}{%- else -%}null{%- endif -%}
-        {%- else -%}null{%- endif -%}
+        {% else %}Pending{% endif %}
 
 ## detected_entity_list
 - platform: template
@@ -298,6 +283,36 @@
 ###
 
 ## ago
+
+- platform: template
+  sensors:
+    motion_detected_entity_ago_relative:
+      friendly_name: 'Entity ago relative'
+      icon_template: 'mdi:av-timer'
+      unit_of_measurement: seconds
+      value_template: >
+        {% set s = states('sensor.motion_detected_entity_ago')|int %}
+        {% if s >= 0 %}
+          {% set h = (s/3600)|int %}
+          {% set m = ((s-(h*3600))/60)|int %}
+          {% set s = (s % 60)|int %}
+          {{ h -}}h; {{ m -}}m; {{ s -}}s
+        {%- else -%}Pending{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_detected_entity_ago:
+      friendly_name: Entity ago
+      icon_template: 'mdi:camera-timer'
+      unit_of_measurement: seconds
+      value_template: >
+        {% set t = states('sensor.time') %}
+        {% set s = states('sensor.motion_detected_entity_date')|int %}
+        {% if s > 0 %}
+          {% set s = utcnow().timestamp()|int - s %}
+          {% if s < 86400 %}{{ s }}{%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+
 - platform: template
   sensors:
     motion_detected_entity_ago_mean:

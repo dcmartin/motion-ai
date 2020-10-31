@@ -7,7 +7,7 @@
 - platform: template
   sensors:
     motion_detected_status:
-      friendly_name: DETECTED
+      friendly_name: Detected
       icon_template: 'mdi:account-search'
       value_template: >-
         {% if is_state('binary_sensor.motion_detected','on') %}
@@ -23,18 +23,18 @@
             {% set count = state_attr('sensor.motion_event_annotated','count') %}
             {% set when = end|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
             {% set delay = n - end %}
-            DETECTED: {{ count }} {{ what }};
+            {{ count }} entities: {{ what }};
             from {{ device -}}/{{- camera -}}/{{- event -}};
             at {{ when }};
             delay: {{ delay }};
             duration: {{ elapsed }};
             counter: {{ states('counter.motion_detected_counter') -}}/{{- states('sensor.motion_detected_counter') -}}
-          {% else %}Never{% endif %}
+          {% else %}Pending{% endif %}
         {% else %}
           {% set s = states('sensor.motion_detected_status') %}
           {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
             {{ s }}
-          {% else %}NO STATUS{% endif %}
+          {% else %}Pending{% endif %}
         {% endif %}
 
 - platform: template
@@ -261,22 +261,7 @@
         {% set s = states('sensor.motion_detected_date')|int %}
         {% if s > 0 %}
           {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}
-        {% else %}Never{% endif %}
-
-## ago
-- platform: template
-  sensors:
-    motion_detected_ago:
-      friendly_name: Detected ago
-      icon_template: 'mdi:camera-timer'
-      unit_of_measurement: seconds
-      value_template: >
-        {% set t = states('sensor.time') %}
-        {% set s = states('sensor.motion_detected_date')|int %}
-        {% if s > 0 %}
-          {% set s = utcnow().timestamp()|int - s %}
-          {% if s < 86400 %}{{ s }}{%- else -%}null{%- endif -%}
-        {%- else -%}null{%- endif -%}
+        {% else %}Pending{% endif %}
 
 ## detected_list
 - platform: template
@@ -319,6 +304,35 @@
 ###
 
 ## ago
+
+- platform: template
+  sensors:
+    motion_detected_ago_relative:
+      friendly_name: 'Detected ago relative'
+      icon_template: 'mdi:av-timer'
+      value_template: >
+        {% set s = states('sensor.motion_detected_ago')|int %}
+        {% if s >= 0 %}
+          {% set h = (s/3600)|int %}
+          {% set m = ((s-(h*3600))/60)|int %}
+          {% set s = (s % 60)|int %}
+          {{ h -}}h; {{ m -}}m; {{ s -}}s
+        {%- else -%}Pending{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_detected_ago:
+      friendly_name: Detected ago
+      icon_template: 'mdi:camera-timer'
+      unit_of_measurement: seconds
+      value_template: >
+        {% set t = states('sensor.time') %}
+        {% set s = states('sensor.motion_detected_date')|int %}
+        {% if s > 0 %}
+          {% set s = utcnow().timestamp()|int - s %}
+          {% if s < 86400 %}{{ s }}{%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+
 - platform: template
   sensors:
     motion_detected_ago_mean:
