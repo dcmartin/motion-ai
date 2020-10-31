@@ -174,10 +174,6 @@ else
   echo "Skipping AI(s) and model(s)"
 fi
 
-# change ownership
-echo "Changing ownership on homeassistant/ directory"
-chown -R ${SUDO_USER:-${USER}} homeassistant/
- 
 # wait for HA
 echo -n "Waiting on Home Assistant core: "
 while true; do 
@@ -195,3 +191,18 @@ while true; do
   fi
   sleep 10
 done
+
+# check on webcams
+if [ ! -e 'webcams.json' ]; then
+  echo "Copied default webcams.json"
+  cp webcams.json.tmpl webcams.json
+  chown ${SUDO_USER:-${USER}} webcams.json
+fi
+
+# build YAML
+echo "Building YAML; using default password: ${PASSWORD:-password}"
+yes "${PASSWORD:-password}" | make 2>&1 >> install.log
+
+# change ownership
+echo "Changing ownership on homeassistant/ directory"
+chown -R ${SUDO_USER:-${USER}} homeassistant/
