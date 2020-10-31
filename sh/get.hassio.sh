@@ -109,7 +109,7 @@ addgroup ${SUDO_USER:-${USER}} docker
 echo 'Updating apt ...' &> /dev/stderr && apt update -qq -y \
   && echo 'Upgrading apt ...' &> /dev/stderr && apt upgrade -qq -y \
   && echo 'Installing pre-requisite packages' &> /dev/stderr \
-  && apt install -qq -y \
+  && DEBIAN_FRONTEND=noninteractive apt install -qq -y --no-install-recommends \
     network-manager \
     software-properties-common \
     apparmor-utils \
@@ -121,7 +121,7 @@ echo 'Updating apt ...' &> /dev/stderr && apt update -qq -y \
     mosquitto-clients \
     socat \
     iperf3 \
-    netdata \
+    netdata 2>&1 >> install.log \
   || echo 'Failed to install pre-requisite software' &> /dev/stderr
 
 echo 'Modifying NetworkManager to disable WiFi MAC randomization' \
@@ -174,6 +174,24 @@ else
   echo "Skipping AI(s) and model(s)"
 fi
 
-# echo "Changing ownership on homeassistant/ directory"
+# change ownership
+echo "Changing ownership on homeassistant/ directory"
 chown -R ${SUDO_USER:-${USER}} homeassistant/
  
+# wait for HA
+echo -n "Waiting on Home Assistant core: "
+while true; do 
+  info=$(ha core info | egrep '^version:' | awk '{ print $2 }')
+  if [ ! -z "${info:-}" ] && [ "${info}" != 'setup' ]; then 
+    echo " done; version: ${info}"
+    if [ "${info}" != '0.116.4' ]; then 
+     echo "Changing version of Home Assistant core to 0.116.4"
+     ha core update --version=0.116.4
+    else
+     break
+    fi
+  else
+    echo -n "."
+  fi
+  sleep 10
+done
