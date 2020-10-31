@@ -159,40 +159,22 @@ echo "Installing using ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine)" \
   && yes | ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine) \
   || echo 'Failed to get Home Assistant' &> /dev/stderr
 
-# download AI containers and models
-if [ "${0##*/}" == 'get.motion-ai.sh' ]; then
-  for m in yolo face alpr; do \
-    echo "Pulling container for AI: ${m}"; \
-    bash ${0%/*}/${m}4motion.sh pull \
-    || \
-    echo "Unable to pull container image for AI: ${m}; use ${0%/*}/${m}4motion.sh" &> /dev/stderr
-  done
-
-  echo 'Downloading yolo weights'; \
-    bash ${0%/*}/get.weights.sh \
-    || \
-    echo "Unable to download weights; use ${0%/*}/get.weights.sh" &> /dev/stderr
-else
-  echo "Skipping AI(s) and model(s)"
-fi
-
 # wait for HA
 echo -n "Waiting on Home Assistant core: "
 while true; do 
   info=$(ha core info 2> /dev/null | egrep '^version:' | awk '{ print $2 }')
   if [ ! -z "${info:-}" ] && [ "${info}" != 'landingpage' ]; then 
-    echo " done; version: ${info}"
-    if [ "${info}" != '0.116.4' ]; then 
-     echo "Changing version of Home Assistant core to 0.116.4"
-     ha core update --version=0.116.4
-    else
-     break
-    fi
-  else
     echo -n "."
+    sleep 60
+  else
+    break
   fi
-  sleep 60
 done
+echo " done; version: ${info}"
+if [ "${info}" != '0.116.4' ]; then 
+  echo "Changing version of Home Assistant core to 0.116.4"
+  ha core update --version=0.116.4
+fi
 
 # check on webcams
 if [ ! -e 'webcams.json' ]; then
@@ -210,3 +192,20 @@ yes "${PASSWORD:-password}" | make 2>&1 >> install.log \
 # change ownership
 echo "Changing ownership on homeassistant/ directory"
 chown -R ${SUDO_USER:-${USER}} homeassistant/
+
+# download AI containers and models
+if [ "${0##*/}" == 'get.motion-ai.sh' ]; then
+  for m in yolo face alpr; do \
+    echo "Pulling container for AI: ${m}"; \
+    bash ${0%/*}/${m}4motion.sh pull \
+    || \
+    echo "Unable to pull container image for AI: ${m}; use ${0%/*}/${m}4motion.sh" &> /dev/stderr
+  done
+
+  echo 'Downloading yolo weights'; \
+    bash ${0%/*}/get.weights.sh \
+    || \
+    echo "Unable to download weights; use ${0%/*}/get.weights.sh" &> /dev/stderr
+else
+  echo "Skipping AI(s) and model(s)"
+fi
