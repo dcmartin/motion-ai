@@ -181,7 +181,7 @@ chown -R ${SUDO_USER:-${USER}} homeassistant/
 # wait for HA
 echo -n "Waiting on Home Assistant core: "
 while true; do 
-  info=$(ha core info | egrep '^version:' | awk '{ print $2 }')
+  info=$(ha core info 2> /dev/null | egrep '^version:' | awk '{ print $2 }')
   if [ ! -z "${info:-}" ] && [ "${info}" != 'setup' ]; then 
     echo " done; version: ${info}"
     if [ "${info}" != '0.116.4' ]; then 
