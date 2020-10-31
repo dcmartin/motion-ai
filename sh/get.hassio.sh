@@ -155,7 +155,7 @@ curl -sSL https://raw.githubusercontent.com/home-assistant/supervised-installer/
 
 echo "Installing using ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine)" \
   && yes | ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine) \
-  || echo 'Failed to get Home Assistant' &> /dev/stderr; exit
+  || echo 'Failed to get Home Assistant' &> /dev/stderr
 
 # download AI containers and models
 if [ "${0##*/}" == 'get.motion-ai.sh' ]; then
