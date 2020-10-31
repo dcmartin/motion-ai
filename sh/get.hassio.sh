@@ -156,24 +156,29 @@ curl -sSL https://raw.githubusercontent.com/home-assistant/supervised-installer/
   echo "Unable to download installer; using backup" &> /dev/stderr
 
 echo "Installing using ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine)" \
-  && yes | ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine) \
-  || echo 'Failed to get Home Assistant' &> /dev/stderr
+  && yes | ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine) 2>&1 >> install.log \
+  || echo 'Problem installing Home Assistant; check with "ha core info" command' &> /dev/stderr
 
 # wait for HA
-echo -n "Waiting on Home Assistant core: "
-while true; do 
+echo -n "Waiting on Home Assistant: "
+t=0; while [ ! -z "$(command -v ha)" ]; do 
   info=$(ha core info 2> /dev/null | egrep '^version:' | awk '{ print $2 }')
-  if [ ! -z "${info:-}" ] && [ "${info}" != 'landingpage' ]; then 
-    break
-  else
-    echo -n "."
-    sleep 60
-  fi
+  t=$((t+1))
+  if [ ! -z "${info:-}" ] && [ "${info}" != 'landingpage' ]; then break; fi
+  if [ ${t:-0} -gt 30 ]; then break; fi
+  echo -n "."
+  sleep 60
 done
-echo " done; version: ${info}"
-if [ "${info}" != '0.116.4' ]; then 
-  echo "Changing version of Home Assistant core to 0.116.4"
-  ha core update --version=0.116.4
+
+if [ ${t:-0} -ge 0 ]; then
+  echo " done; version: ${info}"
+  if [ "${info}" != '0.116.4' ]; then 
+    echo "Setting version of Home Assistant to 0.116.4"
+    ha core update --version=0.116.4
+  fi
+else
+  echo 'Problem installing Home Assistant; check with "ha core info" command' &> /dev/stderr
+  exit 1
 fi
 
 # check on webcams
