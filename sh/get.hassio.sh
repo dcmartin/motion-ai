@@ -174,3 +174,6 @@ else
   echo "Skipping AI(s) and model(s)"
 fi
 
+# echo "Changing ownership on homeassistant/ directory"
+chown -R ${SUDO_USER:-${USER}} homeassistant/
+ 
