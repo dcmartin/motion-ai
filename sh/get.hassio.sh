@@ -164,10 +164,10 @@ echo -n "Waiting on Home Assistant core: "
 while true; do 
   info=$(ha core info 2> /dev/null | egrep '^version:' | awk '{ print $2 }')
   if [ ! -z "${info:-}" ] && [ "${info}" != 'landingpage' ]; then 
+    break
+  else
     echo -n "."
     sleep 60
-  else
-    break
   fi
 done
 echo " done; version: ${info}"
