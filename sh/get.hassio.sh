@@ -191,7 +191,7 @@ while true; do
   else
     echo -n "."
   fi
-  sleep 10
+  sleep 60
 done
 
 # check on webcams
@@ -203,7 +203,9 @@ fi
 
 # build YAML
 echo "Building YAML; using default password: ${PASSWORD:-password}"
-yes "${PASSWORD:-password}" | make 2>&1 >> install.log
+yes "${PASSWORD:-password}" | make 2>&1 >> install.log \
+  && make realclean &> /dev/null \
+  && make restart &> /dev/null
 
 # change ownership
 echo "Changing ownership on homeassistant/ directory"
