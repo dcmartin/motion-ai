@@ -11,29 +11,33 @@ An open-source software solution for situational awareness from a network of vid
 ## QuickStart
 Start-to-finish (LAN) should take about thirty (30) minutes on a RaspberryPi or virtual machine; and a high-speed Internet connection.  There are [options](docs/OPTIONS.md) to consider; a non-executable example script may be utilized to specify commonly used options.  **Please edit the example [script](config.sh) for your environment**.
 
-The listed commands will install `motion-ai` on the following:
+The following two (2) sets of commands will install `motion-ai` on the following types of hardware:
 
 + RaspberryPi Model 3B+ or 4 (`arm`); 2GB recommended
 + Ubuntu18.04 or Debian10 VM (`amd64`); 2GB, 2vCPU recommended
 + nVidia Jetson Nano (`arm64`); 4GB recommended
 
-Reboot the system when completed; for example:
+The initial configuration presumes a locally attached camera on `/dev/video0`.  Reboot the system when after each step; for example:
 
 ```
 sudo apt update -qq -y
-sudo apt install -qq -y make git curl jq ssh
+sudo apt install -qq -y make git curl jq
 git clone http://github.com/dcmartin/motion-ai
-cd motion-ai
-cp webcams.json.tmpl webcams.json
-nano config.sh # edit!
-sudo ./sh/get.motion-ai.sh
-bash -x config.sh
-make
-reboot
+cd ~/motion-ai
+sudo ./sh/get.hassio.sh
+sudo reboot
 ```
 
-## &#9937; Home Assistant v0.116.4
-The latest release of Home Assistant _Core_ (v0.117) does **not work** with this software.  When the commands above complete, the latest version will be installed; check with the `ha` command-line-interface:
+```
+cd ~/motion-ai
+sudo ./sh/get.motion-ai.sh
+sudo reboot
+```
+
+When the system reboots install the `MQTT` and Motion Classic (aka `motion-video0`) _add-ons_; configure and start (see below).  When both add-ons are running, return to the command-line and start the AI's.
+
+## &#9937; Warning! Home Assistant v0.116.4
+The latest release of Home Assistant _Core_ (v0.117) does **not work** with this software.  When the commands above complete, the latest version will be installed; check with the `ha` command-line-interface.  The setting of the proper version is performed by the `get.motion-ai.sh` script; to check and manually update the version see the examples below:
 
 ```
 % ha core info
@@ -44,13 +48,13 @@ version: 0.117.0
 watchdog: true
 ```
 
-Use the `ha` command to set the Home Assistant version to 0.116.4; when completed the system should be operational.
+Use the `ha` command to set the Home Assistant version; when completed the system should be operational.
 
 ```
 % ha core update --version=0.116.4
 ```
 
-### _Add-ons_
+## _Add-ons_
 Install the [MQTT](https://github.com/home-assistant/hassio-addons/blob/master/mosquitto/README.md) and [Motion Classic](https://github.com/dcmartin/hassio-addons/blob/master/motion-video0/README.md) _add-ons_ from the **Add-On Store**; see this [repository](https://github.com/dcmartin/hassio-addons).
 
 Change to the installation directory and run the following commands to start the AI's; for example:
