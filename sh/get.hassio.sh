@@ -44,8 +44,13 @@ machine()
 
 function motionai::get()
 {
+  # test iff docker running
+  if [ $(docker ps | tail +2 | wc -l) -eq 0 ]; then
+    echo "Docker containers are not running; please reboot and run again." &> /dev/stderr
+    return
+  fi
+
   # wait for HA
-  echo -n "Waiting on Home Assistant: "
   t=0; while [ ! -z "$(command -v ha)" ]; do 
     info=$(ha core info 2> /dev/null | egrep '^version:' | awk '{ print $2 }')
     t=$((t+1))
@@ -215,6 +220,8 @@ echo "Installing using ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine)" \
 
 # download AI containers and models
 if [ "${0##*/}" == 'get.motion-ai.sh' ]; then
+  echo -n "Waiting on Home Assistant "
+  sleep 30
   motionai::get
 else
   echo "Not getting motion-ai"
