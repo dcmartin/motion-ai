@@ -94,10 +94,10 @@ function motionai::get()
   chown -R ${SUDO_USER:-${USER}} homeassistant/
 
   for m in yolo face alpr; do \
-    echo "Starting container for AI: ${m}"; \
-    bash ${0%/*}/${m}4motion.sh \
+    echo "Pulling container for AI: ${m}"; \
+    bash ${0%/*}/${m}4motion.sh pull \
     || \
-    echo "Unable to start container image for AI: ${m}; use ${0%/*}/${m}4motion.sh" &> /dev/stderr
+    echo "Unable to pull container image for AI: ${m}; use ${0%/*}/${m}4motion.sh" &> /dev/stderr
   done
 }
 
