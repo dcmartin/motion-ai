@@ -44,44 +44,44 @@ machine()
 
 function motionai::get()
 {
-# wait for HA
-echo -n "Waiting on Home Assistant: "
-t=0; while [ ! -z "$(command -v ha)" ]; do 
-  info=$(ha core info 2> /dev/null | egrep '^version:' | awk '{ print $2 }')
-  t=$((t+1))
-  if [ ! -z "${info:-}" ] && [ "${info}" != 'landingpage' ]; then break; fi
-  if [ ${t:-0} -gt 30 ]; then break; fi
-  echo -n "."
-  sleep 60
-done
-
-if [ ${t:-0} -ge 0 ]; then
-  echo " done; version: ${info}"
-  if [ "${info}" != '0.116.4' ]; then 
-    echo "Setting version of Home Assistant to 0.116.4"
-    ha core update --version=0.116.4
+  # wait for HA
+  echo -n "Waiting on Home Assistant: "
+  t=0; while [ ! -z "$(command -v ha)" ]; do 
+    info=$(ha core info 2> /dev/null | egrep '^version:' | awk '{ print $2 }')
+    t=$((t+1))
+    if [ ! -z "${info:-}" ] && [ "${info}" != 'landingpage' ]; then break; fi
+    if [ ${t:-0} -gt 30 ]; then break; fi
+    echo -n "."
+    sleep 60
+  done
+  
+  if [ ${t:-0} -ge 0 ]; then
+    echo " done; version: ${info}"
+    if [ "${info}" != '0.116.4' ]; then 
+      echo "Setting version of Home Assistant to 0.116.4"
+      ha core update --version=0.116.4
+    fi
+  else
+    echo 'Problem installing Home Assistant; check with "ha core info" command' &> /dev/stderr
+    exit 1
   fi
-else
-  echo 'Problem installing Home Assistant; check with "ha core info" command' &> /dev/stderr
-  exit 1
-fi
-
-# check on webcams
-if [ ! -e 'webcams.json' ]; then
-  echo "Copied default webcams.json"
-  cp webcams.json.tmpl webcams.json
-  chown ${SUDO_USER:-${USER}} webcams.json
-fi
-
-# build YAML
-echo "Building YAML; using default password: ${PASSWORD:-password}"
-yes "${PASSWORD:-password}" | make 2>&1 >> install.log \
-  && make realclean &> /dev/null \
-  && make restart &> /dev/null
-
-# change ownership
-echo "Changing ownership on homeassistant/ directory"
-chown -R ${SUDO_USER:-${USER}} homeassistant/
+  
+  # check on webcams
+  if [ ! -e 'webcams.json' ]; then
+    echo "Copied default webcams.json"
+    cp webcams.json.tmpl webcams.json
+    chown ${SUDO_USER:-${USER}} webcams.json
+  fi
+  
+  # build YAML
+  echo "Building YAML; using default password: ${PASSWORD:-password}"
+  yes "${PASSWORD:-password}" | make 2>&1 >> install.log \
+    && make realclean &> /dev/null \
+    && make restart &> /dev/null
+  
+  # change ownership
+  echo "Changing ownership on homeassistant/ directory"
+  chown -R ${SUDO_USER:-${USER}} homeassistant/
 
   for m in yolo face alpr; do \
     echo "Pulling container for AI: ${m}"; \
