@@ -215,7 +215,7 @@ echo "Installing using ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine)" \
 
 # download AI containers and models
 if [ "${0##*/}" == 'get.motion-ai.sh' ]; then
-  motionai::get()
+  motionai::get
 else
   echo "Not getting motion-ai"
 fi
