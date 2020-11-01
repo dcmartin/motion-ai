@@ -226,3 +226,6 @@ if [ "${0##*/}" == 'get.motion-ai.sh' ]; then
 else
   echo "Not getting motion-ai"
 fi
+
+# reboot
+echo 'Reboot to start afresh; "sudo reboot"' &> /dev/stderr
