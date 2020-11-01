@@ -77,6 +77,11 @@ function motionai::get()
     cp webcams.json.tmpl webcams.json
     chown ${SUDO_USER:-${USER}} webcams.json
   fi
+
+  echo 'Downloading yolo weights'; \
+    bash ${0%/*}/get.weights.sh \
+    || \
+    echo "Unable to download weights; use ${0%/*}/get.weights.sh" &> /dev/stderr
   
   # build YAML
   echo "Building YAML; using default password: ${PASSWORD:-password}"
@@ -89,16 +94,11 @@ function motionai::get()
   chown -R ${SUDO_USER:-${USER}} homeassistant/
 
   for m in yolo face alpr; do \
-    echo "Pulling container for AI: ${m}"; \
-    bash ${0%/*}/${m}4motion.sh pull \
+    echo "Starting container for AI: ${m}"; \
+    bash ${0%/*}/${m}4motion.sh \
     || \
-    echo "Unable to pull container image for AI: ${m}; use ${0%/*}/${m}4motion.sh" &> /dev/stderr
+    echo "Unable to start container image for AI: ${m}; use ${0%/*}/${m}4motion.sh" &> /dev/stderr
   done
-
-  echo 'Downloading yolo weights'; \
-    bash ${0%/*}/get.weights.sh \
-    || \
-    echo "Unable to download weights; use ${0%/*}/get.weights.sh" &> /dev/stderr
 }
 
 ###
