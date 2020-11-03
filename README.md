@@ -30,8 +30,8 @@ An open-source software solution for situational awareness from a network of vid
 ## Example
 <img src="docs/samples/example-motion-detection.gif" width=756>
 
-## QuickStart
-Start-to-finish takes about thirty (30) minutes on a RaspberryPi4, Jetson Nano, or virtual machine with a broadband connection.  There are [options](docs/OPTIONS.md) to consider; a non-executable example script may be utilized to specify commonly used options.  **Please edit the example [script](config.sh) for your environment**.
+## Quick Start
+Start-to-finish takes about thirty (30) minutes with a broadband connection.  There are [options](docs/OPTIONS.md) to consider; a non-executable example script may be utilized to specify commonly used options.  **Please edit the example [script](config.sh) for your environment**.
 
 The following two (2) sets of commands will install `motion-ai` on the following types of hardware:
 
@@ -58,9 +58,50 @@ sudo reboot
 
 When the system reboots install the official MQTT broker (aka `core-mosquitto`) and Motion Classic (aka `motion-video0`) _add-ons_ using the Home Assistant Add-on Store.  Select, install, configure and start each add-on (see below).  When both add-ons are running, return to the command-line and start the AI's.
 
-## _Add-ons_ and **AI**'s
-Install the [MQTT](https://github.com/home-assistant/hassio-addons/blob/master/mosquitto/README.md) and [Motion Classic](https://github.com/dcmartin/hassio-addons/blob/master/motion-video0/README.md) _add-ons_ from the **Add-On Store** and configure and start; add the repository [https://github.com/dcmartin/hassio-addons](https://github.com/dcmartin/hassio-addons) to the Add-On Store.
+## Add-on's
+Install the [MQTT](https://github.com/home-assistant/hassio-addons/blob/master/mosquitto/README.md) and [Motion Classic](https://github.com/dcmartin/hassio-addons/blob/master/motion-video0/README.md) _add-ons_ from the **Add-On Store** and configure and start; add the repository [https://github.com/dcmartin/hassio-addons](https://github.com/dcmartin/hassio-addons) to the Add-On Store to install Motion Classic.
 
+The Motion Classic configuration includes many options, most which typically do not need to be changed. The `group` is provided to segment a network of devices (e.g. _indoor_ vs. _outdoor_); the `device` determines the MQTT identifier for publishing; the `client` determines the MQTT identifier for subscribing; `timezone` should be local to installation.
+
+The `cameras` section is a listing (n.b. hence the `-`) and provide information for both the motion detection as well as the front-end Web interface.  The `name`,`type`, and `w3w` attributes are **required**.  The `top`, `left`, and `icon` attributes are _optional_ and are used to locate the camera on the overview image.  The `width`, `height`, and other attributes are _optional_ and are used for motion detection.
+
+#### Example configuration (_subset_)  
+```
+...
+group: motion
+device: raspberrypi
+client: raspberrypi
+timezone: America/Los_Angeles
+cameras:
+  - name: local
+    type: local
+    w3w: []
+    top: 50
+    left: 50
+    icon: webcam
+    width: 640
+    height: 480
+    framerate: 10
+    minimum_motion_frames: 30
+    event_gap: 60
+    threshold: 1000
+  - name: network
+    type: netcam
+    w3w:
+      - what
+      - three
+      - words
+    icon: door
+    netcam_url: 'rtsp://192.168.1.224/live'
+    netcam_userpass: 'username:password'
+    width: 640
+    height: 360
+    framerate: 5
+    event_gap: 30
+    threshold_percent: 2
+```
+
+## **AI**'s
 Return to the command-line, change to the installation directory, and run the following commands to start the AI's; for example:
 
 ```
