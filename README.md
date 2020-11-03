@@ -8,6 +8,25 @@ An open-source software solution for situational awareness from a network of vid
 + Connect with us on [LinkedIn](https://www.linkedin.com/company/motion-%C3%A3i)
 + Message us on [Slack](https://join.slack.com/t/motionai/shared_invite/zt-gdf19rup-zIseUFLoLSD0NkC5hpr~EQ)
 
+## Status
+![](https://img.shields.io/github/license/dcmartin/motion.svg?style=flat)
+![](https://img.shields.io/github/release/dcmartin/motion.svg?style=flat)
+![](https://img.shields.io/github/repo-size/dcmartin/motion.svg?style=flat)
+![](https://img.shields.io/github/issues/dcmartin/motion.svg?style=flat)
+![](https://img.shields.io/github/tag/dcmartin/motion.svg?style=flat)
+
+![](https://img.shields.io/github/last-commit/dcmartin/motion.svg?style=flat)
+![](https://img.shields.io/github/commit-activity/w/dcmartin/motion.svg?style=flat)
+![](https://img.shields.io/github/contributors/dcmartin/motion.svg?style=flat)
+
+[arm64-shield]: https://img.shields.io/badge/arm64-yes-green.svg
+[amd64-shield]: https://img.shields.io/badge/amd64-yes-green.svg
+[arm-shield]: https://img.shields.io/badge/arm-yes-green.svg
+
+![Supports arm64 Architecture][arm64-shield]
+![Supports arm Architecture][arm-shield]
+![Supports amd64 Architecture][amd64-shield]
+
 ## Example
 <img src="docs/samples/example-motion-detection.gif" width=756>
 
@@ -100,17 +119,6 @@ Open Horizon AI _services_:
 + `face4motion` - [face detection](http://github.com/dcmartin/openface) 
 + `alpr4motion` - [license plate detection and classification](http://github.com/dcmartin/openface) 
 + `pose4motion` - [ human pose estimation](http://github.com/dcmartin/openpose)
-
-## Status
-![](https://img.shields.io/github/license/dcmartin/motion.svg?style=flat)
-![](https://img.shields.io/github/release/dcmartin/motion.svg?style=flat)
-![](https://img.shields.io/github/repo-size/dcmartin/motion.svg?style=flat)
-![](https://img.shields.io/github/issues/dcmartin/motion.svg?style=flat)
-![](https://img.shields.io/github/tag/dcmartin/motion.svg?style=flat)
-
-![](https://img.shields.io/github/last-commit/dcmartin/motion.svg?style=flat)
-![](https://img.shields.io/github/commit-activity/w/dcmartin/motion.svg?style=flat)
-![](https://img.shields.io/github/contributors/dcmartin/motion.svg?style=flat)
 
 ## Videos
 
