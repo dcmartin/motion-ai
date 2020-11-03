@@ -31,7 +31,7 @@ An open-source software solution for situational awareness from a network of vid
 <img src="docs/samples/example-motion-detection.gif" width=756>
 
 ## QuickStart
-Start-to-finish (LAN) should take about thirty (30) minutes on a RaspberryPi4, Jetson Nano, or virtual machine with a broadband connection.  There are [options](docs/OPTIONS.md) to consider; a non-executable example script may be utilized to specify commonly used options.  **Please edit the example [script](config.sh) for your environment**.
+Start-to-finish takes about thirty (30) minutes on a RaspberryPi4, Jetson Nano, or virtual machine with a broadband connection.  There are [options](docs/OPTIONS.md) to consider; a non-executable example script may be utilized to specify commonly used options.  **Please edit the example [script](config.sh) for your environment**.
 
 The following two (2) sets of commands will install `motion-ai` on the following types of hardware:
 
