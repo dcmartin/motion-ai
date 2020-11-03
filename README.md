@@ -1,8 +1,8 @@
 #  Motion &Atilde;&#128065;
-An open-source software solution for situational awareness from a network of video and audio sources.  Utilizing [Home Assistant](http://home-assistant.io), [addons](http://github.com/motion-ai/addons), the LINUX Foundation [Open Horizon](http://github.com/open-horizon) edge fabric, and [edge AI services](https://github.com/motion-ai/open-horizon), the system enables _personal_ AI on low-cost devices (e.g. RaspberryPi); integrating object detection and classification into a dashboard of daily activity.
+An open-source software solution for situational awareness from a network of video and audio sources.  Utilizing [Home Assistant](http://home-assistant.io), [addons](http://github.com/motion-ai/addons), the LINUX Foundation [Open Horizon](http://github.com/open-horizon) edge fabric, and [edge AI services](https://github.com/motion-ai/open-horizon), the system enables _personal_ AI on low-cost devices; integrating object detection and classification into a dashboard of daily activity.
 
 + Watch the videos for [introduction](https://youtu.be/9dW5mtVOzYo) and [installation](https://youtu.be/BWJdDWKUXyE)
-+ Use the QuickStart (see below) or review this [guide](docs/QUICKSTART.md).
++ Use the QuickStart (see below) on RaspberryPi4, Jetson Nano, or Intel/AMD host; see [guide](docs/QUICKSTART.md).
 + Visit us on the [Web](http://www.motion-ai.com)
 + Find us on [Facebook](https://www.facebook.com/groups/motionai/)
 + Connect with us on [LinkedIn](https://www.linkedin.com/company/motion-%C3%A3i)
@@ -31,7 +31,7 @@ An open-source software solution for situational awareness from a network of vid
 <img src="docs/samples/example-motion-detection.gif" width=756>
 
 ## QuickStart
-Start-to-finish (LAN) should take about thirty (30) minutes on a RaspberryPi or virtual machine; and a high-speed Internet connection.  There are [options](docs/OPTIONS.md) to consider; a non-executable example script may be utilized to specify commonly used options.  **Please edit the example [script](config.sh) for your environment**.
+Start-to-finish (LAN) should take about thirty (30) minutes on a RaspberryPi4, Jetson Nano, or virtual machine with a broadband connection.  There are [options](docs/OPTIONS.md) to consider; a non-executable example script may be utilized to specify commonly used options.  **Please edit the example [script](config.sh) for your environment**.
 
 The following two (2) sets of commands will install `motion-ai` on the following types of hardware:
 
@@ -56,10 +56,10 @@ sudo ./sh/get.motion-ai.sh
 sudo reboot
 ```
 
-When the system reboots install the `MQTT` and Motion Classic (aka `motion-video0`) _add-ons_; configure and start (see below).  When both add-ons are running, return to the command-line and start the AI's.
+When the system reboots install the official MQTT broker (aka `core-mosquitto`) and Motion Classic (aka `motion-video0`) _add-ons_ using the Home Assistant Add-on Store.  Select, install, configure and start each add-on (see below).  When both add-ons are running, return to the command-line and start the AI's.
 
 ## _Add-ons_ and **AI**'s
-Install the [MQTT](https://github.com/home-assistant/hassio-addons/blob/master/mosquitto/README.md) and [Motion Classic](https://github.com/dcmartin/hassio-addons/blob/master/motion-video0/README.md) _add-ons_ from the **Add-On Store** and configure and start; see this [repository](https://github.com/dcmartin/hassio-addons).
+Install the [MQTT](https://github.com/home-assistant/hassio-addons/blob/master/mosquitto/README.md) and [Motion Classic](https://github.com/dcmartin/hassio-addons/blob/master/motion-video0/README.md) _add-ons_ from the **Add-On Store** and configure and start; add the repository [https://github.com/dcmartin/hassio-addons](https://github.com/dcmartin/hassio-addons) to the Add-On Store.
 
 Return to the command-line, change to the installation directory, and run the following commands to start the AI's; for example:
 
@@ -73,7 +73,7 @@ cd ~/motion-ai
 These commands only need to be run once; the AI's will automatically restart whenever the system is rebooted.
 
 ## &#9937; Warning! Home Assistant v0.116.4
-The latest release of Home Assistant _Core_ (v0.117) does **not work** with this software.  When the commands above complete, the latest version will be installed; check with the `ha` command-line-interface.  The setting of the proper version is performed by the `get.motion-ai.sh` script; to check and manually update the version see the examples below:
+The latest release of Home Assistant _Core_ (v0.117) does **not work** with this software.  The setting of the proper version is performed by the `get.motion-ai.sh` script; to check and manually update the version see below.
 
 ```
 % ha core info
