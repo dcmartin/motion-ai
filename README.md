@@ -8,6 +8,9 @@ An open-source software solution for situational awareness from a network of vid
 + Connect with us on [LinkedIn](https://www.linkedin.com/company/motion-%C3%A3i)
 + Message us on [Slack](https://join.slack.com/t/motionai/shared_invite/zt-gdf19rup-zIseUFLoLSD0NkC5hpr~EQ)
 
+## Example
+<img src="docs/samples/example-motion-detection.gif" width=756>
+
 ## QuickStart
 Start-to-finish (LAN) should take about thirty (30) minutes on a RaspberryPi or virtual machine; and a high-speed Internet connection.  There are [options](docs/OPTIONS.md) to consider; a non-executable example script may be utilized to specify commonly used options.  **Please edit the example [script](config.sh) for your environment**.
 
@@ -67,9 +70,6 @@ Use the `ha` command to set the Home Assistant version; when completed the syste
 ```
 % ha core update --version=0.116.4
 ```
-# Example
-<img src="docs/samples/example-motion-detection.gif" width=756>
-
 
 # What  is _edge AI_?
 The edge of the network is where connectivity is lost and privacy is challenged.
