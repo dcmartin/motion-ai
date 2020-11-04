@@ -1,0 +1,41 @@
+###
+# homeassistant/automation/motion/detected_person_speak.yaml
+###
+
+## audio
+- id: motion_detected_person_speak
+  alias: motion_detected_person_speak
+  initial_state: 'off'
+  description: 'Speak when person detected'
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_detected_person_when
+  condition:
+    condition: template
+    value_template: >
+      {%- set s = states('input_select.motion_media_player_name') -%}
+      {%- set l = state_attr('input_select.motion_media_player_name','options') -%}
+      {{- (( s is not none s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'all' )
+         or ( l is not none l|lower != 'unknown' and l|lower != 'unavailable' and l|lower != 'null' and l|length > 1 ))
+         and is_state('input_boolean.motion_detected_person_notify','on') -}}
+  action:
+    - service_template: >-
+        tts.google_translate_say
+        entity_id: >-
+          {% set s = states('input_select.motion_media_player_name') %}
+          {% if s is not none s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'all' %}
+            {{ states('input_select.motion_media_player_name') }}
+          {% else %}
+            {% set l = state_attr('input_select.motion_media_player_name','options') %}
+            {% if l is not none and l|lower != 'unknown' and l|lower != 'unavailable' and l|lower != 'null' and l|length > 1 %}
+              {{ l|list|[2] }}
+            {% else %}
+              null
+            {% endif %}
+          {% endif %}
+        data:
+          mode: queued
+          max: 10
+          message: >-
+            Detected {{ states('sensor.motion_detected_person_count') }} person(s)
+            from {{ states('sensor.motion_detected_person_camera') }}
