@@ -4,7 +4,7 @@
 
 SHELL := /bin/bash
 
-THIS_HOSTIP ?= $(shell hostname -I | awk '{ print $$1 }')
+THIS_HOSTIP ?= $(shell hostname -i | awk '{ print $$1 }')
 
 # logging
 LOGGER_DEFAULT ?= $(if $(wildcard LOGGER_DEFAULT),$(shell v=$$(cat LOGGER_DEFAULT) && echo "** SPECIFIED: LOGGER_DEFAULT: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="warn" && echo "!! UNSPECIFIED: LOGGER_DEFAULT unset; default: $${v}" > /dev/stderr && echo "$${v}"))
@@ -15,7 +15,7 @@ AUTOMATION_INTERNET ?= $(if $(wildcard AUTOMATION_INTERNET),$(shell v=$$(cat AUT
 AUTOMATION_INTRANET ?= $(if $(wildcard AUTOMATION_INTRANET),$(shell v=$$(cat AUTOMATION_INTRANET) && echo "** SPECIFIED: AUTOMATION_INTRANET: $${v}" > /dev/stderr && echo "$${v}"),$(shell echo "!! UNSPECIFIED: AUTOMATION_INTRANET unset; default: off" > /dev/stderr && echo "off"))
 
 # domain
-DOMAIN_NAME ?= $(if $(wildcard DOMAIN_NAME),$(shell v=$$(cat DOMAIN_NAME) && echo "** SPECIFIED: DOMAIN_NAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(domainname -d) && v=$${v:-local} && echo "!! UNSPECIFIED: DOMAIN_NAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+DOMAIN_NAME ?= $(if $(wildcard DOMAIN_NAME),$(shell v=$$(cat DOMAIN_NAME) && echo "** SPECIFIED: DOMAIN_NAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(hostname -d) && v=$${v:-local} && echo "!! UNSPECIFIED: DOMAIN_NAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 # host
 HOST_NAME ?= $(if $(wildcard HOST_NAME),$(shell v=$$(cat HOST_NAME) && echo "** SPECIFIED: HOST_NAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(hostname -f) && v=$${v%%.*} && echo "!! UNSPECIFIED: HOST_NAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
