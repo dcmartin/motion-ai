@@ -74,7 +74,7 @@ function motionai::get()
   # check on webcams
   if [ ! -e 'webcams.json' ]; then
     echo "Copied default webcams.json"
-    cp webcams.json.tmpl webcams.json
+    cat webcams.json.tmpl > webcams.json
     chown ${SUDO_USER:-${USER}} webcams.json
   fi
 
