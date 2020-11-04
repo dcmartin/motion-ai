@@ -11,8 +11,13 @@ else:
         logger.warning("set_state: unknown entity_id: {0}".format(inputEntity))
     else:
         logger.debug("set_state: entity_id: {0}".format(inputEntity))
+        df='latest'
         for item in data:
           if item == 'entity_id':
+            logger.debug("set_state: skipping {0}".format(item))
+            continue
+          if item == 'default':
+            df = data.get(item)
             logger.debug("set_state: skipping {0}".format(item))
             continue
           elif item == 'options':
@@ -21,13 +26,13 @@ else:
             obj = attr_value.split(',')
             if len(obj) > 0:
               logger.debug("set_state: list provided; list: {0}".format(obj))
-              obj.remove('latest')
+              obj.remove(df)
               ncamera=len(obj)
               uniq=set(obj)
               d=ncamera - len(uniq)
               if d > 0:
                 logger.info("set_state: {0} duplicates; result: {1}".format(d,uniq))
-              obj=['latest']
+              obj=[df]
               for v in sorted(uniq):
                 obj.append(v)
               service_data = {"entity_id": inputEntity, "options": obj}
