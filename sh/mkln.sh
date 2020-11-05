@@ -1,6 +1,13 @@
 #!/bin/bash
 
-d=($(find motion/ -name *.gif -print | while read; do echo "${REPLY##* }"; done | sort | uniq | sed "s/.gif//")) 
+DIR='Motion-Ã👁'
+
+if [ ! -d "${DIR}" ]; then
+  echo "Did not find directory ${DIR}; are you running from media/ folder?"
+  exit 1
+fi
+
+d=($(find ${DIR}/ -name *.gif -print | while read; do echo "${REPLY##* }"; done | sort | uniq | sed "s/.gif//")) 
 
 echo "Found ${#d[@]} cameras" &> /dev/stderr
 
@@ -9,7 +16,7 @@ for c in ${d[@]}; do
   rm -fr "${c}"
   mkdir -p "${c}" 
   pushd "${c}" &> /dev/null
-  for i in ../motion/*; do 
+  for i in ../${DIR}/*; do 
     rm -fr "${i##*/}"
     mkdir "${i##*/}"
     pushd "${i##*/}" &> /dev/null
