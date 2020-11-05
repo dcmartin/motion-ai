@@ -121,9 +121,9 @@ run: all configuration.yaml
 stop:
 	-docker stop homeassistant
 
-restart: stop logclean run
+restart: stop logclean tidy run
 
-refresh: stop logclean tidy run
+refresh: stop logclean neat run
 
 logs:
 	docker logs -f homeassistant
@@ -446,11 +446,12 @@ lovelace_dashboards.json: lovelace_dashboards.json.tmpl
 
 tidy: 
 	@echo "making $@"
-	@rm -f lovelace.json lovelace_dashboards.json lovelace.developer.json secrets.yaml
+	@rm -f secrets.yaml
 	@${MAKE} -C motion clean
 
 neat: tidy
 	@echo "making $@"
+	@rm -f lovelace.json lovelace_dashboards.json lovelace.developer.json
 	-rm -f www/images/motion_*.{jpg,gif}
 	-sudo rm -f .storage/core.restore_state
 
