@@ -207,14 +207,6 @@ echo 'Disabling ModemManager' \
   && systemctl disable ModemManager
 
 if [ -z "$(command -v ha)" ]; then
-  curl -sSL https://raw.githubusercontent.com/home-assistant/supervised-installer/master/installer.sh -o /tmp/hassio-install.sh \
-    && \
-    mv -f /tmp/hassio-install.sh ${0%/*}/hassio-install.sh \
-    && \
-    chmod 755 ${0%/*}/hassio-install.sh \
-    || \
-    echo "Unable to download installer; using backup" &> /dev/stderr
-
   echo "Installing using ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine)" \
     && yes | ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine) \
     || echo 'Problem installing Home Assistant; check with "ha core info" command' &> /dev/stderr
