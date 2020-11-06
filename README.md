@@ -6,7 +6,7 @@ An open-source software solution for situational awareness from a network of vid
 + Visit us on the [Web](http://www.motion-ai.com)
 + Find us on [Facebook](https://www.facebook.com/groups/motionai/)
 + Connect with us on [LinkedIn](https://www.linkedin.com/company/motion-%C3%A3i)
-+ Message us on [Slack](https://join.slack.com/t/motionai/shared_invite/zt-gdf19rup-zIseUFLoLSD0NkC5hpr~EQ)
++ Message us on [Slack](https://join.slack.com/t/motionai/shared_invite/zt-iwiwp63m-tAKNanRHHQfS~6dVfxgL4Q)
 
 ## Status
 ![](https://img.shields.io/github/license/dcmartin/motion.svg?style=flat)
