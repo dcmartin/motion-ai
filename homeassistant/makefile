@@ -15,7 +15,7 @@ AUTOMATION_INTERNET ?= $(if $(wildcard AUTOMATION_INTERNET),$(shell v=$$(cat AUT
 AUTOMATION_INTRANET ?= $(if $(wildcard AUTOMATION_INTRANET),$(shell v=$$(cat AUTOMATION_INTRANET) && echo "** SPECIFIED: AUTOMATION_INTRANET: $${v}" > /dev/stderr && echo "$${v}"),$(shell echo "!! UNSPECIFIED: AUTOMATION_INTRANET unset; default: off" > /dev/stderr && echo "off"))
 
 # domain
-DOMAIN_NAME ?= $(if $(wildcard DOMAIN_NAME),$(shell v=$$(cat DOMAIN_NAME) && echo "** SPECIFIED: DOMAIN_NAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(hostname -d) && v=$${v:-local} && echo "!! UNSPECIFIED: DOMAIN_NAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+DOMAIN_NAME ?= $(if $(wildcard DOMAIN_NAME),$(shell v=$$(cat DOMAIN_NAME) && echo "** SPECIFIED: DOMAIN_NAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(hostnamee-d) && v=$${v:-local} && echo "!! UNSPECIFIED: DOMAIN_NAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 # host
 HOST_NAME ?= $(if $(wildcard HOST_NAME),$(shell v=$$(cat HOST_NAME) && echo "** SPECIFIED: HOST_NAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(hostname -f) && v=$${v%%.*} && echo "!! UNSPECIFIED: HOST_NAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
@@ -447,11 +447,11 @@ lovelace_dashboards.json: lovelace_dashboards.json.tmpl
 tidy: 
 	@echo "making $@"
 	@rm -f secrets.yaml
-	@rm -f motion/webcams.json
 	@${MAKE} -C motion clean
 
 neat: tidy
 	@echo "making $@"
+	@rm -f motion/webcams.json
 	@rm -f lovelace.json lovelace_dashboards.json lovelace.developer.json
 	-rm -f www/images/motion_*.{jpg,gif}
 	-sudo rm -f .storage/core.restore_state
