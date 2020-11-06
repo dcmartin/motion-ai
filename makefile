@@ -89,7 +89,7 @@ INTRANET_SCAN_INTERVAL ?= $(if $(wildcard INTRANET_SCAN_INTERVAL),$(shell v=$$(c
 ### TARGETS
 ###
 
-ACTIONS := all run stop logs restart refresh tidy clean realclean distclean
+ACTIONS := all run stop logs restart refresh tidy neat clean realclean distclean
 
 default: homeassistant/motion/webcams.json all
 
