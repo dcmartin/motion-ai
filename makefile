@@ -150,4 +150,4 @@ $(ACTIONS):
 	  INFLUXDB_PASSWORD="$(INFLUXDB_PASSWORD)" \
 	&& make -C homeassistant $@
 
-.PHONY: all default run stop logs restart tidy clean realclean distclean $(PACKAGES)
+.PHONY: all default run stop logs restart tidy clean realclean distclean $(PACKAGES) homeassistant/motion/webcams.json
