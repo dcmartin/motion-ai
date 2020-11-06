@@ -71,13 +71,6 @@ function motionai::get()
     exit 1
   fi
   
-  # check on webcams
-  if [ ! -e 'webcams.json' ]; then
-    echo "Copied default webcams.json"
-    cat webcams.json.tmpl > webcams.json
-    chown ${SUDO_USER:-${USER}} webcams.json
-  fi
-
   echo 'Downloading yolo weights'; \
     bash ${0%/*}/get.weights.sh \
     || \
@@ -86,8 +79,8 @@ function motionai::get()
   # build YAML
   echo "Building YAML; using default password: ${PASSWORD:-password}"
   yes "${PASSWORD:-password}" | make 2>&1 >> install.log \
-    && make realclean &> /dev/null \
-    && make restart &> /dev/null
+    && make clean \
+    && make restart
   
   # change ownership
   echo "Changing ownership on homeassistant/ directory"

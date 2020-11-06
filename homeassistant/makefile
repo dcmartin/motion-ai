@@ -447,6 +447,7 @@ lovelace_dashboards.json: lovelace_dashboards.json.tmpl
 tidy: 
 	@echo "making $@"
 	@rm -f secrets.yaml
+	@rm -f motion/webcams.json
 	@${MAKE} -C motion clean
 
 neat: tidy
