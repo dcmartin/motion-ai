@@ -35,7 +35,7 @@ done
 if [ "${UNLIMITED_BUILD:-null}" != 'true' ]; then
   WEBCAM_BINARY_SENSORS='motion_status_camera motion_end motion_annotated motion_detected motion_detected_entity'
 else
-  WEBCAM_BINARY_SENSORS='motion_status_camera motion_detected motion_detected_entity motion_face_detected motion_alpr_adetected'
+  WEBCAM_BINARY_SENSORS='motion_status_camera motion_detected motion_detected_entity motion_face_detected motion_alpr_detected'
 fi
 
 for WID in ${WEBCAM_BINARY_SENSORS}; do
