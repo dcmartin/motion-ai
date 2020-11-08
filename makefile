@@ -96,7 +96,7 @@ default: homeassistant/motion/webcams.json all
 homeassistant/motion/webcams.json:
 	./sh/mkwebcams.sh > homeassistant/motion/webcams.json
 
-$(ACTIONS):
+$(ACTIONS): homeassistant/motion/webcams.json
 	@echo "making $@"
 	@export \
 	  DOMAIN_NAME="$(DOMAIN_NAME)" \
