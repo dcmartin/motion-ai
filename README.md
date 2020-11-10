@@ -1,39 +1,120 @@
 #  Motion &Atilde;&#128065;
-An open-source software solution for situational awareness from a network of video and audio sources.  Utilizing [Home Assistant](http://home-assistant.io), [addons](http://github.com/motion-ai/addons), the LINUX Foundation [Open Horizon](http://github.com/open-horizon) edge fabric, and [edge AI services](https://github.com/motion-ai/open-horizon), the system enables _personal_ AI on low-cost devices (e.g. RaspberryPi); integrating object detection and classification into a dashboard of daily activity.
+An open-source software solution for situational awareness from a network of video and audio sources.  Utilizing [Home Assistant](http://home-assistant.io), [addons](http://github.com/motion-ai/addons), the LINUX Foundation [Open Horizon](http://github.com/open-horizon) edge fabric, and [edge AI services](https://github.com/motion-ai/open-horizon), the system enables _personal_ AI on low-cost devices; integrating object detection and classification into a dashboard of daily activity.
 
-+ Watch the [introductory video](https://youtu.be/9dW5mtVOzYo).
-+ Use the QuickStart (see below) or review this [guide](docs/QUICKSTART.md).
++ Watch the videos for [introduction](https://youtu.be/9dW5mtVOzYo) and [installation](https://youtu.be/BWJdDWKUXyE)
++ Use the QuickStart (see below) on RaspberryPi4, Jetson Nano, or Intel/AMD host; see [guide](docs/QUICKSTART.md).
 + Visit us on the [Web](http://www.motion-ai.com)
 + Find us on [Facebook](https://www.facebook.com/groups/motionai/)
 + Connect with us on [LinkedIn](https://www.linkedin.com/company/motion-%C3%A3i)
-+ Message us on [Slack](https://join.slack.com/t/motionai/shared_invite/zt-gdf19rup-zIseUFLoLSD0NkC5hpr~EQ)
++ Message us on [Slack](https://join.slack.com/t/motionai/shared_invite/zt-iwiwp63m-tAKNanRHHQfS~6dVfxgL4Q)
 
-## QuickStart
-Start-to-finish (LAN) should take about thirty (30) minutes on a RaspberryPi or virtual machine; and a high-speed Internet connection.  There are [options](docs/OPTIONS.md) to consider; a non-executable example script may be utilized to specify commonly used options.  **Please edit the example [script](config.sh) for your environment**.
+## Status
+![](https://img.shields.io/github/license/dcmartin/motion.svg?style=flat)
+![](https://img.shields.io/github/release/dcmartin/motion.svg?style=flat)
+![](https://img.shields.io/github/repo-size/dcmartin/motion.svg?style=flat)
+![](https://img.shields.io/github/issues/dcmartin/motion.svg?style=flat)
+![](https://img.shields.io/github/tag/dcmartin/motion.svg?style=flat)
 
-The listed commands will install `motion-ai` on the following:
+![](https://img.shields.io/github/last-commit/dcmartin/motion.svg?style=flat)
+![](https://img.shields.io/github/commit-activity/w/dcmartin/motion.svg?style=flat)
+![](https://img.shields.io/github/contributors/dcmartin/motion.svg?style=flat)
+
+[arm64-shield]: https://img.shields.io/badge/arm64-yes-green.svg
+[amd64-shield]: https://img.shields.io/badge/amd64-yes-green.svg
+[arm-shield]: https://img.shields.io/badge/arm-yes-green.svg
+
+![Supports arm64 Architecture][arm64-shield]
+![Supports arm Architecture][arm-shield]
+![Supports amd64 Architecture][amd64-shield]
+
+## Example
+<img src="docs/samples/example-motion-detection.gif" width=756>
+
+## Quick Start
+Start-to-finish takes about thirty (30) minutes with a broadband connection.  There are [options](docs/OPTIONS.md) to consider; a non-executable example script may be utilized to specify commonly used options.  **Please edit the example [script](config.sh) for your environment**.
+
+The following two (2) sets of commands will install `motion-ai` on the following types of hardware:
 
 + RaspberryPi Model 3B+ or 4 (`arm`); 2GB recommended
 + Ubuntu18.04 or Debian10 VM (`amd64`); 2GB, 2vCPU recommended
 + nVidia Jetson Nano (`arm64`); 4GB recommended
 
-Reboot the system when completed; for example:
+The initial configuration presumes a locally attached camera on `/dev/video0`.  Reboot the system after each step; for example:
 
 ```
 sudo apt update -qq -y
-sudo apt install -qq -y make git curl jq ssh
+sudo apt install -qq -y make git curl jq
 git clone http://github.com/dcmartin/motion-ai
-cd motion-ai
-cp webcams.json.tmpl webcams.json
-nano config.sh # edit!
-sudo ./sh/get.motion-ai.sh
-bash -x config.sh
-make
-reboot
+cd ~/motion-ai
+sudo ./sh/get.hassio.sh
+sudo reboot
 ```
 
-## &#9937; Home Assistant v0.116.4
-The latest release of Home Assistant _Core_ (v0.117) does **not work** with this software.  When the commands above complete, the latest version will be installed; check with the `ha` command-line-interface:
+```
+cd ~/motion-ai
+sudo ./sh/get.motion-ai.sh
+sudo reboot
+```
+
+When the system reboots install the official MQTT broker (aka `core-mosquitto`) and Motion Classic (aka `motion-video0`) _add-ons_ using the Home Assistant Add-on Store.  Select, install, configure and start each add-on (see below).  When both add-ons are running, return to the command-line and start the AI's.
+
+## Add-on's
+Install the [MQTT](https://github.com/home-assistant/hassio-addons/blob/master/mosquitto/README.md) and [Motion Classic](https://github.com/dcmartin/hassio-addons/blob/master/motion-video0/README.md) _add-ons_ from the **Add-On Store** and configure and start; add the repository [https://github.com/dcmartin/hassio-addons](https://github.com/dcmartin/hassio-addons) to the Add-On Store to install Motion Classic.
+
+The Motion Classic configuration includes many options, most which typically do not need to be changed. The `group` is provided to segment a network of devices (e.g. _indoor_ vs. _outdoor_); the `device` determines the MQTT identifier for publishing; the `client` determines the MQTT identifier for subscribing; `timezone` should be local to installation.
+
+The `cameras` section is a listing (n.b. hence the `-`) and provide information for both the motion detection as well as the front-end Web interface.  The `name`,`type`, and `w3w` attributes are **required**.  The `top`, `left`, and `icon` attributes are _optional_ and are used to locate the camera on the overview image.  The `width`, `height`, and other attributes are _optional_ and are used for motion detection.
+
+#### Example configuration (_subset_)  
+```
+...
+group: motion
+device: raspberrypi
+client: raspberrypi
+timezone: America/Los_Angeles
+cameras:
+  - name: local
+    type: local
+    w3w: []
+    top: 50
+    left: 50
+    icon: webcam
+    width: 640
+    height: 480
+    framerate: 10
+    minimum_motion_frames: 30
+    event_gap: 60
+    threshold: 1000
+  - name: network
+    type: netcam
+    w3w:
+      - what
+      - three
+      - words
+    icon: door
+    netcam_url: 'rtsp://192.168.1.224/live'
+    netcam_userpass: 'username:password'
+    width: 640
+    height: 360
+    framerate: 5
+    event_gap: 30
+    threshold_percent: 2
+```
+
+## **AI**'s
+Return to the command-line, change to the installation directory, and run the following commands to start the AI's; for example:
+
+```
+cd ~/motion-ai
+./sh/yolo4motion.sh
+./sh/face4motion.sh
+./sh/alpr4motion.sh
+```
+
+These commands only need to be run once; the AI's will automatically restart whenever the system is rebooted.
+
+## &#9937; Warning! Home Assistant v0.116.4
+The latest release of Home Assistant _Core_ (v0.117) does **not work** with this software.  The setting of the proper version is performed by the `get.motion-ai.sh` script; to check and manually update the version see below.
 
 ```
 % ha core info
@@ -44,29 +125,11 @@ version: 0.117.0
 watchdog: true
 ```
 
-Use the `ha` command to set the Home Assistant version to 0.116.4; when completed the system should be operational.
+Use the `ha` command to set the Home Assistant version; when completed the system should be operational.
 
 ```
 % ha core update --version=0.116.4
 ```
-
-### _Add-ons_
-Install the [MQTT](https://github.com/home-assistant/hassio-addons/blob/master/mosquitto/README.md) and [Motion Classic](https://github.com/dcmartin/hassio-addons/blob/master/motion-video0/README.md) _add-ons_ from the **Add-On Store**; see this [repository](https://github.com/dcmartin/hassio-addons).
-
-Change to the installation directory and run the following commands to start the AI's; for example:
-
-```
-cd ~/motion-ai
-./sh/yolo4motion.sh
-./sh/face4motion.sh
-./sh/alpr4motion.sh
-```
-
-These commands only need to be run once; the AI's will automatically restart when the system is rebooted.
-
-## Example
-<img src="docs/samples/example-motion-detection.gif" width=756>
-
 
 # What  is _edge AI_?
 The edge of the network is where connectivity is lost and privacy is challenged.
@@ -97,17 +160,6 @@ Open Horizon AI _services_:
 + `face4motion` - [face detection](http://github.com/dcmartin/openface) 
 + `alpr4motion` - [license plate detection and classification](http://github.com/dcmartin/openface) 
 + `pose4motion` - [ human pose estimation](http://github.com/dcmartin/openpose)
-
-## Status
-![](https://img.shields.io/github/license/dcmartin/motion.svg?style=flat)
-![](https://img.shields.io/github/release/dcmartin/motion.svg?style=flat)
-![](https://img.shields.io/github/repo-size/dcmartin/motion.svg?style=flat)
-![](https://img.shields.io/github/issues/dcmartin/motion.svg?style=flat)
-![](https://img.shields.io/github/tag/dcmartin/motion.svg?style=flat)
-
-![](https://img.shields.io/github/last-commit/dcmartin/motion.svg?style=flat)
-![](https://img.shields.io/github/commit-activity/w/dcmartin/motion.svg?style=flat)
-![](https://img.shields.io/github/contributors/dcmartin/motion.svg?style=flat)
 
 ## Videos
 

@@ -89,11 +89,14 @@ INTRANET_SCAN_INTERVAL ?= $(if $(wildcard INTRANET_SCAN_INTERVAL),$(shell v=$$(c
 ### TARGETS
 ###
 
-ACTIONS := all run stop logs restart refresh tidy clean realclean distclean
+ACTIONS := all run stop logs restart refresh tidy neat clean realclean distclean
 
-default: webcams.json all
+default: homeassistant/motion/webcams.json all
 
-$(ACTIONS):
+homeassistant/motion/webcams.json:
+	./sh/mkwebcams.sh > homeassistant/motion/webcams.json
+
+$(ACTIONS): homeassistant/motion/webcams.json
 	@echo "making $@"
 	@export \
 	  DOMAIN_NAME="$(DOMAIN_NAME)" \
@@ -147,4 +150,4 @@ $(ACTIONS):
 	  INFLUXDB_PASSWORD="$(INFLUXDB_PASSWORD)" \
 	&& make -C homeassistant $@
 
-.PHONY: all default run stop logs restart tidy clean realclean distclean $(PACKAGES)
+.PHONY: all default run stop logs restart tidy clean realclean distclean $(PACKAGES) homeassistant/motion/webcams.json

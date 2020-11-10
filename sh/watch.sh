@@ -85,7 +85,7 @@ MOTION_CLIENT=${MOTION_CLIENT:-${v}}
 if [ -s "MQTT_HOST" ] || [ ${MQTT_HOST:-null} != 'null' ]; then
   v=${MQTT_HOST:-$(cat MQTT_HOST)} && echo "** SPECIFIED: MQTT_HOST: ${v}" > /dev/stderr 
 else
-  v='127.0.0.1' && echo "!! UNSPECIFIED: MQTT_HOST unset; default: ${v}" > /dev/stderr 
+  v=$(hostname -I | awk '{ print $1 }') && echo "!! UNSPECIFIED: MQTT_HOST unset; default: ${v}" > /dev/stderr 
   v=$(read -p "?? INQUIRY: MQTT_HOST: [default: ${v}]: " && echo "${REPLY:-${v}}" | tee MQTT_HOST)
 fi
 MQTT_HOST=${MQTT_HOST:-${v}}

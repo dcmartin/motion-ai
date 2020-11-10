@@ -1,0 +1,43 @@
+###
+## homeassistant/automation/motion/media_player.yaml
+###
+
+## update input_select.motion_media_player_name options
+
+- id: motion_media_player_set_options
+  alias: motion_media_player_set_options
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_media_player_online_percent
+    - platform: time_pattern
+      minutes: /5
+  condition:
+    - condition: template
+      value_template: >-
+        {{ states('sensor.motion_media_player_count')|int > 0 }}
+  action:
+    - service: python_script.input_select_set_options
+      data_template:
+        entity_id: input_select.motion_media_player_name
+        default: all
+        options: >-
+          {%- set prior = state_attr('input_select.motion_media_player_name','options') -%}
+          {%- if prior is not none and prior|lower != 'unknown' and prior|lower != 'unavailable' and prior|lower != 'none' and prior|length > 0 -%}
+            {%- for p in prior -%}
+              {%- if loop.first -%}{%- else -%},{% endif -%}
+              {{- p -}}
+            {%- endfor -%}
+          {%- else -%}
+            {%- set prior = 'null' -%}
+          {%- endif -%}
+          {%- set media_players = states.media_player -%}
+          {%- if media_players is not none and media_players|lower != 'unavailable' and media_players|lower != 'none' and media_players|length > 0 -%}
+            {%- for c in media_players -%}
+              {%- if loop.first -%}{%- if prior != 'null' -%},{%- endif -%}{%- else -%},{% endif -%}
+              {{- c.name|lower -}}
+              {%- if loop.last -%}{%- endif -%}
+            {%- endfor -%}
+          {%- else -%}
+            {%- if prior != 'null' -%}{%- endif -%}
+          {%- endif -%}
