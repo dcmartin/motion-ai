@@ -265,7 +265,7 @@ Please make sure you keep your fork up to date by regularly pulling from upstrea
 
 ```
 git fetch upstream
-get merge upstream/master
+git merge upstream/master
 ```
 
 ## Stargazers
