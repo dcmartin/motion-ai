@@ -63,8 +63,7 @@ function motionai::get()
   if [ ${t:-0} -ge 0 ]; then
     echo " done; version: ${info}"
     if [ "${info}" != '0.116.4' ]; then 
-      echo "Setting version of Home Assistant to 0.116.4"
-      ha core update --version=0.116.4
+      echo "Version of Home Assistant is ${info}"
     fi
   else
     echo 'Problem installing Home Assistant; check with "ha core info" command' &> /dev/stderr
