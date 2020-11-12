@@ -113,24 +113,6 @@ cd ~/motion-ai
 
 These commands only need to be run once; the AI's will automatically restart whenever the system is rebooted.
 
-## &#9937; Warning! Home Assistant v0.116.4
-The latest release of Home Assistant _Core_ (v0.117) does **not work** with this software.  The setting of the proper version is performed by the `get.motion-ai.sh` script; to check and manually update the version see below.
-
-```
-% ha core info
-arch: armv7
-...
-version: 0.117.0
-...
-watchdog: true
-```
-
-Use the `ha` command to set the Home Assistant version; when completed the system should be operational.
-
-```
-% ha core update --version=0.116.4
-```
-
 # What  is _edge AI_?
 The edge of the network is where connectivity is lost and privacy is challenged.
 
