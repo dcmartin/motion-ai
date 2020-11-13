@@ -26,7 +26,8 @@ else:
             obj = attr_value.split(',')
             if len(obj) > 0:
               logger.debug("set_state: list provided; list: {0}".format(obj))
-              obj.remove(df)
+              if df in obj:
+                obj.remove(df)
               ncamera=len(obj)
               uniq=set(obj)
               d=ncamera - len(uniq)
