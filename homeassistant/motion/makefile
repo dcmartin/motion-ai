@@ -100,6 +100,7 @@ MOTION_YAML := \
 	sensor/event_alpr.yaml \
 	sensor/event_annotated.yaml \
 	sensor/device.yaml \
+	binary_sensor/device.yaml \
 	sensor/device_start.yaml \
 	sensor/lost.yaml \
 	sensor/found.yaml \
@@ -145,6 +146,14 @@ camera/%.yaml : camera.%.yaml.tmpl
 	  && cat $< | envsubst > $@
 
 sensor/%.yaml : sensor.%.yaml.tmpl
+	@echo "Making $@"
+	@export \
+	  MOTION_GROUP="$(MOTION_GROUP)" \
+	  MOTION_DEVICE="$(MOTION_DEVICE)" \
+	  MOTION_CLIENT="${MOTION_CLIENT}" \
+	  && cat $< | envsubst > $@
+
+binary_sensor/%.yaml : binary_sensor.%.yaml.tmpl
 	@echo "Making $@"
 	@export \
 	  MOTION_GROUP="$(MOTION_GROUP)" \
