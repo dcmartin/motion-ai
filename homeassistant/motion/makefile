@@ -99,8 +99,6 @@ MOTION_YAML := \
 	sensor/event_face.yaml \
 	sensor/event_alpr.yaml \
 	sensor/event_annotated.yaml \
-	sensor/device.yaml \
-	binary_sensor/device.yaml \
 	sensor/device_start.yaml \
 	sensor/lost.yaml \
 	sensor/found.yaml \
