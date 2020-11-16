@@ -1,0 +1,406 @@
+###
+# homeassistant/sensor/motion/addon.yaml
+###
+
+###
+# apache
+###
+
+- platform: template
+  sensors:
+    motion_addon_apache_htdocs:
+      friendly_name: Apache root directory
+      value_template: >-
+        {% set s = states('input_text.motion_addon_apache_htdocs') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          {{ s }}
+        {% else %}null{% endif %}
+    motion_addon_apache_host:
+      friendly_name: Apache root directory
+      value_template: >-
+        {% set s = states('input_text.motion_addon_apache_host') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          {{ s }}
+        {% else %}null{% endif %}
+    motion_addon_apache_port:
+      friendly_name: Apache root directory
+      value_template: >-
+        {% set s = states('input_text.motion_addon_apache_port') %}
+        {% if s|lower != 'none'  and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          {{ s }}
+        {% else %}null{% endif %}
+
+###
+# config
+###
+
+- platform: template
+  sensors:
+    motion_addon_config_url:
+      friendly_name: Motion configuration URL
+      value_template: >-
+        {% set s = states('sensor.motion_addon_apache_host') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          {% set host = s %}
+          {% set s = states('sensor.motion_addon_apache_port') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+            {% set port = s %}
+            {{ 'http://' + host + ':' + port + '/cgi-bin/config' }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+
+- platform: rest
+  name: motion_addon_config
+  json_attributes:
+    - timestamp
+    - config
+  force_update: true
+  resource_template: >-
+    {% set s = states('sensor.motion_addon_config_url') %}
+    {% if s|lower !='none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+      {{- s -}}
+    {% else %}http://127.0.0.1:7999/cgi-bin/config{% endif %}
+  value_template: >-
+    {% if value_json is defined %}True{% else %}False{% endif %}
+
+# count
+- platform: template
+  sensors:
+    motion_addon_config_camera_count:
+      friendly_name: Add-on config camera count
+      icon_template: 'mdi:cctv'
+      value_template: >-
+        {% set s = state_attr('sensor.motion_addon_config','config') %}
+        {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          {% set s = s.cameras %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|list is iterable %}
+            {{ s|list|length }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+    motion_addon_config_camera_count_netcam:
+      friendly_name: Add-on netcam count
+      icon_template: 'mdi:webcam'
+      value_template: >-
+        {% set s = state_attr('sensor.motion_addon_config','config') %}
+        {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          {{ s.cameras|selectattr('type','==','netcam')|list|length }}
+        {% else %}null{% endif %}
+    motion_addon_config_camera_count_mqtt:
+      friendly_name: Add-on mqtt count
+      icon_template: 'mdi:message'
+      value_template: >-
+        {% set s = state_attr('sensor.motion_addon_config','config') %}
+        {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          {{ s.cameras|selectattr('type','==','mqtt')|list|length }}
+        {% else %}null{% endif %}
+    motion_addon_config_camera_count_local:
+      friendly_name: Add-on local count
+      icon_template: 'mdi:camera-outline'
+      value_template: >-
+        {% set s = state_attr('sensor.motion_addon_config','config') %}
+        {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          {{ s.cameras|selectattr('type','==','local')|list|length }}
+        {% else %}null{% endif %}
+    motion_addon_config_camera_count_ftpd:
+      friendly_name: Add-on ftpd count
+      icon_template: 'mdi:download'
+      value_template: >-
+        {% set s = state_attr('sensor.motion_addon_config','config') %}
+        {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          {{ s.cameras|selectattr('type','==','ftpd')|list|length }}
+        {% else %}null{% endif %}
+    motion_addon_config_camera_count_direct:
+      friendly_name: Add-on direct count
+      icon_template: 'mdi:camera'
+      value_template: >-
+        {% set l = states('sensor.motion_addon_config_camera_count_local') %}
+        {% set n = states('sensor.motion_addon_config_camera_count_netcam') %}
+        {{ l|int + n|int }}
+    motion_addon_config_camera_count_remote:
+      friendly_name: Add-on remote count
+      icon_template: 'mdi:camera-wireless-outline'
+      value_template: >-
+        {% set l = states('sensor.motion_addon_config_camera_count') %}
+        {% set n = states('sensor.motion_addon_config_camera_count_direct') %}
+        {{ l|int - n|int }}
+
+# mqtt
+- platform: template
+  sensors:
+    motion_addon_config_mqtt_broker:
+      friendly_name: Add-on MQTT broker
+      icon_template: 'mdi:message-settings'
+      value_template: >-
+        {% set s = state_attr('sensor.motion_addon_config','config') %}
+        {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          {% set s = s.mqtt %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' %}
+            {{ s.host }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+    motion_addon_config_mqtt_port:
+      friendly_name: Add-on MQTT port
+      icon_template: 'mdi:message-settings'
+      value_template: >-
+        {% set s = state_attr('sensor.motion_addon_config','config') %}
+        {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          {% set s = s.mqtt %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' %}
+            {{ s.port }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+    motion_addon_config_mqtt_username:
+      friendly_name: Add-on MQTT username
+      icon_template: 'mdi:message-settings'
+      value_template: >-
+        {% set s = state_attr('sensor.motion_addon_config','config') %}
+        {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          {% set s = s.mqtt %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' %}
+            {{ s.username }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+    motion_addon_config_mqtt_password:
+      friendly_name: Add-on MQTT password
+      icon_template: 'mdi:message-settings'
+      value_template: >-
+        {% set s = state_attr('sensor.motion_addon_config','config') %}
+        {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          {% set s = s.mqtt %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' %}
+            {{ s.password }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+
+###
+# storage
+###
+
+- platform: template
+  sensors:
+    motion_addon_storage_url:
+      friendly_name: Add-on storage URL
+      value_template: >-
+        {% set s = states('sensor.motion_addon_apache_host') %}
+        {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          {% set host = s %}
+          {% set s = states('sensor.motion_addon_apache_port') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+            {% set port = s %}
+            {{ 'http://' + host + ':' + port + '/cgi-bin/storage' }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+
+- platform: rest
+  name: motion_addon_storage
+  json_attributes:
+    - blocks
+    - used
+    - available
+    - directory
+    - cameras
+  force_update: true
+  resource_template: >
+    {% set s = states('sensor.motion_addon_storage_url') %}
+    {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+      {{  s }}
+    {% else %}http://127.0.0.1:7999/cgi-bin/storage{% endif %}
+  value_template: >
+    {% if value_json is defined %}True{% else %}False{% endif %}
+   
+- platform: template
+  sensors:
+    motion_addon_storage_used:
+      friendly_name: Add-on storage used 
+      icon_template: 'mdi:database'
+      unit_of_measurement: '%'
+      value_template: >-
+        {% set s = states('sensor.motion_addon_storage') %}
+        {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          {% set used = state_attr('sensor.motion_addon_storage','used') %}
+          {% set blocks = state_attr('sensor.motion_addon_storage','blocks') %}
+          {% if used is not none and used|lower != 'unavailable' and used|lower != 'unknown' and used != null
+               and blocks is not none and blocks|lower != 'unavailable' and blocks|lower != 'unknown' and blocks != null %}
+            {{ (used|float / blocks|float * 100.0)|int }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+   
+- platform: template
+  sensors:
+    motion_addon_storage_available:
+      friendly_name: Add-on storage available
+      icon_template: 'mdi:database'
+      unit_of_measurement: '%'
+      value_template: >-
+        {% set s = states('sensor.motion_addon_storage') %}
+        {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          {% set available = state_attr('sensor.motion_addon_storage','available') %}
+          {% set blocks = state_attr('sensor.motion_addon_storage','blocks') %}
+          {% if available is not none and available|lower != 'unavailable' and available|lower != 'unknown' and available != null
+               and blocks is not none and blocks|lower != 'unavailable' and blocks|lower != 'unknown' and blocks != null %}
+            {{ (available|float / blocks|float * 100.0)|int }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+
+###
+# status
+###
+
+- platform: template
+  sensors:
+    motion_addon_status_url:
+      friendly_name: Motion add-on status URL
+      value_template: >-
+        {% set s = states('sensor.motion_addon_apache_host') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          {% set host = s %}
+          {% set s = states('sensor.motion_addon_apache_port') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+            {% set port = s %}
+            {{ 'http://' + host + ':' + port + '/cgi-bin/status' }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+
+- platform: rest
+  name: motion_addon_status
+  json_attributes:
+    - host
+    - port
+    - cameras
+  force_update: true
+  resource_template: >-
+    {% set s = states('sensor.motion_addon_status_url') %}
+    {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+      {{- s -}}
+    {% else %}http://127.0.0.1:7999/cgi-bin/status{% endif %}
+  value_template: >-
+    {% if value_json is defined %}True{% else %}False{% endif %}
+
+- platform: template
+  sensors:
+    motion_addon_status_host:
+      friendly_name: Add-on host
+      icon_template: 'mdi:cctv'
+      value_template: >-
+        {% set s = state_attr('sensor.motion_addon_status','host') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          {{ s }}
+        {% else %}null{% endif %}
+    motion_addon_status_port:
+      friendly_name: Add-on port
+      icon_template: 'mdi:cctv'
+      value_template: >-
+        {% set s = state_attr('sensor.motion_addon_status','port') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          {{ s }}
+        {% else %}null{% endif %}
+    motion_addon_status_camera_status_array:
+      friendly_name: Add-on status array
+      icon_template: 'mdi:cctv'
+      value_template: >-
+        {% set s = state_attr('sensor.motion_addon_status','cameras') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          [{%- for state in s -%}
+            {%- if loop.first -%}{%- else -%},{%- endif -%}
+            {%- set s = state.status|lower -%}
+            {%- if s == 'true' -%}1{%- else -%}0{%- endif -%}
+          {%- endfor -%}]
+        {% else %}null{% endif %}
+    motion_addon_status_camera_count:
+      friendly_name: 'Add-on camera status count'
+      icon_template: 'mdi:camera-outline'
+      value_template: >-
+        {% set s = states('sensor.motion_addon_status_camera_status_array') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null and s|from_json is iterable %}
+          {{ s|from_json|length }}
+        {% else %}null{% endif %}
+    motion_addon_status_camera_count_online:
+      friendly_name: 'Add-on direct on-line'
+      icon_template: 'mdi:camera'
+      value_template: >-
+        {% set s = states('sensor.motion_addon_status_camera_status_array') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null and s|from_json is iterable %}
+          {{ s|from_json|sum }}
+        {% else %}null{% endif %}
+    motion_addon_status_camera_offline:
+      friendly_name: Add-on off-line camera(s)
+      icon_template: 'mdi:camera-off'
+      value_template: >-
+        {% set s = state_attr('sensor.motion_addon_status','cameras') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          {{ s|selectattr('status','==',false)|map(attribute='camera')|list }}
+        {% else %}null{% endif %}
+    motion_addon_status_camera_count_offline:
+      friendly_name: 'Add-on direct off-line'
+      icon_template: 'mdi:camera-off'
+      value_template: >-
+        {{ states('sensor.motion_addon_status_camera_count')|int - states('sensor.motion_addon_status_camera_count_online')|int  }}
+    motion_addon_status_camera_offline_percent:
+      friendly_name: 'Add-on direct off-line %'
+      icon_template: 'mdi:percent'
+      unit_of_measurement: '%'
+      value_template: >-
+        {% set c = states('sensor.motion_addon_status_camera_count')|int %}
+        {% if c > 0 %}
+          {% set o = states('sensor.motion_addon_status_camera_count_offline')|int %}
+          {{ (o / c * 100)|int }}
+        {% else %}0{% endif %}
+    motion_addon_status_camera_status:
+      friendly_name: 'Camera status: addon'
+      icon_template: 'mdi:light-camera'
+      value_template: >-
+        {{ states('sensor.motion_addon_status_camera_count_online') -}}/{{- states('sensor.motion_addon_status_camera_count') -}};
+        {{ states('sensor.motion_addon_status_camera_offline_percent') -}}%
+
+# percent statistics
+
+- platform: statistics
+  name: motion_addon_status_camera_offline_percent_statistics
+  entity_id: sensor.motion_addon_status_camera_offline_percent
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: template
+  sensors:
+    motion_addon_status_camera_offline_percent_mean:
+      friendly_name: 'Add-on direct off-line mean %'
+      unit_of_measurement: '%'
+      icon_template: 'mdi:camera-off'
+      value_template: >-
+        {% if states('sensor.motion_addon_status_camera_offline_percent_statistics') != 'unknown' %}
+          {{ states.sensor.motion_addon_status_camera_offline_percent_statistics.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_addon_status_camera_offline_percent_min_value:
+      friendly_name: 'Add-on direct off-line min'
+      unit_of_measurement: '%'
+      icon_template: 'mdi:camera-off'
+      value_template: >-
+        {% if states('sensor.motion_addon_status_camera_offline_percent_statistics') != 'unknown' %}
+          {{ states.sensor.motion_addon_status_camera_offline_percent_statistics.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_addon_status_camera_offline_percent_max_value:
+      friendly_name: 'Add-on direct off-line max'
+      unit_of_measurement: '%'
+      icon_template: 'mdi:camera-off'
+      value_template: >-
+        {% if states('sensor.motion_addon_status_camera_offline_percent_statistics') != 'unknown' %}
+          {{ states.sensor.motion_addon_status_camera_offline_percent_statistics.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_addon_status_camera_offline_percent_stdev:
+      friendly_name: 'Add-on direct off-line stdev'
+      icon_template: 'mdi:sigma-lower'
+      unit_of_measurement: '%'
+      value_template: >
+        {% if states('sensor.motion_addon_status_camera_offline_percent_statistics') != 'unknown' %}
+          {{ states.sensor.motion_addon_status_camera_offline_percent_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_addon_status_camera_offline_percent_change:
+      friendly_name: 'Add-on direct off-line Δ'
+      icon_template: 'mdi:delta'
+      unit_of_measurement: '%'
+      value_template: >
+        {% if states('sensor.motion_addon_status_camera_offline_percent_statistics') != 'unknown' %}
+          {{ states.sensor.motion_addon_status_camera_offline_percent_statistics.attributes.change|float }}
+        {%- else -%}null{%- endif -%}
+
