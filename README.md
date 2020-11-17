@@ -120,7 +120,7 @@ Once the system has rebooted it will display a default view which includes the f
 + Count of all cameras
 + Percent of time all cameras are _found_
 
-<img src="docs/glance.png" width="50%">
+<img src="docs/glance.png" width="75%">
 
 ## Overview image
 The _overview_ image is used to display the location of camera icons specified in the _add-on_ (n.b. `top` and `left` percentages).  The _mode_ may be `local`, indicating that a local image file should be utilized; the default is `overview.jpg` in the `www/images/` directory.  The other modes utilize the Google Maps API; they are:
