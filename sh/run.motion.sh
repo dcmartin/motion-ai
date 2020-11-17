@@ -5,11 +5,10 @@ HOSTID=$(uname -n | sed 's/[-+#]*//g')
 
 # container
 LABEL='motion'
-IMAGE='dcmartin/addon-motion-video0:0.10.6'
+IMAGE='dcmartin/addon-motion-video0:0.10.8'
 
 # defaults
-OPTIONS='{"log_level":"info","log_motion_level":"info","log_motion_type":"ALL","default":{"changes":"on","event_gap":10,"framerate":2,"minimum_motion_frames":10,"post_pictures":"best","text_scale":2,"threshold_percent":5,"username":"username","password":"password","netcam_userpass":"username:password","width":640,"height":480},"mqtt":{"host":"127.0.0.1","port":1883,"username":"username","password":"password"},"group":"motion","device":"rpi0w","client":"rpi0w","timezone":"America/Los_Angeles","cameras":[{"name":"local","framerate":2,"palette":8,"type":"local","device":"/dev/video0","width":640,"height":480}]}'
-
+OPTIONS='{"log_level":"info","log_motion_level":"info","log_motion_type":"ALL","default":{"changes":"on","event_gap":5,"framerate":2,"minimum_motion_frames":5,"post_pictures":"best","text_scale":2,"threshold_percent":1,"username":"username","password":"password","netcam_userpass":"username:password","width":640,"height":480},"mqtt":{"host":"127.0.0.1","port":1883,"username":"username","password":"password"},"group":"motion","device":"rpi0w","client":"rpi0w","timezone":"America/Los_Angeles","cameras":[{"name":"local","framerate":2,"palette":8,"type":"local","device":"/dev/video0","width":640,"height":480}]}'
 
 # options
 if [ -z "${MOTION_TIMEZONE:-}" ] && [ -s MOTION_TIMEZONE ]; then MOTION_TIMEZONE=$(cat MOTION_TIMEZONE); fi; MOTION_TIMEZONE=${MOTION_TIMEZONE:-$(cat /etc/timezone)}
@@ -31,7 +30,7 @@ if [ -z "${MOTION_FRAMERATE:-}" ] && [ -s MOTION_FRAMERATE ]; then MOTION_FRAMER
 if [ -z "${MOTION_ROTATE:-}" ] && [ -s MOTION_ROTATE ]; then MOTION_ROTATE=$(cat MOTION_ROTATE); fi; MOTION_ROTATE=${MOTION_ROTATE:-0}
 if [ -z "${MOTION_WIDTH:-}" ] && [ -s MOTION_WIDTH ]; then MOTION_WIDTH=$(cat MOTION_WIDTH); fi; MOTION_WIDTH=${MOTION_WIDTH:-640}
 if [ -z "${MOTION_HEIGHT:-}" ] && [ -s MOTION_HEIGHT ]; then MOTION_HEIGHT=$(cat MOTION_HEIGHT); fi; MOTION_HEIGHT=${MOTION_HEIGHT:-480}
-if [ -z "${MOTION_THRESHOLD_PERCENT:-}" ] && [ -s MOTION_THRESHOLD_PERCENT ]; then MOTION_THRESHOLD_PERCENT=$(cat MOTION_THRESHOLD_PERCENT); fi; MOTION_THRESHOLD_PERCENT=${MOTION_THRESHOLD_PERCENT:-5}
+if [ -z "${MOTION_THRESHOLD_PERCENT:-}" ] && [ -s MOTION_THRESHOLD_PERCENT ]; then MOTION_THRESHOLD_PERCENT=$(cat MOTION_THRESHOLD_PERCENT); fi; MOTION_THRESHOLD_PERCENT=${MOTION_THRESHOLD_PERCENT:-1}
 
 # configure
 OPTIONS=$(echo "${OPTIONS}" | jq '.timezone="'${MOTION_TIMEZONE}'"')
