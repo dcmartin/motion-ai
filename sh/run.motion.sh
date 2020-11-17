@@ -41,7 +41,7 @@ if [ -s MOTION_THRESHOLD ]; then
   OPTIONS=$(echo "${OPTIONS}" | jq '.default.threshold="'${MOTION_THRESHOLD}'"')
 elif [ -s MOTION_THRESHOLD_PERCENT ]; then 
   MOTION_THRESHOLD_PERCENT=$(cat MOTION_THRESHOLD_PERCENT)
-  OPTIONS=$(echo "${OPTIONS}" | jq '.default.threshold_percent="'${MOTION_THRESHOLD_PERCENT}'"')
+  OPTIONS=$(echo "${OPTIONS}" | jq '.default.threshold_percent='${MOTION_THRESHOLD_PERCENT})
 fi
 if [ -s MOTION_THRESHOLD_MAXIMUM ]; then 
   MOTION_THRESHOLD_MAXIMUM=$(cat MOTION_THRESHOLD_MAXIMUM)
