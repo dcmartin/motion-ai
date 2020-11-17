@@ -8,7 +8,7 @@ LABEL='motion'
 IMAGE='dcmartin/addon-motion-video0:0.10.6'
 
 # defaults
-OPTIONS='{"log_level":"info","log_motion_level":"info","log_motion_type":"ALL","default":{"changes":"on","event_gap":10,"framerate":2,"minimum_motion_frames":10,"post_pictures":"center","text_scale":2,"threshold_percent":5,"username":"username","password":"password","netcam_userpass":"username:password","width":640,"height":480},"mqtt":{"host":"127.0.0.1","port":1883,"username":"username","password":"password"},"group":"motion","device":"rpi0w","client":"rpi0w","timezone":"America/Los_Angeles","cameras":[{"name":"local","framerate":2,"palette":8,"type":"local","device":"/dev/video0","width":640,"height":480}]}'
+OPTIONS='{"log_level":"info","log_motion_level":"info","log_motion_type":"ALL","default":{"changes":"on","event_gap":10,"framerate":2,"minimum_motion_frames":10,"post_pictures":"best","text_scale":2,"threshold_percent":5,"username":"username","password":"password","netcam_userpass":"username:password","width":640,"height":480},"mqtt":{"host":"127.0.0.1","port":1883,"username":"username","password":"password"},"group":"motion","device":"rpi0w","client":"rpi0w","timezone":"America/Los_Angeles","cameras":[{"name":"local","framerate":2,"palette":8,"type":"local","device":"/dev/video0","width":640,"height":480}]}'
 
 
 # options
