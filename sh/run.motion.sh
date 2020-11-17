@@ -5,7 +5,7 @@ HOSTID=$(uname -n | sed 's/[-+#]*//g')
 
 # container
 LABEL='motion'
-IMAGE='dcmartin/addon-motion-video0:0.10.8'
+IMAGE='dcmartin/addon-motion-video0:0.10.9'
 
 # defaults
 OPTIONS='{"log_level":"info","log_motion_level":"info","log_motion_type":"ALL","default":{"changes":"on","event_gap":5,"framerate":2,"minimum_motion_frames":5,"post_pictures":"best","text_scale":2,"threshold_percent":1,"username":"username","password":"password","netcam_userpass":"username:password","width":640,"height":480},"mqtt":{"host":"127.0.0.1","port":1883,"username":"username","password":"password"},"group":"motion","device":"rpi0w","client":"rpi0w","timezone":"America/Los_Angeles","cameras":[{"name":"local","framerate":2,"palette":8,"type":"local","device":"/dev/video0","width":640,"height":480}]}'
@@ -23,7 +23,7 @@ if [ -z "${MQTT_PORT:-}" ] && [ -s MQTT_PORT ]; then MQTT_PORT=$(cat MQTT_PORT);
 if [ -z "${MOTION_GROUP:-}" ] && [ -s MOTION_GROUP ]; then MOTION_GROUP=$(cat MOTION_GROUP); fi; MOTION_GROUP=${MOTION_GROUP:-motion}
 if [ -z "${MOTION_DEVICE:-}" ] && [ -s MOTION_DEVICE ]; then MOTION_DEVICE=$(cat MOTION_DEVICE); fi; MOTION_DEVICE=${MOTION_DEVICE:-${HOSTID}}
 if [ -z "${MOTION_CLIENT:-}" ] && [ -s MOTION_CLIENT ]; then MOTION_CLIENT=$(cat MOTION_CLIENT); fi; MOTION_CLIENT=${MOTION_CLIENT:-${HOSTID}}
-if [ -z "${MOTION_CAMERA_NAME:-}" ] && [ -s MOTION_CAMERA_NAME ]; then MOTION_CAMERA_NAME=$(cat MOTION_CAMERA_NAME); fi; MOTION_CAMERA_NAME=${MOTION_CAMERA_NAME:-${HOSTID}}
+if [ -z "${MOTION_CAMERA_NAME:-}" ] && [ -s MOTION_CAMERA_NAME ]; then MOTION_CAMERA_NAME=$(cat MOTION_CAMERA_NAME); fi; MOTION_CAMERA_NAME=${MOTION_CAMERA_NAME:-${MOTION_DEVICE}}
 if [ -z "${MOTION_CAMERA_DEVICE:-}" ] && [ -s MOTION_CAMERA_DEVICE ]; then MOTION_CAMERA_DEVICE=$(cat MOTION_CAMERA_DEVICE); fi; MOTION_CAMERA_DEVICE=${MOTION_CAMERA_DEVICE:-/dev/video0}
 if [ -z "${MOTION_PALETTE:-}" ] && [ -s MOTION_PALETTE ]; then MOTION_PALETTE=$(cat MOTION_PALETTE); fi; MOTION_PALETTE=${MOTION_PALETTE:-8}
 if [ -z "${MOTION_FRAMERATE:-}" ] && [ -s MOTION_FRAMERATE ]; then MOTION_FRAMERATE=$(cat MOTION_FRAMERATE); fi; MOTION_FRAMERATE=${MOTION_FRAMERATE:-2}
