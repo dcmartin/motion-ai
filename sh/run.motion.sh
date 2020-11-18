@@ -86,7 +86,7 @@ CID=$(docker run -d \
   --privileged \
   --network=host \
   --name ${LABEL} \
-  --mount type=tmpfs,destination=/tmpfs,tmpfs-size=2560000,tmpfs-mode=1777 \
+  --mount type=tmpfs,destination=/tmpfs,tmpfs-size=256000,tmpfs-mode=1777 \
   --mount type=bind,type=bind,source=${HOME}/${LABEL}/data,target=/data \
   --restart=unless-stopped \
   -e DEBUG=${DEBUG:-} \
