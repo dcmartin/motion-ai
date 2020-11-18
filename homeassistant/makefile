@@ -448,14 +448,14 @@ lovelace_dashboards.json: lovelace_dashboards.json.tmpl
 tidy: 
 	@echo "making $@"
 	@rm -f secrets.yaml
+	@#-rm -f www/images/motion_*.{jpg,gif}
+	@-sudo rm -f .storage/core.restore_state
 	@${MAKE} -C motion clean
 
 neat: tidy
 	@echo "making $@"
 	@rm -f motion/webcams.json
 	@rm -f lovelace.json lovelace_dashboards.json lovelace.developer.json
-	-rm -f www/images/motion_*.{jpg,gif}
-	-sudo rm -f .storage/core.restore_state
 
 clean: stop logclean neat
 	@echo "making $@"
