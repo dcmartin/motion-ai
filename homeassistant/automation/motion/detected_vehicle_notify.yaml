@@ -20,9 +20,186 @@
           Detected {{ states('sensor.motion_detected_vehicle_count') }} vehicle(s)
           from {{ states('sensor.motion_detected_vehicle_camera') }}
         notification_id: >
-          detected_vehicle-{{- states('sensor.motion_event_detected_vehicle_camera') -}}
+          motion_detected_vehicle-{{- states('sensor.motion_detected_vehicle_camera') -}}
         message: >-
-          Detected {{ states('sensor.motion_detected_vehicle') }} vehicle(s)
+          Detected {{ states('sensor.motion_detected_vehicle_count') }} vehicle(s)
           from {{ states('sensor.motion_detected_vehicle_where') }}
           for {{ states('sensor.motion_detected_vehicle_elapsed') }} seconds
           at {{ states('sensor.motion_detected_vehicle_when') }}
+
+# ago low/high counters
+
+- id: motion_detected_vehicle_ago_low_counter
+  alias: motion_detected_vehicle_ago_low_counter
+  initial_state: on
+  trigger:
+    platform: state
+    entity_id: binary_sensor.detected_vehicle_ago_low
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.detected_vehicle_ago_low','on') }}
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+  action:
+    - service: agoer.increment
+      entity_id: agoer.motion_detected_vehicle_ago_low_counter
+
+- id: motion_detected_vehicle_ago_high_counter
+  alias: motion_detected_vehicle_ago_high_counter
+  initial_state: on
+  trigger:
+    platform: state
+    entity_id: binary_sensor.detected_vehicle_ago_high
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.detected_vehicle_ago_high','on') }}
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+      - condition: template
+        value_template: >
+          {{ states('sensor.intranet_test') is not none }}
+  action:
+    - service: agoer.increment
+      entity_id: agoer.motion_detected_vehicle_ago_high_counter
+
+## notify
+
+- id: motion_detected_vehicle_ago_low_notify
+  alias: motion_detected_vehicle_ago_low_notify
+  initial_state: !secret detected-vehicle-ago-notifications
+  trigger:
+    platform: state
+    entity_id: binary_sensor.detected_vehicle_ago_low
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.detected_vehicle_ago_low','on') }}
+      - condition: template
+        value_template: >
+          {{ states('sensor.intranet_test') is not none and state_attr('sensor.intranet_test','date') is not none }}
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >
+          Vehicle ago low at
+          {{ now().timestamp()|int|timestamp_custom("%a %b %d %I:%M %p %Z") }}
+        notification_id: motion_detected_vehicle_ago_low
+        message: >
+          Current: {{ states('sensor.motion_detected_vehicle_status') -}}; 
+          average {{ states('sensor.motion_detected_vehicle_ago_mean') }} vehicle(s);
+          stdev {{ state_attr('sensor.motion_detected_vehicle_ago_stdev_statistics') }} vehicle(s)
+
+- id: motion_detected_vehicle_ago_low_dismiss
+  alias: motion_detected_vehicle_ago_low_dismiss
+  initial_state: !secret detected-vehicle-ago-notifications
+  trigger:
+    platform: state
+    entity_id: binary_sensor.detected_vehicle_ago_low
+  condition:
+    - condition: template
+      value_template: >
+        {{ is_state('binary_sensor.detected_vehicle_ago_low','off') }}
+  action:
+    - service: persistent_notification.dismiss
+      data_template:
+        notification_id: motion_detected_vehicle_ago_low
+
+- id: motion_detected_vehicle_ago_low_persistent
+  alias: motion_detected_vehicle_ago_low_persistent
+  initial_state: !secret detected-vehicle-ago-notifications
+  trigger:
+    platform: state
+    entity_id: binary_sensor.detected_vehicle_ago_low_persistent
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.detected_vehicle_ago_low_persistent','on') }}
+      - condition: template
+        value_template: >
+          {{ states('sensor.intranet_test') is not none }}
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >
+          Vehicle ago persistently low at
+          {{ now().timestamp()|int|timestamp_custom("%a %b %d %I:%M %p %Z") }}
+        notification_id: motion_detected_vehicle_ago_low
+        message: >-
+          Current: {{ states('sensor.motion_detected_vehicle_status') -}}; 
+          average {{ states('sensor.motion_detected_vehicle_ago_mean') }} vehicle(s);
+          stdev {{ state_attr('sensor.motion_detected_vehicle_ago_stdev_statistics') }} vehicle(s)
+
+- id: motion_detected_vehicle_ago_high_notify
+  alias: motion_detected_vehicle_ago_high_notify
+  initial_state: !secret detected-vehicle-ago-notifications
+  trigger:
+    platform: state
+    entity_id: binary_sensor.detected_vehicle_ago_high
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.detected_vehicle_ago_high','on') }}
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >
+          Vehicle ago high at
+          {{ now().timestamp()|int|timestamp_custom("%a %b %d %I:%M %p %Z") }}
+        notification_id: motion_detected_vehicle_ago_high
+        message: >
+          Current: {{ states('sensor.motion_detected_vehicle_status') -}}; 
+          average {{ states('sensor.motion_detected_vehicle_ago_mean') }} vehicle(s);
+          stdev {{ state_attr('sensor.motion_detected_vehicle_ago_stdev_statistics') }} vehicle(s)
+
+- id: motion_detected_vehicle_ago_high_dismiss
+  alias: motion_detected_vehicle_ago_high_dismiss
+  initial_state: !secret detected-vehicle-ago-notifications
+  trigger:
+    platform: state
+    entity_id: binary_sensor.detected_vehicle_ago_high
+  condition:
+    - condition: template
+      value_template: >
+        {{ is_state('binary_sensor.detected_vehicle_ago_high','off') }}
+  action:
+    - service: persistent_notification.dismiss
+      data_template:
+        notification_id: motion_detected_vehicle_ago_high
+
+- id: motion_detected_vehicle_ago_high_persistent
+  alias: motion_detected_vehicle_ago_high_persistent
+  initial_state: !secret detected-vehicle-ago-notifications
+  trigger:
+    platform: state
+    entity_id: binary_sensor.detected_vehicle_ago_high_persistent
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.detected_vehicle_ago_high_persistent','on') }}
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >
+          Vehicle ago high at
+          {{ now().timestamp()|int|timestamp_custom("%a %b %d %I:%M %p %Z") }}
+        notification_id: motion_detected_vehicle_ago_high
+        message: >
+          Current: {{ states('sensor.motion_detected_vehicle_status') -}}; 
+          average {{ states('sensor.motion_detected_vehicle_ago_mean') }} vehicle(s);
+          stdev {{ state_attr('sensor.motion_detected_vehicle_ago_stdev_statistics') }} vehicle(s)
