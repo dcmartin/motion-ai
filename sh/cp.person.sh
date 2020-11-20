@@ -16,7 +16,7 @@ find homeassistant/ -name "detected_${p}*" -print | while read; do
       -e "s/${p}/${t}/g" \
       -e "s/${p^}/${t^}/g" \
       -e "s/${p^^}/${t^^}/g" \
-      -e "s/:.*mdi:account.*/: \'mdi:${icon}\'/g" \
+      -e "s/[\' ]*mdi:account[^ \']*[\']*/ \'mdi:${icon}\'/g" \
       "${e}" > "${g}"
   done
 done
