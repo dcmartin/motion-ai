@@ -16,20 +16,23 @@
     - condition: template
       value_template: >-
         {% set e = state_attr('sensor.motion_event_annotated','event') %}
-        {% set autoselect = is_state('input_boolean.motion_camera_autoselect','on') %}
-        {{ autoselect is true and e is mapping }}
+        {% if e is mapping %}
+          {% set c = e.camera %}
+          {% if c is defined and c|lower != 'none' and c|lower != 'unavailable' and c|lower != 'unknown' and c|length > 0 %}
+            {% set c = c|lower %}
+            {{- is_state('input_boolean.motion_camera_autoselect','on')
+              and ( is_state('input_select.motion_camera_name','latest') or is_state('input_select.motion_camera_name',c) )
+              and is_state('input_select.motion_camera_name_options','annotated') -}}
+          {% else %}false{% endif %}
+        {% else %}false{% endif %}
   action:
     - service: python_script.set_state
       data_template:
         entity_id: sensor.motion_camera_name_selected
         state: >-
           {% set e = state_attr('sensor.motion_event_annotated','event') %}
-          {% if e is mapping %}
-            {% set c = e.camera %}
-            {% if c is defined and c is not none and c|lower != 'unavailable' and c|lower != 'unknown' and c|length > 0 %}
-              {{ c }}
-            {% else %}null{% endif %}
-          {% else %}null{% endif %}
+          {% set c = e.camera %}
+          {{ c }}
 
 ###
 ## update input_select.motion_camera_name options
