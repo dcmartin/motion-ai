@@ -33,8 +33,11 @@
       icon_template: 'mdi:count'
       value_template: >-
         {% set s = states('sensor.motion_detected_person_counts') %}
-        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|length > 0 %}
-          {{ s|from_json|sum }}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+          {% set s = s|from_json %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable %}
+            {{ s|sum }}
+          {%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif -%}
 
 - platform: statistics
@@ -94,8 +97,11 @@
       icon_template: 'mdi:account'
       value_template: >-
         {% set s = states('sensor.motion_detected_person_counts') %}
-        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|length > 0 %}
-          {{ s|from_json|max }}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+          {% set s = s|from_json %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable %}
+            {{ s|max }}
+          {%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif -%}
 
 - platform: template
@@ -106,11 +112,14 @@
       value_template: >-
         {% set n = states('sensor.motion_detected_person_counts_total') %}
         {% set s = states('sensor.motion_detected_person_counts') %}
-        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|length > 0 %}
-          [{% for i in s|from_json -%}
-            {%- if loop.first %}{% else %},{% endif %}
-             {%- if i|int > 0 -%}{{ ((i|float / n|float)*100)|int }}{% else %}0{%- endif -%}
-          {%- endfor -%}]
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+          {% set s = s|from_json %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable %}
+            [{% for i in s -%}
+              {%- if loop.first %}{% else %},{% endif %}
+               {%- if i|int > 0 -%}{{ ((i|float / n|float)*100)|int }}{% else %}0{%- endif -%}
+            {%- endfor -%}]
+          {%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif -%}
 
 - platform: template
@@ -121,7 +130,10 @@
       value_template: >-
         {% set s = states('sensor.motion_detected_person_occupancy') %}
         {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|length > 0 %}
-          {{ s|from_json|max }}
+            {% set s = s|from_json %}
+            {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable %}
+            {{ s|max }}
+          {%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif -%}
 
 - platform: template
@@ -136,9 +148,9 @@
         {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' 
            and o|lower != 'none' and o|lower != 'unknown' and o|lower != 'unavailable' and o|length > 0
            and m|lower != 'none' and m|lower != 'unknown' and m|lower != 'unavailable' and m|int > 0 -%}
-          {%- set l = s|from_json -%}
-          {%- if l|lower != 'none' and l|lower != 'unknown' and l|lower != 'unavailable' and l|lower != 'null' -%}
-            {%- for p in l -%}
+          {%- set s = s|from_json -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+            {%- for p in s -%}
               {%- if p|int >= m|int -%}
                 {{ o[loop.index0] }}
               {% endif -%}
@@ -149,19 +161,17 @@
 - platform: template
   sensors:
     motion_detected_person_count_status:
-      friendly_name: 'Person most'
+      friendly_name: 'Person count'
       icon_template: 'mdi:account'
       value_template: >-
-        {%- set c = states('sensor.motion_detected_person_count_max_camera') -%}
         {%- set p = states('sensor.motion_detected_person_counts_total') -%}
-        {%- if c|lower != 'none' and c|lower != 'unknown' and c|lower != 'unavailable' and c|lower != 'null'
-           and p|lower != 'none' and p|lower != 'unknown' and p|lower != 'unavailable' and p|lower != 'null' -%}
-          Σ: {{ p }} at {{ c }};
+        {%- if p|lower != 'none' and p|lower != 'unknown' and p|lower != 'unavailable' and p|lower != 'null' -%}
+          Σ: {{ p }};
           {% set a = states('sensor.motion_detected_person_counts_total_mean') %}
           {%- if a|lower != 'none' and a|lower != 'unknown' and a|lower != 'unavailable' and a|lower != 'null' %}
             μ: {{ a -}};
+            n: {{ state_attr('sensor.motion_detected_person_counts_total_statistics','count') }}
           {%- endif %}
-          n: {{ state_attr('sensor.motion_detected_person_counts_total_statistics','count') }}
         {%- else -%}
           {%- set s = states.sensor.motion_detected_person_count_status.state -%}
           {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
@@ -193,8 +203,11 @@
       icon_template: 'mdi:counter'
       value_template: >-
         {% set s = states('sensor.motion_detected_person_counters') %}
-        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|length > 0 %}
-          {{ s|from_json|sum }}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+          {% set s = s|from_json %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable %}
+            {{ s|sum }}
+          {%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif -%}
 
 - platform: template
@@ -246,9 +259,9 @@
         {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null'
            and o|lower != 'none' and o|lower != 'unknown' and o|lower != 'unavailable' and o|length > 0
            and m|lower != 'none' and m|lower != 'unknown' and m|lower != 'unavailable' and m|int > 0 -%}
-          {%- set l = s|from_json -%}
-          {%- if l|lower != 'none' and l|lower != 'unknown' and l|lower != 'unavailable' and l|lower != 'null' -%}
-            {%- for p in l -%}
+          {%- set s = s|from_json -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+            {%- for p in s -%}
               {%- if p|int >= m|int -%}
                 {{ o[loop.index0] }}
               {% endif -%}
@@ -675,7 +688,7 @@
           {% set s = states('sensor.motion_detected_person') %}
           {% if s|lower != 'unknown' and s|lower != none %}
             {% set s = s|from_json %}
-            {% if s|lower != 'unknown' and s|lower != none and s is iterable %}
+            {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s is iterable %}
               {{ s|sum|int }}
             {% else %}null{% endif %}
           {% else %}null{% endif %}
