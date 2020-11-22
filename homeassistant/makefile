@@ -456,7 +456,6 @@ lovelace_dashboards.json: lovelace_dashboards.json.tmpl
 tidy: 
 	@echo "making $@"
 	@rm -f secrets.yaml
-	@#-rm -f www/images/motion_*.{jpg,gif}
 	@-sudo rm -f .storage/core.restore_state
 	@${MAKE} -C motion clean
 
@@ -474,11 +473,12 @@ realclean: clean
 	-sudo rm -f home-assistant_v2.*
 	-sudo rm -f known_devices.yaml
 	-sudo rm -f home-assistant.log
+	-sudo rm -f www/images/motion_*.{jpg,gif}
+	-sudo rm -fr ../media/motion
 
 distclean: realclean
-	-suro rm -fr .uuid .HA_VERSION .cloud deps tts .storage
 	-sudo rm -f .storage/core.*
-	-sudo rm -fr ../media/motion
+	-suro rm -fr .uuid .HA_VERSION .cloud deps tts .storage
 
 logclean:
 	-@sudo journalctl --vacuum-time 1
