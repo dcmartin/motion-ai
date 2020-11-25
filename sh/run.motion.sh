@@ -5,10 +5,10 @@ HOSTID=$(uname -n | sed 's/[-+#]*//g')
 
 # container
 LABEL='motion'
-IMAGE='dcmartin/addon-motion-video0:0.10.19'
+IMAGE='dcmartin/addon-motion-video0:0.10.21'
 
 # defaults
-OPTIONS='{"log_level":"info","log_motion_level":"info","log_motion_type":"ALL","default":{"changes":"on","event_gap":5,"framerate":5,"minimum_motion_frames":5,"post_pictures":"best","text_scale":2,"threshold_maximum":100000,"threshold_percent":1,"username":"username","password":"password","netcam_userpass":"username:password","width":640,"height":480},"mqtt":{"host":"127.0.0.1","port":1883,"username":"username","password":"password"},"group":"motion","device":"rpi0w","client":"rpi0w","timezone":"America/Los_Angeles","cameras":[{"name":"local","framerate":5,"palette":8,"type":"local","device":"/dev/video0","width":640,"height":480}]}'
+OPTIONS='{"log_level":"info","log_motion_level":"info","log_motion_type":"ALL","default":{"changes":"on","event_gap":5,"framerate":5,"minimum_motion_frames":5,"post_pictures":"best","text_scale":2,"threshold_maximum":100000,"threshold_percent":1,"username":"username","password":"password","netcam_userpass":"username:password","width":640,"height":480},"mqtt":{"host":"127.0.0.1","port":1883,"username":"username","password":"password"},"group":"motion","device":"rpi0w","client":"rpi0w","timezone":"America/Los_Angeles","cameras":[{"name":"local","framerate":5,"type":"local","device":"/dev/video0","width":640,"height":480}]}'
 
 # options
 if [ -z "${MOTION_TIMEZONE:-}" ] && [ -s MOTION_TIMEZONE ]; then MOTION_TIMEZONE=$(cat MOTION_TIMEZONE); fi; MOTION_TIMEZONE=${MOTION_TIMEZONE:-$(cat /etc/timezone)}
@@ -24,7 +24,7 @@ if [ -z "${MOTION_GROUP:-}" ] && [ -s MOTION_GROUP ]; then MOTION_GROUP=$(cat MO
 if [ -z "${MOTION_DEVICE:-}" ] && [ -s MOTION_DEVICE ]; then MOTION_DEVICE=$(cat MOTION_DEVICE); fi; MOTION_DEVICE=${MOTION_DEVICE:-${HOSTID}}
 if [ -z "${MOTION_CLIENT:-}" ] && [ -s MOTION_CLIENT ]; then MOTION_CLIENT=$(cat MOTION_CLIENT); fi; MOTION_CLIENT=${MOTION_CLIENT:-${HOSTID}}
 if [ -z "${MOTION_CAMERA_NAME:-}" ] && [ -s MOTION_CAMERA_NAME ]; then MOTION_CAMERA_NAME=$(cat MOTION_CAMERA_NAME); fi; MOTION_CAMERA_NAME=${MOTION_CAMERA_NAME:-${MOTION_DEVICE}}
-if [ -z "${MOTION_PALETTE:-}" ] && [ -s MOTION_PALETTE ]; then MOTION_PALETTE=$(cat MOTION_PALETTE); fi; MOTION_PALETTE=${MOTION_PALETTE:-8}
+if [ -z "${MOTION_PALETTE:-}" ] && [ -s MOTION_PALETTE ]; then MOTION_PALETTE=$(cat MOTION_PALETTE); fi; MOTION_PALETTE=${MOTION_PALETTE:-17}
 if [ -z "${MOTION_FRAMERATE:-}" ] && [ -s MOTION_FRAMERATE ]; then MOTION_FRAMERATE=$(cat MOTION_FRAMERATE); fi; MOTION_FRAMERATE=${MOTION_FRAMERATE:-5}
 if [ -z "${MOTION_ROTATE:-}" ] && [ -s MOTION_ROTATE ]; then MOTION_ROTATE=$(cat MOTION_ROTATE); fi; MOTION_ROTATE=${MOTION_ROTATE:-0}
 if [ -z "${MOTION_WIDTH:-}" ] && [ -s MOTION_WIDTH ]; then MOTION_WIDTH=$(cat MOTION_WIDTH); fi; MOTION_WIDTH=${MOTION_WIDTH:-640}
@@ -63,11 +63,11 @@ OPTIONS=$(echo "${OPTIONS}" | jq '.device="'${MOTION_DEVICE}'"')
 OPTIONS=$(echo "${OPTIONS}" | jq '.client="'${MOTION_CLIENT}'"')
 OPTIONS=$(echo "${OPTIONS}" | jq '.cameras[0].name="'${MOTION_CAMERA_NAME}'"')
 OPTIONS=$(echo "${OPTIONS}" | jq '.cameras[0].device="'${MOTION_CAMERA_DEVICE}'"')
-OPTIONS=$(echo "${OPTIONS}" | jq '.cameras[0].palette="'${MOTION_PALETTE}'"')
-OPTIONS=$(echo "${OPTIONS}" | jq '.cameras[0].framerate="'${MOTION_FRAMERATE}'"')
-OPTIONS=$(echo "${OPTIONS}" | jq '.cameras[0].rotate="'${MOTION_ROTATE}'"')
-OPTIONS=$(echo "${OPTIONS}" | jq '.cameras[0].width="'${MOTION_WIDTH}'"')
-OPTIONS=$(echo "${OPTIONS}" | jq '.cameras[0].height="'${MOTION_HEIGHT}'"')
+OPTIONS=$(echo "${OPTIONS}" | jq '.cameras[0].palette='${MOTION_PALETTE})
+OPTIONS=$(echo "${OPTIONS}" | jq '.cameras[0].framerate='${MOTION_FRAMERATE})
+OPTIONS=$(echo "${OPTIONS}" | jq '.cameras[0].rotate='${MOTION_ROTATE})
+OPTIONS=$(echo "${OPTIONS}" | jq '.cameras[0].width='${MOTION_WIDTH})
+OPTIONS=$(echo "${OPTIONS}" | jq '.cameras[0].height='${MOTION_HEIGHT})
 
 # notify
 echo 'OPTIONS: '$(echo "${OPTIONS}" | jq -c '.') &> /dev/stderr
