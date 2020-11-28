@@ -76,7 +76,7 @@ OPTIONS=$(echo "${OPTIONS}" | jq '.default.lightswitch_percent='${MOTION_LIGHTSW
 OPTIONS=$(echo "${OPTIONS}" | jq '.default.lightswitch_frames='${MOTION_LIGHTSWITCH_FRAMES:-null})
 OPTIONS=$(echo "${OPTIONS}" | jq '.default.threshold='${MOTION_THRESHOLD:-null})
 OPTIONS=$(echo "${OPTIONS}" | jq '.default.threshold_percent='${MOTION_THRESHOLD_PERCENT:-null})
-OPTIONS=$(echo "${OPTIONS}" | jq '.default.threshold_maximum='${MOTION_THRESHOLD:-null})
+OPTIONS=$(echo "${OPTIONS}" | jq '.default.threshold_maximum='${MOTION_THRESHOLD_MAXIMUM:-null})
 
 if [ -z "${1:-}" ]; then
   OPTIONS=$(echo "${OPTIONS}" | jq '.cameras[0].name="'${MOTION_CAMERA_NAME}'"')
