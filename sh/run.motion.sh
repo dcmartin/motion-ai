@@ -5,7 +5,7 @@ HOSTID=$(uname -n | sed 's/[-+#]*//g')
 
 # container
 LABEL='motion'
-IMAGE='dcmartin/addon-motion-video0:0.10.26'
+IMAGE='dcmartin/addon-motion-video0:0.10.27'
 
 # defaults
 OPTIONS='{"log_level":"info","log_motion_level":"info","log_motion_type":"ALL","default":{"changes":"on","event_gap":5,"framerate":5,"minimum_motion_frames":5,"post_pictures":"best","text_scale":2,"threshold_maximum":100000,"threshold_percent":1,"username":"username","password":"password","netcam_userpass":"nothing:nothing","width":640,"height":480},"mqtt":{"host":"127.0.0.1","port":1883,"username":"username","password":"password"},"group":"motion","device":"rpi0w","client":"rpi0w","timezone":"America/Los_Angeles","cameras":[]}'
@@ -51,7 +51,7 @@ MOTION_THRESHOLD=${MOTION_THRESHOLD:-1000}
 if [ -s MOTION_THRESHOLD_MAXIMUM ]; then 
   MOTION_THRESHOLD_MAXIMUM=$(cat MOTION_THRESHOLD_MAXIMUM)
 fi
-MOTION_THRESHOLD_MAXIMUM=${MOTION_THRESHOLD:-0}
+MOTION_THRESHOLD_MAXIMUM=${MOTION_THRESHOLD_MAXIMUM:-0}
 
 # configure
 OPTIONS=$(echo "${OPTIONS}" | jq '.timezone="'${MOTION_TIMEZONE:-UTC}'"')
@@ -76,7 +76,7 @@ OPTIONS=$(echo "${OPTIONS}" | jq '.default.lightswitch_percent='${MOTION_LIGHTSW
 OPTIONS=$(echo "${OPTIONS}" | jq '.default.lightswitch_frames='${MOTION_LIGHTSWITCH_FRAMES:-null})
 OPTIONS=$(echo "${OPTIONS}" | jq '.default.threshold='${MOTION_THRESHOLD:-null})
 OPTIONS=$(echo "${OPTIONS}" | jq '.default.threshold_percent='${MOTION_THRESHOLD_PERCENT:-null})
-OPTIONS=$(echo "${OPTIONS}" | jq '.default.threshold_maximum='${MOTION_THRESHOLD:-null})
+OPTIONS=$(echo "${OPTIONS}" | jq '.default.threshold_maximum='${MOTION_THRESHOLD_MAXIMUM:-null})
 
 if [ -z "${1:-}" ]; then
   OPTIONS=$(echo "${OPTIONS}" | jq '.cameras[0].name="'${MOTION_CAMERA_NAME}'"')
