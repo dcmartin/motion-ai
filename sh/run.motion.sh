@@ -15,8 +15,6 @@ if [ -z "${MOTION_TIMEZONE:-}" ] && [ -s MOTION_TIMEZONE ]; then MOTION_TIMEZONE
 if [ -z "${LOG_LEVEL:-}" ] && [ -s LOG_LEVEL ]; then LOG_LEVEL=$(cat LOG_LEVEL); fi; LOG_LEVEL=${LOG_LEVEL:-info}
 if [ -z "${MOTION_LOG_LEVEL:-}" ] && [ -s MOTION_LOG_LEVEL ]; then MOTION_LOG_LEVEL=$(cat MOTION_LOG_LEVEL); fi; MOTION_LOG_LEVEL=${MOTION_LOG_LEVEL:-info}
 
-if [ -z "${NETCAM_USERPASS:-}" ] && [ -s NETCAM_USERPASS ]; then NETCAM_USERPASS=$(cat NETCAM_USERPASS); fi; NETCAM_USERPASS=${NETCAM_USERPASS:-username:password}
-
 if [ -z "${MQTT_HOST:-}" ] && [ -s MQTT_HOST ]; then MQTT_HOST=$(cat MQTT_HOST); fi; MQTT_HOST=${MQTT_HOST:-$(hostname -I | awk '{ print $1 }')}
 if [ -z "${MQTT_USERNAME:-}" ] && [ -s MQTT_USERNAME ]; then MQTT_USERNAME=$(cat MQTT_USERNAME); fi; MQTT_USERNAME=${MQTT_USERNAME:-username}
 if [ -z "${MQTT_PASSWORD:-}" ] && [ -s MQTT_PASSWORD ]; then MQTT_PASSWORD=$(cat MQTT_PASSWORD); fi; MQTT_PASSWORD=${MQTT_PASSWORD:-password}
@@ -84,8 +82,6 @@ if [ -z "${1:-}" ]; then
   OPTIONS=$(echo "${OPTIONS}" | jq '.cameras[0].name="'${MOTION_CAMERA_NAME}'"')
   OPTIONS=$(echo "${OPTIONS}" | jq '.cameras[0].type="'${MOTION_CAMERA_TYPE:-local}'"')
   OPTIONS=$(echo "${OPTIONS}" | jq '.cameras[0].device="'${MOTION_CAMERA_DEVICE:-/dev/video0}'"')
-  OPTIONS=$(echo "${OPTIONS}" | jq '.cameras[0].netcam_url="rtsp://192.168.1.223/live"')
-  OPTIONS=$(echo "${OPTIONS}" | jq '.cameras[0].netcam_userpass="'${MOTION_NETCAM_USERPASS:-username:password}'"')
   if [ "${MOTION_CAMERA_TYPE:-local}" = 'local' ] && [ ! -e "${MOTION_CAMERA_DEVICE}" ]; then
     echo "Cannot locate MOTON_CAMERA_DEVICE: ${MOTION_CAMERA_DEVICE:-}; did you run raspi-config?" &> /dev/stderr
   fi
