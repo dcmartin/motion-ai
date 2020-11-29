@@ -54,9 +54,14 @@ MOTION_DETECTED_PERSON_TUNE ?= $(if $(wildcard MOTION_DETECTED_PERSON_TUNE),$(sh
 MOTION_DETECTED_VEHICLE_TUNE ?= $(if $(wildcard MOTION_DETECTED_VEHICLE_TUNE),$(shell v=$$(cat MOTION_DETECTED_VEHICLE_TUNE) && echo "== MOTION_DETECTED_VEHICLE_TUNE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "** MOTION_DETECTED_VEHICLE_TUNE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MOTION_DETECTED_ANIMAL_TUNE ?= $(if $(wildcard MOTION_DETECTED_ANIMAL_TUNE),$(shell v=$$(cat MOTION_DETECTED_ANIMAL_TUNE) && echo "== MOTION_DETECTED_ANIMAL_TUNE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "** MOTION_DETECTED_ANIMAL_TUNE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
-MOTION_DETECTED_PERSON_DEVIATION ?= $(if $(wildcard MOTION_DETECTED_PERSON_DEVIATION),$(shell v=$$(cat MOTION_DETECTED_PERSON_DEVIATION) && echo "== MOTION_DETECTED_PERSON_DEVIATION: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "** MOTION_DETECTED_PERSON_DEVIATION unset; default: $${v}" > /dev/stderr && echo "$${v}"))
-MOTION_DETECTED_VEHICLE_DEVIATION ?= $(if $(wildcard MOTION_DETECTED_VEHICLE_DEVIATION),$(shell v=$$(cat MOTION_DETECTED_VEHICLE_DEVIATION) && echo "== MOTION_DETECTED_VEHICLE_DEVIATION: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "** MOTION_DETECTED_VEHICLE_DEVIATION unset; default: $${v}" > /dev/stderr && echo "$${v}"))
-MOTION_DETECTED_ANIMAL_DEVIATION ?= $(if $(wildcard MOTION_DETECTED_ANIMAL_DEVIATION),$(shell v=$$(cat MOTION_DETECTED_ANIMAL_DEVIATION) && echo "== MOTION_DETECTED_ANIMAL_DEVIATION: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "** MOTION_DETECTED_ANIMAL_DEVIATION unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MOTION_DETECTED_PERSON_DEVIATION ?= $(if $(wildcard MOTION_DETECTED_PERSON_DEVIATION),$(shell v=$$(cat MOTION_DETECTED_PERSON_DEVIATION) && echo "== MOTION_DETECTED_PERSON_DEVIATION: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='5.0' && echo "** MOTION_DETECTED_PERSON_DEVIATION unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MOTION_DETECTED_VEHICLE_DEVIATION ?= $(if $(wildcard MOTION_DETECTED_VEHICLE_DEVIATION),$(shell v=$$(cat MOTION_DETECTED_VEHICLE_DEVIATION) && echo "== MOTION_DETECTED_VEHICLE_DEVIATION: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='5.0' && echo "** MOTION_DETECTED_VEHICLE_DEVIATION unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MOTION_DETECTED_ANIMAL_DEVIATION ?= $(if $(wildcard MOTION_DETECTED_ANIMAL_DEVIATION),$(shell v=$$(cat MOTION_DETECTED_ANIMAL_DEVIATION) && echo "== MOTION_DETECTED_ANIMAL_DEVIATION: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='5.0' && echo "** MOTION_DETECTED_ANIMAL_DEVIATION unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+
+# ago
+MOTION_ANNOTATED_AGO ?= $(if $(wildcard MOTION_ANNOTATED_AGO),$(shell v=$$(cat MOTION_ANNOTATED_AGO) && echo "== MOTION_ANNOTATED_AGO: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='30' && echo "** MOTION_ANNOTATED_AGO unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MOTION_DETECTED_AGO ?= $(if $(wildcard MOTION_DETECTED_AGO),$(shell v=$$(cat MOTION_DETECTED_AGO) && echo "== MOTION_DETECTED_AGO: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='30' && echo "** MOTION_DETECTED_AGO unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MOTION_DETECTED_ENTITY_AGO ?= $(if $(wildcard MOTION_DETECTED_ENTITY_AGO),$(shell v=$$(cat MOTION_DETECTED_ENTITY_AGO) && echo "== MOTION_DETECTED_ENTITY_AGO: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='30' && echo "** MOTION_DETECTED_ENTITY_AGO unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 # webcam
 NETCAM_USERNAME ?= $(if $(wildcard NETCAM_USERNAME),$(shell v=$$(cat NETCAM_USERNAME) && echo "** SPECIFIED: NETCAM_USERNAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="username" && echo "!! UNSPECIFIED: NETCAM_USERNAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
@@ -179,6 +184,9 @@ secrets.yaml: secrets.yaml.tmpl makefile $(PWD)
 	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
 	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
 	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
+          MOTION_ANNOTATED_AGO="$(MOTION_ANNOTATED_AGO)" \
+          MOTION_DETECTED_AGO="$(MOTION_DETECTED_AGO)" \
+          MOTION_DETECTED_ENTITY_AGO="$(MOTION_DETECTED_ENTITY_AGO)" \
 	  MOTION_DETECTED_PERSON_TUNE="$(MOTION_DETECTED_PERSON_TUNE)" \
 	  MOTION_DETECTED_VEHICLE_TUNE="$(MOTION_DETECTED_VEHICLE_TUNE)" \
 	  MOTION_DETECTED_ANIMAL_TUNE="$(MOTION_DETECTED_ANIMAL_TUNE)" \
@@ -239,8 +247,8 @@ lovelace.json: lovelace.json.tmpl motion/webcams.json
 	  | envsubst \
 	  | jq '(.data.config.views[]|select(.path=="status").cards[]|select(.title=="OVERVIEW").elements)+='"$$(jq '[.[]|{"type":"icon","entity":("sensor.motion_detected_person_ago_"+.name),"icon": ("mdi:"+.icon),"style":{"color":"red","left":(.left|tostring+"%"),"top":(.top|tostring+"%"),"height":"5%","width": "5%"}}]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="person").cards[]|select(.title=="Person count mean (μ)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_person_count_"+.name+"_mean")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="vehicle").cards[]|select(.title=="Vehicle count mean").entities)+='"$$(jq '[.[]|("sensor.motion_detected_vehicle_count_"+.name+"_mean")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="animal").cards[]|select(.title=="Animal count mean").entities)+='"$$(jq '[.[]|("sensor.motion_detected_animal_count_"+.name+"_mean")]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="vehicle").cards[]|select(.title=="Vehicle count mean (μ)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_vehicle_count_"+.name+"_mean")]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="animal").cards[]|select(.title=="Animal count mean (μ)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_animal_count_"+.name+"_mean")]' motion/webcams.json)" \
 	 > $@
 	@echo "MADE $@"
 	rm -f .storage/lovelace
@@ -448,7 +456,6 @@ lovelace_dashboards.json: lovelace_dashboards.json.tmpl
 tidy: 
 	@echo "making $@"
 	@rm -f secrets.yaml
-	@#-rm -f www/images/motion_*.{jpg,gif}
 	@-sudo rm -f .storage/core.restore_state
 	@${MAKE} -C motion clean
 
@@ -466,11 +473,12 @@ realclean: clean
 	-sudo rm -f home-assistant_v2.*
 	-sudo rm -f known_devices.yaml
 	-sudo rm -f home-assistant.log
+	-sudo rm -f www/images/motion_*.{jpg,gif}
+	-sudo rm -fr ../media/motion
 
 distclean: realclean
-	-suro rm -fr .uuid .HA_VERSION .cloud deps tts .storage
 	-sudo rm -f .storage/core.*
-	-sudo rm -fr ../media/motion
+	-suro rm -fr .uuid .HA_VERSION .cloud deps tts .storage
 
 logclean:
 	-@sudo journalctl --vacuum-time 1

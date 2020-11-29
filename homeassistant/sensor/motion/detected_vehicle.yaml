@@ -2,8 +2,334 @@
 # homeassistant/sensor/motion/detected_vehicle.yaml
 ###
 
+## counts
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_counts:
+      value_template: >-
+        {% if is_state('binary_sensor.motion_detected_vehicle','on') or is_state('binary_sensor.motion_detected_vehicle_expired','off') -%}
+          {%- set s = state_attr('input_select.motion_camera_name','options') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|length > 0 -%}
+            [{%- for i in s -%}
+              {%- set j = states('sensor.motion_detected_vehicle_count_' + i) -%}
+              {%- if loop.first -%}{%- else -%},{%- endif -%}
+              {%- if j|lower != 'none' and j|lower != 'unknown' and j|lower != 'unavailable' and j|lower != 'null' -%}
+                {%- if j|int > 0 -%}{{- j|int -}}{%- else -%}0{%- endif -%}
+              {%- else -%}0{%- endif -%}
+            {%- endfor -%}]
+          {%- else -%}null{%- endif -%}
+        {%- else -%}
+          {%- set s = states.sensor.motion_detected_vehicle_counts.state -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {{ s }}
+          {%- else -%}null{%- endif -%}
+        {%- endif %}
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_counts_total:
+      friendly_name: 'Vehicle Σ'
+      icon_template: 'mdi:car'
+      unit_of_measurement: 'vehicle'
+      value_template: >-
+        {% set s = states('sensor.motion_detected_vehicle_counts') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+          {% set s = s|from_json %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable %}
+            {% set s = s|sum %}
+            {% if s|int > 0 %}{{ s|int }}{%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+
+# 1m
+- platform: statistics
+  name: motion_detected_vehicle_counts_total_1m
+  entity_id: sensor.motion_detected_vehicle_counts_total
+  sampling_size: 20
+  max_age:
+    minutes: 1
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_counts_total_1m_mean:
+      friendly_name: 'Σ μ 1m'
+      icon_template: 'mdi:car'
+      unit_of_measurement: 'vehicle'
+      value_template: >-
+        {% if states('sensor.motion_detected_vehicle_counts_total_1m') != 'unknown' %}
+          {{ states('sensor.motion_detected_vehicle_counts_total_1m')|float }}
+        {%- else -%}null{%- endif -%}
+
+# 5m
+- platform: statistics
+  name: motion_detected_vehicle_counts_total_5m
+  entity_id: sensor.motion_detected_vehicle_counts_total
+  sampling_size: 100
+  max_age:
+    minutes: 5
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_counts_total_5m_mean:
+      friendly_name: '5m'
+      icon_template: 'mdi:car'
+      unit_of_measurement: 'vehicle'
+      value_template: >-
+        {% if states('sensor.motion_detected_vehicle_counts_total_5m') != 'unknown' %}
+          {{ states('sensor.motion_detected_vehicle_counts_total_5m')|float }}
+        {%- else -%}null{%- endif -%}
+
+# 15m
+- platform: statistics
+  name: motion_detected_vehicle_counts_total_15m
+  entity_id: sensor.motion_detected_vehicle_counts_total
+  sampling_size: 300
+  max_age:
+    minutes: 15
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_counts_total_15m_mean:
+      friendly_name: '15m'
+      icon_template: 'mdi:car'
+      unit_of_measurement: 'vehicle'
+      value_template: >-
+        {% if states('sensor.motion_detected_vehicle_counts_total_15m') != 'unknown' %}
+          {{ states('sensor.motion_detected_vehicle_counts_total_15m')|float }}
+        {%- else -%}null{%- endif -%}
+
+# 30m
+- platform: statistics
+  name: motion_detected_vehicle_counts_total_30m
+  entity_id: sensor.motion_detected_vehicle_counts_total
+  sampling_size: 600
+  max_age:
+    minutes: 30
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_counts_total_30m_mean:
+      friendly_name: '30m'
+      icon_template: 'mdi:car'
+      unit_of_measurement: 'vehicle'
+      value_template: >-
+        {% if states('sensor.motion_detected_vehicle_counts_total_30m') != 'unknown' %}
+          {{ states('sensor.motion_detected_vehicle_counts_total_30m')|float }}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_most:
+      friendly_name: 'Vehicle counts max'
+      icon_template: 'mdi:car'
+      unit_of_measurement: 'vehicle'
+      value_template: >-
+        {% set s = states('sensor.motion_detected_vehicle_counts') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+          {% set s = s|from_json %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable %}
+            {{ s|max }}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_occupancy:
+      friendly_name: 'Vehicle counts %'
+      icon_template: 'mdi:car'
+      unit_of_measurement: '%'
+      value_template: >-
+        {% set n = states('sensor.motion_detected_vehicle_counts_total') %}
+        {% set s = states('sensor.motion_detected_vehicle_counts') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+          {% set s = s|from_json %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable %}
+            [{% for i in s -%}
+              {%- if loop.first %}{% else %},{% endif %}
+               {%- if i|int > 0 and n|int > 0 -%}{{ ((i|float / n|float)*100)|int }}{% else %}0{%- endif -%}
+            {%- endfor -%}]
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_occupancy_max:
+      friendly_name: 'Vehicle max %'
+      icon_template: 'mdi:car'
+      unit_of_measurement: '%'
+      value_template: >-
+        {% set s = states('sensor.motion_detected_vehicle_occupancy') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+            {% set s = s|from_json %}
+            {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable %}
+            {{ s|max }}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_most_camera:
+      friendly_name: 'Vehicle most camera'
+      icon_template: 'mdi:car'
+      value_template: >-
+        {{ states('sensor.motion_detected_vehicle_most_cameras').split(' ')|last }}
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_most_cameras:
+      friendly_name: 'Vehicle most cameras'
+      icon_template: 'mdi:car'
+      value_template: >-
+        {%- set s = states('sensor.motion_detected_vehicle_counts') -%}
+        {%- set m = states('sensor.motion_detected_vehicle_most') -%}
+        {%- set o = state_attr('input_select.motion_camera_name','options') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null'
+           and o|lower != 'none' and o|lower != 'unknown' and o|lower != 'unavailable' and o|length > 0
+           and m|lower != 'none' and m|lower != 'unknown' and m|lower != 'unavailable' and m|int > 0 -%}
+          {%- set s = s|from_json -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+            {%- for p in s -%}
+              {%- if p|int >= m|int -%}
+                {{ o[loop.index0] }}
+              {% endif -%}
+            {%- endfor -%}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_count_status:
+      friendly_name: 'Vehicle count'
+      icon_template: 'mdi:car'
+      value_template: >-
+        {%- set p = states('sensor.motion_detected_vehicle_counts_total') -%}
+        {%- if p|lower != 'none' and p|lower != 'unknown' and p|lower != 'unavailable' and p|lower != 'null' -%}
+          Σ: {{ p -}};
+          {% set a = states('sensor.motion_detected_vehicle_counts_total_mean') %}
+          {%- if a|lower != 'none' and a|lower != 'unknown' and a|lower != 'unavailable' and a|lower != 'null' %}
+            μ: {{ a -}};
+            n: {{ state_attr('sensor.motion_detected_vehicle_counts_total_statistics','count') }}
+          {%- endif %}
+        {%- else -%}
+          {%- set s = states.sensor.motion_detected_vehicle_count_status.state -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+            {{ s }}
+          {%- else -%}Pending{%- endif -%}
+        {%- endif -%}
 
 ## counters
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_counters:
+      friendly_name: 'All vehicle counters'
+      icon_template: 'mdi:counter'
+      value_template: >-
+        {% set s = state_attr('input_select.motion_camera_name','options') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|length > 0 %}
+          [{% for i in s -%}
+            {%- set j = states('sensor.motion_detected_vehicle_counter_' + i) -%}
+            {%- if loop.first %}{% else %},{% endif %}
+            {%- if j|int > 0 -%}{{- j|int -}}{% else %}0{%- endif -%}
+          {%- endfor -%}]
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_counters_total:
+      friendly_name: 'Vehicle counters total'
+      icon_template: 'mdi:counter'
+      value_template: >-
+        {% set s = states('sensor.motion_detected_vehicle_counters') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+          {% set s = s|from_json %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable %}
+            {{ s|sum }}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_counter_max:
+      friendly_name: 'Vehicle counters max'
+      icon_template: 'mdi:car'
+      value_template: >-
+        {% set s = states('sensor.motion_detected_vehicle_counters') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+          {{ s|from_json|max }}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_percents:
+      friendly_name: 'Vehicle counters %'
+      icon_template: 'mdi:percent'
+      value_template: >-
+        {% set n = states('sensor.motion_detected_vehicle_counters_total') %}
+        {% set s = states('sensor.motion_detected_vehicle_counters') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+          [{% for i in s|from_json -%}
+            {%- if loop.first %}{% else %},{% endif %}
+             {%- if i|int > 0 and n|int > 0 -%}{{ ((i|float / n|float)*100)|int }}{% else %}0{%- endif -%}
+          {%- endfor -%}]
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_often:
+      friendly_name: 'Vehicle max %'
+      icon_template: 'mdi:percent'
+      value_template: >-
+        {% set s = states('sensor.motion_detected_vehicle_percents') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+          {{ s|from_json|max }}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_often_camera:
+      friendly_name: 'Vehicle often camera'
+      icon_template: 'mdi:car'
+      value_template: >-
+        {{ states('sensor.motion_detected_vehicle_often_cameras').split(' ')|last }}
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_often_cameras:
+      friendly_name: 'Vehicle often cameras'
+      icon_template: 'mdi:car'
+      value_template: >-
+        {%- set s = states('sensor.motion_detected_vehicle_percents') -%}
+        {%- set m = states('sensor.motion_detected_vehicle_often') -%}
+        {%- set o = state_attr('input_select.motion_camera_name','options') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null'
+           and o|lower != 'none' and o|lower != 'unknown' and o|lower != 'unavailable' and o|length > 0
+           and m|lower != 'none' and m|lower != 'unknown' and m|lower != 'unavailable' and m|int > 0 -%}
+          {%- set s = s|from_json -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+            {%- for p in s -%}
+              {%- if p|int >= m|int -%}
+                {{ o[loop.index0] }}
+              {% endif -%}
+            {%- endfor -%}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_often_ago:
+      friendly_name: 'Vehicle often ago'
+      icon_template: 'mdi:car'
+      unit_of_measurement: seconds
+      value_template: >-
+        {%- set c = states('sensor.motion_detected_vehicle_often_camera') -%}
+        {%- if c|lower != 'none' and c|lower != 'unknown' and c|lower != 'unavailable' and c|lower != 'null' %}
+          {%- set p = states('sensor.motion_detected_vehicle_ago_' + c) %}
+          {% if p|lower != 'none' and p|lower != 'unknown' and p|lower != 'unavailable' and p|lower != 'null' -%}
+            {{ p }}
+          {%- else -%}null{%- endif %}
+        {%- else -%}null{%- endif %}
 
 - platform: template
   sensors:
@@ -67,10 +393,10 @@
       icon_template: 'mdi:car'
       value_template: >-
         {%- if states.sensor.motion_detected_vehicle_date is not none
-              and states.sensor.motion_detected_vehicle_date.state|lower != 'unknown'
-              and states.sensor.motion_detected_vehicle_ago.state|lower != 'unknown'
-              and states.sensor.motion_detected_vehicle_ago_mean.state|lower != 'unknown'
-              and states.sensor.motion_detected_vehicle_ago_mean.state|lower != 'null' -%}
+              and states('sensor.motion_detected_vehicle_date')|lower != 'unknown'
+              and states('sensor.motion_detected_vehicle_ago')|lower != 'unknown'
+              and states('sensor.motion_detected_vehicle_ago_mean')|lower != 'unknown'
+              and states('sensor.motion_detected_vehicle_ago_mean')|lower != 'null' -%}
           {%- if states('sensor.motion_detected_vehicle_ago')|lower == 'null' -%}
             NONE
           {%- else -%}
@@ -88,16 +414,48 @@
 
 - platform: template
   sensors:
-    motion_vehicle_activity_level:
-      friendly_name: 'Vehicle activity'
-      icon_template: 'mdi:car'
+    motion_vehicle_activity_icon:
       value_template: >-
         {%- if states.sensor.motion_detected_vehicle_date is not none
-               and states.sensor.motion_detected_vehicle_date.state|lower != 'unknown'
-               and states.sensor.motion_detected_vehicle_date.state|lower != 'null'
+               and states('sensor.motion_detected_vehicle_date')|lower != 'unknown'
+               and states('sensor.motion_detected_vehicle_date')|lower != 'null'
                and states.sensor.motion_detected_vehicle_ago is not none
-               and states.sensor.motion_detected_vehicle_ago.state|lower != 'unknown'
-               and states.sensor.motion_detected_vehicle_ago.state|lower != 'null' -%}
+               and states('sensor.motion_detected_vehicle_ago')|lower != 'unknown'
+               and states('sensor.motion_detected_vehicle_ago')|lower != 'null' -%}
+          {%- if states('sensor.motion_detected_vehicle_counter_today')|lower != 'unknown'
+                 and states('sensor.motion_detected_vehicle_counter_today')|lower != 'null'
+                 and states('sensor.motion_detected_vehicle_counter_today')|int <= 0 -%}
+            {{ 'mdi:car' }}
+          {%- elif (states('sensor.motion_detected_vehicle_ago')|int / 3600)|int > 0 -%}
+            {{ 'mdi:car' }}
+          {%- elif is_state('binary_sensor.motion_detected_vehicle_ago_high_persistent','on') -%}
+            {{ 'mdi:car' }}
+          {%- elif is_state('binary_sensor.motion_detected_vehicle_ago_high','on') -%}
+            {{ 'mdi:car' }}
+          {%- elif is_state('binary_sensor.motion_detected_vehicle_ago_low_persistent','on') -%}
+            {{ 'mdi:car' }}
+          {%- elif is_state('binary_sensor.motion_detected_vehicle_ago_low','on') -%}
+            {{ 'mdi:car' }}
+          {%- else -%}
+            {{ 'mdi:car' }}
+          {%- endif -%}
+        {%- else -%}
+          {{ 'mdi:car' }}
+        {%- endif -%}
+
+- platform: template
+  sensors:
+    motion_vehicle_activity_level:
+      friendly_name: 'Vehicle activity'
+      icon_template: >-
+        {{ states('sensor.motion_vehicle_activity_icon') }}
+      value_template: >-
+        {%- if states.sensor.motion_detected_vehicle_date is not none
+               and states('sensor.motion_detected_vehicle_date')|lower != 'unknown'
+               and states('sensor.motion_detected_vehicle_date')|lower != 'null'
+               and states.sensor.motion_detected_vehicle_ago is not none
+               and states('sensor.motion_detected_vehicle_ago')|lower != 'unknown'
+               and states('sensor.motion_detected_vehicle_ago')|lower != 'null' -%}
           {%- if states('sensor.motion_detected_vehicle_counter_today')|lower != 'unknown'
                  and states('sensor.motion_detected_vehicle_counter_today')|lower != 'null'
                  and states('sensor.motion_detected_vehicle_counter_today')|int <= 0 -%}
@@ -134,7 +492,6 @@
           {% set camera = states('sensor.motion_detected_vehicle_camera') %}
           {% set elapsed = states('sensor.motion_detected_vehicle_elapsed') %}
           {% set confidence = states('sensor.motion_detected_vehicle_confidence')|int %}
-          {% set count = states('sensor.motion_detected_vehicle_count') %}
           {% set n = utcnow().timestamp()|int %}
           {% if n|int > 0 and end|int > 0 %}
             {% set when = end|int|timestamp_custom("%I:%M:%S %p on %m/%d") -%}
@@ -143,12 +500,12 @@
             {% set when = 'null' %}
             {% set delay = 'null' %}
           {% endif %}
-          {{ count }} from {{ device -}}/{{- camera }} at {{ when -}}; 
-          confidence: {{ confidence }} β;
-          delay: {{ delay -}}s; 
-          duration: {{ elapsed -}}s
+          {{ device -}}/{{- camera }} at {{ when -}}; 
+          β: {{ confidence }} ;
+          Δ: {{ delay -}}s; 
+          δ: {{ elapsed -}}s
         {% else %}
-          {% set s = states('sensor.motion_detected_vehicle_status') %}
+          {% set s = states.sensor.motion_detected_vehicle_status.state %}
           {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
             {{ s }}
           {% else %}Pending{% endif %}
@@ -160,8 +517,8 @@
     motion_detected_vehicle_event:
       friendly_name: Vehicle event
       value_template: >
-        {% if is_state('binary_sensor.motion_detected_vehicle','on') %}
-          {% set s = state_attr('sensor.motion_event_annotated','event') %}
+        {% if is_state('binary_sensor.motion_detected_vehicle','on') and is_state('binary_sensor.motion_detected_vehicle_old','off') %}
+          {% set s = states.sensor.motion_event_annotated.attributes.event %}
           {% if s is not none and s is mapping %}
             {% set p = s.event %}
           {% endif %}
@@ -169,7 +526,7 @@
         {% if p is defined %}
           {{ p }}
         {% else %}
-          {% set s = states('sensor.motion_detected_vehicle_event') %}
+          {% set s = states.sensor.motion_detected_vehicle_event.state %}
           {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
             {{ s }}
           {% else %}null{% endif %}
@@ -181,16 +538,16 @@
       friendly_name: Vehicle device
       icon_template: 'mdi:raspberry-pi'
       value_template: >
-        {% if is_state('binary_sensor.motion_detected_vehicle','on') %}
-          {% set s = state_attr('sensor.motion_event_annotated','event') %}
-          {% if s is not none and s is mapping %}
+        {% if is_state('binary_sensor.motion_detected_vehicle','on') and is_state('binary_sensor.motion_detected_vehicle_old','off') %}
+          {% set s = states.sensor.motion_event_annotated.attributes.event %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s is mapping %}
             {% set p = s.device %}
           {% endif %}
         {% endif %}
         {% if p is defined %}
           {{ p }}
         {% else %}
-          {% set s = states('sensor.motion_detected_vehicle_device') %}
+          {% set s = states.sensor.motion_detected_vehicle_device.state %}
           {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
             {{ s }}
           {% else %}null{% endif %}
@@ -203,16 +560,16 @@
       friendly_name: Vehicle camera
       icon_template: 'mdi:camera'
       value_template: >
-        {% if is_state('binary_sensor.motion_detected_vehicle','on') %}
-          {% set s = state_attr('sensor.motion_event_annotated','event') %}
-          {% if s is not none and s is mapping %}
+        {% if is_state('binary_sensor.motion_detected_vehicle','on') and is_state('binary_sensor.motion_detected_vehicle_old','off') %}
+          {% set s = states.sensor.motion_event_annotated.attributes.event %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s is mapping %}
             {% set p = s.camera %}
           {% endif %}
         {% endif %}
         {% if p is defined %}
           {{ p }}
         {% else %}
-          {% set s = states('sensor.motion_detected_vehicle_camera') %}
+          {% set s = states.sensor.motion_detected_vehicle_camera.state %}
           {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
             {{ s }}
           {% else %}null{% endif %}
@@ -224,16 +581,16 @@
       friendly_name: Vehicle elapsed
       icon_template: 'mdi:timer'
       value_template: >
-        {% if is_state('binary_sensor.motion_detected_vehicle','on') %}
-          {% set s = state_attr('sensor.motion_event_annotated','event') %}
-          {% if s is not none and s is mapping %}
+        {% if is_state('binary_sensor.motion_detected_vehicle','on') and is_state('binary_sensor.motion_detected_vehicle_old','off') %}
+          {% set s = states.sensor.motion_event_annotated.attributes.event %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s is mapping %}
             {% set p = s.elapsed %}
           {% endif %}
         {% endif %}
         {% if p is defined %}
           {{ p }}
         {% else %}
-          {% set s = states('sensor.motion_detected_vehicle_elapsed') %}
+          {% set s = states.sensor.motion_detected_vehicle_elapsed.state %}
           {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
             {{ s }}
           {% else %}null{% endif %}
@@ -244,16 +601,16 @@
     motion_detected_vehicle_date:
       friendly_name: Vehicle date
       value_template: >
-        {% if is_state('binary_sensor.motion_detected_vehicle','on') %}
-          {% set s = state_attr('sensor.motion_event_annotated','event') %}
-          {% if s is not none and s is mapping %}
+        {% if is_state('binary_sensor.motion_detected_vehicle','on') and is_state('binary_sensor.motion_detected_vehicle_old','off') %}
+          {% set s = states.sensor.motion_event_annotated.attributes.event %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s is mapping %}
             {% set p = s.end %}
           {% endif %}
         {% endif %}
         {% if p is defined %}
           {{ p }}
         {% else %}
-          {% set s = states('sensor.motion_detected_vehicle_date') %}
+          {% set s = states.sensor.motion_detected_vehicle_date.state %}
           {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
             {{ s }}
           {% else %}null{% endif %}
@@ -274,7 +631,7 @@
           {% set s = states('sensor.motion_detected_vehicle_when') %}
           {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
             {{ s }}
-          {% else %}null{% endif %}
+          {% else %}Pending{% endif %}
         {% endif %}
 
 ## live camera
@@ -308,18 +665,27 @@
       icon_template: 'mdi:counter'
       value_template: >-
         {%- set options = state_attr('input_select.motion_detect_vehicle','options') -%}
-        {%- if options is not none and options|lower != 'unknown' and options|length > 0 -%}
+        {%- if options|lower != 'none' and options|lower != 'unknown' and options is iterable -%}
           {%- set array = state_attr('sensor.motion_event_annotated','results') -%}
-          {%- if array is not none and array|lower != 'unknown' and array|length > 0 -%}
-            {%- for results in array -%}
-              {%- if loop.first -%}[{%- else -%},{%- endif -%}
-              {%- if results.entity in options and results.confidence|int >= states('sensor.motion_detected_vehicle_threshold')|int -%}
-                1
-              {%- else -%}
-                0
-              {%- endif -%}
-              {%- if loop.last -%}]{%- endif -%}
-            {%- endfor -%}
+          {%- if array|lower != 'none' and array|lower != 'unknown' and array is iterable -%}
+            {%- set t = states('sensor.motion_detected_vehicle_threshold') -%}
+            {%- if t|lower != 'none' and t|lower != 'unknown' and t|lower != 'null' -%}
+              {%- for results in array -%}
+                {%- if loop.first -%}[{%- else -%},{%- endif -%}
+                {%- set e = results.entity -%}
+                {%- if e|lower != 'none' and e|lower != 'unknown' and e|lower != 'null' -%}
+                  {%- set c = results.confidence -%}
+                  {%- if e in options and c|float >= t|float -%}
+                    1
+                  {%- else -%}
+                    0
+                  {%- endif -%}
+                {%- else -%}
+                  0
+                {%- endif -%}
+                {%- if loop.last -%}]{%- endif -%}
+              {%- endfor -%}
+            {%- else -%}null{%- endif -%}
           {%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif -%}
 
@@ -373,20 +739,28 @@
       unit_of_measurement: 'vehicle'
       icon_template: 'mdi:car'
       value_template: >
-        {% if is_state('binary_sensor.motion_detected_vehicle','on') or is_state('binary_sensor.motion_detected_vehicle_expired','off') %}
+        {% if is_state('binary_sensor.motion_detected_vehicle','on') %}
           {% set s = states('sensor.motion_detected_vehicle') %}
-          {% if s|lower != 'unknown' and s|lower != none %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|length > 0 %}
             {% set s = s|from_json %}
-            {% if s|lower != 'unknown' and s|lower != none and s is iterable %}
-              {{ s|sum|int }}
-            {% else %}null{% endif %}
+            {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s is iterable %}
+              {% set p = s|sum|int %}
+            {% endif %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% elif is_state('binary_sensor.motion_detected_vehicle_expired','off') %}
+          {% set s = states.sensor.motion_detected_vehicle_count.state %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
+            {{ s }}
           {% else %}null{% endif %}
         {% else %}null{% endif %}
 
 - platform: statistics
   name: motion_detected_vehicle_count_statistics
   entity_id: sensor.motion_detected_vehicle_count
-  sampling_size: 100
+  sampling_size: 1000
   max_age:
     hours: 72
 
@@ -398,7 +772,7 @@
       icon_template: 'mdi:car'
       value_template: >-
         {% if states('sensor.motion_detected_vehicle_count_statistics') != 'unknown' %}
-          {{ states.sensor.motion_detected_vehicle_count_statistics.state|float }}
+          {{ states('sensor.motion_detected_vehicle_count_statistics')|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_vehicle_count_min_value:
       friendly_name: 'Vehicle Σ min'
@@ -406,7 +780,7 @@
       icon_template: 'mdi:car'
       value_template: >-
         {% if states('sensor.motion_detected_vehicle_count_statistics') != 'unknown' %}
-          {{ states.sensor.motion_detected_vehicle_count_statistics.attributes.min_value|int }}
+          {{ state_attr('sensor.motion_detected_vehicle_count_statistics','min_value')|int }}
         {%- else -%}null{%- endif -%}
     motion_detected_vehicle_count_max_value:
       friendly_name: 'Vehicle Σ max'
@@ -414,7 +788,7 @@
       icon_template: 'mdi:car'
       value_template: >-
         {% if states('sensor.motion_detected_vehicle_count_statistics') != 'unknown' %}
-          {{ states.sensor.motion_detected_vehicle_count_statistics.attributes.max_value|int }}
+          {{ state_attr('sensor.motion_detected_vehicle_count_statistics','max_value')|int }}
         {%- else -%}null{%- endif -%}
     motion_detected_vehicle_count_stdev:
       friendly_name: 'Vehicle Σ σ'
@@ -422,7 +796,7 @@
       icon_template: 'mdi:car'
       value_template: >
         {% if states('sensor.motion_detected_vehicle_count_statistics') != 'unknown' %}
-          {{ states.sensor.motion_detected_vehicle_count_statistics.attributes.standard_deviation|float }}
+          {{ state_attr('sensor.motion_detected_vehicle_count_statistics','standard_deviation')|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_vehicle_count_change:
       friendly_name: 'Vehicle Σ Δ'
@@ -430,13 +804,13 @@
       icon_template: 'mdi:car'
       value_template: >
         {% if states('sensor.motion_detected_vehicle_count_statistics') != 'unknown' %}
-          {{ states.sensor.motion_detected_vehicle_count_statistics.attributes.change|float }}
+          {{ state_attr('sensor.motion_detected_vehicle_count_statistics','change')|float }}
         {%- else -%}null{%- endif -%}
 
 - platform: statistics
   name: motion_detected_vehicle_count_stdev_statistics
   entity_id: sensor.motion_detected_vehicle_count_stdev
-  sampling_size: 100
+  sampling_size: 1000
   max_age:
     hours: 72
 
@@ -454,20 +828,20 @@
       unit_of_measurement: 'vehicle'
       value_template: >
         {% if states.sensor.motion_detected_vehicle_count_stdev_statistics|lower != 'none' %}
-          {{ states.sensor.motion_detected_vehicle_count_stdev_statistics.attributes.change|float }}
+          {{ state_attr('sensor.motion_detected_vehicle_count_stdev_statistics','change')|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_vehicle_count_stdev_stdev:
       friendly_name: 'Vehicle Σ σ σ'
       unit_of_measurement: 'vehicle'
       value_template: >
         {% if states.sensor.motion_detected_vehicle_count_stdev_statistics|lower != 'none' %}
-          {{ states.sensor.motion_detected_vehicle_count_stdev_statistics.attributes.standard_deviation|float }}
+          {{ state_attr('sensor.motion_detected_vehicle_count_stdev_statistics','standard_deviation')|float }}
         {%- else -%}null{%- endif -%}
 
 - platform: statistics
   name: motion_detected_vehicle_count_change_statistics
   entity_id: sensor.motion_detected_vehicle_count_change
-  sampling_size: 100
+  sampling_size: 1000
   max_age:
     hours: 72
 
@@ -485,14 +859,14 @@
       unit_of_measurement: 'vehicle'
       value_template: >
         {% if states.sensor.motion_detected_vehicle_count_change_statistics|lower != 'none' %}
-          {{ states.sensor.motion_detected_vehicle_count_change_statistics.attributes.standard_deviation|float }}
+          {{ state_attr('sensor.motion_detected_vehicle_count_change_statistics','standard_deviation')|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_vehicle_count_change_change:
       friendly_name: 'Vehicle Σ Δ Δ'
       unit_of_measurement: 'vehicle'
       value_template: >
         {% if states.sensor.motion_detected_vehicle_count_change_statistics|lower != 'none' %}
-          {{ states.sensor.motion_detected_vehicle_count_change_statistics.attributes.change|float }}
+          {{ state_attr('sensor.motion_detected_vehicle_count_change_statistics','change')|float }}
         {%- else -%}null{%- endif -%}
 
 ## confidence
@@ -504,7 +878,7 @@
       icon_template: 'mdi:car'
       unit_of_measurement: 'β'
       value_template: >
-        {% if is_state('binary_sensor.motion_detected_vehicle','on') %}
+        {% if is_state('binary_sensor.motion_detected','on') and is_state('binary_sensor.motion_detected_vehicle_old','off') %}
           {% set s = state_attr('sensor.motion_event_annotated','results') %}
           {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|length > 0 %}
             {% set options = state_attr('input_select.motion_detect_vehicle','options') %}
@@ -519,7 +893,7 @@
         {% if p is defined %}
           {{ p }}
         {% else %}
-          {% set s = states('sensor.motion_detected_vehicle_confidence') %}
+          {% set s = states.sensor.motion_detected_vehicle_confidence.state %}
           {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
             {{ s }}
           {% else %}null{% endif %}
@@ -528,7 +902,7 @@
 - platform: statistics
   name: motion_detected_vehicle_confidence_statistics
   entity_id: sensor.motion_detected_vehicle_confidence
-  sampling_size: 100
+  sampling_size: 1000
   max_age:
     hours: 72
 
@@ -540,7 +914,7 @@
       unit_of_measurement: 'β'
       value_template: >-
         {% if states('sensor.motion_detected_vehicle_confidence_statistics') != 'unknown' %}
-          {{ states.sensor.motion_detected_vehicle_confidence_statistics.state|float }}
+          {{ states('sensor.motion_detected_vehicle_confidence_statistics')|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_vehicle_confidence_min_value:
       friendly_name: 'Vehicle β min'
@@ -548,7 +922,7 @@
       icon_template: 'mdi:car'
       value_template: >-
         {% if states('sensor.motion_detected_vehicle_confidence_statistics') != 'unknown' %}
-          {{ states.sensor.motion_detected_vehicle_confidence_statistics.attributes.min_value|int }}
+          {{ state_attr('sensor.motion_detected_vehicle_confidence_statistics','min_value')|int }}
         {%- else -%}null{%- endif -%}
     motion_detected_vehicle_confidence_max_value:
       friendly_name: 'Vehicle β max'
@@ -556,7 +930,7 @@
       icon_template: 'mdi:car'
       value_template: >-
         {% if states('sensor.motion_detected_vehicle_confidence_statistics') != 'unknown' %}
-          {{ states.sensor.motion_detected_vehicle_confidence_statistics.attributes.max_value|int }}
+          {{ state_attr('sensor.motion_detected_vehicle_confidence_statistics','max_value')|int }}
         {%- else -%}null{%- endif -%}
     motion_detected_vehicle_confidence_stdev:
       friendly_name: 'Vehicle β σ'
@@ -564,7 +938,7 @@
       icon_template: 'mdi:car'
       value_template: >
         {% if states('sensor.motion_detected_vehicle_confidence_statistics') != 'unknown' %}
-          {{ states.sensor.motion_detected_vehicle_confidence_statistics.attributes.standard_deviation|float }}
+          {{ state_attr('sensor.motion_detected_vehicle_confidence_statistics','standard_deviation')|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_vehicle_confidence_change:
       friendly_name: 'Vehicle β Δ'
@@ -572,13 +946,13 @@
       icon_template: 'mdi:car'
       value_template: >
         {% if states('sensor.motion_detected_vehicle_confidence_statistics') != 'unknown' %}
-          {{ states.sensor.motion_detected_vehicle_confidence_statistics.attributes.change|float }}
+          {{ state_attr('sensor.motion_detected_vehicle_confidence_statistics','change')|float }}
         {%- else -%}null{%- endif -%}
 
 - platform: statistics
   name: motion_detected_vehicle_confidence_stdev_statistics
   entity_id: sensor.motion_detected_vehicle_confidence_stdev
-  sampling_size: 100
+  sampling_size: 1000
   max_age:
     hours: 72
 
@@ -596,20 +970,20 @@
       unit_of_measurement: 'β'
       value_template: >
         {% if states.sensor.motion_detected_vehicle_confidence_stdev_statistics|lower != 'none' %}
-          {{ states.sensor.motion_detected_vehicle_confidence_stdev_statistics.attributes.change|float }}
+          {{ state_attr('sensor.motion_detected_vehicle_confidence_stdev_statistics','change')|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_vehicle_confidence_stdev_stdev:
       friendly_name: 'Vehicle β σ σ'
       unit_of_measurement: 'β'
       value_template: >
         {% if states.sensor.motion_detected_vehicle_confidence_stdev_statistics|lower != 'none' %}
-          {{ states.sensor.motion_detected_vehicle_confidence_stdev_statistics.attributes.standard_deviation|float }}
+          {{ state_attr('sensor.motion_detected_vehicle_confidence_stdev_statistics','standard_deviation')|float }}
         {%- else -%}null{%- endif -%}
 
 - platform: statistics
   name: motion_detected_vehicle_confidence_change_statistics
   entity_id: sensor.motion_detected_vehicle_confidence_change
-  sampling_size: 100
+  sampling_size: 1000
   max_age:
     hours: 72
 
@@ -627,14 +1001,14 @@
       unit_of_measurement: 'β'
       value_template: >
         {% if states.sensor.motion_detected_vehicle_confidence_change_statistics|lower != 'none' %}
-          {{ states.sensor.motion_detected_vehicle_confidence_change_statistics.attributes.standard_deviation|float }}
+          {{ state_attr('sensor.motion_detected_vehicle_confidence_change_statistics','standard_deviation')|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_vehicle_confidence_change_change:
       friendly_name: 'Vehicle β Δ Δ'
       unit_of_measurement: 'β'
       value_template: >
         {% if states.sensor.motion_detected_vehicle_confidence_change_statistics|lower != 'none' %}
-          {{ states.sensor.motion_detected_vehicle_confidence_change_statistics.attributes.change|float }}
+          {{ state_attr('sensor.motion_detected_vehicle_confidence_change_statistics','change')|float }}
         {%- else -%}null{%- endif -%}
 
 ## ago
@@ -646,11 +1020,24 @@
       icon_template: 'mdi:car'
       value_template: >
         {% set s = states('sensor.motion_detected_vehicle_ago')|int %}
-        {% if s >= 0 %}
+        {% if s > 0 %}
+          {% set d = (s/86400)|int %}
           {% set h = (s/3600)|int %}
-          {% set m = ((s-(h*3600))/60)|int %}
-          {% set s = (s % 60)|int %}
-          {{ h -}}h; {{ m -}}m; {{ s -}}s
+          {% if d < 1 %}
+            {% set m = ((s-(d*86400)-(h*3600))/60)|int %}
+            {% set s = (s % 60)|int %}
+            {% if h < 1 %}
+              {% if m < 1 %}
+                {{ s -}}s
+              {% else %}
+                {{ m -}}m; {{ s -}}s
+              {% endif %}
+            {% else %}
+              {{ h -}}h; {{ m -}}m
+            {% endif %}
+          {% else %}
+            {{ d -}}d; {{ h -}}h
+          {% endif %}
         {%- else -%}Pending{%- endif -%}
 
 - platform: template
@@ -670,7 +1057,7 @@
 - platform: statistics
   name: motion_detected_vehicle_ago_statistics
   entity_id: sensor.motion_detected_vehicle_ago
-  sampling_size: 100
+  sampling_size: 1000
   max_age:
     hours: 72
 
@@ -681,41 +1068,41 @@
       unit_of_measurement: seconds
       value_template: >-
         {% if states('sensor.motion_detected_vehicle_ago_statistics') != 'unknown' %}
-          {{ states.sensor.motion_detected_vehicle_ago_statistics.state|float }}
+          {{ states('sensor.motion_detected_vehicle_ago_statistics')|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_vehicle_ago_min_value:
       friendly_name: 'Vehicle ⧖ min'
       unit_of_measurement: seconds
       value_template: >-
         {% if states('sensor.motion_detected_vehicle_ago_statistics') != 'unknown' %}
-          {{ states.sensor.motion_detected_vehicle_ago_statistics.attributes.min_value|int }}
+          {{ state_attr('sensor.motion_detected_vehicle_ago_statistics','min_value')|int }}
         {%- else -%}null{%- endif -%}
     motion_detected_vehicle_ago_max_value:
       friendly_name: 'Vehicle ⧖ max'
       unit_of_measurement: seconds
       value_template: >-
         {% if states('sensor.motion_detected_vehicle_ago_statistics') != 'unknown' %}
-          {{ states.sensor.motion_detected_vehicle_ago_statistics.attributes.max_value|int }}
+          {{ state_attr('sensor.motion_detected_vehicle_ago_statistics','max_value')|int }}
         {%- else -%}null{%- endif -%}
     motion_detected_vehicle_ago_stdev:
       friendly_name: 'Vehicle ⧖ σ'
       unit_of_measurement: seconds
       value_template: >
         {% if states('sensor.motion_detected_vehicle_ago_statistics') != 'unknown' %}
-          {{ states.sensor.motion_detected_vehicle_ago_statistics.attributes.standard_deviation|float }}
+          {{ state_attr('sensor.motion_detected_vehicle_ago_statistics','standard_deviation')|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_vehicle_ago_change:
       friendly_name: 'Vehicle ⧖ Δ'
       unit_of_measurement: seconds
       value_template: >
         {% if states('sensor.motion_detected_vehicle_ago_statistics') != 'unknown' %}
-          {{ states.sensor.motion_detected_vehicle_ago_statistics.attributes.change|float }}
+          {{ state_attr('sensor.motion_detected_vehicle_ago_statistics','change')|float }}
         {%- else -%}null{%- endif -%}
 
 - platform: statistics
   name: motion_detected_vehicle_ago_stdev_statistics
   entity_id: sensor.motion_detected_vehicle_ago_stdev
-  sampling_size: 100
+  sampling_size: 1000
   max_age:
     hours: 72
 
@@ -733,20 +1120,20 @@
       unit_of_measurement: seconds
       value_template: >
         {% if states.sensor.motion_detected_vehicle_ago_stdev_statistics|lower != 'none' %}
-          {{ states.sensor.motion_detected_vehicle_ago_stdev_statistics.attributes.change|float }}
+          {{ state_attr('sensor.motion_detected_vehicle_ago_stdev_statistics','change')|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_vehicle_ago_stdev_stdev:
       friendly_name: 'Vehicle ⧖ σ σ'
       unit_of_measurement: seconds
       value_template: >
         {% if states.sensor.motion_detected_vehicle_ago_stdev_statistics|lower != 'none' %}
-          {{ states.sensor.motion_detected_vehicle_ago_stdev_statistics.attributes.standard_deviation|float }}
+          {{ state_attr('sensor.motion_detected_vehicle_ago_stdev_statistics','standard_deviation')|float }}
         {%- else -%}null{%- endif -%}
 
 - platform: statistics
   name: motion_detected_vehicle_ago_change_statistics
   entity_id: sensor.motion_detected_vehicle_ago_change
-  sampling_size: 100
+  sampling_size: 1000
   max_age:
     hours: 72
 
@@ -764,14 +1151,14 @@
       unit_of_measurement: seconds
       value_template: >
         {% if states.sensor.motion_detected_vehicle_ago_change_statistics|lower != 'none' %}
-          {{ states.sensor.motion_detected_vehicle_ago_change_statistics.attributes.standard_deviation|float }}
+          {{ state_attr('sensor.motion_detected_vehicle_ago_change_statistics','standard_deviation')|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_vehicle_ago_change_change:
       friendly_name: 'Vehicle ⧖ Δ Δ'
       unit_of_measurement: seconds
       value_template: >
         {% if states.sensor.motion_detected_vehicle_ago_change_statistics|lower != 'none' %}
-          {{ states.sensor.motion_detected_vehicle_ago_change_statistics.attributes.change|float }}
+          {{ state_attr('sensor.motion_detected_vehicle_ago_change_statistics','change')|float }}
         {%- else -%}null{%- endif -%}
 
 ## today

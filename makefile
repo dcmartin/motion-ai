@@ -38,8 +38,6 @@ MOTION_GROUP ?= $(if $(wildcard MOTION_GROUP),$(shell v=$$(cat MOTION_GROUP) && 
 MOTION_DEVICE ?= $(if $(wildcard MOTION_DEVICE),$(shell v=$$(cat MOTION_DEVICE) && echo "== MOTION_DEVICE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(echo $(HOST_NAME) | sed -e "s/-//g" -e "s/ /_/g") && echo "** MOTION_DEVICE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MOTION_CLIENT ?= $(if $(wildcard MOTION_CLIENT),$(shell v=$$(cat MOTION_CLIENT) && echo "== MOTION_CLIENT: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$(MOTION_DEVICE) && echo "** MOTION_CLIENT unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MOTION_DETECT_ENTITY ?= $(if $(wildcard MOTION_DETECT_ENTITY),$(shell v=$$(cat MOTION_DETECT_ENTITY) && echo "== MOTION_DETECT_ENTITY: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='person' && echo "** MOTION_DETECT_ENTITY unset; default: $${v}" > /dev/stderr && echo "$${v}"))
-MOTION_EXPIRE_AFTER ?= $(if $(wildcard MOTION_EXPIRE_AFTER),$(shell v=$$(cat MOTION_EXPIRE_AFTER) && echo "== MOTION_EXPIRE_AFTER: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='5' && echo "** MOTION_EXPIRE_AFTER unset; default: $${v}" > /dev/stderr && echo "$${v}"))
-MOTION_FORCE_UPDATE ?= $(if $(wildcard MOTION_FORCE_UPDATE),$(shell v=$$(cat MOTION_FORCE_UPDATE) && echo "== MOTION_FORCE_UPDATE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "** MOTION_FORCE_UPDATE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MOTION_MEDIA_SAVE ?= $(if $(wildcard MOTION_MEDIA_SAVE),$(shell v=$$(cat MOTION_MEDIA_SAVE) && echo "== MOTION_MEDIA_SAVE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "** MOTION_MEDIA_SAVE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MOTION_MEDIA_MASK ?= $(if $(wildcard MOTION_MEDIA_MASK),$(shell v=$$(cat MOTION_MEDIA_MASK) && echo "== MOTION_MEDIA_MASK: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "** MOTION_MEDIA_MASK unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
@@ -54,9 +52,17 @@ MOTION_DETECTED_PERSON_TUNE ?= $(if $(wildcard MOTION_DETECTED_PERSON_TUNE),$(sh
 MOTION_DETECTED_VEHICLE_TUNE ?= $(if $(wildcard MOTION_DETECTED_VEHICLE_TUNE),$(shell v=$$(cat MOTION_DETECTED_VEHICLE_TUNE) && echo "== MOTION_DETECTED_VEHICLE_TUNE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "** MOTION_DETECTED_VEHICLE_TUNE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MOTION_DETECTED_ANIMAL_TUNE ?= $(if $(wildcard MOTION_DETECTED_ANIMAL_TUNE),$(shell v=$$(cat MOTION_DETECTED_ANIMAL_TUNE) && echo "== MOTION_DETECTED_ANIMAL_TUNE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "** MOTION_DETECTED_ANIMAL_TUNE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
-MOTION_DETECTED_PERSON_DEVIATION ?= $(if $(wildcard MOTION_DETECTED_PERSON_DEVIATION),$(shell v=$$(cat MOTION_DETECTED_PERSON_DEVIATION) && echo "== MOTION_DETECTED_PERSON_DEVIATION: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='3.0' && echo "** MOTION_DETECTED_PERSON_DEVIATION unset; default: $${v}" > /dev/stderr && echo "$${v}"))
-MOTION_DETECTED_VEHICLE_DEVIATION ?= $(if $(wildcard MOTION_DETECTED_VEHICLE_DEVIATION),$(shell v=$$(cat MOTION_DETECTED_VEHICLE_DEVIATION) && echo "== MOTION_DETECTED_VEHICLE_DEVIATION: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='3.0' && echo "** MOTION_DETECTED_VEHICLE_DEVIATION unset; default: $${v}" > /dev/stderr && echo "$${v}"))
-MOTION_DETECTED_ANIMAL_DEVIATION ?= $(if $(wildcard MOTION_DETECTED_ANIMAL_DEVIATION),$(shell v=$$(cat MOTION_DETECTED_ANIMAL_DEVIATION) && echo "== MOTION_DETECTED_ANIMAL_DEVIATION: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='3.0' && echo "** MOTION_DETECTED_ANIMAL_DEVIATION unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MOTION_DETECTED_PERSON_DEVIATION ?= $(if $(wildcard MOTION_DETECTED_PERSON_DEVIATION),$(shell v=$$(cat MOTION_DETECTED_PERSON_DEVIATION) && echo "== MOTION_DETECTED_PERSON_DEVIATION: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='5.0' && echo "** MOTION_DETECTED_PERSON_DEVIATION unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MOTION_DETECTED_VEHICLE_DEVIATION ?= $(if $(wildcard MOTION_DETECTED_VEHICLE_DEVIATION),$(shell v=$$(cat MOTION_DETECTED_VEHICLE_DEVIATION) && echo "== MOTION_DETECTED_VEHICLE_DEVIATION: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='5.0' && echo "** MOTION_DETECTED_VEHICLE_DEVIATION unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MOTION_DETECTED_ANIMAL_DEVIATION ?= $(if $(wildcard MOTION_DETECTED_ANIMAL_DEVIATION),$(shell v=$$(cat MOTION_DETECTED_ANIMAL_DEVIATION) && echo "== MOTION_DETECTED_ANIMAL_DEVIATION: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='5.0' && echo "** MOTION_DETECTED_ANIMAL_DEVIATION unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+
+# ago
+MOTION_EXPIRE_AFTER ?= $(if $(wildcard MOTION_EXPIRE_AFTER),$(shell v=$$(cat MOTION_EXPIRE_AFTER) && echo "== MOTION_EXPIRE_AFTER: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='30' && echo "** MOTION_EXPIRE_AFTER unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MOTION_FORCE_UPDATE ?= $(if $(wildcard MOTION_FORCE_UPDATE),$(shell v=$$(cat MOTION_FORCE_UPDATE) && echo "== MOTION_FORCE_UPDATE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "** MOTION_FORCE_UPDATE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+
+MOTION_ANNOTATED_AGO ?= $(if $(wildcard MOTION_ANNOTATED_AGO),$(shell v=$$(cat MOTION_ANNOTATED_AGO) && echo "== MOTION_ANNOTATED_AGO: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='30' && echo "** MOTION_ANNOTATED_AGO unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MOTION_DETECTED_AGO ?= $(if $(wildcard MOTION_DETECTED_AGO),$(shell v=$$(cat MOTION_DETECTED_AGO) && echo "== MOTION_DETECTED_AGO: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='30' && echo "** MOTION_DETECTED_AGO unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MOTION_DETECTED_ENTITY_AGO ?= $(if $(wildcard MOTION_DETECTED_ENTITY_AGO),$(shell v=$$(cat MOTION_DETECTED_ENTITY_AGO) && echo "== MOTION_DETECTED_ENTITY_AGO: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='30' && echo "** MOTION_DETECTED_ENTITY_AGO unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 # webcam
 NETCAM_USERNAME ?= $(if $(wildcard NETCAM_USERNAME),$(shell v=$$(cat NETCAM_USERNAME) && echo "== NETCAM_USERNAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="username" && echo "** NETCAM_USERNAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
@@ -126,6 +132,9 @@ $(ACTIONS): homeassistant/motion/webcams.json
 	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
 	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
 	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
+	  MOTION_ANNOTATED_AGO="$(MOTION_ANNOTATED_AGO)" \
+	  MOTION_DETECTED_AGO="$(MOTION_DETECTED_AGO)" \
+	  MOTION_DETECTED_ENTITY_AGO="$(MOTION_DETECTED_ENTITY_AGO)" \
 	  MOTION_DETECTED_PERSON_TUNE="$(MOTION_DETECTED_PERSON_TUNE)" \
 	  MOTION_DETECTED_VEHICLE_TUNE="$(MOTION_DETECTED_VEHICLE_TUNE)" \
 	  MOTION_DETECTED_ANIMAL_TUNE="$(MOTION_DETECTED_ANIMAL_TUNE)" \
