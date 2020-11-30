@@ -474,7 +474,8 @@ realclean: clean
 	-sudo rm -f known_devices.yaml
 	-sudo rm -f home-assistant.log
 	-sudo rm -f www/images/motion_*.{jpg,gif}
-	-sudo rm -fr ../media/motion
+	-sudo rm -fr "../media/Motion-Ã👁"
+
 
 distclean: realclean
 	-sudo rm -f .storage/core.*
