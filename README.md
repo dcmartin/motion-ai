@@ -277,14 +277,15 @@ git merge upstream/master
 
 Language|files|blank|comment|code
 :-------|-------:|-------:|-------:|-------:
-YAML|386|5190|16165|60594
-JSON|9|0|0|4160
+YAML|296|1645|1661|23367
+JSON|11|0|0|2016
+Markdown|16|339|0|1169
 make|2|99|56|683
-Markdown|8|109|0|325
 Python|5|49|37|262
-Bourne Shell|3|19|11|102
+Bourne Shell|5|20|11|110
+JavaScript|1|24|141|28
 --------|--------|--------|--------|--------
-SUM:|413|5466|16269|66126
+SUM:|336|2176|1906|27635
 
 <img src="http://clustrmaps.com/map_v2.png?cl=ffffff&w=a&t=n&d=8TDxxKn9npMT6_70gwlS3FcPjhdcBm5j4LskwHzTO5U" width="1">
 
