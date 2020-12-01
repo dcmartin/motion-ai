@@ -275,20 +275,18 @@ git merge upstream/master
 
 ## `CLOC`
 
-Files|language|blank|comment|code
+Language|files|blank|comment|code
 :-------|-------:|-------:|-------:|-------:
-1231|JSON|782|0|91110
-459|YAML|9928|46482|90979
-32|Bourne Shell|345|207|1789
-9|Markdown|276|0|962
-3|make|105|68|568
-3|Python|11|17|96
-1|HTML|19|1|90
+YAML|386|5190|16165|60594
+JSON|9|0|0|4160
+make|2|99|56|683
+Markdown|8|109|0|325
+Python|5|49|37|262
+Bourne Shell|3|19|11|102
 --------|--------|--------|--------|--------
-1738|SUM|11466|46775|185594
+SUM:|413|5466|16269|66126
 
 <img src="http://clustrmaps.com/map_v2.png?cl=ffffff&w=a&t=n&d=8TDxxKn9npMT6_70gwlS3FcPjhdcBm5j4LskwHzTO5U" width="1">
-
 
 ## License
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fdcmartin%2Fmotion-ai.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fdcmartin%2Fmotion-ai?ref=badge_large)
