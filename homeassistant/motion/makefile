@@ -38,6 +38,7 @@ WEBCAM_GRAPHS := $(shell for C in $(WEBCAMS); do echo history_graph/webcam-$${C}
 WEBCAM_GROUPS := $(shell for C in $(WEBCAMS); do echo group/webcam-$${C}.yaml; done)
 WEBCAM_SENSORS := $(shell for C in $(WEBCAMS); do echo sensor/webcam-$${C}.yaml; done)
 WEBCAM_INPUT_SELECTS := $(shell for C in $(WEBCAMS); do echo input_select/webcam-$${C}.yaml; done)
+WEBCAM_INPUT_BOOLEANS := $(shell for C in $(WEBCAMS); do echo input_boolean/webcam-$${C}.yaml; done)
 WEBCAM_SHELL_COMMANDS := $(shell for C in $(WEBCAMS); do echo shell_command/webcam-$${C}.yaml; done)
 
 # WEBCAM templates
@@ -50,6 +51,7 @@ WEBCAM_GRAPH_TEMPLATE := history_graph.webcam.yaml.tmpl
 WEBCAM_GROUP_TEMPLATE := group.webcam.yaml.tmpl
 WEBCAM_SENSOR_TEMPLATE := sensor.webcam.yaml.tmpl
 WEBCAM_INPUT_SELECT_TEMPLATE := input_select.webcam.yaml.tmpl
+WEBCAM_INPUT_BOOLEAN_TEMPLATE := input_boolean.webcam.yaml.tmpl
 WEBCAM_SHELL_COMMAND_TEMPLATE := shell_command.webcam.yaml.tmpl
 
 # WEBCAM yaml
@@ -60,6 +62,7 @@ WEBCAM_YAML := \
 	$(WEBCAM_COUNTERS) \
 	$(WEBCAM_SENSORS) \
 	$(WEBCAM_INPUT_SELECTS) \
+	$(WEBCAM_INPUT_BOOLEANS) \
 	$(WEBCAM_SHELL_COMMANDS)
 
 #	$(WEBCAM_GROUPS) \
@@ -263,6 +266,16 @@ $(WEBCAM_SENSORS): $(WEBCAM_SENSOR_TEMPLATE) makefile ${WEBCAMS_JSON}
 	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
 	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
 	  cat $(WEBCAM_SENSOR_TEMPLATE) | envsubst > $@
+
+$(WEBCAM_INPUT_BOOLEANS): $(WEBCAM_INPUT_BOOLEAN_TEMPLATE) makefile ${WEBCAMS_JSON}
+	@export TARGET="$@"; \
+	  export MOTION_CAMERA=$${TARGET%%.*}; \
+	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
+	  export MOTION_GROUP="$(MOTION_GROUP)"; \
+	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
+	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
+	  cat $(WEBCAM_INPUT_BOOLEAN_TEMPLATE) | envsubst > $@
 
 $(WEBCAM_INPUT_SELECTS): $(WEBCAM_INPUT_SELECT_TEMPLATE) makefile ${WEBCAMS_JSON}
 	@export TARGET="$@"; \

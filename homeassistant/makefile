@@ -306,7 +306,7 @@ lovelace.developer.json: lovelace.developer.json.tmpl motion/webcams.json
 	&& cat $< \
 	  | envsubst \
 	  | jq '(.data.config.views[]|select(.path=="motion_live").cards[]|select(.title=="OVERVIEW").elements)+='"$$(jq '[.[]|{"type":"icon","entity":("camera.motion_live_"+.name),"icon": ("mdi:"+.icon),"style":{"color":"red","left":(.left|tostring+"%"),"top":(.top|tostring+"%"),"height":"5%","width": "5%"}}]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="settings_view").cards[]|select(.title=="Detect entity").entities)+='"$$(jq '[.[]|{"name":("Detect at "+.name),"entity":("input_select.motion_detect_entity_"+.name)}]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="settings_view").cards[]|select(.title=="Detect entity").entities)+='"$$(jq '[.[]|{"name":("Detect at "+.name),"entity":("input_select.motion_detect_entity_"+.name)},{"name":("Notify at "+.name),"entity":("input_boolean.motion_detected_entity_notify_"+.name)}]' motion/webcams.json)" \
 	 > $@
 	@echo "MADE $@"
 	rm -f .storage/lovelace.lovelace_developer
@@ -474,7 +474,8 @@ realclean: clean
 	-sudo rm -f known_devices.yaml
 	-sudo rm -f home-assistant.log
 	-sudo rm -f www/images/motion_*.{jpg,gif}
-	-sudo rm -fr ../media/motion
+	-sudo rm -fr "../media/Motion-Ã👁"
+
 
 distclean: realclean
 	-sudo rm -f .storage/core.*

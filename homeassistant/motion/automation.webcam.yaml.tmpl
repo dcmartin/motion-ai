@@ -1712,11 +1712,11 @@
     - service: persistent_notification.create
       data_template:
         title: >
-          Camera ${MOTION_CAMERA} found
+          ${MOTION_CAMERA} camera found
         notification_id: >
           ${MOTION_CAMERA}
         message: >-
-          Camera ${MOTION_CAMERA} was {{ trigger.from_state.state }};
+          ${MOTION_CAMERA} camera was {{ trigger.from_state.state }};
           found at {{ now().timestamp()|int|timestamp_custom("%a %b %d @ %I:%M %p %Z") | default(null) }}
 
 ## lost
@@ -1739,11 +1739,11 @@
     - service: persistent_notification.create
       data_template:
         title: >
-          Camera ${MOTION_CAMERA} lost
+          ${MOTION_CAMERA} camera lost
         notification_id: >
           ${MOTION_CAMERA}
         message: >-
-          Camera ${MOTION_CAMERA} was {{ trigger.from_state.state }};
+          ${MOTION_CAMERA} camera was {{ trigger.from_state.state }};
           lost at {{ now().timestamp()|int|timestamp_custom("%a %b %d @ %I:%M %p %Z") | default(null) }}
 
 ###
@@ -1752,28 +1752,49 @@
 
 - id: motion_detected_notify_${MOTION_CAMERA}
   alias: motion_detected_notify_${MOTION_CAMERA}
-  initial_state: off
+  initial_state: 'on'
   trigger:
     - platform: state
-      entity_id: counter.motion_detected_counter_${MOTION_CAMERA}
+      entity_id: binary_sensor.motion_detected_${MOTION_CAMERA}
   condition:
-    condition: template
-    value_template: >
-      {{ is_state('input_boolean.motion_detected_notify','on') }}
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.motion_detected_${MOTION_CAMERA}','on') }}
+      - condition: template
+        value_template: >
+          {{ is_state('input_boolean.motion_detected_notify_${MOTION_CAMERA}','on') }}
+      - condition: template
+        value_template: >
+          {{ states('sensor.motion_detected_count_${MOTION_CAMERA}')|int > 0 }}
   action:
     - service: persistent_notification.create
       data_template:
         title: >-
-          Detected {{ states.sensor.motion_annotated_count_${MOTION_CAMERA}.state }} {{ states.sensor.motion_detect_entity.state }}(s)
-          from {{ states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.event.camera }}
-        notification_id: >
-          detected-{{- states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.event.camera -}}
+          Detected {{ states('sensor.motion_detected_count_${MOTION_CAMERA}') }} entity(s)
+          from {{ states('sensor.motion_detected_camera_${MOTION_CAMERA}') }}
+        notification_id: >-
+          {{ 'motion_detected-${MOTION_CAMERA}' }}
         message: >-
-          Detected {{ states.sensor.motion_annotated_count_${MOTION_CAMERA}.state }} {{ states.sensor.motion_detect_entity.state }}(s)
-          from {{ states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.event.camera }}
-          for {{ states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.event.elapsed }} seconds
-          ({{ states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.event.images|length }} frames)
-          at {{ states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.event.start|int|timestamp_custom("%a %b %d @ %I:%M %p UTC") | default(null) }}
+          {{ '[![]('
+             + states('sensor.motion_base_url')
+             + '/local/images/motion_detected-${MOTION_CAMERA}'
+             + '.jpg?e='
+             + states('sensor.motion_detected_event_${MOTION_CAMERA}'
+             + ')]('
+             + states('sensor.motion_base_url')
+             + '/local/images/motion_detected_animated-${MOTION_CAMERA}'
+             + '.gif?e='
+             + states('sensor.motion_detected_event_${MOTION_CAMERA}'
+             + ')' }}
+          Camera ${MOTION_CAMERA} detected {{ states('sensor.motion_detected_count_${MOTION_CAMERA}') -}}:
+          {{ states('sensor.motion_detected_list_${MOTION_CAMERA}') -}};
+          for {{ states('sensor.motion_detected_elapsed_${MOTION_CAMERA}') }} seconds
+          at {{ states('sensor.motion_detected_when_${MOTION_CAMERA}') }}
 
 ##
 # notify detected_entity
@@ -1781,28 +1802,195 @@
 
 - id: motion_detected_entity_notify_${MOTION_CAMERA}
   alias: motion_detected_entity_notify_${MOTION_CAMERA}
-  initial_state: off
+  initial_state: 'on'
   trigger:
     - platform: state
-      entity_id: counter.motion_detected_entity_counter_${MOTION_CAMERA}
+      entity_id: binary_sensor.motion_detected_entity_${MOTION_CAMERA}
   condition:
-    condition: template
-    value_template: >
-      {{ is_state('input_boolean.motion_detected_entity_notify','on') }}
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.motion_detected_entity_${MOTION_CAMERA}','on') }}
+      - condition: template
+        value_template: >
+          {{ is_state('input_boolean.motion_detected_entity_notify_${MOTION_CAMERA}','on') }}
+      - condition: template
+        value_template: >
+          {{ states('sensor.motion_detected_entity_count_${MOTION_CAMERA}')|int > 0 }}
   action:
     - service: persistent_notification.create
       data_template:
         title: >-
-          Detected {{ states.sensor.motion_annotated_count_entity_${MOTION_CAMERA}.state }} {{ states.sensor.motion_detect_entity.state }}(s)
-          from {{ states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.event.camera }}
-        notification_id: >
-          detected_entity-{{- states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.event.camera -}}
+          Detected {{ states('sensor.motion_detected_entity_count_${MOTION_CAMERA}') }} entity(s)
+          from {{ states('sensor.motion_detected_entity_camera_${MOTION_CAMERA}') }}
+        notification_id: >-
+          {{ 'motion_detected_entity-${MOTION_CAMERA}' }}
         message: >-
-          Detected {{ states.sensor.motion_annotated_count_entity_${MOTION_CAMERA}.state }} {{ states.sensor.motion_detect_entity.state }}(s)
-          from {{ states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.event.camera }}
-          for {{ states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.event.elapsed }} seconds
-          ({{ states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.event.images|length }} frames)
-          at {{ states.sensor.motion_event_annotated_${MOTION_CAMERA}.attributes.event.start|int|timestamp_custom("%a %b %d @ %I:%M %p UTC") | default(null) }}
+          {{ '[![]('
+             + states('sensor.motion_base_url')
+             + '/local/images/motion_detected_entity-${MOTION_CAMERA}'
+             + '.jpg?e='
+             + states('sensor.motion_detected_entity_event_${MOTION_CAMERA}'
+             + ')]('
+             + states('sensor.motion_base_url')
+             + '/local/images/motion_detected_entity_animated-${MOTION_CAMERA}'
+             + '.gif?e='
+             + states('sensor.motion_detected_entity_event_${MOTION_CAMERA}'
+             + ')' }}
+          Camera ${MOTION_CAMERA} detected {{ states('sensor.motion_detected_entity_count_${MOTION_CAMERA}') }} entity(s)
+          for {{ states('sensor.motion_detected_entity_elapsed_${MOTION_CAMERA}') }} seconds
+          at {{ states('sensor.motion_detected_entity_when_${MOTION_CAMERA}') }}
+
+##
+# notify detected_person
+##
+
+- id: motion_detected_person_notify_${MOTION_CAMERA}
+  alias: motion_detected_person_notify_${MOTION_CAMERA}
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_detected_person_${MOTION_CAMERA}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.motion_detected_person_${MOTION_CAMERA}','on') }}
+      - condition: template
+        value_template: >
+          {{ is_state('input_boolean.motion_detected_person_notify_${MOTION_CAMERA}','on') }}
+      - condition: template
+        value_template: >
+          {{ states('sensor.motion_detected_person_count_${MOTION_CAMERA}')|int > 0 }}
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >-
+          Detected {{ states('sensor.motion_detected_person_count_${MOTION_CAMERA}') }} person(s)
+          from {{ states('sensor.motion_detected_person_camera_${MOTION_CAMERA}') }}
+        notification_id: >-
+          {{ 'motion_detected_person-${MOTION_CAMERA}' }}
+        message: >-
+          {{ '[![]('
+             + states('sensor.motion_base_url')
+             + '/local/images/motion_detected_person-${MOTION_CAMERA}'
+             + '.jpg?e='
+             + states('sensor.motion_detected_person_event_${MOTION_CAMERA}'
+             + ')]('
+             + states('sensor.motion_base_url')
+             + '/local/images/motion_detected_person_animated-${MOTION_CAMERA}'
+             + '.gif?e='
+             + states('sensor.motion_detected_person_event_${MOTION_CAMERA}'
+             + ')' }}
+          Camera ${MOTION_CAMERA} detected {{ states('sensor.motion_detected_person_count_${MOTION_CAMERA}') }} person(s)
+          for {{ states('sensor.motion_detected_person_elapsed_${MOTION_CAMERA}') }} seconds
+          at {{ states('sensor.motion_detected_person_when_${MOTION_CAMERA}') }}
+
+##
+# notify detected_vehicle
+##
+
+- id: motion_detected_vehicle_notify_${MOTION_CAMERA}
+  alias: motion_detected_vehicle_notify_${MOTION_CAMERA}
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_detected_vehicle_${MOTION_CAMERA}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.motion_detected_vehicle_${MOTION_CAMERA}','on') }}
+      - condition: template
+        value_template: >
+          {{ is_state('input_boolean.motion_detected_vehicle_notify_${MOTION_CAMERA}','on') }}
+      - condition: template
+        value_template: >
+          {{ states('sensor.motion_detected_vehicle_count_${MOTION_CAMERA}')|int > 0 }}
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >-
+          Detected {{ states('sensor.motion_detected_vehicle_count_${MOTION_CAMERA}') }} vehicle(s)
+          from {{ states('sensor.motion_detected_vehicle_camera_${MOTION_CAMERA}') }}
+        notification_id: >-
+          {{ 'motion_detected_vehicle-${MOTION_CAMERA}' }}
+        message: >-
+          {{ '[![]('
+             + states('sensor.motion_base_url')
+             + '/local/images/motion_detected_vehicle-${MOTION_CAMERA}'
+             + '.jpg?e='
+             + states('sensor.motion_detected_vehicle_event_${MOTION_CAMERA}'
+             + ')]('
+             + states('sensor.motion_base_url')
+             + '/local/images/motion_detected_vehicle_animated-${MOTION_CAMERA}'
+             + '.gif?e='
+             + states('sensor.motion_detected_vehicle_event_${MOTION_CAMERA}'
+             + ')' }}
+          Camera ${MOTION_CAMERA} detected {{ states('sensor.motion_detected_vehicle_count_${MOTION_CAMERA}') }} vehicle(s)
+          for {{ states('sensor.motion_detected_vehicle_elapsed_${MOTION_CAMERA}') }} seconds
+          at {{ states('sensor.motion_detected_vehicle_when_${MOTION_CAMERA}') }}
+
+##
+# notify detected_animal
+##
+
+- id: motion_detected_animal_notify_${MOTION_CAMERA}
+  alias: motion_detected_animal_notify_${MOTION_CAMERA}
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_detected_animal_${MOTION_CAMERA}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.motion_detected_animal_${MOTION_CAMERA}','on') }}
+      - condition: template
+        value_template: >
+          {{ is_state('input_boolean.motion_detected_animal_notify_${MOTION_CAMERA}','on') }}
+      - condition: template
+        value_template: >
+          {{ states('sensor.motion_detected_animal_count_${MOTION_CAMERA}')|int > 0 }}
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >-
+          Detected {{ states('sensor.motion_detected_animal_count_${MOTION_CAMERA}') }} animal(s)
+          from {{ states('sensor.motion_detected_animal_camera_${MOTION_CAMERA}') }}
+        notification_id: >-
+          {{ 'motion_detected_animal-${MOTION_CAMERA}' }}
+        message: >-
+          {{ '[![]('
+             + states('sensor.motion_base_url')
+             + '/local/images/motion_detected_animal-${MOTION_CAMERA}'
+             + '.jpg?e='
+             + states('sensor.motion_detected_animal_event_${MOTION_CAMERA}'
+             + ')]('
+             + states('sensor.motion_base_url')
+             + '/local/images/motion_detected_animal_animated-${MOTION_CAMERA}'
+             + '.gif?e='
+             + states('sensor.motion_detected_animal_event_${MOTION_CAMERA}'
+             + ')' }}
+          Camera ${MOTION_CAMERA} detected {{ states('sensor.motion_detected_animal_count_${MOTION_CAMERA}') }} animal(s)
+          for {{ states('sensor.motion_detected_animal_elapsed_${MOTION_CAMERA}') }} seconds
+          at {{ states('sensor.motion_detected_animal_when_${MOTION_CAMERA}') }}
 
 ##
 # complete
