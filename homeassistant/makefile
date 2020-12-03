@@ -246,9 +246,6 @@ lovelace.json: lovelace.json.tmpl motion/webcams.json
 	&& cat $< \
 	  | envsubst \
 	  | jq '(.data.config.views[]|select(.path=="status").cards[]|select(.title=="OVERVIEW").elements)+='"$$(jq '[.[]|{"type":"icon","entity":("sensor.motion_detected_person_ago_"+.name),"icon": ("mdi:"+.icon),"style":{"color":"red","left":(.left|tostring+"%"),"top":(.top|tostring+"%"),"height":"5%","width": "5%"}}]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="person").cards[]|select(.title=="Person count mean (μ)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_person_count_"+.name+"_mean")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="vehicle").cards[]|select(.title=="Vehicle count mean (μ)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_vehicle_count_"+.name+"_mean")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="animal").cards[]|select(.title=="Animal count mean (μ)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_animal_count_"+.name+"_mean")]' motion/webcams.json)" \
 	 > $@
 	@echo "MADE $@"
 	rm -f .storage/lovelace
@@ -307,6 +304,9 @@ lovelace.developer.json: lovelace.developer.json.tmpl motion/webcams.json
 	  | envsubst \
 	  | jq '(.data.config.views[]|select(.path=="motion_live").cards[]|select(.title=="OVERVIEW").elements)+='"$$(jq '[.[]|{"type":"icon","entity":("camera.motion_live_"+.name),"icon": ("mdi:"+.icon),"style":{"color":"red","left":(.left|tostring+"%"),"top":(.top|tostring+"%"),"height":"5%","width": "5%"}}]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="settings_view").cards[]|select(.title=="Detect entity").entities)+='"$$(jq '[.[]|{"name":("Detect at "+.name),"entity":("input_select.motion_detect_entity_"+.name)},{"name":("Notify at "+.name),"entity":("input_boolean.motion_detected_entity_notify_"+.name)}]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="person").cards[]|select(.title=="Person count mean (μ)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_person_count_"+.name+"_mean")]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="vehicle").cards[]|select(.title=="Vehicle count mean (μ)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_vehicle_count_"+.name+"_mean")]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="animal").cards[]|select(.title=="Animal count mean (μ)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_animal_count_"+.name+"_mean")]' motion/webcams.json)" \
 	 > $@
 	@echo "MADE $@"
 	rm -f .storage/lovelace.lovelace_developer
