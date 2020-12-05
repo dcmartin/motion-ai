@@ -1,0 +1,146 @@
+###
+# homeassistant/sensor/motion/notification.yaml
+###
+
+- platform: template
+  sensors:
+    motion_notification_status_notifying:
+      friendly_name: Notifying states
+      value_template: >-
+        [{%- for state in states.persistent_notification -%}
+          {%- if loop.first -%}{%- else -%},{%- endif -%}
+          {%- set s = state.state_with_unit|lower -%}
+          {%- set t = state.attributes.title|lower -%}
+          {%- if s == 'notifying' and  t!= 'unknown' and t|lower != 'none' and t|lower != 'null' and t|length > 0 -%}1{%- else -%}0{%- endif -%}
+        {%- endfor -%}]
+
+- platform: template
+  sensors:
+    motion_notification_status_unread:
+      friendly_name: Notifying states
+      value_template: >-
+        [{%- for state in states.persistent_notification -%}
+          {%- if loop.first -%}{%- else -%},{%- endif -%}
+          {%- set s = state.state_with_unit|lower -%}
+          {%- if s == 'unread' -%}1{%- else -%}0{%- endif -%}
+        {%- endfor -%}]
+
+- platform: template
+  sensors:
+    motion_notification_status_read:
+      friendly_name: Notifying states
+      value_template: >-
+        [{%- for state in states.persistent_notification -%}
+          {%- if loop.first -%}{%- else -%},{%- endif -%}
+          {%- set s = state.state_with_unit|lower -%}
+          {%- if s == 'read' -%}1{%- else -%}0{%- endif -%}
+        {%- endfor -%}]
+
+- platform: template
+  sensors:
+    motion_notification_count:
+      friendly_name: Notification count
+      icon_template: >-
+        {% set s = states('sensor.motion_domain_persistent_notification_count')|int %}
+        {% if s > 0 %}{{ 'mdi:bell' }}{% else %}{{ 'mdi:bell-outline' }}{% endif %}
+      unit_of_measurement: '🔔'
+      value_template: >-
+        {{ states('sensor.motion_domain_persistent_notification_count')|int }}
+
+- platform: template
+  sensors:
+    motion_notification_count_notifying:
+      friendly_name: Notification notifying count
+      icon_template: >-
+        {% set s = states('sensor.motion_notification_status_notifying') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' %}
+          {% set s = s|from_json %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' %}
+            {% set s = s|sum|int %}
+            {% if s > 0 and s < states.persistent_notification|list|length %}{{ 'mdi:bell' }}{% else %}{{ 'mdi:bell-outline' }}{% endif %}
+          {% else %}{{ 'mdi:bell-off' }}{% endif %}
+        {% else %}{{ 'mdi:bell-off' }}{% endif %}
+      unit_of_measurement: '🔔'
+      value_template: >-
+        {% set s = states('sensor.motion_notification_status_notifying') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' %}
+          {% set s = s|from_json %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' %}
+            {% set s = s|sum|int %}
+            {% if s > 0 and s <= states.persistent_notification|list|length %}{{ s }}{% else %}0{% endif %}
+          {% else %}0{% endif %}
+        {% else %}0{% endif %}
+
+- platform: template
+  sensors:
+    motion_notification_notifying:
+      friendly_name: Notifying
+      icon_template: >-
+        {% set s = states('sensor.motion_notification_count_notifying') %}
+        {% if s|int > 0 %}{{ 'mdi:bell' }}{% else %}{{ 'mdi:bell-outline' }}{% endif %}
+      value_template: >-
+        {% set s = states('sensor.motion_notification_count_notifying') %}
+        {% if s|int > 0 %}
+          {{ '(' + s|string + '): ' }}
+          {%- if states.persistent_notification|length > 0 -%}
+            {%- for state in states.persistent_notification -%}
+              {%- if loop.first -%}{%- else -%}{{- '; ' -}}{%- endif -%}
+              {%- set s = state.state_with_unit|lower -%}
+              {%- if s == 'notifying' -%}
+                {{ state.attributes.title }}
+              {%- endif -%}
+            {%- endfor -%}
+          {%- else -%}None{%- endif -%}
+        {%- else -%}None{%- endif -%}
+
+# count statistics
+
+- platform: statistics
+  name: motion_notification_notifying_count_statistics
+  entity_id: sensor.motion_notification_count_notifying
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: template
+  sensors:
+    motion_notification_notifying_count_mean:
+      friendly_name: 'Notification Σ'
+      unit_of_measurement: '🔔'
+      icon_template: 'mdi:bell'
+      value_template: >-
+        {% if states('sensor.motion_notification_notifying_count_statistics') != 'unknown' %}
+          {{ states.sensor.motion_notification_notifying_count_statistics.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_notification_notifying_count_min_value:
+      friendly_name: 'Notification Σ min'
+      unit_of_measurement: '🔔'
+      icon_template: 'mdi:bell'
+      value_template: >-
+        {% if states('sensor.motion_notification_notifying_count_statistics') != 'unknown' %}
+          {{ states.sensor.motion_notification_notifying_count_statistics.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_notification_notifying_count_max_value:
+      friendly_name: 'Notification Σ max'
+      unit_of_measurement: '🔔'
+      icon_template: 'mdi:bell'
+      value_template: >-
+        {% if states('sensor.motion_notification_notifying_count_statistics') != 'unknown' %}
+          {{ states.sensor.motion_notification_notifying_count_statistics.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_notification_notifying_count_stdev:
+      friendly_name: 'Notification Σ σ'
+      icon_template: 'mdi:bell'
+      unit_of_measurement: '🔔'
+      value_template: >
+        {% if states('sensor.motion_notification_notifying_count_statistics') != 'unknown' %}
+          {{ states.sensor.motion_notification_notifying_count_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_notification_notifying_count_change:
+      friendly_name: 'Notification Σ Δ'
+      unit_of_measurement: '🔔'
+      icon_template: 'mdi:bell'
+      value_template: >
+        {% if states('sensor.motion_notification_notifying_count_statistics') != 'unknown' %}
+          {{ states.sensor.motion_notification_notifying_count_statistics.attributes.change|float }}
+        {%- else -%}null{%- endif -%}
