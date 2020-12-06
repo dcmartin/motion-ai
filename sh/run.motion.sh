@@ -8,7 +8,7 @@ LABEL='motion'
 IMAGE='dcmartin/addon-motion-video0:0.10.43'
 
 # defaults
-OPTIONS='{"log_level":"info","log_motion_level":"info","log_motion_type":"ALL","default":{"changes":"on","event_gap":15,"framerate":5,"minimum_motion_frames":15,"post_pictures":"best","text_scale":2,"threshold_maximum":100000,"threshold_percent":1,"username":"username","password":"password","netcam_userpass":"nothing:nothing","width":640,"height":480},"mqtt":{"host":"127.0.0.1","port":1883,"username":"username","password":"password"},"group":"motion","device":"rpi0w","client":"rpi0w","timezone":"America/Los_Angeles","cameras":[]}'
+OPTIONS='{"log_level":"info","log_motion_level":"info","log_motion_type":"ALL","default":{"changes":"on","event_gap":30,"framerate":5,"minimum_motion_frames":15,"post_pictures":"best","text_scale":2,"threshold_maximum":100000,"threshold_percent":1,"username":"username","password":"password","netcam_userpass":"nothing:nothing","width":640,"height":480},"mqtt":{"host":"127.0.0.1","port":1883,"username":"username","password":"password"},"group":"motion","device":"rpi0w","client":"rpi0w","timezone":"America/Los_Angeles","cameras":[]}'
 
 # options
 if [ -z "${MOTION_TIMEZONE:-}" ] && [ -s MOTION_TIMEZONE ]; then MOTION_TIMEZONE=$(cat MOTION_TIMEZONE); fi; MOTION_TIMEZONE=${MOTION_TIMEZONE:-$(cat /etc/timezone)}
@@ -29,6 +29,8 @@ if [ -z "${MOTION_FRAMERATE:-}" ] && [ -s MOTION_FRAMERATE ]; then MOTION_FRAMER
 if [ -z "${MOTION_ROTATE:-}" ] && [ -s MOTION_ROTATE ]; then MOTION_ROTATE=$(cat MOTION_ROTATE); fi; MOTION_ROTATE=${MOTION_ROTATE:-0}
 if [ -z "${MOTION_WIDTH:-}" ] && [ -s MOTION_WIDTH ]; then MOTION_WIDTH=$(cat MOTION_WIDTH); fi; MOTION_WIDTH=${MOTION_WIDTH:-640}
 if [ -z "${MOTION_HEIGHT:-}" ] && [ -s MOTION_HEIGHT ]; then MOTION_HEIGHT=$(cat MOTION_HEIGHT); fi; MOTION_HEIGHT=${MOTION_HEIGHT:-480}
+
+if [ -z "${MOTION_EVENT_GAP:-}" ] && [ -s MOTION_EVENT_GAP ]; then MOTION_EVENT_GAP=$(cat MOTION_EVENT_GAP); fi; MOTION_EVENT_GAP=${MOTION_EVENT_GAP:-30}
 
 if [ -z "${MOTION_LIGHTSWITCH_PERCENT:-}" ] && [ -s MOTION_LIGHTSWITCH_PERCENT ]; then MOTION_LIGHTSWITCH_PERCENT=$(cat MOTION_LIGHTSWITCH_PERCENT); fi; MOTION_LIGHTSWITCH_PERCENT=${MOTION_LIGHTSWITCH_PERCENT:-0}
 if [ -z "${MOTION_LIGHTSWITCH_FRAMES:-}" ] && [ -s MOTION_LIGHTSWITCH_FRAMES ]; then MOTION_LIGHTSWITCH_FRAMES=$(cat MOTION_LIGHTSWITCH_FRAMES); fi; MOTION_LIGHTSWITCH_FRAMES=${MOTION_LIGHTSWITCH_FRAMES:-5}
@@ -68,6 +70,7 @@ OPTIONS=$(echo "${OPTIONS}" | jq '.device="'${MOTION_DEVICE:-${HOSTID}}'"')
 OPTIONS=$(echo "${OPTIONS}" | jq '.client="'${MOTION_CLIENT:-+}'"')
 
 OPTIONS=$(echo "${OPTIONS}" | jq '.default.palette='${MOTION_PALETTE:-17})
+OPTIONS=$(echo "${OPTIONS}" | jq '.default.event_gap='${MOTION_EVENT_GAP:-30})
 OPTIONS=$(echo "${OPTIONS}" | jq '.default.framerate='${MOTION_FRAMERATE:-5})
 OPTIONS=$(echo "${OPTIONS}" | jq '.default.rotate='${MOTION_ROTATE:-0})
 OPTIONS=$(echo "${OPTIONS}" | jq '.default.width='${MOTION_WIDTH:-640})
