@@ -38,9 +38,11 @@
           {%- set d = states('sensor.motion_detected_person_device') -%}
           {%- set r = states('sensor.motion_detected_person_list') -%}
           {%- if r|lower != 'none' and r|lower != 'unknown' and r|lower != 'unavailable' and r|lower != 'null' -%}
-            {%- set r = '&results=' + r|urlencode -%}
+            {%- set u = '&results=' + r|urlencode -%}
+            {%- set r = r|replace("'",'"')|from_json -%}
           {%- else -%}
-            {%- set r = '' -%}
+            {%- set u = '' -%}
+            {%- set r = null -%}
           {%- endif -%}
           {%- set e = states('sensor.motion_detected_person_event_' + states('sensor.motion_detected_person_camera')) -%}
           {{- '[![]('
@@ -59,20 +61,24 @@
           Detected {{ states('sensor.motion_detected_person_count') }} person(s)
           for {{ states('sensor.motion_detected_person_elapsed') }} seconds
           at {{ states('sensor.motion_detected_person_when') }}
-          {{ '[![](https://img.shields.io/badge/person-yes-green.svg)](' 
-            + states('sensor.motion_detected_person_api') 
-            + '/cgi-bin/predict.yes?entity=person'
-            + '&camera=' + c
-            + '&event=' + e
-            + r
-            + ')' -}}
-          {{ '[![](https://img.shields.io/badge/person-no-red.svg)](' 
-            + states('sensor.motion_detected_person_api') 
-            + '/cgi-bin/predict.no?entity=person'
-            + '&camera=' + c
-            + '&event=' + e
-            + r
-            + ')' -}}
+          {% if r is iterable and r|length > 0 -%}
+            {% for i in r|map(attribute="e")|unique|list -%}
+            {{- '[![](https://img.shields.io/badge/' + i + '-yes-green.svg)]('
+              + states('sensor.motion_detected_person_api')
+              + '/cgi-bin/predict.yes?entity=' + i
+              + '&camera=' + c
+              + '&event=' + e
+              + u
+              + ')' -}}
+            {{- '[![](https://img.shields.io/badge/' + i + '-no-red.svg)]('
+              + states('sensor.motion_detected_person_api')
+              + '/cgi-bin/predict.no?entity=' + i
+              + '&camera=' + c
+              + '&event=' + e
+              + u
+              + ')' -}}
+            {%- endfor -%}
+          {%- endif %}
 
 - id: motion_detected_person_notify_smartphone
   alias: motion_detected_person_notify_smartphone
