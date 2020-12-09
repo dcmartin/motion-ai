@@ -51,7 +51,7 @@ function motionai::get()
   fi
 
   # wait for HA
-  t=0; while [ ! -z "$(command -v ha)" ]; do 
+  t=0; while [ ! -z "$(command -v ha)" ]; do
     info=$(ha core info 2> /dev/null | egrep '^version:' | awk '{ print $2 }')
     t=$((t+1))
     if [ ! -z "${info:-}" ] && [ "${info}" != 'landingpage' ]; then break; fi
@@ -59,28 +59,28 @@ function motionai::get()
     echo -n "."
     sleep 60
   done
-  
+
   if [ ${t:-0} -ge 0 ]; then
     echo " done; version: ${info}"
-    if [ "${info}" != '0.116.4' ]; then 
+    if [ "${info}" != '0.116.4' ]; then
       echo "Version of Home Assistant is ${info}"
     fi
   else
     echo 'Problem installing Home Assistant; check with "ha core info" command' &> /dev/stderr
     exit 1
   fi
-  
+
   echo 'Downloading yolo weights'; \
     bash ${0%/*}/get.weights.sh \
     || \
     echo "Unable to download weights; use ${0%/*}/get.weights.sh" &> /dev/stderr
-  
+
   # build YAML
   echo "Building YAML; using default password: ${PASSWORD:-password}"
   yes "${PASSWORD:-password}" | make 2>&1 >> install.log \
     && make clean \
     && make restart
-  
+
   # change ownership
   echo "Changing ownership on homeassistant/ directory"
   chown -R ${SUDO_USER:-${USER}} homeassistant/
@@ -189,6 +189,7 @@ echo 'Modifying NetworkManager to disable WiFi MAC randomization' \
 
 echo 'Modifying NetData to enable access from any host' \
   && sed -i 's/127.0.0.1/\*/' /etc/netdata/netdata.conf \
+  && echo 'SEND_EMAIL="NO"' /etc/netdata/health_alarm_notify.conf \
   && echo 'Restarting netdata' \
   && systemctl restart netdata \
   || echo 'Failed to modify netdata.conf' &> /dev/stderr
