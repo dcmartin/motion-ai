@@ -189,7 +189,7 @@ echo 'Modifying NetworkManager to disable WiFi MAC randomization' \
 
 echo 'Modifying NetData to enable access from any host' \
   && sed -i 's/127.0.0.1/\*/' /etc/netdata/netdata.conf \
-  && echo 'SEND_EMAIL="NO"' /etc/netdata/health_alarm_notify.conf \
+  && echo 'SEND_EMAIL="NO"' > /etc/netdata/health_alarm_notify.conf \
   && echo 'Restarting netdata' \
   && systemctl restart netdata \
   || echo 'Failed to modify netdata.conf' &> /dev/stderr
