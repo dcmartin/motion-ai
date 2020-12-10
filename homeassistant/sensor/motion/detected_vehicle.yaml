@@ -72,7 +72,7 @@
 - platform: template
   sensors:
     motion_detected_vehicle_counts_total_5m_mean:
-      friendly_name: '5m'
+      friendly_name: 'Σ μ 5m'
       icon_template: 'mdi:car'
       unit_of_measurement: '🚗'
       value_template: >-
@@ -91,7 +91,7 @@
 - platform: template
   sensors:
     motion_detected_vehicle_counts_total_15m_mean:
-      friendly_name: '15m'
+      friendly_name: 'Σ μ 15m'
       icon_template: 'mdi:car'
       unit_of_measurement: '🚗'
       value_template: >-
@@ -110,7 +110,7 @@
 - platform: template
   sensors:
     motion_detected_vehicle_counts_total_30m_mean:
-      friendly_name: '30m'
+      friendly_name: 'Σ μ 30m'
       icon_template: 'mdi:car'
       unit_of_measurement: '🚗'
       value_template: >-
@@ -688,13 +688,71 @@
             {%- else -%}null{%- endif -%}
           {%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif -%}
+    motion_detected_vehicle_loop:
+      value_template: >-
+        {%- if is_state('binary_sensor.motion_detected_vehicle','on') and is_state('binary_sensor.motion_detected_vehicle_old','off') -%}
+          {%- set options = state_attr('input_select.motion_detect_vehicle','options') -%}
+          {%- if options|lower != 'none' and options|lower != 'unknown' and options is iterable -%}
+            {%- set array = state_attr('sensor.motion_event_annotated','results') -%}
+            {%- if array|lower != 'none' and array|lower != 'unknown' and array is iterable -%}
+              {%- set t = states('sensor.motion_detected_vehicle_threshold') -%}
+              {%- if t|lower != 'none' and t|lower != 'unknown' and t|lower != 'null' -%}
+                {%- for results in array -%}
+                  {%- if loop.first -%}[{%- else -%},{%- endif -%}
+                  {%- set e = results.entity -%}
+                  {%- if e|lower != 'none' and e|lower != 'unknown' and e|lower != 'null' -%}
+                    {%- set c = results.confidence -%}
+                    {%- set x = results.center.x -%}
+                    {%- set y = results.center.y -%}
+                    {%- set w = results.width -%}
+                    {%- set h = results.height -%}
+                    {%- if e in options and c|float >= t|float -%}
+                    {"e":"{{- e -}}","c":{{- c|int -}},"x":{{- x -}},"y":{{- y -}},"w":{{- w -}},"h":{{- h -}}}
+                    {%- else -%}
+                      null
+                    {%- endif -%}
+                  {%- else -%}
+                    null
+                  {%- endif -%}
+                  {%- if loop.last -%}]{%- endif -%}
+                {%- endfor -%}
+              {%- else -%}null{%- endif -%}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}
+          {% set s = states.sensor.motion_detected_vehicle_loop.state %}
+          {%- if s|lower != 'null' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' -%}
+            {{ s }}
+          {%- else -%}null{%- endif -%}
+        {%- endif -%}
+    motion_detected_vehicle_list:
+      icon_template: 'mdi:car'
+      friendly_name: Vehicle list
+      value_template: >-
+        {%- if is_state('binary_sensor.motion_detected_vehicle','on') and is_state('binary_sensor.motion_detected_vehicle_old','off') -%}
+          {%- set s = states('sensor.motion_detected_vehicle_loop') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|length > 0 -%}
+            {%- set s = s|from_json -%}
+            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|length > 0 -%}
+              {%- set p = s|select("!=",none)|list -%}
+            {%- endif -%}
+          {%- endif -%}
+        {%- endif -%}
+        {%- if p is defined -%}
+          {{ p }}
+        {%- else -%}
+          {%- set s = states.sensor.motion_detected_vehicle_list.state -%}
+          {%- if s|lower != 'null' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' -%}
+            {{ s }}
+          {%- else -%}null{%- endif -%}
+        {%- endif -%}
 
 ## threshold
 
 - platform: template
   sensors:
     motion_detected_vehicle_threshold:
-      friendly_name: Vehicle threshold
+      friendly_name: 'Vehicle threshold (β)'
       unit_of_measurement: 'β' 
       icon_template: 'mdi:beta'
       value_template: >-
@@ -707,7 +765,7 @@
 - platform: template
   sensors:
     motion_detected_vehicle_threshold_deviation:
-      friendly_name: Vehicle threshold deviation
+      friendly_name: 'Vehicle β deviation'
       unit_of_measurement: 'βσ'
       icon_template: 'mdi:sigma-lower'
       value_template: >-
@@ -719,7 +777,7 @@
 - platform: template
   sensors:
     motion_detected_vehicle_threshold_tune:
-      friendly_name: Vehicle auto-threshold
+      friendly_name: 'Vehicle auto-threshold'
       unit_of_measurement: 'β'
       icon_template: 'mdi:car'
       value_template: >-
@@ -1267,3 +1325,22 @@
             {{ s }}
           {% else %}null{% endif %}
         {% endif %}
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_api:
+      friendly_name: 'Vehicle API'
+      icon_template: 'mdi:car'
+      value_template: >-
+        {% set d = 'http://127.0.0.1:7999' %}
+        {% set c = states('sensor.motion_detected_vehicle_camera') %}
+        {% set s = state_attr('sensor.motion_addon_config','config') %}
+        {% if s|lower != 'null' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' and s is mapping %}
+          {% set s = s.cameras|selectattr("name","==",c)|list %}
+          {% if s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' and s|length > 0 %}
+            {% set s = s|map(attribute="addon_api")|first %}
+            {% if s|lower != 'null' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' and s|length > 0 %}
+              {{ s }}
+            {% else %}{{ d }}{% endif %}
+          {% else %}{{ d }}{% endif %}
+        {% else %}{{ d }}{% endif %}
