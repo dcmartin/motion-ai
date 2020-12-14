@@ -183,7 +183,7 @@ Data may be saved locally and processed to produce historical graphs as well as 
 
 **CPU only**
 
-+ ![Supports amd64 Architecture][amd64-shield] - `arm64` - Intel/AMD 64-bit virtual machines and devices
++ ![Supports amd64 Architecture][amd64-shield] - `amd64` - Intel/AMD 64-bit virtual machines and devices
 + ![Supports aarch64 Architecture][aarch64-shield] - `aarch64` - ARMv8 64-bit devices 
 + ![Supports armv7 Architecture][armv7-shield] - `armv7` - ARMv7 32-bit devices (e.g. RaspberryPi 3/4)
 
