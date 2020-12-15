@@ -32,6 +32,7 @@ MQTT_USERNAME ?= $(if $(wildcard MQTT_USERNAME),$(shell v=$$(cat MQTT_USERNAME) 
 MQTT_PASSWORD ?= $(if $(wildcard MQTT_PASSWORD),$(shell v=$$(cat MQTT_PASSWORD) && echo "** SPECIFIED: MQTT_PASSWORD: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="password" && echo "!! UNSPECIFIED: MQTT_PASSWORD unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 MARIADB_PASSWORD ?= $(if $(wildcard MARIADB_PASSWORD),$(shell v=$$(cat MARIADB_PASSWORD) && echo "== MARIADB_PASSWORD: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="HomeAssistant1234" && echo "** MARIADB_PASSWORD unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MARIADB_HOST ?= $(if $(wildcard MARIADB_HOST),$(shell v=$$(cat MARIADB_HOST) && echo "== MARIADB_HOST: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="core-mariadb" && echo "** MARIADB_HOST unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 IPERF_HOST ?= $(if $(wildcard IPERF_HOST),$(shell v=$$(cat IPERF_HOST) && echo "** SPECIFIED: IPERF_HOST: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="$(MQTT_HOST)" && echo "!! UNSPECIFIED: IPERF_HOST unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
@@ -117,6 +118,7 @@ $(PACKAGES): makefile
 	  MQTT_PORT="$(MQTT_PORT)" \
 	  MQTT_USERNAME="$(MQTT_USERNAME)" \
 	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
+	  MARIADB_HOST="$(MARIADB_HOST)" \
 	  MARIADB_PASSWORD="$(MARIADB_PASSWORD)" \
 	  MOTION_GROUP="$(MOTION_GROUP)" \
 	  MOTION_DEVICE="$(MOTION_DEVICE)" \
@@ -174,6 +176,7 @@ secrets.yaml: secrets.yaml.tmpl makefile $(PWD)
 	  MQTT_USERNAME="$(MQTT_USERNAME)" \
 	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
 	  MARIADB_PASSWORD="$(MARIADB_PASSWORD)" \
+	  MARIADB_HOST="$(MARIADB_HOST)" \
 	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
 	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
 	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
@@ -241,7 +244,6 @@ lovelace.json: lovelace.json.tmpl motion/webcams.json
 	  MQTT_HOST="$(MQTT_HOST)" \
 	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
 	  MQTT_PORT="$(MQTT_PORT)" \
-	  MARIADB_PASSWORD="$(MARIADB_PASSWORD)" \
 	  MQTT_USERNAME="$(MQTT_USERNAME)" \
 	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
 	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
@@ -300,7 +302,6 @@ lovelace.developer.json: lovelace.developer.json.tmpl motion/webcams.json
 	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
 	  MQTT_PORT="$(MQTT_PORT)" \
 	  MQTT_USERNAME="$(MQTT_USERNAME)" \
-	  MARIADB_PASSWORD="$(MARIADB_PASSWORD)" \
 	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
 	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
 	  NETDATA_URL="$(NETDATA_URL)" \
@@ -363,7 +364,6 @@ lovelace.experimental.json: lovelace.experimental.json.tmpl motion/webcams.json
 	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
 	  MQTT_PORT="$(MQTT_PORT)" \
 	  MQTT_USERNAME="$(MQTT_USERNAME)" \
-	  MARIADB_PASSWORD="$(MARIADB_PASSWORD)" \
 	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
 	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
 	  NETDATA_URL="$(NETDATA_URL)" \
@@ -448,7 +448,6 @@ lovelace_dashboards.json: lovelace_dashboards.json.tmpl
 	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
 	  MQTT_PORT="$(MQTT_PORT)" \
 	  MQTT_USERNAME="$(MQTT_USERNAME)" \
-	  MARIADB_PASSWORD="$(MARIADB_PASSWORD)" \
 	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
 	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
 	  NETDATA_URL="$(NETDATA_URL)" \
