@@ -24,4 +24,6 @@ docker run \
   --mount "type=bind,source=${MARIADB_DATADIR},target=/var/lib/mysql" \
   ${IMAGE}
 
+sleep 30
+
 docker exec -it mariadb mysql -h 127.0.0.1 -u root --password="${MARIADB_PASSWORD}" -e 'create database homeassistant'
