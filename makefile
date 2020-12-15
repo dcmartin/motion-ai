@@ -31,6 +31,8 @@ MQTT_PORT ?= $(if $(wildcard MQTT_PORT),$(shell v=$$(cat MQTT_PORT) && echo "== 
 MQTT_USERNAME ?= $(if $(wildcard MQTT_USERNAME),$(shell v=$$(cat MQTT_USERNAME) && echo "== MQTT_USERNAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="username" && echo "** MQTT_USERNAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MQTT_PASSWORD ?= $(if $(wildcard MQTT_PASSWORD),$(shell v=$$(cat MQTT_PASSWORD) && echo "== MQTT_PASSWORD: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="password" && echo "** MQTT_PASSWORD unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
+MARIADB_PASSWORD ?= $(if $(wildcard MARIADB_PASSWORD),$(shell v=$$(cat MARIADB_PASSWORD) && echo "== MARIADB_PASSWORD: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="HomeAssistant1234" && echo "** MARIADB_PASSWORD unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+
 IPERF_HOST ?= $(if $(wildcard IPERF_HOST),$(shell v=$$(cat IPERF_HOST) && echo "== IPERF_HOST: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="$(MQTT_HOST)" && echo "** IPERF_HOST unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 ## MOTION
@@ -148,6 +150,7 @@ $(ACTIONS): homeassistant/motion/webcams.json
 	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
 	  MQTT_PORT="$(MQTT_PORT)" \
 	  MQTT_USERNAME="$(MQTT_USERNAME)" \
+	  MARIADB_PASSWORD="$(MARIADB_PASSWORD)" \
 	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
 	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
 	  NETDATA_URL="$(NETDATA_URL)" \
