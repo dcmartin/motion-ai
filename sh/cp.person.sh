@@ -3,7 +3,7 @@
 p='person'
 
 ICON='account'
-OUM='👱'
+UOM='👱'
 find homeassistant/ -name "detected_${p}*" -print | while read; do
   e="${REPLY}"
   echo "${e}"
@@ -21,7 +21,7 @@ find homeassistant/ -name "detected_${p}*" -print | while read; do
       -e "s/${p^}/${t^}/g" \
       -e "s/${p^^}/${t^^}/g" \
       -e "s/[\' ]*mdi:${ICON}[^ \']*[\']*/ \'mdi:${icon}\'/g" \
-      -e "s/[\' ]*${OUM}[^ \']*[\']*/ \'${uom}\'/g" \
+      -e "s/[\' ]*${UOM}[^ \']*[\']*/ \'${uom}\'/g" \
       "${e}" > "${g}"
   done
 done
