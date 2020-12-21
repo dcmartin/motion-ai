@@ -1,5 +1,22 @@
 #!/bin/bash
 
+if [ $(free -m | egrep Swap | awk '{ print $2 }') -lt 2048 ]; then
+  echo 'Increasing swap file' &> /dev/stderr
+  if [ ! -s /etc/dphys-swapfile ]; then
+    sudo apt install -qq -y dphys-swapfile
+    partition=/var
+    if [ -d /sda ]; then
+      partition=sda
+    fi
+    echo "CONF_SWAPFILE=/${partition}/swap" | sudo tee /etc/dphys-swapfile &> /dev/null
+    echo "CONF_SWAPSIZE=4096" | sudo tee -a /etc/dphys-swapfile &> /dev/null
+    echo "CONF_SWAPFACTOR=4" | sudo tee -a /etc/dphys-swapfile &> /dev/null
+    echo "CONF_MAXSWAP=8192" | sudo tee -a /etc/dphys-swapfile &> /dev/null
+    echo 'Updated swap; please reboot'
+    exit 1
+  fi
+fi
+
 sudo apt purge -qq -y libopencv
 
 sudo apt update -qq -y
@@ -31,7 +48,6 @@ if [ ! -d opencv-${VERSION}/release ]; then
 fi
 
 cd opencv-${VERSION}/release
-
 
 cmake \
         -D BUILD_EXAMPLES=OFF \
@@ -82,7 +98,7 @@ cmake \
 #   -D BUILD_EXAMPLES=OFF \
 #   -D CMAKE_BUILD_TYPE=RELEASE \
 
-make -j
+make -j$(nproc)
 
 sudo make install
 
