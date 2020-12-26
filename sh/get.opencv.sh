@@ -4,7 +4,7 @@ if [ $(free -m | egrep Swap | awk '{ print $2 }') -lt 2048 ]; then
   echo 'Increasing swap file' &> /dev/stderr
   if [ ! -s /etc/dphys-swapfile ]; then
     sudo apt install -qq -y dphys-swapfile
-    partition=/var
+    partition=var
     if [ -d /sda ]; then
       partition=sda
     fi

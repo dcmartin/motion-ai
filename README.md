@@ -201,7 +201,7 @@ Data may be saved locally and processed to produce historical graphs as well as 
 + ![Supports coral Architecture][coral-shield] - `armv7`- with Google Coral Tensor Processing Unit
 + ![Supports ncs2 Architecture][ncs2-shield] -`armv7`- with Intel/Movidius  Neural Compute Stick v2
 
-## Installation
+# Installation
 Installation is performed in five (5) steps; see [detailed instructions](docs/INSTALL.md).  The software has been tested on the following devices:
 
 + RaspberryPi Model 3B+ and Model 4 (2 GB); Debian Buster
@@ -209,19 +209,22 @@ Installation is performed in five (5) steps; see [detailed instructions](docs/IN
 + VirtualBox VM; Ubuntu 18.04
 + Generic AMD64 w/ nVidia GPU; Ubuntu 18.04
 
-### Accelerated hardware 1: nVidia Jetson Nano (aka `tegra`)
-In addition to the nVidia Jetson Nano developer kit, there are also the following recommended components:
+## Accelerated hardware 1: nVidia Jetson Nano (aka `tegra`)
+Recommended components:
 
-1. 4 amp power-supply
-2. High-endurance micro-SD card; _minimum_: 32 Gbyte; **recommended**: 64+ Gbyte
-3. Jumper or wire for enabling power-supply
-4. Fan; 40x20mm; cool heat-sink
-5. SSD disk; optional; recommended: 250+ Gbyte
-6. USB3/SATA cable and/or enclosure
+1. [nVidia Jetson Nano developer kit](https://developer.nvidia.com/embedded/jetson-nano-developer-kit)
+1. [4 amp power-supply](https://www.amazon.com/gp/product/B01LY5TG5Y)
+2. [High-endurance micro-SD card; _minimum_: 32 Gbyte; **recommended**: 64+ Gbyte](https://www.amazon.com/gp/product/B07P3D6Y5B)
+3. [Jumper or wire for enabling power-supply](https://www.amazon.com/EDGELEC-Breadboard-Optional-Assorted-Multicolored/dp/B07GD2BWPY)
+4. [Fan; 40x20mm; cool heat-sink](https://www.amazon.com/gp/product/B071W93333)
+5. [SSD disk; optional; recommended: 250+ Gbyte](https://www.amazon.com/gp/product/B088BS3BDD)
+6. [USB3/SATA cable and/or enclosure (optional)](https://www.amazon.com/gp/product/B07F7WDZGT)
+
+The SSD listed above is different than in the picture below and **does not** require the USB3/SATA cable.
 
 <img src="docs/samples/jetson-etc.png" width="512">
 
-### Accelerated hardware 2: RaspberryPi 4 with Intel NCS2  (aka `ncs2`)
+## Accelerated hardware 2: RaspberryPi 4 with Intel NCS2  (aka `ncs2`)
 This configuration includes dual OLED displays to provide display of annotations text and image, as well as a USB-attached camera (n.b. Playstation3 PS/Eye camera).  The Intel/NCS2 implemtation is still in _alpha_ mode and not in the `master` branch.
 
 <img src="docs/samples/pi4-ncs2-oled.png" width="512">

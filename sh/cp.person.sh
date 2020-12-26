@@ -1,5 +1,14 @@
 #!/bin/bash
 
+if [ -e /usr/local/opt/gnu-sed/libexec/gnubin/sed ]; then
+  gnused=/usr/local/opt/gnu-sed/libexec/gnubin/sed
+elif [ $(sed --version | head -1 | egrep GNU | wc -c) -gt 0 ]; then
+  gnused=sed
+else
+  echo "This script requires GNU sed; install with command: brew install gnu-sed" &> /dev/stderr
+  exit 1
+fi
+
 p='person'
 
 ICON='account'
@@ -16,7 +25,7 @@ find homeassistant/ -name "detected_${p}*" -print | while read; do
       icon='car'
     fi
     g=$(echo "${e}" | sed "s/person/${t}/g")
-    sed \
+    ${gnused} \
       -e "s/${p}/${t}/g" \
       -e "s/${p^}/${t^}/g" \
       -e "s/${p^^}/${t^^}/g" \
