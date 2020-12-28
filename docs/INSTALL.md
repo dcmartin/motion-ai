@@ -8,7 +8,7 @@ The `motion-ai` solution is composed of multiple components
 Home Assistant _add-ons_:
 
 + `MQTT` - messaging broker for all components
-+ `motion` _add-on_ for Home Assistant - captures images and video of motion (n.b. [motion-project.github.io](http://motion-project.github.io))
++ [`motion`](https://github.com/dcmartin/hassio-addons/tree/master/motion-video0) _add-on_ for Home Assistant - captures images and video of motion (n.b. [motion-project.github.io](http://motion-project.github.io))
 
 Open Horizon AI _services_:
 
@@ -23,11 +23,9 @@ Installation is performed in five (5) steps:
 
 1. Install `motion-ai` software from [this](http://github.com/dcmartin/motion-ai) repository
 2. Configure system messaging
-2. Configure cameras
 2. Install _add-ons_ 
+2. Configure cameras
 3. Start selected AI _services_ (e.g. `yolo4motion`)
-
-
 
 #  &#10122; Install `motion-ai`
 To get started flash a supported LINUX distribution image to a micro-SD card, enable `ssh` and configure WiFi; insert into device, boot, update and upgrade (n.b. see [here](DEBIAN.md) for additional information).
@@ -46,40 +44,62 @@ sudo apt install -qq -y git jq
 # 3. clone the repository into location with sufficient space
 mkdir motion-ai
 cd motion-ai
-git clone git@github.com:dcmartin/motion-ai.git .
+git clone http://github.com/dcmartin/motion-ai.git .
 ```
 ```
 # 4. download and install Home Assistant, Docker, NetData, and supporting components
-./sh/get.hassio.sh
+./sh/get.motion-ai.sh
 ```
 ```
 # 5. add current user to docker group
 sudo addgroup ${USER} docker
 ```
 ```
-# 6. copy template for webcams.json
-cp homeassistant/motion/webcams.json.tmpl webcams.json
-```
-```
-# 7. build YAML files based on configuration options
-make
-```
-```
-# 8. reboot
+# 6. reboot
 sudo reboot
 ```
 
-When the system has restarted, access via `ssh` and  continue with the next step.  
+When the system has restarted, access via `ssh` and  continue with the next step.
 
-## &#10123; Configure `motion-ai`
-Once Home Assistant has been downloaded and starts the Web UI may be reached on the specified port; default: `8123`.
+# &#10123; Install _add-on(s)_
+Install the requiste _add-ons_ for Home Assistant, including the `MQTT` broker and the appropriate version of `motion`.  Browse to the Home Assistant Web interface (n.b. don't forget `port` if not `80`) and visit the **Supervisor** via the icon in the lower left panel (see below).
 
-Specify options for the `motion` _add-on_, as well as the AI _services, as appropriate.  Relevant variables include:
+<img src="https://raw.githubusercontent.com/dcmartin/addons/master/docs/samples/supervisor-add-on-store.png" width="640">
+
+Select the `Add-on Store` and type in the address of this repository, for example:
+
+<img src="https://raw.githubusercontent.com/dcmartin/addons/master/docs/samples/supervisor-manage-repositories.png" width="640">
+
+<img src="https://raw.githubusercontent.com/dcmartin/addons/master/docs/samples/supervisor-add-on-store-repositories.png" width="640">
+
+When the system reloads, select the **Motion Server** _add-on_ from those available; when utilizing a locally attached USB camera, select the **Motion Video0** _add-on_; for example:
+
+<img src="https://raw.githubusercontent.com/dcmartin/addons/master/docs/samples/dcmartin-addons.png" width="640">
+
+After selecting the appropriate _add-on_, install by clicking on the `INSTALL` button, for example:
+
+<img src="https://raw.githubusercontent.com/dcmartin/addons/master/docs/samples/motion-server-addon.png" width="640">
+
+Configure the add-on using the following options:
+
++ `group` - the identifier for the group of cameras; default: `motion`
++ `device` - the identifier for the host of the camera; typically the _hostname_
++ `client` - the identifier for the client (single) or all `+`; default: `+`
++ `mqtt` - `host`, `port`, `username`, and `password` for MQTT server
++ `cameras` - an array of `dict` structure for each camera
+
+For more information on configuring, please refer to the [`motion`](http://github.com/dcmartin/hassio-addons/tree/master/motion/DOCS.md) documentation.
+
+
+## &#10124; Configure `motion-ai`
+Once the MQTT and Motion Classic add-on's have started, the Home Assistant UX can be reached on default port 8123; the Web UI for Motion Classic may be reached on port `7999`.
+
+From the `motion-ai/` directory you may specify options for Motion-AI as well as the AI _services_, as appropriate.  Relevant variables include:
 
 ### `motion` 
-+ `MOTION_GROUP` - identifier for a group of devices; default: `motion`
-+ `MOTION_DEVICE` - identifier for this device; default: _hostname_ without `-` and other special characters
-+ `MOTION_CLIENT` - identifier for device to listen; default: `MOTION_DEVICE`; use `+` for all devices in _group_
++ `MOTION_GROUP` - id for a group of devices; default: `motion`
++ `MOTION_DEVICE` - id for this device; default: _hostname_ without `-` and other special characters
++ `MOTION_CLIENT` - id for device to listen; default: `MOTION_DEVICE`; use `+` for all devices in _group_
 + `MQTT_HOST` - IPv4 address of MQTT broker; default: `127.0.0.1`
 + `MQTT_PORT` - Port number; default: `1883`
 + `MQTT_USERNAME` - credential identifier; default: `username`
@@ -124,71 +144,15 @@ echo 'username' > MQTT_USERNAME
 echo 'password' > MQTT_PASSWORD
 ```
 
+There is a sample script, [`config.sh`](https://github.com/dcmartin/motion-ai/blob/master/config.sh), which may be used to set variables.
+
 Changes may be made for a variety of [options](OPTIONS.md); when changes are made (e.g. to the `MQTT_HOST`) the following command **must** be run for those changes to take effect:
 
 ```
 make restart
 ```
-# &#10124; Define `webcams.json`
 
-This JSON file contains information about the cameras which will be in the generated YAML; more cameras require more computational resources.  Those details include:
-
-+ `name` : a unique name for the camera (e.g. `kitchencam`)
-+ `mjpeg_url` : location of "live" motion JPEG stream from camera
-+ `username` and `password` : credentials for access via the `mjpeg_url`
-+ `icon` : specified from the [Material Design Icons](https://materialdesignicons.com/) selection.
-
-#### Copy the provided template:
-
-```
-# specify camera(s); default is one camera named `local`
-cp homeassistant/motion/webcams.json.tmpl  webcams.json
-```
-
-For example:
-
-```
-[
-  { "name": "poolcam", "mjpeg_url": "http://192.168.1.251:8090/1", "icon": "water", "username": "!secret motioncam-username", "password": "!secret motioncam-password" },
-  { "name": "road", "mjpeg_url": "http://192.168.1.251:8090/2", "icon": "road", "username": "!secret motioncam-username", "password": "!secret motioncam-password" },
-  { "name": "dogshed", "mjpeg_url": "http://192.168.1.251:8090/3", "icon": "dog", "username": "!secret motioncam-username", "password": "!secret motioncam-password" },
-  { "name": "dogshedfront", "mjpeg_url": "http://192.168.1.251:8090/4", "icon": "home-floor-1", "username": "!secret motioncam-username", "password": "!secret motioncam-password" },
-  { "name": "sheshed", "mjpeg_url": "http://192.168.1.251:8090/5", "icon": "window-shutter-open", "username": "!secret motioncam-username", "password": "!secret motioncam-password" },
-  { "name": "dogpond", "mjpeg_url": "http://192.168.1.251:8090/6", "icon": "waves", "username": "!secret motioncam-username", "password": "!secret motioncam-password" },
-  { "name": "pondview", "mjpeg_url": "http://192.168.1.251:8090/7", "icon": "waves", "username": "!secret motioncam-username", "password": "!secret motioncam-password" }
-]
-```
-
-# &#10125; Install _add-on(s)_
-Install the requiste _add-ons_ for Home Assistant, including the `MQTT` broker and the appropriate version of `motion`.  Browse to the Home Assistant Web interface (n.b. don't forget `port` if not `80`) and visit the **Supervisor** via the icon in the lower left panel (see below).
-
-<img src="https://raw.githubusercontent.com/dcmartin/addons/master/docs/samples/supervisor-add-on-store.png" width="640">
-
-Select the `Add-on Store` and type in the address of this repository, for example:
-
-<img src="https://raw.githubusercontent.com/dcmartin/addons/master/docs/samples/supervisor-manage-repositories.png" width="640">
-
-<img src="https://raw.githubusercontent.com/dcmartin/addons/master/docs/samples/supervisor-add-on-store-repositories.png" width="640">
-
-When the system reloads, select the **Motion Server** _add-on_ from those available; when utilizing a locally attached USB camera, select the **Motion Video0** _add-on_; for example:
-
-<img src="https://raw.githubusercontent.com/dcmartin/addons/master/docs/samples/dcmartin-addons.png" width="640">
-
-After selecting the appropriate _add-on_, install by clicking on the `INSTALL` button, for example:
-
-<img src="https://raw.githubusercontent.com/dcmartin/addons/master/docs/samples/motion-server-addon.png" width="640">
-
-Configure the add-on using the following options:
-
-+ `group` - the identifier for the group of cameras; default: `motion`
-+ `device` - the identifier for the host of the camera; typically the _hostname_
-+ `client` - the identifier for the client (single) or all `+`; default: `+`
-+ `mqtt` - `host`, `port`, `username`, and `password` for MQTT server
-+ `cameras` - an array of `dict` structure for each camera
-
-For more information on configuring, please refer to the [`motion`](http://github.com/dcmartin/hassio-addons/tree/master/motion/DOCS.md) documentation.
-
-# &#10126; Start AI _services_
+# &#10125; Start AI _services_
 Specify options for the AI _services_, i.e. `yolo4motion`, `face4motion`, etc.. as appropriate.  Relevant variables include:
 
 ### _service logging_

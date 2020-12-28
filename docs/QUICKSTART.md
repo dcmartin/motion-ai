@@ -17,22 +17,13 @@ sudo apt update -qq -y
 sudo apt install -qq -y make git curl jq ssh
 git clone http://github.com/dcmartin/motion-ai
 cd motion-ai
-cp webcams.json.tmpl webcams.json
-nano config.sh # edit!
 sudo ./sh/get.motion-ai.sh
-bash -x config.sh
 make
 reboot
 ```
 
 ## Step 2 - Configure
-The configuration of the system is controlled by the `webcams.json` file in the top-level directory, for example:
 
-```
-~/motion-ai/webcams.json
-```
-
-A default [template](https://raw.githubusercontent.com/dcmartin/motion-ai/master/webcams.json.tmpl) is provided and should be copied to create the file.
 [Options](OPTIONS.md) may be specified through environment variables and/or local files with the same name. Whenever the `webcams.json` file or the _options_ have changed, run `make restart` in the top-level directory to rebuild and restart, for example:
 
 ```
@@ -46,4 +37,6 @@ echo password > NETCAM_PASSWORD
 echo 192.168.1.50 > MQTT_HOST
 make restart
 ```
+
+There is a sample script [`config.sh`](../config.sh) which can be changed to meet local conditions.
 
