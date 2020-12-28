@@ -14,8 +14,6 @@ The Home Assistant configuration generated is dependent on many options; the mos
 
 These attributes may be specified through files with equivalent names containing the preferred value (see below).
 
-In addition, the configuration depends on a listing of cameras, notably the file `motion/webcams.json` which must be created; there is a [template](http://github.com/dcmartin/horizon.dcmartin.com/blob/master/motion/webcams.json.tmpl) provided.
-
 ## &#10122; - Clone this repository
 Install the `git` command and _clone_ this repository from `github.com/dcmartin/motion-ai`, for example:
 
@@ -70,10 +68,10 @@ http://raspberrypi.local:8123
 
 Create the initial user (a.ka. the _owner_), provide a name, use auto-detection to guess your location, set other attributes and finish configuration.  The default view of the default configuration should appear, as well as a _save login_ option in the lower right of the Web page.
 
-## &#10125; - Install `motion` _add-on_
-The add-on must be installed through the Home Assistant UX; please refer to [`INSTALL.md`](INSTALL.md) for details on instalation and configuration of the add-on.  Visit the [`motion` _add-on_](https://github.com/dcmartin/hassio-addons/blob/master/motion/CONFIGURATION.md) documentation for _add-on_ configuration information.
+## &#10125; - Start Motion Classic _add-on_
+The add-on must be installed through the Home Assistant UX; please refer to [`INSTALL.md`](INSTALL.md) for details on instalation and configuration of the add-on.  Visit the [`motion` _add-on_](https://github.com/dcmartin/hassio-addons/blob/master/motion-video0/DOCS.md) documentation for _add-on_ configuration information.
 
-### Options for `motion` _add-on_
+### Options
 The `default` attributes for _cameras_ are utilized unless the _camera_ entry specifies an alternative; please note the `netcam_userpass` may be shared across cameras or specified for any.
 
  + `mqtt` - ensure `host`, `username`, and `password` match `MQTT` _add-on_ configuration
@@ -82,6 +80,45 @@ The `default` attributes for _cameras_ are utilized unless the _camera_ entry sp
  + `client` - the unique _name_ per `device` or `+` for all `group` camera(s)
  + `timezone` - for time across `group`
  + `cameras` - one or more `netcam`, `ftpd` cameras; at most one (1) `local` camera
+
+For example:
+
+```
+log_level: info
+log_motion_level: info
+log_motion_type: ALL
+default:
+  changes: 'on'
+  event_gap: 5
+  framerate: 5
+  minimum_motion_frames: 5
+  post_pictures: best
+  text_scale: 2
+  threshold: 750
+  lightswitch_percent: 50
+  threshold_maximum: 100000
+  username: '!secret motioncam-username'
+  password: '!secret motioncam-password'
+  netcam_userpass: '!secret netcam-userpass'
+  width: 640
+  height: 480
+mqtt:
+  host: '!secret mqtt-broker'
+  port: '!secret mqtt-port'
+  username: '!secret mqtt-username'
+  password: '!secret mqtt-password'
+group: motion
+device: pi43
+client: pi43
+timezone: America/Los_Angeles
+cameras:
+  - name: pi43
+    type: local
+    icon: raspberry-pi
+    w3w: []
+    top: 75
+    left: 15
+```
 
 After configuration, start the _add-on_.
 
@@ -109,43 +146,13 @@ echo 'username' > MQTT_USERNAME 	# IP address of MQTT broker
 echo 'password' > MQTT_PASSWORD	# IP address of MQTT broker
 echo '80' > HOST_PORT 				# change host port from 8123
 ```
-## &#10127; - Create `homeassistant/motion/webcams.json`
-This JSON file contains information about the cameras which will be in the generated YAML; more cameras require more computational resources.  Those details include:
-
-+ `name` : a unique name for the camera (e.g. `kitchencam`)
-+ `mjpeg_url` : location of "live" motion JPEG stream from camera
-+ `username` and `password` : credentials for access via the `mjpeg_url`
-+ `icon` : specified from the [Material Design Icons](https://materialdesignicons.com/) selection.
-
-For example:
-
-```
-[
-  { "name": "poolcam", "mjpeg_url": "http://192.168.1.251:8090/1", "icon": "water", "username": "!secret motioncam-username", "password": "!secret motioncam-password" },
-  { "name": "road", "mjpeg_url": "http://192.168.1.251:8090/2", "icon": "road", "username": "!secret motioncam-username", "password": "!secret motioncam-password" },
-  { "name": "dogshed", "mjpeg_url": "http://192.168.1.251:8090/3", "icon": "dog", "username": "!secret motioncam-username", "password": "!secret motioncam-password" },
-  { "name": "dogshedfront", "mjpeg_url": "http://192.168.1.251:8090/4", "icon": "home-floor-1", "username": "!secret motioncam-username", "password": "!secret motioncam-password" },
-  { "name": "sheshed", "mjpeg_url": "http://192.168.1.251:8090/5", "icon": "window-shutter-open", "username": "!secret motioncam-username", "password": "!secret motioncam-password" },
-  { "name": "dogpond", "mjpeg_url": "http://192.168.1.251:8090/6", "icon": "waves", "username": "!secret motioncam-username", "password": "!secret motioncam-password" },
-  { "name": "pondview", "mjpeg_url": "http://192.168.1.251:8090/7", "icon": "waves", "username": "!secret motioncam-username", "password": "!secret motioncam-password" }
-]
-```
 
 ## &#10128; - Reconfigure Home Assistant
-Once the default Home Assistant installation has finished, the `motion` _add-on_ has been configured and started, and the `homeassistant/motion/webcams.json` file has been created, change the permissions on the Home Assistant directory to make the user the owner, and run the `make` program to generate the YAML files; for example:
+Once the default Home Assistant installation has finished, the Motion Classic _add-on_ has been configured and started run the `make` program to generate the YAML files; for example:
 
 ```
-cd /usr/share/hassio/
-sudo chown -R ${USER} .
+cd ~/motion-ai
 make
-```
-
-The default `configuration.yaml` provided in the installation of Home Assistant does not include any `motion-ai` generated YAML; to utilize the generated YAML, remove the default `configuration.yaml` file and replace with the provided `config-client.yaml.tmpl` file; for example:
-
-```
-cd /usr/share/hassio/homeassistant/
-mv  configuration.yaml config-default.yaml
-ln -s config-client.yaml.tmpl configuration.yaml
 ```
 
 ##  &#10129; - Restart Home Assistant
@@ -161,11 +168,9 @@ The configuration may now be updated and controlled using the `make` command, in
 Whenever the contents of the `homeassistant/motion/webcams.json` file is changed, the system may be restarted to regenerate the YAML files appropriate for the cameras specified; for example:
 
 ```
-cd /usr/share/hassio
-# edit homeassistant/motion/webcams.json ..
+cd ~/motion-ai
 make restart
 ```
-
 
 ##  &#10130; - Start `yolo4motion` _service_
 Start the `yolo4motion` service container by executing the provided [shell script](../sh/yolo4motion.sh); the options, which may be specified through equivalent environment variables or files:

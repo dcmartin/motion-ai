@@ -1,3 +1,5 @@
+<img src="https://github.com/dcmartin/hassio-addons/raw/master/motion/logo.png" width="128">
+
 #  Motion &Atilde;&#128065;
 An open-source software solution for situational awareness from a network of video and audio sources.  Utilizing [Home Assistant](http://home-assistant.io), [addons](http://github.com/motion-ai/addons), the LINUX Foundation [Open Horizon](http://github.com/open-horizon) edge fabric, and [edge AI services](https://github.com/motion-ai/open-horizon), the system enables _personal_ AI on low-cost devices; integrating object detection and classification into a dashboard of daily activity.
 
@@ -51,6 +53,13 @@ sudo reboot
 ```
 
 When the system reboots install the official MQTT broker (aka `core-mosquitto`) and Motion Classic (aka `motion-video0`) _add-ons_ using the Home Assistant Add-on Store.  Select, install, configure and start each add-on (see below).  When both add-ons are running, return to the command-line and start the AI's.
+
+After the MQTT and Motion Classic addons have started, run the `make restart` command, for example:
+
+```
+cd ~/motion-ai
+make restart
+```
 
 ## Add-on's
 Install the [MQTT](https://github.com/home-assistant/hassio-addons/blob/master/mosquitto/README.md) and [Motion Classic](https://github.com/dcmartin/hassio-addons/blob/master/motion-video0/README.md) _add-ons_ from the **Add-On Store** and configure and start; add the repository [https://github.com/dcmartin/hassio-addons](https://github.com/dcmartin/hassio-addons) to the Add-On Store to install Motion Classic.
@@ -181,7 +190,7 @@ Data may be saved locally and processed to produce historical graphs as well as 
 
 **CPU only**
 
-+ ![Supports amd64 Architecture][amd64-shield] - `arm64` - Intel/AMD 64-bit virtual machines and devices
++ ![Supports amd64 Architecture][amd64-shield] - `amd64` - Intel/AMD 64-bit virtual machines and devices
 + ![Supports aarch64 Architecture][aarch64-shield] - `aarch64` - ARMv8 64-bit devices 
 + ![Supports armv7 Architecture][armv7-shield] - `armv7` - ARMv7 32-bit devices (e.g. RaspberryPi 3/4)
 
@@ -192,7 +201,7 @@ Data may be saved locally and processed to produce historical graphs as well as 
 + ![Supports coral Architecture][coral-shield] - `armv7`- with Google Coral Tensor Processing Unit
 + ![Supports ncs2 Architecture][ncs2-shield] -`armv7`- with Intel/Movidius  Neural Compute Stick v2
 
-## Installation
+# Installation
 Installation is performed in five (5) steps; see [detailed instructions](docs/INSTALL.md).  The software has been tested on the following devices:
 
 + RaspberryPi Model 3B+ and Model 4 (2 GB); Debian Buster
@@ -200,19 +209,20 @@ Installation is performed in five (5) steps; see [detailed instructions](docs/IN
 + VirtualBox VM; Ubuntu 18.04
 + Generic AMD64 w/ nVidia GPU; Ubuntu 18.04
 
-### Accelerated hardware 1: nVidia Jetson Nano (aka `tegra`)
-In addition to the nVidia Jetson Nano developer kit, there are also the following recommended components:
+## Accelerated hardware 1: nVidia Jetson Nano (aka `tegra`)
+Recommended components:
 
-1. 4 amp power-supply
-2. High-endurance micro-SD card; _minimum_: 32 Gbyte; **recommended**: 64+ Gbyte
-3. Jumper or wire for enabling power-supply
-4. Fan; 40x20mm; cool heat-sink
-5. SSD disk; optional; recommended: 250+ Gbyte
-6. USB3/SATA cable and/or enclosure
+1. [nVidia Jetson Nano developer kit](https://developer.nvidia.com/embedded/jetson-nano-developer-kit)
+1. [4 amp power-supply](https://www.adafruit.com/product/1466) or [another option](https://www.sparkfun.com/products/14932)
+2. [High-endurance micro-SD card; _minimum_: 32 Gbyte; **recommended**: 64+ Gbyte](https://www.amazon.com/gp/product/B07P3D6Y5B)
+3. [Jumper or wire for enabling power-supply](https://www.amazon.com/EDGELEC-Breadboard-Optional-Assorted-Multicolored/dp/B07GD2BWPY)
+4. [Fan; 40x20mm; cool heat-sink](https://www.amazon.com/gp/product/B071W93333)
+5. [SSD disk; optional; recommended: 250+ Gbyte](https://www.amazon.com/Samsung-250GB-Internal-MZ-76E250B-AM/dp/B07864WMK8)
+6. [USB3/SATA cable and/or enclosure](https://www.amazon.com/gp/product/B07F7WDZGT)
 
 <img src="docs/samples/jetson-etc.png" width="512">
 
-### Accelerated hardware 2: RaspberryPi 4 with Intel NCS2  (aka `ncs2`)
+## Accelerated hardware 2: RaspberryPi 4 with Intel NCS2  (aka `ncs2`)
 This configuration includes dual OLED displays to provide display of annotations text and image, as well as a USB-attached camera (n.b. Playstation3 PS/Eye camera).  The Intel/NCS2 implemtation is still in _alpha_ mode and not in the `master` branch.
 
 <img src="docs/samples/pi4-ncs2-oled.png" width="512">

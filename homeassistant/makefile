@@ -31,6 +31,9 @@ MQTT_PORT ?= $(if $(wildcard MQTT_PORT),$(shell v=$$(cat MQTT_PORT) && echo "** 
 MQTT_USERNAME ?= $(if $(wildcard MQTT_USERNAME),$(shell v=$$(cat MQTT_USERNAME) && echo "** SPECIFIED: MQTT_USERNAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="username" && echo "!! UNSPECIFIED: MQTT_USERNAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MQTT_PASSWORD ?= $(if $(wildcard MQTT_PASSWORD),$(shell v=$$(cat MQTT_PASSWORD) && echo "** SPECIFIED: MQTT_PASSWORD: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="password" && echo "!! UNSPECIFIED: MQTT_PASSWORD unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
+MARIADB_PASSWORD ?= $(if $(wildcard MARIADB_PASSWORD),$(shell v=$$(cat MARIADB_PASSWORD) && echo "== MARIADB_PASSWORD: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="HomeAssistant1234" && echo "** MARIADB_PASSWORD unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MARIADB_HOST ?= $(if $(wildcard MARIADB_HOST),$(shell v=$$(cat MARIADB_HOST) && echo "== MARIADB_HOST: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="core-mariadb" && echo "** MARIADB_HOST unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+
 IPERF_HOST ?= $(if $(wildcard IPERF_HOST),$(shell v=$$(cat IPERF_HOST) && echo "** SPECIFIED: IPERF_HOST: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="$(MQTT_HOST)" && echo "!! UNSPECIFIED: IPERF_HOST unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 ## MOTION
@@ -115,6 +118,8 @@ $(PACKAGES): makefile
 	  MQTT_PORT="$(MQTT_PORT)" \
 	  MQTT_USERNAME="$(MQTT_USERNAME)" \
 	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
+	  MARIADB_HOST="$(MARIADB_HOST)" \
+	  MARIADB_PASSWORD="$(MARIADB_PASSWORD)" \
 	  MOTION_GROUP="$(MOTION_GROUP)" \
 	  MOTION_DEVICE="$(MOTION_DEVICE)" \
 	  MOTION_CLIENT="$(MOTION_CLIENT)" \
@@ -170,6 +175,8 @@ secrets.yaml: secrets.yaml.tmpl makefile $(PWD)
 	  MQTT_PORT="$(MQTT_PORT)" \
 	  MQTT_USERNAME="$(MQTT_USERNAME)" \
 	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
+	  MARIADB_PASSWORD="$(MARIADB_PASSWORD)" \
+	  MARIADB_HOST="$(MARIADB_HOST)" \
 	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
 	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
 	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
@@ -477,12 +484,12 @@ realclean: clean
 	-sudo rm -f known_devices.yaml
 	-sudo rm -f home-assistant.log
 	-sudo rm -f www/images/motion_*.{jpg,gif}
-	-sudo rm -fr "../media/Motion-Ã👁"
 
 
 distclean: realclean
 	-sudo rm -f .storage/core.*
 	-suro rm -fr .uuid .HA_VERSION .cloud deps tts .storage
+	-sudo rm -fr "../media/Motion-Ã👁"
 
 logclean:
 	-@sudo journalctl --vacuum-time 1
