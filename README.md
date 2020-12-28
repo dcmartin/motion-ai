@@ -213,14 +213,12 @@ Installation is performed in five (5) steps; see [detailed instructions](docs/IN
 Recommended components:
 
 1. [nVidia Jetson Nano developer kit](https://developer.nvidia.com/embedded/jetson-nano-developer-kit)
-1. [4 amp power-supply](https://www.amazon.com/gp/product/B01LY5TG5Y)
+1. [4 amp power-supply](https://www.adafruit.com/product/1466) or [another option](https://www.sparkfun.com/products/14932)
 2. [High-endurance micro-SD card; _minimum_: 32 Gbyte; **recommended**: 64+ Gbyte](https://www.amazon.com/gp/product/B07P3D6Y5B)
 3. [Jumper or wire for enabling power-supply](https://www.amazon.com/EDGELEC-Breadboard-Optional-Assorted-Multicolored/dp/B07GD2BWPY)
 4. [Fan; 40x20mm; cool heat-sink](https://www.amazon.com/gp/product/B071W93333)
 5. [SSD disk; optional; recommended: 250+ Gbyte](https://www.amazon.com/Samsung-250GB-Internal-MZ-76E250B-AM/dp/B07864WMK8)
 6. [USB3/SATA cable and/or enclosure](https://www.amazon.com/gp/product/B07F7WDZGT)
-
-The SSD listed above is different than in the picture below and **does not** require the USB3/SATA cable.
 
 <img src="docs/samples/jetson-etc.png" width="512">
 
