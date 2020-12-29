@@ -199,25 +199,21 @@ echo 'Disabling ModemManager' \
   && systemctl stop ModemManager \
   && systemctl disable ModemManager
 
-if [ -z "$(command -v ha)" ]; then
-  if [ ! -e "${0%/*}/hassio-install.sh" ]; then
-    echo "Downloading ${0%/*}/hassio-install.sh"
-    curl -sSL https://raw.githubusercontent.com/home-assistant/supervised-installer/master/installer.sh -o /tmp/hassio-install.sh \
-      && \
-      mv -f /tmp/hassio-install.sh ${0%/*}/hassio-install.sh \
-      && \
-      chmod 755 ${0%/*}/hassio-install.sh
-  fi
-  if [ ! -e "${0%/*}/hassio-install.sh" ]; then
-    echo "No Home Assistant installer found; exiting" &> /dev/stderr
-    exit 1
-  fi
-  echo "Installing using ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine)" \
+if [ ! -e "${0%/*}/hassio-install.sh" ]; then
+  echo "Downloading ${0%/*}/hassio-install.sh"
+  curl -sSL https://raw.githubusercontent.com/dcmartin/supervised-installer/master/installer.sh -o /tmp/hassio-install.sh \
+    && \
+    mv -f /tmp/hassio-install.sh ${0%/*}/hassio-install.sh \
+    && \
+    chmod 755 ${0%/*}/hassio-install.sh
+fi
+if [ ! -e "${0%/*}/hassio-install.sh" ]; then
+  echo "No Home Assistant installer found; exiting" &> /dev/stderr
+  exit 1
+fi
+echo "Installing using ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine)" \
     && yes | ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine) \
     || echo 'Problem installing Home Assistant; check with "ha core info" command' &> /dev/stderr
-else
-  echo "Home Assistant installed"
-fi
 
 # download AI containers and models
 if [ "${0##*/}" == 'get.motion-ai.sh' ]; then
