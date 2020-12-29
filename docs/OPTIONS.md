@@ -6,8 +6,8 @@ cd ~/motion-ai
 echo 80 > HOST_PORT
 echo $(hostname -I) > MQTT_HOST
 echo $(hostname -I) > MOTION_YOLO_IP
-echo rtspcamlogin > MOTION_NETCAM_USERNAME
-echo rtspcampasswd > MOTION_NETCAM_PASSWORD
+echo rtspcamlogin > NETCAM_USERNAME
+echo rtspcampasswd > NETCAM_PASSWORD
 echo "${GOOGLE_MAPS_APIKEY}" > MOTION_OVERVIEW_APIKEY
 echo hybrid > MOTION_OVERVIEW_MODE
 echo 'false' > MOTION_MEDIA_MASK
