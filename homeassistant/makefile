@@ -487,7 +487,7 @@ realclean: clean
 
 
 distclean: realclean
-	-sudo rm -f .storage/core.*
+	-sudo rm -f .storage
 	-suro rm -fr .uuid .HA_VERSION .cloud deps tts .storage
 	-sudo rm -fr "../media/Motion-Ã👁"
 
