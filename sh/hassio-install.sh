@@ -114,7 +114,7 @@ if [ $(diff ${tmp} ${FILE_INTERFACES} | wc -c) -gt 0 ]; then
   info "If you have modified the network on the host manualy, those can now be overwritten"
   info "If you do not overwrite this now you need to manually adjust it later"
   info "Do you want to proceed with that? [N/y] "
-  answer='y'
+  read answer < /dev/tty
 
   if [[ "$answer" =~ "y" ]] || [[ "$answer" =~ "Y" ]]; then
     info "Replacing /etc/network/interfaces"
@@ -209,7 +209,16 @@ if [ ! -d "$DATA_SHARE" ]; then
 fi
 
 # Read infos from web
-HASSIO_VERSION=$(curl -sL $URL_VERSION | jq -e -r '.supervisor')
+i=0; while [ ${i} -le 10 ] && [ -z "${HASSIO_VERSION:-}" ]; do
+  HASSIO_VERSION=$(curl -sL $URL_VERSION | jq -e -r '.supervisor')
+  if [ ! -z "${HASSIO_VERSION:-}" ]; then break; fi
+  info "Waiting on ${URL_VERSION}; sleeping for $((i*2)) seconds""
+  sleep $((i*2))
+  i=$((i+1))
+done
+if [ -z "${HASSIO_VERSION:-}" ]; then 
+  error "Unable to retrieve HASSIO_VERSION from ${URL_VERSION}"
+fi
 
 ##
 # Write configuration
