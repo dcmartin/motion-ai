@@ -81,7 +81,7 @@ NETDATA_URL ?= $(if $(wildcard NETDATA_URL),$(shell v=$$(cat NETDATA_URL) && ech
 JUPYTER_URL ?= $(if $(wildcard JUPYTER_URL),$(shell v=$$(cat JUPYTER_URL) && echo "== JUPYTER_URL: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="http://${HOST_IPADDR}:7777/" && echo "** JUPYTER_URL unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 # tplink
-TPLINK_DISCOVERY ?= $(if $(wildcard TPLINK_DISCOVERY),$(shell v=$$(cat TPLINK_DISCOVERY) && echo "== TPLINK_DISCOVERY: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "** TPLINK_DISCOVERY unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+TPLINK_DISCOVERY ?= $(if $(wildcard TPLINK_DISCOVERY),$(shell v=$$(cat TPLINK_DISCOVERY) && echo "== TPLINK_DISCOVERY: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "** TPLINK_DISCOVERY unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 # influxdb
 INFLUXDB_HOST ?= $(if $(wildcard INFLUXDB_HOST),$(shell v=$$(cat INFLUXDB_HOST) && echo "== INFLUXDB_HOST: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='a0d7b954-influxdb' && echo "** INFLUXDB_HOST unset; default: $${v}" > /dev/stderr && echo "$${v}"))
