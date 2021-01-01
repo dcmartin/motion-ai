@@ -35,7 +35,8 @@ else:
                 logger.info("input_select_set_options: {0} duplicates; result: {1}".format(d,uniq))
               obj=[df]
               for v in sorted(uniq):
-                obj.append(v)
+                if len(v) > 0:
+                  obj.append(v)
               service_data = {"entity_id": inputEntity, "options": obj}
               logger.info("input_select_set_options: calling input_select/set_options; service_data: {0}: ".format(service_data))
               hass.services.call("input_select","set_options",service_data,False)
