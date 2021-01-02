@@ -483,7 +483,7 @@ realclean: clean
 	-sudo rm -f home-assistant_v2.*
 	-sudo rm -f known_devices.yaml
 	-sudo rm -f home-assistant.log
-	-sudo rm -f www/images/motion_*.{jpg,gif}
+	-sudo rm -f www/images/motion/
 
 
 distclean: realclean
