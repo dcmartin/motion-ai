@@ -100,12 +100,14 @@ INTRANET_SCAN_INTERVAL ?= $(if $(wildcard INTRANET_SCAN_INTERVAL),$(shell v=$$(c
 
 ACTIONS := all run stop logs restart refresh tidy neat clean realclean distclean
 
-default: homeassistant/motion/webcams.json homeassistant/www/images/motion all
+default: necessary all
+
+necessary: homeassistant/motion/webcams.json homeassistant/www/images/motion/
 
 homeassistant/motion/webcams.json:
 	@-./sh/mkwebcams.sh > homeassistant/motion/webcams.json
 
-homeassistant/www/images/motion:
+homeassistant/www/images/motion/:
 	@-mkdir $@
 
 $(ACTIONS): homeassistant/motion/webcams.json
@@ -167,4 +169,4 @@ $(ACTIONS): homeassistant/motion/webcams.json
 	  INFLUXDB_PASSWORD="$(INFLUXDB_PASSWORD)" \
 	&& make -C homeassistant $@
 
-.PHONY: all default run stop logs restart tidy clean realclean distclean $(PACKAGES) homeassistant/motion/webcams.json
+.PHONY: necessary all default run stop logs restart tidy clean realclean distclean $(PACKAGES) homeassistant/motion/webcams.json
