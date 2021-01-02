@@ -13,7 +13,7 @@ p='person'
 
 ICON='account'
 UOM='👱'
-find homeassistant/ -name "detected_${p}*" -print | while read; do
+find homeassistant/ -name "detected_${p}*.yaml" -print | while read; do
   e="${REPLY}"
   echo "${e}"
   for t in animal vehicle; do 
