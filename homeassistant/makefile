@@ -485,7 +485,6 @@ realclean: clean
 	-sudo rm -f home-assistant.log
 	-sudo rm -f www/images/motion/
 
-
 distclean: realclean
 	-sudo rm -f .storage
 	-suro rm -fr .uuid .HA_VERSION .cloud deps tts .storage

@@ -100,10 +100,13 @@ INTRANET_SCAN_INTERVAL ?= $(if $(wildcard INTRANET_SCAN_INTERVAL),$(shell v=$$(c
 
 ACTIONS := all run stop logs restart refresh tidy neat clean realclean distclean
 
-default: homeassistant/motion/webcams.json all
+default: homeassistant/motion/webcams.json homeassistant/www/images/motion all
 
 homeassistant/motion/webcams.json:
-	./sh/mkwebcams.sh > homeassistant/motion/webcams.json
+	@-./sh/mkwebcams.sh > homeassistant/motion/webcams.json
+
+homeassistant/www/images/motion:
+	@-mkdir $@
 
 $(ACTIONS): homeassistant/motion/webcams.json
 	@echo "making $@"
