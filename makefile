@@ -102,12 +102,16 @@ ACTIONS := all run stop logs restart refresh tidy neat clean realclean distclean
 
 default: necessary all
 
-necessary: homeassistant/motion/webcams.json homeassistant/www/images/motion/
+necessary: homeassistant/motion/webcams.json homeassistant/www/images/motion/ media/Motion-Ã👁
+
 
 homeassistant/motion/webcams.json:
 	@-./sh/mkwebcams.sh > homeassistant/motion/webcams.json
 
 homeassistant/www/images/motion/:
+	@-mkdir $@
+
+media/Motion-Ã👁/:
 	@-mkdir $@
 
 $(ACTIONS): homeassistant/motion/webcams.json
