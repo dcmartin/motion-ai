@@ -110,7 +110,8 @@ homeassistant/motion/webcams.json:
 	@-./sh/mkwebcams.sh > homeassistant/motion/webcams.json
 
 ${MEDIA}:
-	@-sudo mkdir $@
+	@echo "making MEDIA: $@"
+	@-sudo mkdir -p $@
 
 $(ACTIONS): homeassistant/motion/webcams.json
 	@echo "making $@"
@@ -171,4 +172,4 @@ $(ACTIONS): homeassistant/motion/webcams.json
 	  INFLUXDB_PASSWORD="$(INFLUXDB_PASSWORD)" \
 	&& make -C homeassistant $@
 
-.PHONY: necessary all default run stop logs restart tidy clean realclean distclean $(PACKAGES) homeassistant/motion/webcams.json
+.PHONY: ${MEDIA} necessary all default run stop logs restart tidy clean realclean distclean $(PACKAGES) homeassistant/motion/webcams.json
