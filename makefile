@@ -15,6 +15,7 @@ DOMAIN_NAME ?= $(if $(wildcard DOMAIN_NAME),$(shell v=$$(cat DOMAIN_NAME) && ech
 
 # host
 HOST_NAME ?= $(if $(wildcard HOST_NAME),$(shell v=$$(cat HOST_NAME) && echo "== HOST_NAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(hostname -f) && v=$${v%%.*} && echo "** HOST_NAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+HOST_TIMEZONE ?= $(if $(wildcard HOST_TIMEZONE),$(shell v=$$(cat HOST_TIMEZONE) && echo "== HOST_TIMEZONE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(cat /etc/timezone) && echo "** HOST_TIMEZONE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 HOST_IPADDR ?= $(if $(wildcard HOST_IPADDR),$(shell v=$$(cat HOST_IPADDR) && echo "== HOST_IPADDR: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=${THIS_HOSTIP} && echo "** HOST_IPADDR unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 HOST_INTERFACE ?= $(if $(wildcard HOST_INTERFACE),$(shell v=$$(cat HOST_INTERFACE) && echo "== HOST_INTERFACE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(ip addr | egrep -B2 ${HOST_IPADDR} | egrep '^[0-9]' | awk -F': ' '{ print $$2 }') && echo "** HOST_INTERFACE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 HOST_PORT ?= $(if $(wildcard HOST_PORT),$(shell v=$$(cat HOST_PORT) && echo "== HOST_PORT: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="8123" && echo "** HOST_PORT unset; default: $${v}" > /dev/stderr && echo "$${v}"))
@@ -122,6 +123,7 @@ $(ACTIONS): homeassistant/motion/webcams.json
 	  HOST_IPADDR="$(HOST_IPADDR)" \
 	  HOST_INTERFACE="$(HOST_INTERFACE)" \
 	  HOST_NAME="$(HOST_NAME)" \
+	  HOST_TIMEZONE="$(HOST_TIMEZONE)" \
 	  HOST_NETWORK="$(HOST_NETWORK)" \
 	  HOST_NETWORK_MASK="$(HOST_NETWORK_MASK)" \
 	  HOST_PORT="$(HOST_PORT)" \
