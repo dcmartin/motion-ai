@@ -153,4 +153,5 @@ RTSP_MAX_TIME=15
 NETWORK_SIZE=24
 
 ## doit
-find_rtsp ${*}
+out=${0##*/} && out=${out%%.sh}
+find_rtsp ${*} | tee ${out}.json | jq '[.rtsp[]|select(.code!="000")]'
