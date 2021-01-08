@@ -95,25 +95,41 @@ if [[ "$(sysctl --values kernel.dmesg_restrict)" != "0" ]]; then
 fi
 
 # Create config for NetworkManager
-info "Creating NetworkManager configuration"
-curl -sL "${URL_NM_CONF}" > "${FILE_NM_CONF}"
-if [ ! -f "$FILE_NM_CONNECTION" ]; then
+tmp=$(mktemp)
+curl -sL "${URL_NM_CONF}" -o ${tmp}
+if [ $(diff ${tmp} ${FILE_NM_CONF} | wc -c) -gt 0 ]; then
+  info "Creating NetworkManager configuration"
+  mv -f ${tmp} "${FILE_NM_CONF}"
+  if [ ! -f "$FILE_NM_CONNECTION" ]; then
     curl -sL "${URL_NM_CONNECTION}" > "${FILE_NM_CONNECTION}"
+  fi
+  nmrestart='true'
 fi
+rm -f ${tmp}
 
-warn "Changes are needed to the /etc/network/interfaces file"
-info "If you have modified the network on the host manualy, those can now be overwritten"
-info "If you do not overwrite this now you need to manually adjust it later"
-info "Do you want to proceed with that? [N/y] "
-answer='y'
+tmp=$(mktemp)
+curl -sL "${URL_INTERFACES}" -o ${tmp}
+if [ $(diff ${tmp} ${FILE_INTERFACES} | wc -c) -gt 0 ]; then
+  warn "Changes are needed to the /etc/network/interfaces file"
+  info "If you have modified the network on the host manualy, those can now be overwritten"
+  info "If you do not overwrite this now you need to manually adjust it later"
+  info "Do you want to proceed with that? [N/y] "
+  read answer
 
-if [[ "$answer" =~ "y" ]] || [[ "$answer" =~ "Y" ]]; then
+  if [[ "$answer" =~ "y" ]] || [[ "$answer" =~ "Y" ]]; then
     info "Replacing /etc/network/interfaces"
-    curl -sL "${URL_INTERFACES}" > "${FILE_INTERFACES}";
+    mv -f ${tmp} "${FILE_INTERFACES}"
+    nmrestart='true'
+  fi
 fi
+rm -f ${tmp}
 
-info "Restarting NetworkManager"
-systemctl restart "${SERVICE_NM}"
+if [ "${nmrestart:-false}" = 'true' ]; then
+  info "Restarting NetworkManager"
+  systemctl restart "${SERVICE_NM}"
+  info "Sleeping for five (5) seconds"
+  sleep 5
+fi
 
 # Parse command line parameters
 while [[ $# -gt 0 ]]; do
@@ -193,7 +209,16 @@ if [ ! -d "$DATA_SHARE" ]; then
 fi
 
 # Read infos from web
-HASSIO_VERSION=$(curl -s $URL_VERSION | jq -e -r '.supervisor')
+i=0; while [ ${i} -le 10 ] && [ -z "${HASSIO_VERSION:-}" ]; do
+  HASSIO_VERSION=$(curl -sL $URL_VERSION | jq -e -r '.supervisor')
+  if [ ! -z "${HASSIO_VERSION:-}" ]; then break; fi
+  info "Waiting on ${URL_VERSION}; sleeping for $((i*2)) seconds"
+  sleep $((i*2))
+  i=$((i+1))
+done
+if [ -z "${HASSIO_VERSION:-}" ]; then 
+  error "Unable to retrieve HASSIO_VERSION from ${URL_VERSION}"
+fi
 
 ##
 # Write configuration

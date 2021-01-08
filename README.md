@@ -3,7 +3,7 @@
 #  Motion &Atilde;&#128065;
 An open-source software solution for situational awareness from a network of video and audio sources.  Utilizing [Home Assistant](http://home-assistant.io), [addons](http://github.com/motion-ai/addons), the LINUX Foundation [Open Horizon](http://github.com/open-horizon) edge fabric, and [edge AI services](https://github.com/motion-ai/open-horizon), the system enables _personal_ AI on low-cost devices; integrating object detection and classification into a dashboard of daily activity.
 
-+ Watch the [overview](https://www.dropbox.com/s/c4oj3ha7n8r0oxw/Motion%20AI.mp4) video, [introduction](https://youtu.be/9dW5mtVOzYo) and [installation](https://youtu.be/BWJdDWKUXyE)
++ Watch the [overview](https://youtu.be/UZkayg1TL6c) video, [introduction](https://youtu.be/9dW5mtVOzYo) and [installation](https://youtu.be/BWJdDWKUXyE)
 + Use the QuickStart (see below) on RaspberryPi4, Jetson Nano, or Intel/AMD host; see [guide](docs/QUICKSTART.md).
 + Visit us on the [Web](http://www.motion-ai.com)
 + Find us on [Facebook](https://www.facebook.com/groups/motionai/)
@@ -41,7 +41,7 @@ The following two (2) sets of commands will install `motion-ai` on the following
 + Ubuntu18.04 or Debian10 VM (`amd64`); 2GB, 2vCPU recommended
 + nVidia Jetson Nano (`arm64`); 4GB recommended
 
-The initial configuration presumes a locally attached camera on `/dev/video0`.  Reboot the system after each step; for example:
+The initial configuration presumes a locally attached camera on `/dev/video0`.  Reboot the system after completion; for example:
 
 ```
 sudo apt update -qq -y
@@ -52,21 +52,38 @@ sudo ./sh/get.motion-ai.sh
 sudo reboot
 ```
 
-When the system reboots install the official MQTT broker (aka `core-mosquitto`) and Motion Classic (aka `motion-video0`) _add-ons_ using the Home Assistant Add-on Store.  Select, install, configure and start each add-on (see below).  When both add-ons are running, return to the command-line and start the AI's.
+When the system reboots install the official MQTT broker (aka `core-mosquitto`) and Motion Classic (aka `motion-video0`) _add-ons_ using the Home Assistant Add-on Store (n.b. Motion Classic add-on may be accessed by adding the repository [http://github.com/dcmartin/hassio-addons](http://github.com/dcmartin/hassio-addons) to the Add-On Store.
 
-After the MQTT and Motion Classic addons have started, run the `make restart` command, for example:
+Select, install, configure and start each add-on (see below).  When both add-ons are running, return to the command-line and start the AI's.  After the MQTT and Motion Classic addons have started, run the `make restart` command to synchroize the Home Assistant configuration with the Motion Classic add-on, for example:
 
 ```
 cd ~/motion-ai
 make restart
 ```
 
-## Add-on's
+## Dashboard
+Once the system has rebooted it will display a default view; note the image below is of a configured system:
+
+<img src="docs/dashboard.png" width="75%">
+
+## Administrators
+A more detailed interface is provided to administrators _only_, and includes both summary and detailed views for the system, including access to **NetData**  and the **motion add-on** Web interface.
+
+<img src="docs/administrators.png" width="75%">
+
+# Add-on's
 Install the [MQTT](https://github.com/home-assistant/hassio-addons/blob/master/mosquitto/README.md) and [Motion Classic](https://github.com/dcmartin/hassio-addons/blob/master/motion-video0/README.md) _add-ons_ from the **Add-On Store** and configure and start; add the repository [https://github.com/dcmartin/hassio-addons](https://github.com/dcmartin/hassio-addons) to the Add-On Store to install Motion Classic.
 
 The Motion Classic configuration includes many options, most which typically do not need to be changed. The `group` is provided to segment a network of devices (e.g. _indoor_ vs. _outdoor_); the `device` determines the MQTT identifier for publishing; the `client` determines the MQTT identifier for subscribing; `timezone` should be local to installation.
 
+**Note:** No capital letters [A-Z], spaces, hyphens (-), or other special characters may be utilized for any of the following identifiers:
+
++ `group` - The collection of devices
++ `device` - The identifier for the hardware device
++ `name` - The name of the camera
+
 The `cameras` section is a listing (n.b. hence the `-`) and provide information for both the motion detection as well as the front-end Web interface.  The `name`,`type`, and `w3w` attributes are **required**.  The `top`, `left`, and `icon` attributes are _optional_ and are used to locate the camera on the overview image.  The `width`, `height`, and other attributes are _optional_ and are used for motion detection.
+
 
 #### Example configuration (_subset_)  
 ```
@@ -116,21 +133,6 @@ cd ~/motion-ai
 
 These commands only need to be run once; the AI's will automatically restart whenever the system is rebooted.
 
-## Dashboard
-Once the system has rebooted it will display a default view which includes the following status information:
-
-+ Motion Classic _add-on_
-+ Camera connectivity; from _lost_ and _found_ messages
-+ MQTT broker operational
-+ Announced entity detection AI (aka YOLO)
-+ Count of  _direct_ attach cameras, i.e. _netcam_ and _local_
-+ Count of **on-line** _direct_ cameras
-+ List of any off-line _direct_ cameras
-+ Count of all cameras
-+ Percent of time all cameras are _found_
-
-<img src="docs/glance.png" width="75%">
-
 ## Overview image
 The _overview_ image is used to display the location of camera icons specified in the _add-on_ (n.b. `top` and `left` percentages).  The _mode_ may be `local`, indicating that a local image file should be utilized; the default is `overview.jpg` in the `www/images/` directory.  The other modes utilize the Google Maps API; they are:
 
@@ -143,7 +145,7 @@ The _zoom_ value scales the images generated by Google Maps API; it does not app
 
 <img src="docs/overview.jpg" width="50%">
 
-## Composition
+# Composition
 The `motion-ai` solution is composed of two primary components:
 
 + [Home Assistant](http://home-assistant.io) - open-source home automation system
@@ -161,20 +163,6 @@ Open Horizon AI _services_:
 + `face4motion` - [face detection](http://github.com/dcmartin/openface) 
 + `alpr4motion` - [license plate detection and classification](http://github.com/dcmartin/openface) 
 + `pose4motion` - [ human pose estimation](http://github.com/dcmartin/openpose)
-
-## Videos
-
-+ [A Tour of Motion &Atilde;&#128065; in action](https://youtu.be/NxUJEsBlktg)
-+ [Installation of Motion &Atilde;&#128065; in five (5) easy steps](https://youtu.be/0dlx24lL_H8)
-
-## Example
-The system provides a default display of aggregated information sufficient to understand level of activity.
-
-<img src="docs/samples/default.png" width="512">
-
-A more detailed interface is provided to administrators _only_, and includes both summary and detailed views for the system, including access to **NetData**  and the **motion add-on** Web interface.
-
-<img src="docs/samples/example.png" width="1024">
 
 Data may be saved locally and processed to produce historical graphs as well as exported for analysis using other tools (e.g. time-series database _InfluxDB_ and analysis front-end _Grafana_).  Data may also be processed using _Jupyter_ notebooks.
 
@@ -239,7 +227,7 @@ An AI's **prediction quality** is dependent on the  _variety_, _volume_, and _ve
 
 The Motion &Atilde;&#128065; system provides a _personal AI_ incorporating both a wide variety artificial intelligence, machine learning, and statistical models as well as a closed-loop learning cycle (n.b. see [_Building a Better Bot_](https://www.linkedin.com/pulse/building-better-bot-david-c-martin/)); increasing the volume, variety, and veracity of the corpus of knowledge.
 
-# Example: [Age-At-Home](http://www.age-at-home.com)
+# Example: [Age@Home](http://www.age-at-home.com)
 This system may be used to build solutions for various operational scenarios (e.g. monitoring the elderly to determine patterns of daily activity and alert care-givers and loved ones when aberrations occur); see the [Age-At-Home](http://www.age-at-home.com/) project for more information; example below:
 
 <img src="docs/samples/age-at-home.png" width="512">
@@ -287,14 +275,16 @@ git merge upstream/master
 
 Language|files|blank|comment|code
 :-------|-------:|-------:|-------:|-------:
-YAML|302|1653|1610|24049
-Markdown|8|230|0|844
-make|2|99|56|686
-JSON|4|0|0|426
-Python|5|49|37|262
-Bourne Shell|5|20|11|110
+YAML|308|1709|1636|27069
+JSON|1198|1|0|3399
+Bourne Shell|48|511|279|2540
+Markdown|10|310|0|1139
+Jupyter Notebook|1|0|1020|927
+make|3|135|81|866
+Python|6|51|36|299
+HTML|1|19|1|89
 --------|--------|--------|--------|--------
-SUM:|326|2051|1714|26377
+SUM:|1575|2736|3053|36328
 
 <img src="http://clustrmaps.com/map_v2.png?cl=ffffff&w=a&t=n&d=8TDxxKn9npMT6_70gwlS3FcPjhdcBm5j4LskwHzTO5U" width="1">
 
