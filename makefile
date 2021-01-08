@@ -113,7 +113,7 @@ ${MEDIA}:
 	@echo "${MC}Making: MEDIA $@${NC}"
 	@-sudo mkdir -p $@
 
-$(ACTIONS): homeassistant/motion/webcams.json
+$(ACTIONS): necessary
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  DOMAIN_NAME="$(DOMAIN_NAME)" \
