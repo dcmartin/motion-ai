@@ -39,7 +39,7 @@ The following two (2) sets of commands will install `motion-ai` on the following
 
 + RaspberryPi Model 3B+ or 4 (`arm`); 2GB recommended
 + Ubuntu18.04 or Debian10 VM (`amd64`); 2GB, 2vCPU recommended
-+ nVidia Jetson Nano (`arm64`); 4GB recommended
++ nVidia Jetson Nano (`arm64`); 4GB required
 
 The initial configuration presumes a locally attached camera on `/dev/video0`.  Reboot the system after completion; for example:
 
@@ -200,10 +200,10 @@ Installation is performed in five (5) steps; see [detailed instructions](docs/IN
 ## Accelerated hardware 1: nVidia Jetson Nano (aka `tegra`)
 Recommended components:
 
-1. [nVidia Jetson Nano developer kit](https://developer.nvidia.com/embedded/jetson-nano-developer-kit)
-1. [4 amp power-supply](https://www.adafruit.com/product/1466) or [another option](https://www.sparkfun.com/products/14932)
-2. [High-endurance micro-SD card; _minimum_: 32 Gbyte; **recommended**: 64+ Gbyte](https://www.amazon.com/gp/product/B07P3D6Y5B)
-3. [Jumper or wire for enabling power-supply](https://www.amazon.com/EDGELEC-Breadboard-Optional-Assorted-Multicolored/dp/B07GD2BWPY)
+1. [nVidia Jetson Nano developer kit; 4GB required](https://www.amazon.com/NVIDIA-Jetson-Nano-Developer-945-13450-0000-100/dp/B084DSDDLT/)
+1. [4+ amp power-supply](https://www.adafruit.com/product/1466) or [another option](https://www.sparkfun.com/products/14932)
+2. [High-endurance micro-SD card; _minimum_: 64 Gbyte](https://www.amazon.com/gp/product/B07P3D6Y5B)
+3. One (1) jumper or [female-female wire for enabling power-supply](https://www.amazon.com/EDGELEC-Breadboard-Optional-Assorted-Multicolored/dp/B07GD2BWPY)
 4. [Fan; 40x20mm; cool heat-sink](https://www.amazon.com/gp/product/B071W93333)
 5. [SSD disk; optional; recommended: 250+ Gbyte](https://www.amazon.com/Samsung-250GB-Internal-MZ-76E250B-AM/dp/B07864WMK8)
 6. [USB3/SATA cable and/or enclosure](https://www.amazon.com/gp/product/B07F7WDZGT)
