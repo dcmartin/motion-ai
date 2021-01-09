@@ -35,7 +35,8 @@ The nVidia Jetson Nano is configured using the nVidia [Developer Kit](https://de
 To install on a Jetson Nano you will need the following items in addition to the device and its required components:
 
 1. USB keyboard and mouse
-2. HDMI capable monitor
+2. HDMI cable and monitor
+3. Internet connection via Ethernet cable
 
 There are nine (9) steps:
 
@@ -127,7 +128,7 @@ When the system reboots it will be ready for installation of Motion &Atilde;&#12
 <hr>
 
 # &#10123; Motion &Atilde;&#128065;
-The installation of the Motion &Atilde;&#128065; software 
+The installation of the Motion &Atilde;&#128065; software requires an Internet connection; the Jetson Nano will need to be attached to a network via Ethernet cable.
 
 There are seven (7) steps:
 
