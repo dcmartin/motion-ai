@@ -132,13 +132,13 @@ The installation of the Motion &Atilde;&#128065; software requires an Internet c
 
 There are seven (7) steps:
 
-2. Install Motion AI
-3. Setup MQTT broker
-4. Add `github.com/dcmartin/hassio-addons` to **Add-on Store**
-4. Install Motion Classic _add-on_
-4. Configure Motion Classic _add-on_
-4. Start Motion Classic _add-on_
-5. Restart Motion AI
+1. Install Motion AI
+1. Setup MQTT broker
+1. Add `github.com/dcmartin/hassio-addons` to **Add-on Store**
+1. Install Motion Classic _add-on_
+1. Configure Motion Classic _add-on_
+1. Start Motion Classic _add-on_
+1. Restart Motion AI
 
 ## Step 1
 Install Motion-AI from the Github [repository](http://github.com/dcmartin/motion-ai) by cloning using the `git` command and running the installation script, for example:
