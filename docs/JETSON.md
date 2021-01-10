@@ -43,7 +43,7 @@ There are nine (9) steps:
 1. Download [JetPack disk image](https://developer.nvidia.com/jetson-nano-sd-card-image)
 2. Install [Balena Etcher](https://www.balena.io/etcher/)
 3. Flash micro-SD (uSD) card (64 Gbyte) using Etcher
-4. Install jumper or female-female connertor wire
+4. Install jumper or female-female connector wire
 5. Insert uSD card into Jetson
 6. Attach power-supply DC barrel-jack
 7. Configure for high-performance
