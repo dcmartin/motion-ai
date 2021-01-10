@@ -159,6 +159,14 @@ Install and configure a MQTT broker for sending and receiving messages.  There i
 
 <img src="official-addons.png" width="90%">
 
+Configure the broker; a `username` and `password` are required; defaults are `username` and `pasword`:
+
+<img src="mosquitto-config.png" width="90%">
+
+Start the broker setting options `Start on boot`, `Watchdog` and `Auto update`:
+
+<img src="mosquitto-broker.png" width="90%">
+
 Alternative MQTT brokers may be utilized by specifying the `MQTT` [options](OPTIONS.md) utilizing specified variables; see [`config.h`](../config.sh) for example.
 
 ## Step 3
@@ -179,7 +187,7 @@ The `!secret` values are derived from the configuration of Motion &Atilde;&#1280
 <img src="motion-classic-2.png" width="90%">
 
 ## Step 6
-After configuration, set options and start.
+Start the _add-on_ setting options `Start on boot`, `Watchdog`, `Auto update`, and `Show in sidebar`:
 
 <img src="motion-classic-4.png" width="90%">
 
