@@ -159,7 +159,7 @@ Install and configure a MQTT broker for sending and receiving messages.  There i
 
 <img src="official-addons.png" width="90%">
 
-Configure the broker; a `username` and `password` are required; defaults are `username` and `pasword`:
+Configure the broker; a `username` and `password` are required; defaults are `username` and `password`:
 
 <img src="mosquitto-config.png" width="90%">
 
