@@ -324,9 +324,8 @@
 - platform: rest
   name: motion_addon_status
   json_attributes:
-    - host
-    - port
-    - cameras
+    - timestamp
+    - status
   force_update: true
   resource_template: >-
     {% set s = states('sensor.motion_addon_status_api') %}
@@ -342,27 +341,22 @@
       friendly_name: Add-on host
       icon_template: 'mdi:server-network'
       value_template: >-
-        {% set s = state_attr('sensor.motion_addon_status','host') %}
+        {% set s = state_attr('sensor.motion_addon_status','status') %}
         {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
-          {{ s }}
-        {% else %}null{% endif %}
-    motion_addon_status_port:
-      friendly_name: Add-on port
-      icon_template: 'mdi:numeric'
-      value_template: >-
-        {% set s = state_attr('sensor.motion_addon_status','port') %}
-        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
-          {{ s }}
+          {{ s.host }}
         {% else %}null{% endif %}
     motion_addon_status_camera_status_array:
       friendly_name: Add-on status array
       value_template: >-
-        {% set s = state_attr('sensor.motion_addon_status','cameras') %}
+        {% set s = state_attr('sensor.motion_addon_status','status') %}
         {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
-          [{%- for state in s -%}
+          [{%- for daemon in s.daemons -%}
             {%- if loop.first -%}{%- else -%},{%- endif -%}
-            {%- set s = state.status|lower -%}
-            {%- if s == 'true' -%}1{%- else -%}0{%- endif -%}
+            {%- for state in daemon.cameras -%}
+              {%- if loop.first -%}{%- else -%},{%- endif -%}
+              {%- set s = state.status|lower -%}
+              {%- if s == 'true' -%}1{%- else -%}0{%- endif -%}
+            {%- endfor -%}
           {%- endfor -%}]
         {% else %}null{% endif %}
     motion_addon_status_camera_count:
@@ -387,10 +381,13 @@
       friendly_name: Add-on off-line camera(s)
       icon_template: 'mdi:camera-off'
       value_template: >-
-        {% set s = state_attr('sensor.motion_addon_status','cameras') %}
-        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
-          {{ s|selectattr('status','==',false)|map(attribute='camera')|list }}
-        {% else %}null{% endif %}
+        {%- set s = states.sensor.motion_addon_status.attributes.status -%}
+        {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null -%}
+          [{%- for s in s.daemons|map(attribute="cameras") -%}
+          {%- if loop.first -%}{%- else -%},{%- endif -%}
+            {{- s|selectattr('status','==',false)|map(attribute='camera')|list|to_json -}}
+          {%- endfor -%}]
+        {%- else -%}null{%- endif -%}
     motion_addon_status_camera_count_offline:
       friendly_name: 'Add-on direct off-line'
       icon_template: 'mdi:camera-off'
