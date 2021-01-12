@@ -51,13 +51,21 @@
           {{ s.nmap.net }}
         {% else %}null{% endif %}
     motion_addon_nmap_timeout:
-      friendly_name: Add-on NMAP timeout
-      icon_template: 'mdi:timer'
-      unit_of_measurement: seconds
+      friendly_name: Add-on NMAP scan
+      icon_template: 'mdi:numeric'
       value_template: >-
         {% set s = state_attr('sensor.motion_addon_rtsp','rtsp') %}
         {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
-          {{ s.nmap.timeout }}
+          {% set t = s.nmap.timeout %}
+          {% if t is not none and t|lower != 'unavailable' and t|lower != 'unknown' and t != null and t|int > 0 %}
+            ({{- t -}}{{- '): ' -}}
+            {%- if t < 2 %}{{- 'Longest' -}}
+            {%- elif t < 3 -%}{{- 'Longer' -}}
+            {%- elif t < 4 -%}{{- 'Long' -}}
+            {%- elif t < 5 -%}{{- 'Medium' -}}
+            {%- elif t > 5 -%}{{- 'Short' -}}
+            {% else %}{{- 'Normal' -}}{% endif %}
+          {% else %}null{% endif %}
         {% else %}null{% endif %}
     motion_addon_rtsp_max:
       friendly_name: Add-on RTSP timeout
@@ -139,17 +147,7 @@
       icon_template: 'mdi:web'
       value_template: >-
         {%- set s = state_attr('sensor.motion_addon_rtsp','rtsp') -%}
-        {%- if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null -%}
-          {%- set s = s.devices -%}
-          {%- if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|list is iterable -%}
-            {%- set n = 0 -%}
-            [{%- for i in s|selectattr('code','==','200')|map(attribute='ip')|list -%}
-              {%- set v = i|length -%}
-              {%- if i|length > 0 and n + v < 240 -%}
-                {%- if loop.first -%}{%- else -%}{{- ', ' -}}{%- endif -%}
-                {%- set n = n + v -%}
-                "{{- i -}}"
-              {%- endif -%}
-            {%- endfor -%}]
-          {%- else -%}null{%- endif -%}
+        {%- if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null and s|list is iterable -%}
+          {{- s.devices|selectattr("code","equalto",'200')|map(attribute="ip")|list|replace('\'','"') -}}
         {%- else -%}null{%- endif -%}
+
