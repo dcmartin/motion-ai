@@ -381,13 +381,21 @@
       friendly_name: Add-on off-line camera(s)
       icon_template: 'mdi:camera-off'
       value_template: >-
-        {%- set s = states.sensor.motion_addon_status.attributes.status -%}
-        {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null -%}
-          [{%- for s in s.daemons|map(attribute="cameras") -%}
-          {%- if loop.first -%}{%- else -%},{%- endif -%}
-            {{- s|selectattr('status','==',false)|map(attribute='camera')|list|to_json -}}
-          {%- endfor -%}]
-        {%- else -%}null{%- endif -%}
+        {%- set s = state_attr('sensor.motion_addon_status','status') -%}
+        {%- if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null -%}
+          {%- set s = s.daemons -%}
+          {%- if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|list is iterable -%}
+            {%- set n = 0 -%}
+            [{%- for i in s|selectattr('status','==',false)|map(attribute='camera')|list -%}
+              {%- set v = i|length -%}
+              {%- if i|length > 0 and n + v < 240 -%}
+                {%- if loop.first -%}{%- else -%}{{- ', ' -}}{%- endif -%}
+                {%- set n = n + v -%}
+                "{{- i -}}"
+              {%- endif -%}
+            {%- endfor -%}]
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif %}
     motion_addon_status_camera_count_offline:
       friendly_name: 'Add-on direct off-line'
       icon_template: 'mdi:camera-off'
