@@ -4,30 +4,41 @@
 
 - id: motion_addon_camera_restart
   alias: motion_addon_camera_restart
-  initial_state: off
+  mode: single
+  initial_state: on
   trigger:
-    - platform: mqtt
-      topic: 'motion/+/+/status/+'
+    - platform: state
+      entity_id: motion_addon_status
   condition:
-     condition: template
-     value_template: >
-       {{ is_state('input_boolean.motion_addon_camera_restart','on') }}
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+         {{ is_state('input_boolean.motion_addon_camera_restart','on') }}
+      - condition: template
+        value_template: >-
+          {% set s = state_attr('sensor.motion_addon_status','status') %}
+          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null and
+             s.daemons|sum(attribute="cameras",start=[])|selectattr("status","equalto",false)|map(attribute="camera")|list|length > 0 }}
   action:
+    - variables:
+        switches: >-
+          {%- set s = state_attr('sensor.motion_addon_status','status') -%}
+          {%- for i in s.daemons|sum(attribute="cameras",start=[])|selectattr("status","equalto",false)|map(attribute="camera")|list if i != null -%}
+            {%- if not loop.first -%},{%- endif -%}
+            {%- for w in states.switch if 'switch.camera_' + i == w.entity_id -%}
+              {{- w.entity_id -}}
+            {%- else -%}null
+            {%- endfor -%}
+          {%- else -%}null
+          {% endfor -%}
     - service: switch.turn_off
       data_template:
-        entity_id: >-
-          {% set offline = states('sensor.motion_addon_status_camera_offline')|replace('\'','"')|from_json %}
-          {% for state in states.switch %}
-            {% for ol in offline %}
-            {% if ol in state.name|lower %}{{ state.entity_id }}{% endif %}
-            {% endfor %}
-          {% endfor %}
+        entities: >-
+          {{ switches }}
+    - delay:
+        seconds: 10
     - service: switch.turn_on
       data_template:
-        entity_id: >-
-          {% set offline = states('sensor.motion_addon_status_camera_offline')|replace('\'','"')|from_json %}
-          {% for state in states.switch %}
-            {% for ol in offline %}
-            {% if ol in state.name|lower %}{{ state.entity_id }}{% endif %}
-            {% endfor %}
-          {% endfor %}
+        entities: >-
+          {{ switches }}
