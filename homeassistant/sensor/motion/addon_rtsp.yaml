@@ -19,6 +19,7 @@
 
 - platform: rest
   name: motion_addon_rtsp
+  scan_interval: 1800
   json_attributes:
     - timestamp
     - rtsp
@@ -34,16 +35,22 @@
 # group & device & client
 - platform: template
   sensors:
+    motion_addon_rtsp_ago:
+      friendly_name: Add-on RTSP ago
+      unit_of_measurement: seconds
+      icon_template: 'mdi:timer'
+      value_template: >-
+        {% set s = state_attr('sensor.motion_addon_rtsp','timestamp') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          {{ (utcnow().timestamp()|int - as_timestamp(s)|int)|int }}
+        {% else %}null{% endif %}
     motion_addon_nmap_ipaddr:
       friendly_name: Add-on NMAP IP
       icon_template: 'mdi:web'
       value_template: >-
         {% set s = state_attr('sensor.motion_addon_rtsp','rtsp') %}
         {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
-          {% set s = s.nmap.ipaddr %}
-          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|list is iterable %}
-            {{ s }}
-          {% else %}null{% endif %}
+          {{ s.nmap.ipaddr }}
         {% else %}null{% endif %}
     motion_addon_nmap_net:
       friendly_name: Add-on NMAP network
@@ -51,26 +58,28 @@
       value_template: >-
         {% set s = state_attr('sensor.motion_addon_rtsp','rtsp') %}
         {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
-          {% set s = s.nmap.net %}
-          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|list is iterable %}
-            {{ s }}
-          {% else %}null{% endif %}
+          {{ s.nmap.net }}
         {% else %}null{% endif %}
     motion_addon_nmap_timeout:
-      friendly_name: Add-on NMAP timeout
-      icon_template: 'mdi:timer'
-      unit_of_measurement: seconds
+      friendly_name: Add-on NMAP scan
+      icon_template: 'mdi:numeric'
       value_template: >-
         {% set s = state_attr('sensor.motion_addon_rtsp','rtsp') %}
         {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
-          {% set s = s.nmap.timeout %}
-          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|list is iterable %}
-            {{ s }}
+          {% set t = s.nmap.timeout %}
+          {% if t is not none and t|lower != 'unavailable' and t|lower != 'unknown' and t != null and t|int > 0 %}
+            ({{- t -}}{{- '): ' -}}
+            {%- if t < 2 %}{{- 'Longest' -}}
+            {%- elif t < 3 -%}{{- 'Longer' -}}
+            {%- elif t < 4 -%}{{- 'Long' -}}
+            {%- elif t < 5 -%}{{- 'Medium' -}}
+            {%- elif t > 5 -%}{{- 'Short' -}}
+            {% else %}{{- 'Normal' -}}{% endif %}
           {% else %}null{% endif %}
         {% else %}null{% endif %}
     motion_addon_rtsp_max:
       friendly_name: Add-on RTSP timeout
-      icon_template: 'mdi:timer'
+      icon_template: 'mdi:av-timer'
       unit_of_measurement: seconds
       value_template: >-
         {% set s = state_attr('sensor.motion_addon_rtsp','rtsp') %}
@@ -80,7 +89,7 @@
     motion_addon_rtsp_connect:
       friendly_name: Add-on RTSP connect timeout
       unit_of_measurement: seconds
-      icon_template: 'mdi:timer'
+      icon_template: 'mdi:av-timer'
       value_template: >-
         {% set s = state_attr('sensor.motion_addon_rtsp','rtsp') %}
         {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
@@ -148,17 +157,7 @@
       icon_template: 'mdi:web'
       value_template: >-
         {%- set s = state_attr('sensor.motion_addon_rtsp','rtsp') -%}
-        {%- if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null -%}
-          {%- set s = s.devices -%}
-          {%- if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|list is iterable -%}
-            {%- set n = 0 -%}
-            [{%- for i in s|selectattr('code','==','200')|map(attribute='ip')|list -%}
-              {%- set v = i|length -%}
-              {%- if n + v < 240 -%}
-                {%- if loop.first -%}{%- else -%}{{- ', ' -}}{%- endif -%}
-                {%- set n = n + v -%}
-                "{{- i -}}"
-              {%- endif -%}
-            {%- endfor -%}]
-          {%- else -%}null{%- endif -%}
+        {%- if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != null and s|list is iterable -%}
+          {{- s.devices|selectattr("code","equalto",'200')|map(attribute="ip")|list|replace('\'','"') -}}
         {%- else -%}null{%- endif -%}
+

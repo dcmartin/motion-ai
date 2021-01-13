@@ -1488,7 +1488,7 @@
       unit_of_measurement: '%'
       icon_template: 'mdi:percent'
       value_template: >
-        {{ states('sensor.motion_today_person_ratio') }}
+        {{ states('sensor.motion_today_person_ratio_${MOTION_CAMERA}') }}
 
 - platform: template
   sensors:
@@ -1497,7 +1497,7 @@
       unit_of_measurement: 'events'
       icon_template: 'mdi:counter'
       value_template: >-
-        {{ states('sensor.motion_today_person_counter')|int }}
+        {{ states('sensor.motion_today_person_counter_${MOTION_CAMERA}')|int }}
 
 - platform: template
   sensors:
@@ -1506,7 +1506,7 @@
       unit_of_measurement: 'hours'
       icon_template: 'mdi:timer-outline'
       value_template: >
-        {{ states('sensor.motion_today_person_time')|float }}
+        {{ states('sensor.motion_today_person_time_${MOTION_CAMERA}')|float }}
 
 - platform: template
   sensors:
@@ -1514,9 +1514,9 @@
       friendly_name: Today person
       icon_template: 'mdi:account'
       value_template: >-
-        {% set c = states('sensor.motion_detected_person_counter_today') %}
-        {% set r = states('sensor.motion_detected_person_ratio_today') %}
-        {% set t = states('sensor.motion_detected_person_time_today') %}
+        {% set c = states('sensor.motion_detected_person_counter_today_${MOTION_CAMERA}') %}
+        {% set r = states('sensor.motion_detected_person_ratio_today_${MOTION_CAMERA}') %}
+        {% set t = states('sensor.motion_detected_person_time_today_${MOTION_CAMERA}') %}
         {% if c|lower != 'unknown' and r|lower != 'unknown' and t|lower != 'unknown' %}
           {{ c -}}; {{ t }} hours; {{ r }}%
         {% else %}No persons detected today{% endif %}
@@ -1620,6 +1620,74 @@
             {{ s }}
           {% else %}null{% endif %}
         {% endif %}
+
+# level
+
+- platform: template
+  sensors:
+    motion_person_activity_icon_${MOTION_CAMERA}:
+      value_template: >-
+        {%- if states.sensor.motion_detected_person_date_${MOTION_CAMERA} is not none
+               and states('sensor.motion_detected_person_date_${MOTION_CAMERA}')|lower != 'unknown'
+               and states('sensor.motion_detected_person_date_${MOTION_CAMERA}')|lower != 'null'
+               and states.sensor.motion_detected_person_ago_${MOTION_CAMERA} is not none
+               and states('sensor.motion_detected_person_ago_${MOTION_CAMERA}')|lower != 'unknown'
+               and states('sensor.motion_detected_person_ago_${MOTION_CAMERA}')|lower != 'null' -%}
+          {%- if states('sensor.motion_detected_person_counter_today_${MOTION_CAMERA}')|lower != 'unknown'
+                 and states('sensor.motion_detected_person_counter_today_${MOTION_CAMERA}')|lower != 'null'
+                 and states('sensor.motion_detected_person_counter_today_${MOTION_CAMERA}')|int <= 0 -%}
+            {{ 'mdi:account-box' }}
+          {%- elif (states('sensor.motion_detected_person_ago_${MOTION_CAMERA}')|int / 3600)|int > 0 -%}
+            {{ 'mdi:account-multiple-remove' }}
+          {%- elif is_state('binary_sensor.motion_detected_person_ago_high_persistent_${MOTION_CAMERA}','on') -%}
+            {{ 'mdi:account-multiple-minus' }}
+          {%- elif is_state('binary_sensor.motion_detected_person_ago_high_${MOTION_CAMERA}','on') -%}
+            {{ 'mdi:account-minus' }}
+          {%- elif is_state('binary_sensor.motion_detected_person_ago_low_persistent_${MOTION_CAMERA}','on') -%}
+            {{ 'mdi:account-multiple-plus' }}
+          {%- elif is_state('binary_sensor.motion_detected_person_ago_low_${MOTION_CAMERA}','on') -%}
+            {{ 'mdi:account-plus' }}
+          {%- else -%}
+            {{ 'mdi:account' }}
+          {%- endif -%}
+        {%- else -%}
+          {{ 'mdi:account-clock' }}
+        {%- endif -%}
+
+- platform: template
+  sensors:
+    motion_person_activity_level_${MOTION_CAMERA}:
+      friendly_name: 'Person activity'
+      icon_template: >-
+        {{ states('sensor.motion_person_activity_icon_${MOTION_CAMERA}') }}
+      value_template: >-
+        {%- if states.sensor.motion_detected_person_date_${MOTION_CAMERA} is not none
+               and states('sensor.motion_detected_person_date_${MOTION_CAMERA}')|lower != 'unknown'
+               and states('sensor.motion_detected_person_date_${MOTION_CAMERA}')|lower != 'null'
+               and states.sensor.motion_detected_person_ago_${MOTION_CAMERA} is not none
+               and states('sensor.motion_detected_person_ago_${MOTION_CAMERA}')|lower != 'unknown'
+               and states('sensor.motion_detected_person_ago_${MOTION_CAMERA}')|lower != 'null' -%}
+          {%- if states('sensor.motion_detected_person_counter_today_${MOTION_CAMERA}')|lower != 'unknown'
+                 and states('sensor.motion_detected_person_counter_today_${MOTION_CAMERA}')|lower != 'null'
+                 and states('sensor.motion_detected_person_counter_today_${MOTION_CAMERA}')|int <= 0 -%}
+            Nothing today
+          {%- elif (states('sensor.motion_detected_person_ago_${MOTION_CAMERA}')|int / 3600)|int > 0 -%}
+            {%- set h = (states('sensor.motion_detected_person_ago_${MOTION_CAMERA}')|int / 3600)|int -%}
+            None: {{ h -}}h
+          {%- elif is_state('binary_sensor.motion_detected_person_ago_high_persistent_${MOTION_CAMERA}','on') -%}
+            Low
+          {%- elif is_state('binary_sensor.motion_detected_person_ago_high_${MOTION_CAMERA}','on') -%}
+            Decreasing
+          {%- elif is_state('binary_sensor.motion_detected_person_ago_low_persistent_${MOTION_CAMERA}','on') -%}
+            High
+          {%- elif is_state('binary_sensor.motion_detected_person_ago_low_${MOTION_CAMERA}','on') -%}
+            Increasing
+          {%- else -%}
+            Nominal
+          {%- endif -%}
+        {%- else -%}
+          Pending
+        {%- endif -%}
 
 ## ago
 
