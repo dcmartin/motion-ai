@@ -2,13 +2,15 @@
 # homeassistant/automation/motion/alarm.yaml
 ###
 
-- id: motion_alarm_wake_begin_set
-  alias: motion_alarm_wake_begin_set
+# synchronize input_datetime to sensor converted
+
+- id: motion_alarm_wake_begin_sync
+  alias: motion_alarm_wake_begin_sync
   mode: single
   initial_state: on
   trigger:
     - platform: state
-      entity_id: sensor.motion_alarm_wake_begin
+      entity_id: sensor.motion_alarm_wake_begin_datetime
   condition:
     condition: and
     conditions:
@@ -18,45 +20,72 @@
           {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null }}
       - condition: template
         value_template: >-
-          {% set s = states('sensor.motion_alarm_wake_begin') %}
+          {% set s = states('sensor.motion_alarm_wake_begin_datetime') %}
           {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null }}
   action:
     - service: input_datetime.set_datetime
       data_template:
         entity_id: input_datetime.motion_alarm_wake_begin
         time: >-
-          {{ states('sensor.motion_alarm_wake_begin')|string }}
+          {{ states('sensor.motion_alarm_wake_begin_datetime')|string }}
 
-- id: motion_alarm_wake_begin
-  alias: motion_alarm_wake_begin
-  mode: single
-  initial_state: on
-  trigger:
-    platform: time
-    at: input_datetime.motion_alarm_wake_begin
-  action:
-    - service: light.turn_on
-      data_template:
-        entity_id: all
-
-- id: motion_schedule_wake
-  alias: motion_schedule_wake
+- id: motion_schedule_wake_detected
+  alias: motion_schedule_wake_detected
   mode: single
   initial_state: on
   trigger:
     platform: state
-    entity_id: sensor.motion_detected_person_counter_today
+    entity_id: 
+      - sensor.motion_detected_person_counter_today
+      - input_number.motion_alarm_wake_begin
+      - input_number.motion_alarm_wake_end
   condition:
     condition: and
     conditions:
       - condition: template
         value_template: >-
           {% set s = states('sensor.motion_detected_person_counter_today') %}
-          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null and s|int > 0 and s|int < 2 }}
+          {% set b = states('input_number.motion_alarm_wake_begin') %}
+          {% set e = states('input_number.motion_alarm_wake_end') %}
+          {% set d = s_timestamp(states.sensor.motion_detected_person_counter_today.last_updated)|int - as_timestamp(now().replace(hour=0).replace(minute=0).replace(second=0))|int %}
+          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null and
+             b|lower != 'none' and b|lower != 'unavailable' and b|lower != 'unknown' and b != null and
+             e|lower != 'none' and e|lower != 'unavailable' and e|lower != 'unknown' and e != null and
+             s|int > 0 and d >= b|int and d <= e|int }}
   action:
     - service: python_script.set_state
       data_template:
-        entity_id: sensor.motion_schedule_wake
+        entity_id: sensor.motion_schedule_wake_detected
         state: >-
-          {{ as_timestamp(states.sensor.motion_detected_person_counter_today.last_updated)|int 
-             - as_timestamp(now().replace(hour=0).replace(minute=0).replace(second=0))|int }}
+          {% set d = s_timestamp(states.sensor.motion_detected_person_counter_today.last_updated)|int - as_timestamp(now().replace(hour=0).replace(minute=0).replace(second=0))|int %}
+          {{ d }}
+ 
+# what
+
+- id: motion_schedule_wake_notify
+  alias: motion_schedule_wake_notify
+  mode: single
+  initial_state: on
+  trigger:
+    platform: state
+    entity_id: sensor.motion_schedule_wake_detected
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {% set s = states('sensor.motion_schedule_wake_detected') %}
+          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null and s|int > 0 }}
+  action:
+    - service: light.turn_on
+      data_template:
+        entity_id: all
+    - service: persistent_notification.create
+      data_template:
+        title: >-
+          {% set s = states('sensor.motion_schedule_wake_detected') %}
+          {{ 'Good morning at: ' + s|int|timestamp_custom("%a %b %d %I:%M:%S %p") }}
+        notification_id: >-
+          wakeup
+        message: >-
+          {{ 'Person detected after: ' + states('input_datetime.motion_alarm_wake_begin')|string + '; now: ' + now()|string }}
