@@ -2,10 +2,15 @@
 # homeassistant/automation/motion/alarm.yaml
 ###
 
-# synchronize input_datetime to sensor converted
+### WAKE
 
-- id: motion_alarm_wake_begin_sync
-  alias: motion_alarm_wake_begin_sync
+## begin
+#
+
+# synchronize input_datetime to sensor converted (begin and end)
+
+- id: motion_alarm_wake_begin_datetime
+  alias: motion_alarm_wake_begin_datetime
   mode: single
   initial_state: on
   trigger:
@@ -29,6 +34,32 @@
         time: >-
           {{ states('sensor.motion_alarm_wake_begin_datetime')|string }}
 
+- id: motion_alarm_wake_end_datetime
+  alias: motion_alarm_wake_end_datetime
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_alarm_wake_end_datetime
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {% set s = states('input_number.motion_alarm_wake_end') %}
+          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null }}
+      - condition: template
+        value_template: >-
+          {% set s = states('sensor.motion_alarm_wake_end_datetime') %}
+          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null }}
+  action:
+    - service: input_datetime.set_datetime
+      data_template:
+        entity_id: input_datetime.motion_alarm_wake_end
+        time: >-
+          {{ states('sensor.motion_alarm_wake_end_datetime')|string }}
+
+# wake seconds since midnight
 - id: motion_schedule_wake_detected
   alias: motion_schedule_wake_detected
   mode: single
@@ -60,8 +91,7 @@
           {% set d = s_timestamp(states.sensor.motion_detected_person_counter_today.last_updated)|int - as_timestamp(now().replace(hour=0).replace(minute=0).replace(second=0))|int %}
           {{ d }}
  
-# what
-
+# notify
 - id: motion_schedule_wake_notify
   alias: motion_schedule_wake_notify
   mode: single
