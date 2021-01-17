@@ -72,7 +72,7 @@ Select the `Add-on Store` and type in the address of this repository, for exampl
 
 <img src="https://raw.githubusercontent.com/dcmartin/addons/master/docs/samples/supervisor-add-on-store-repositories.png" width="640">
 
-When the system reloads, select the **Motion Server** _add-on_ from those available; when utilizing a locally attached USB camera, select the **Motion Video0** _add-on_; for example:
+When the system reloads, select the **Motion Classic** _add-on_ from those available; for example:
 
 <img src="https://raw.githubusercontent.com/dcmartin/addons/master/docs/samples/dcmartin-addons.png" width="640">
 
