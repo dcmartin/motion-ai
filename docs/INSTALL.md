@@ -127,13 +127,13 @@ echo '+' > MOTION_CLIENT
 
 ```
 # 2. specify credentials to access motion-ai cameras
-echo 'username' > MOTIONCAM_PASSWORD
+echo 'username' > MOTIONCAM_USERNAME
 echo 'password' > MOTIONCAM_PASSWORD
 ```
 
 ```
 # 3. specify credential to access third-party network cameras
-echo 'username' > NETCAM_PASSWORD
+echo 'username' > NETCAM_USERNAME
 echo 'password' > NETCAM_PASSWORD
 ```
 
