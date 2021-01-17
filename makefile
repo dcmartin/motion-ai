@@ -73,10 +73,10 @@ MOTION_DETECTED_ENTITY_AGO ?= $(if $(wildcard MOTION_DETECTED_ENTITY_AGO),$(shel
 
 # webcam
 NETCAM_USERNAME ?= $(if $(wildcard NETCAM_USERNAME),$(shell v=$$(cat NETCAM_USERNAME) && echo "${TG}== NETCAM_USERNAME: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="username" && echo "${TB}** NETCAM_USERNAME unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
-NETCAM_PASSWORD ?= $(if $(wildcard NETCAM_PASSWORD),$(shell v=$$(cat NETCAM_PASSWORD) && echo "${TG}== NETCAM_PASSWORD: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell read -p "Specify NETCAM_PASSWORD: " && echo $${REPLY:-password} | tee NETCAM_PASSWORD))
+NETCAM_PASSWORD ?= $(if $(wildcard NETCAM_PASSWORD),$(shell v=$$(cat NETCAM_PASSWORD) && echo "${TG}== NETCAM_PASSWORD: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="password" && echo "${TB}** NETCAM_PASSWORD unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
 
 MOTIONCAM_USERNAME ?= $(if $(wildcard MOTIONCAM_USERNAME),$(shell v=$$(cat MOTIONCAM_USERNAME) && echo "${TG}== MOTIONCAM_USERNAME: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="username" && echo "${TB}** MOTIONCAM_USERNAME unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
-MOTIONCAM_PASSWORD ?= $(if $(wildcard MOTIONCAM_PASSWORD),$(shell v=$$(cat MOTIONCAM_PASSWORD) && echo "${TG}== MOTIONCAM_PASSWORD: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell read -p "Specify MOTIONCAM_PASSWORD: " && echo $${REPLY:-password} | tee MOTIONCAM_PASSWORD))
+MOTIONCAM_PASSWORD ?= $(if $(wildcard MOTIONCAM_PASSWORD),$(shell v=$$(cat MOTIONCAM_PASSWORD) && echo "${TG}== MOTIONCAM_PASSWORD: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="password" && echo "${TB}** MOTIONCAM_PASSWORD unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
 
 # netdata
 NETDATA_URL ?= $(if $(wildcard NETDATA_URL),$(shell v=$$(cat NETDATA_URL) && echo "${TG}== NETDATA_URL: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="http://${HOST_IPADDR}:19999/" && echo "${TB}** NETDATA_URL unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
