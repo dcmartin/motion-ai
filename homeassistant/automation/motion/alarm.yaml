@@ -232,16 +232,32 @@
     - service: persistent_notification.create
       data_template:
         title: >-
-          {{ 'WAKE UNDETECTED by: ' + now().timestamp()|int|timestamp_custom("%a %b %d %I:%M:%S %p")  }}
+          {{ 
+            'WAKE UNDETECTED: ' + now().timestamp()|int|timestamp_custom("%a %b %d %I:%M:%S %p")
+          }}
         notification_id: >-
           wakeup_notify
         message: >-
+          {% set stdev = state_attr('sensor.motion_schedule_wake_detected_statistics','standard_deviation')|float %}
+          {% set min = state_attr('sensor.motion_schedule_wake_detected_statistics','min_value')|float %}
+          {% set max = state_attr('sensor.motion_schedule_wake_detected_statistics','max_value')|float %}
+          {% set mean = state_attr('sensor.motion_schedule_wake_detected_statistics','mean')|float %}
+          {% set median = state_attr('sensor.motion_schedule_wake_detected_statistics','median')|float %}
+          {% set count = state_attr('sensor.motion_schedule_wake_detected_statistics','count')|int %}
+          {% set c = count|string + 'd' %}
+          {% set m = '%02d'|format((mean/3600)|int)|string + ':' + '%02d'|format((mean%60)|int)|string %}
+          {% set d = (stdev/3600)|int|string + 'h' + (stdev%60)|int|string + 'm' %}
+          {% set e = '%02d'|format((min/3600)|int)|string + ':' + '%02d'|format((min%60)|int)|string %}
+          {% set l = '%02d'|format((max/3600)|int)|string + ':' + '%02d'|format((max%60)|int)|string %}
           {{ 
-            'NO PERSON DETECTED during ' + states('sensor.motion_alarm_wake_interval')|string 
-            + '; Average: ' 
-            + states('sensor.motion_schedule_wake_detected_mean_time')|string
+            'NO PERSON DETECTED during ' 
+            + states('sensor.motion_alarm_wake_interval')|string
+            + '; normal: ' + m + ' +/- ' + d
+            + '; early: ' +  e
+            + '; late: ' +  l
+            + '; last: ' + c
           }}
- 
+
 # notify when sensor.motion_schedule_wake_detected is set by automation.motion_schedule_wake_detected
 - id: motion_schedule_wake_detected_notify
   alias: motion_schedule_wake_detected_notify
@@ -264,7 +280,7 @@
     - service: persistent_notification.create
       data_template:
         title: >-
-          {{ 'Wake detected at ' + now().timestamp()|int|timestamp_custom("%a %b %d %I:%M:%S %p")  }}
+          {{ 'Wake at ' + now().timestamp()|int|timestamp_custom("%a %b %d %I:%M:%S %p")  }}
         notification_id: >-
           wakeup_notify
         message: >-
