@@ -40,6 +40,7 @@ WEBCAM_SENSORS := $(shell for C in $(WEBCAMS); do echo sensor/webcam-$${C}.yaml;
 WEBCAM_INPUT_SELECTS := $(shell for C in $(WEBCAMS); do echo input_select/webcam-$${C}.yaml; done)
 WEBCAM_INPUT_BOOLEANS := $(shell for C in $(WEBCAMS); do echo input_boolean/webcam-$${C}.yaml; done)
 WEBCAM_SHELL_COMMANDS := $(shell for C in $(WEBCAMS); do echo shell_command/webcam-$${C}.yaml; done)
+WEBCAM_IMAGE_PROCESSINGS := $(shell for C in $(WEBCAMS); do echo image_processing/webcam-$${C}.yaml; done)
 
 # WEBCAM templates
 WEBCAM_AUTOMATION_TEMPLATE := automation.webcam.yaml.tmpl
@@ -53,6 +54,7 @@ WEBCAM_SENSOR_TEMPLATE := sensor.webcam.yaml.tmpl
 WEBCAM_INPUT_SELECT_TEMPLATE := input_select.webcam.yaml.tmpl
 WEBCAM_INPUT_BOOLEAN_TEMPLATE := input_boolean.webcam.yaml.tmpl
 WEBCAM_SHELL_COMMAND_TEMPLATE := shell_command.webcam.yaml.tmpl
+WEBCAM_IMAGE_PROCESSING_TEMPLATE := image_processing.webcam.yaml.tmpl
 
 # WEBCAM yaml
 WEBCAM_YAML := \
@@ -63,7 +65,8 @@ WEBCAM_YAML := \
 	$(WEBCAM_SENSORS) \
 	$(WEBCAM_INPUT_SELECTS) \
 	$(WEBCAM_INPUT_BOOLEANS) \
-	$(WEBCAM_SHELL_COMMANDS)
+	$(WEBCAM_SHELL_COMMANDS) \
+	$(WEBCAM_IMAGE_PROCESSINGS)
 
 #	$(WEBCAM_GROUPS) \
 #	$(WEBCAM_GRAPHS) \
@@ -295,6 +298,15 @@ $(WEBCAM_SHELL_COMMANDS): $(WEBCAM_SHELL_COMMAND_TEMPLATE) makefile ${WEBCAMS_JS
 	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
 	  cat $(WEBCAM_SHELL_COMMAND_TEMPLATE) | envsubst > $@
+
+$(WEBCAM_IMAGE_PROCESSINGS): $(WEBCAM_IMAGE_PROCESSING_TEMPLATE) makefile ${WEBCAMS_JSON}
+	@export TARGET="$@"; \
+	  export MOTION_CAMERA=$${TARGET%%.*}; \
+	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
+	  export MOTION_GROUP="$(MOTION_GROUP)"; \
+	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
+	  cat $(WEBCAM_IMAGE_PROCESSING_TEMPLATE) | envsubst > $@
 
 ## motion-addon.json
 
