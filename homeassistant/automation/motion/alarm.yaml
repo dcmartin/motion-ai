@@ -1,0 +1,295 @@
+###
+# homeassistant/automation/motion/alarm.yaml
+###
+
+# slide sync
+- id: motion_alarm_wake_end_slider
+  alias: motion_alarm_wake_end_slider
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: input_number.motion_alarm_wake_end
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+      - condition: template
+        value_template: >
+          {% set s = states('input_number.motion_alarm_wake_begin') %}
+          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null }}
+      - condition: template
+        value_template: >
+          {% set s = states('input_number.motion_alarm_wake_end') %}
+          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null }}
+      - condition: template
+        value_template: >
+          {% set b = states('input_number.motion_alarm_wake_begin') %}
+          {% set e = states('input_number.motion_alarm_wake_end') %}
+          {{ b|int >= e|int }}
+  action:
+    - service: input_number.set_value
+      data_template:
+        entity_id: input_number.motion_alarm_wake_begin
+        value: >-
+          {{ states('input_number.motion_alarm_wake_end')|int - state_attr('input_number.motion_alarm_wake_begin','step')|int }}
+
+- id: motion_alarm_wake_begin_slider
+  alias: motion_alarm_wake_begin_slider
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: input_number.motion_alarm_wake_begin
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+      - condition: template
+        value_template: >
+          {% set s = states('input_number.motion_alarm_wake_begin') %}
+          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null }}
+      - condition: template
+        value_template: >
+          {% set s = states('input_number.motion_alarm_wake_end') %}
+          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null }}
+      - condition: template
+        value_template: >
+          {% set b = states('input_number.motion_alarm_wake_begin') %}
+          {% set e = states('input_number.motion_alarm_wake_end') %}
+          {{ b|int >= e|int }}
+  action:
+    - service: input_number.set_value
+      data_template:
+        entity_id: input_number.motion_alarm_wake_end
+        value: >-
+          {{ states('input_number.motion_alarm_wake_begin')|int + state_attr('input_number.motion_alarm_wake_end','step')|int }}
+
+# synchronize input_datetime to sensor converted (begin and end)
+
+- id: motion_alarm_wake_begin_datetime
+  alias: motion_alarm_wake_begin_datetime
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_alarm_wake_begin_datetime
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+      - condition: template
+        value_template: >
+          {% set s = states('input_number.motion_alarm_wake_end') %}
+          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null }}
+      - condition: template
+        value_template: >
+          {% set s = states('input_number.motion_alarm_wake_begin') %}
+          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null }}
+      - condition: template
+        value_template: >-
+          {% set s = states('sensor.motion_alarm_wake_begin_datetime') %}
+          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null }}
+      - condition: template
+        value_template: >
+          {% set s = states('input_number.motion_alarm_wake_begin') %}
+          {% set e = states('input_number.motion_alarm_wake_end') %}
+          {{ e|int > s|int }}
+  action:
+    - service: input_datetime.set_datetime
+      data_template:
+        entity_id: input_datetime.motion_alarm_wake_begin
+        time: >-
+          {{ states('sensor.motion_alarm_wake_begin_datetime')|string }}
+
+- id: motion_alarm_wake_end_datetime
+  alias: motion_alarm_wake_end_datetime
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_alarm_wake_end_datetime
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+      - condition: template
+        value_template: >
+          {% set s = states('input_number.motion_alarm_wake_end') %}
+          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null }}
+      - condition: template
+        value_template: >
+          {% set s = states('input_number.motion_alarm_wake_begin') %}
+          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null }}
+      - condition: template
+        value_template: >-
+          {% set s = states('sensor.motion_alarm_wake_end_datetime') %}
+          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null }}
+      - condition: template
+        value_template: >
+          {% set s = states('input_number.motion_alarm_wake_begin') %}
+          {% set e = states('input_number.motion_alarm_wake_end') %}
+          {{ e|int > s|int }}
+  action:
+    - service: input_datetime.set_datetime
+      data_template:
+        entity_id: input_datetime.motion_alarm_wake_end
+        time: >-
+          {{ states('sensor.motion_alarm_wake_end_datetime')|string }}
+
+# reset sensor.motion_schedule_wake_detected at wake_begin
+- id: motion_schedule_wake_detected_reset
+  alias: motion_schedule_wake_detected_reset
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: time
+      at: input_datetime.motion_alarm_wake_begin
+    - platform: state
+      entity_id: sensor.motion_alarm_wake_begin_datetime
+    - platform: state
+      entity_id: sensor.motion_alarm_wake_end_datetime
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+      - condition: template
+        value_template: >
+          {% set s = states('sensor.motion_schedule_wake_detected') %}
+          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null }}
+  action:
+    - service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_schedule_wake_detected
+        state: >-
+          {{ null }}
+
+# set sensor.motion_schedule_wake_detected when person detected after wake_begin and before wake_end
+- id: motion_schedule_wake_detected
+  alias: motion_schedule_wake_detected
+  mode: single
+  initial_state: on
+  trigger:
+    platform: state
+    entity_id: 
+      - sensor.motion_detected_person_counter_today
+      - input_number.motion_alarm_wake_begin
+      - input_number.motion_alarm_wake_end
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+      - condition: template
+        value_template: >
+          {% set s = states('sensor.motion_schedule_wake_detected') %}
+          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|int < 1 }}
+      - condition: template
+        value_template: >-
+          {% set s = states('sensor.motion_detected_person_counter_today') %}
+          {% set b = states('input_number.motion_alarm_wake_begin') %}
+          {% set e = states('input_number.motion_alarm_wake_end') %}
+          {% set d = as_timestamp(states.sensor.motion_detected_person_counter_today.last_updated)|int - as_timestamp(now().replace(hour=0).replace(minute=0).replace(second=0))|int %}
+          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null and
+             b|lower != 'none' and b|lower != 'unavailable' and b|lower != 'unknown' and b != null and
+             e|lower != 'none' and e|lower != 'unavailable' and e|lower != 'unknown' and e != null and
+             s|int > 0 and d >= b|int and d <= e|int }}
+  action:
+    - service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_schedule_wake_detected
+        state: >-
+          {% set d = as_timestamp(states.sensor.motion_detected_person_counter_today.last_updated)|int - as_timestamp(now().replace(hour=0).replace(minute=0).replace(second=0))|int %}
+          {{ d }}
+
+# notify when sensor.motion_schedule_wake_detected is unset after wake_end
+- id: motion_schedule_wake_undetected_notify
+  alias: motion_schedule_wake_undetected_notify
+  mode: single
+  initial_state: on
+  trigger:
+    platform: time
+    at: input_datetime.motion_alarm_wake_end
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {% set s = states('sensor.motion_schedule_wake_detected') %}
+          {{ s == null or s|int < 1 }}
+      - condition: template
+        value_template: >-
+          {% set s = states('sensor.motion_schedule_wake_detected_statistics') %}
+          {{ s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s != null }}
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >-
+          {{ 
+            'WAKE UNDETECTED: ' + now().timestamp()|int|timestamp_custom("%a %b %d %I:%M:%S %p")
+          }}
+        notification_id: >-
+          wakeup_notify
+        message: >-
+          {% set stdev = state_attr('sensor.motion_schedule_wake_detected_statistics','standard_deviation')|float %}
+          {% set min = state_attr('sensor.motion_schedule_wake_detected_statistics','min_value')|float %}
+          {% set max = state_attr('sensor.motion_schedule_wake_detected_statistics','max_value')|float %}
+          {% set mean = state_attr('sensor.motion_schedule_wake_detected_statistics','mean')|float %}
+          {% set median = state_attr('sensor.motion_schedule_wake_detected_statistics','median')|float %}
+          {% set count = state_attr('sensor.motion_schedule_wake_detected_statistics','count')|int %}
+          {% set c = ((now().timestamp() - as_timestamp(state_attr('sensor.motion_schedule_wake_detected_statistics','min_age')))/86400)|int|string + 'd' %}
+          {% set m = '%02d'|format((mean/3600)|int)|string + ':' + '%02d'|format((mean%60)|int)|string %}
+          {% set d = (stdev/3600)|int|string + 'h' + (stdev%60)|int|string + 'm' %}
+          {% set e = '%02d'|format((min/3600)|int)|string + ':' + '%02d'|format((min%60)|int)|string %}
+          {% set l = '%02d'|format((max/3600)|int)|string + ':' + '%02d'|format((max%60)|int)|string %}
+          {{ 
+            'NO PERSON DETECTED during ' 
+            + states('sensor.motion_alarm_wake_interval')|string
+            + '; normal: ' + m + ' +/- ' + d
+            + '; early: ' +  e
+            + '; late: ' +  l
+            + '; last: ' + c
+          }}
+
+# notify when sensor.motion_schedule_wake_detected is set by automation.motion_schedule_wake_detected
+- id: motion_schedule_wake_detected_notify
+  alias: motion_schedule_wake_detected_notify
+  mode: single
+  initial_state: on
+  trigger:
+    platform: state
+    entity_id: sensor.motion_schedule_wake_detected
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+      - condition: template
+        value_template: >-
+          {% set s = states('sensor.motion_schedule_wake_detected') %}
+          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null and s|int > 0 }}
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >-
+          {{ 'Wake at ' + now().timestamp()|int|timestamp_custom("%a %b %d %I:%M:%S %p")  }}
+        notification_id: >-
+          wakeup_notify
+        message: >-
+          {{ 
+            'First person detected between ' + states('sensor.motion_alarm_wake_interval')|string 
+            + '; Average: ' 
+            + states('sensor.motion_schedule_wake_detected_mean_time')|string
+          }}

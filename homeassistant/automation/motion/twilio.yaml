@@ -1,0 +1,84 @@
+###
+# homeassistant/automation/motion/twilio.yaml
+###
+
+- id: motion_schedule_wake_detected_notify_sms
+  alias: motion_schedule_wake_detected_notify_sms
+  mode: single
+  initial_state: on
+  trigger:
+    platform: state
+    entity_id: sensor.motion_schedule_wake_detected
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+      - condition: template
+        value_template: >-
+          {% set s = states('sensor.motion_schedule_wake_detected') %}
+          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null and s|int > 0 }}
+  action:
+    - service: notify.twilio_sms
+      data_template:
+        message: >-
+          {{ 'Wake detected at: ' + now().timestamp()|int|timestamp_custom("%a %b %d %I:%M:%S %p") }}
+        target: >-
+          {{ states('sensor.motion_twilio_notify_targets')|from_json }}
+        data:
+          - media_url: >-
+              {%- set c = states('sensor.motion_detected_person_camera') -%}
+              {%- set d = states('sensor.motion_detected_person_device') -%}
+              {%- set e = states('sensor.motion_detected_person_event_' + states('sensor.motion_detected_person_camera')) -%}
+              {%- if is_state('input_boolean.motion_media_mask','off') -%}
+                {{- '/local/images/motion/' + c + '/detected_person_animated' + '.gif?e=' + e -}}
+              {%- else -%}
+                {{- '/local/images/motion/' + c + '/detected_person_animated_mask' + '.gif?e=' + e -}}
+              {%- endif -%}
+
+- id: motion_schedule_wake_detected_notify_twilio
+  alias: motion_schedule_wake_detected_notify_twilio
+  mode: single
+  initial_state: on
+  trigger:
+    platform: state
+    entity_id: sensor.motion_schedule_wake_detected
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+      - condition: template
+        value_template: >-
+          {% set s = states('sensor.motion_schedule_wake_detected') %}
+          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null and s|int > 0 }}
+  action:
+    - service: python_script.twilio_sms
+      data_template:
+        name: >-
+          {{ states('sensor.motion_twilio_notify_name') }}
+        message: >-
+          {{ 'Wake detected at: ' + now().timestamp()|int|timestamp_custom("%a %b %d %I:%M:%S %p") }}
+        targets: >-
+          {% set n = states('input_select.motion_smartphone_name') -%}
+          {%- set l = state_attr('input_select.motion_smartphone_name','options') -%}
+          {%- if n == 'all' and l != null and l is iterable -%}
+            {%- for i in state_attr('input_select.motion_smartphone_name','options') if i != 'all' -%}
+              {%- if not loop.first -%},{%- endif -%}
+              {{- i -}}
+            {%- endfor -%}
+          {%- elif n|lower != 'none' and n|lower != 'unavailable' and n|lower != 'unknown' -%}
+            {{- n -}}
+          {%- else -%}null{%- endif %}
+        data:
+          - media_url: >-
+              {%- set c = states('sensor.motion_detected_person_camera') -%}
+              {%- set d = states('sensor.motion_detected_person_device') -%}
+              {%- set e = states('sensor.motion_detected_person_event_' + states('sensor.motion_detected_person_camera')) -%}
+              {%- if is_state('input_boolean.motion_media_mask','off') -%}
+                {{- '/local/images/motion/' + c + '/detected_person_animated' + '.gif?e=' + e -}}
+              {%- else -%}
+                {{- '/local/images/motion/' + c + '/detected_person_animated_mask' + '.gif?e=' + e -}}
+              {%- endif -%}

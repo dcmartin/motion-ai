@@ -45,7 +45,14 @@ MOTION_FORCE_UPDATE ?= $(if $(wildcard MOTION_FORCE_UPDATE),$(shell v=$$(cat MOT
 MOTION_MEDIA_SAVE ?= $(if $(wildcard MOTION_MEDIA_SAVE),$(shell v=$$(cat MOTION_MEDIA_SAVE) && echo "${TG}== MOTION_MEDIA_SAVE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="true" && echo "${TB}** MOTION_MEDIA_SAVE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_MEDIA_MASK ?= $(if $(wildcard MOTION_MEDIA_MASK),$(shell v=$$(cat MOTION_MEDIA_MASK) && echo "${TG}== MOTION_MEDIA_MASK: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="true" && echo "${TB}** MOTION_MEDIA_MASK unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
 
+MOTION_CAMERA_RESTART ?= $(if $(wildcard MOTION_CAMERA_RESTART),$(shell v=$$(cat MOTION_CAMERA_RESTART) && echo "${TG}== MOTION_CAMERA_RESTART: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="true" && echo "${TB}** MOTION_CAMERA_RESTART unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
+
 MOTION_YOLO_IP ?= $(if $(wildcard MOTION_YOLO_IP),$(shell v=$$(cat MOTION_YOLO_IP) && echo "${TG}== MOTION_YOLO_IP: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='${THIS_HOSTIP}' && echo "${TB}** MOTION_YOLO_IP unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
+
+MOTION_TWILIO_NAME ?= $(if $(wildcard MOTION_TWILIO_NAME),$(shell v=$$(cat MOTION_TWILIO_NAME) && echo "${TG}== MOTION_TWILIO_NAME: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='twilio' && echo "${TB}** MOTION_TWILIO_NAME unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_TWILIO_NUMBER ?= $(if $(wildcard MOTION_TWILIO_NUMBER),$(shell v=$$(cat MOTION_TWILIO_NUMBER) && echo "${TG}== MOTION_TWILIO_NUMBER: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='none' && echo "${TB}** MOTION_TWILIO_NUMBER unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_TWILIO_SID ?= $(if $(wildcard MOTION_TWILIO_SID),$(shell v=$$(cat MOTION_TWILIO_SID) && echo "${TG}== MOTION_TWILIO_SID: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='none' && echo "${TB}** MOTION_TWILIO_SID unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_TWILIO_TOKEN ?= $(if $(wildcard MOTION_TWILIO_TOKEN),$(shell v=$$(cat MOTION_TWILIO_TOKEN) && echo "${TG}== MOTION_TWILIO_TOKEN: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='none' && echo "${TB}** MOTION_TWILIO_TOKEN unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 
 MOTION_OVERVIEW_APIKEY ?= $(if $(wildcard MOTION_OVERVIEW_APIKEY),$(shell v=$$(cat MOTION_OVERVIEW_APIKEY) && echo "${TG}== MOTION_OVERVIEW_APIKEY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="none" && echo "${TB}** MOTION_OVERVIEW_APIKEY unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_OVERVIEW_MODE ?= $(if $(wildcard MOTION_OVERVIEW_MODE),$(shell v=$$(cat MOTION_OVERVIEW_MODE) && echo "${TG}== MOTION_OVERVIEW_MODE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="local" && echo "${TB}** MOTION_OVERVIEW_MODE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
@@ -185,8 +192,13 @@ secrets.yaml: secrets.yaml.tmpl makefile $(PWD)
 	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
 	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
 	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
+	  MOTION_CAMERA_RESTART="$(MOTION_CAMERA_RESTART)" \
 	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
 	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
+          MOTION_TWILIO_NAME="$(MOTION_TWILIO_NAME)" \
+          MOTION_TWILIO_NUMBER="$(MOTION_TWILIO_NUMBER)" \
+          MOTION_TWILIO_SID="$(MOTION_TWILIO_SID)" \
+          MOTION_TWILIO_TOKEN="$(MOTION_TWILIO_TOKEN)" \
 	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
 	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
 	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
@@ -194,6 +206,12 @@ secrets.yaml: secrets.yaml.tmpl makefile $(PWD)
           MOTION_ANNOTATED_AGO="$(MOTION_ANNOTATED_AGO)" \
           MOTION_DETECTED_AGO="$(MOTION_DETECTED_AGO)" \
           MOTION_DETECTED_ENTITY_AGO="$(MOTION_DETECTED_ENTITY_AGO)" \
+          MOTION_DETECTED_PERSON_NOTIFY="$(MOTION_DETECTED_PERSON_NOTIFY)" \
+          MOTION_DETECTED_VEHICLE_NOTIFY="$(MOTION_DETECTED_VEHICLE_NOTIFY)" \
+          MOTION_DETECTED_ANIMAL_NOTIFY="$(MOTION_DETECTED_ANIMAL_NOTIFY)" \
+	  MOTION_DETECTED_PERSON_SPEAK="$(MOTION_DETECTED_PERSON_SPEAK)" \
+	  MOTION_DETECTED_VEHICLE_SPEAK="$(MOTION_DETECTED_VEHICLE_SPEAK)" \
+	  MOTION_DETECTED_ANIMAL_SPEAK="$(MOTION_DETECTED_ANIMAL_SPEAK)" \
 	  MOTION_DETECTED_PERSON_TUNE="$(MOTION_DETECTED_PERSON_TUNE)" \
 	  MOTION_DETECTED_VEHICLE_TUNE="$(MOTION_DETECTED_VEHICLE_TUNE)" \
 	  MOTION_DETECTED_ANIMAL_TUNE="$(MOTION_DETECTED_ANIMAL_TUNE)" \

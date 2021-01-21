@@ -23,15 +23,15 @@ listen()
   
   ## annotated
   mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/event/end/+" \
-    | jq -c '{"ANNOTATED":{"group":.event.group,"device":.event.device,"camera":.event.camera,"event":.event.event,"timestamp":.event.timestamp,"detected":.detected}}' &
+    | jq -c '{"ANNOTATED":{"timestamp":.timestamp,"group":.event.group,"device":.event.device,"camera":.event.camera,"event":.event.event,"timestamp":.event.timestamp,"detected":.detected}}' &
   
   ## face
   mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/event/face/+" \
-    | jq -c '{"FACE":{"group":.event.group,"device":.event.device,"camera":.event.camera,"event":.event.event,"timestamp":.event.timestamp,"detected":.detected}}' &
+    | jq -c '{"FACE":{"timestamp":.timestamp,"group":.event.group,"device":.event.device,"camera":.event.camera,"event":.event.event,"timestamp":.event.timestamp,"detected":.detected}}' &
 
   ## alpr
   mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/event/alpr/+" \
-    | jq -c '{"ALPR":{"group":.event.group,"device":.event.device,"camera":.event.camera,"event":.event.event,"timestamp":.event.timestamp,"detected":.detected}}' &
+    | jq -c '{"ALPR":{"timestamp":.timestamp,"group":.event.group,"device":.event.device,"camera":.event.camera,"event":.event.event,"timestamp":.event.timestamp,"detected":.detected}}' &
   
   # annotated
   mosquitto_sub -h ${MQTT_HOST} -p ${MQTT_PORT} -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD} -t "+/${MOTION_CLIENT}/+/annotated" \

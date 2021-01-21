@@ -1,0 +1,185 @@
+###
+# homeassistant/sensor/motion/alarm.yaml
+###
+
+- platform: history_stats
+  name: motion_alarm_wake_interval_detect
+  entity_id: binary_sensor.motion_alarm_wake_interval_detect
+  #unit_of_measurement: '👱'
+  state: 'on'
+  type: count
+  start: >-
+    {{ state_attr('input_datetime.motion_alarm_wake_begin','timestamp')|int }}
+  end: >-
+    {{ state_attr('input_datetime.motion_alarm_wake_end','timestamp')|int }}
+
+- platform: statistics
+  name: motion_alarm_wake_interval_detect_statistics
+  entity_id: sensor.motion_alarm_wake_interval_detect
+  sampling_size: 100
+  max_age:
+    hours: 720
+
+# days
+- platform: template
+  sensors:
+    motion_schedule_wake_detected_days:
+      friendly_name: 'Wake history'
+      unit_of_measurement: days
+      icon_template: 'mdi:calendar-account'
+      value_template: >-
+        {{ ((now().timestamp() - as_timestamp(state_attr('sensor.motion_schedule_wake_detected_statistics','min_age')))/86400)|int }}
+
+# interval
+- platform: template
+  sensors:
+    motion_alarm_wake_interval:
+      friendly_name: 'Wake interval'
+      icon_template: 'mdi:chart-timeline'
+      value_template: >-
+        {{- states('input_datetime.motion_alarm_wake_begin')|string|trim('00')|trim(':') + ' - ' + states('input_datetime.motion_alarm_wake_end')|string|string|trim('00')|trim(':') -}}
+
+# begin
+- platform: template
+  sensors:
+    motion_alarm_wake_begin:
+      friendly_name: 'Wake time begin'
+      icon_template: 'mdi:av-timer'
+      value_template: >-
+        {{ states('input_number.motion_alarm_wake_begin')|int }}
+
+- platform: template
+  sensors:
+    motion_alarm_wake_begin_datetime:
+      friendly_name: 'Wake datetime begin'
+      icon_template: 'mdi:alarm'
+      value_template: >-
+        {% set s = states('input_number.motion_alarm_wake_begin')|int %}
+        {% if s > 0 %}
+          {% set h = (s/3600)|int %}
+          {% set m = ((s-(h*3600))/60)|int %}
+          {% set s = (s % 60)|int %}
+          {% if h < 1 %}
+            {% if m < 1 %}
+              {{- '00:00:' + '%02d' % s -}}
+            {% else %}
+            {{- '00:' + '%02d' % m + ':' + '%02d' % s -}}
+            {% endif %}
+          {% else %}
+            {{- '%02d' % h + ':' + '%02d' % m + ':' + '%02d' % s -}}
+          {% endif %}
+        {%- else -%}{{- '00:00:00' -}}{%- endif -%}
+
+# end
+- platform: template
+  sensors:
+    motion_alarm_wake_end:
+      friendly_name: 'Wake time end'
+      icon_template: 'mdi:av-timer'
+      value_template: >-
+        {{ states('input_number.motion_alarm_wake_end')|int }}
+
+- platform: template
+  sensors:
+    motion_alarm_wake_end_datetime:
+      friendly_name: 'Wake datetime end'
+      icon_template: 'mdi:alarm-check'
+      value_template: >-
+        {% set b = states('input_number.motion_alarm_wake_begin')|int %}
+        {% set s = states('input_number.motion_alarm_wake_end')|int %}
+        {% if s > 0 %}
+          {% if s < b %}{% set s = b + state_attr('input_number.motion_alarm_wake_end','step')|int %}{% endif %}
+          {% set h = (s/3600)|int %}
+          {% set m = ((s-(h*3600))/60)|int %}
+          {% set s = (s % 60)|int %}
+          {% if h < 1 %}
+            {% if m < 1 %}
+              {{- '00:00:' + '%02d' % s -}}
+            {% else %}
+            {{- '00:' + '%02d' % m + ':' + '%02d' % s -}}
+            {% endif %}
+          {% else %}
+            {{- '%02d' % h + ':' + '%02d' % m + ':' + '%02d' % s -}}
+          {% endif %}
+        {%- else -%}{{- '00:00:00' -}}{%- endif -%}
+
+## wake detected
+
+- platform: template
+  sensors:
+    motion_schedule_wake_detected:
+      friendly_name: 'Wake person detected'
+      unit_of_measurement: seconds
+      icon_template: 'mdi:av-timer'
+      value_template: >-
+        {{ null }}
+
+- platform: statistics
+  name: motion_schedule_wake_detected_statistics
+  entity_id: sensor.motion_schedule_wake_detected
+  sampling_size: 100
+  max_age:
+    hours: 720
+
+- platform: template
+  sensors:
+    motion_schedule_wake_detected_mean:
+      friendly_name: 'Wake detected mean (μ)'
+      icon_template: 'mdi:av-timer'
+      unit_of_measurement: 'seconds'
+      value_template: >-
+        {% if states('sensor.motion_schedule_wake_detected_statistics') != 'unknown' %}
+          {{ states('sensor.motion_schedule_wake_detected_statistics')|float }}
+        {%- else -%}null{%- endif -%}
+
+# human readable
+- platform: template
+  sensors:
+    motion_schedule_wake_detected_time:
+      friendly_name: 'Wake detected'
+      icon_template: 'mdi:account-clock'
+      value_template: >-
+        {% set s = states('sensor.motion_schedule_wake_detected') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s != null and s|int > 0 %}
+          {% set s = s|int %}
+          {% set h = (s/3600)|int %}
+          {% set m = ((s-(h*3600))/60)|int %}
+          {% set s = (s % 60)|int %}
+          {% if h < 1 %}
+            {% if m < 1 %}
+              {%- set p = '00:00:' + '%02d' % s -%}
+            {% else %}
+              {%- set p = '00:' + '%02d' % m + ':' + '%02d' % s -%}
+            {% endif %}
+          {% else %}
+            {%- set p = '%02d' % h + ':' + '%02d' % m + ':' + '%02d' % s -%}
+          {% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_schedule_wake_detected_time') %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s != null and s|int > 0 %}
+            {% set p = s %}
+          {% endif %}
+        {% endif %}
+        {%- if p is defined -%}{{- p -}}{%- else -%}Pending{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_schedule_wake_detected_mean_time:
+      friendly_name: 'Wake detected mean (μ)'
+      icon_template: 'mdi:account-clock-outline'
+      value_template: >-
+        {% set s = states('sensor.motion_schedule_wake_detected_mean')|int %}
+        {% if s > 0 %}
+          {% set h = (s/3600)|int %}
+          {% set m = ((s-(h*3600))/60)|int %}
+          {% set s = (s % 60)|int %}
+          {% if h < 1 %}
+            {% if m < 1 %}
+              {{- '00:00:' + '%02d' % s -}}
+            {% else %}
+            {{- '00:' + '%02d' % m + ':' + '%02d' % s -}}
+            {% endif %}
+          {% else %}
+            {{- '%02d' % h + ':' + '%02d' % m + ':' + '%02d' % s -}}
+          {% endif %}
+        {%- else -%}Pending{%- endif -%}

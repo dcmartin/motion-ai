@@ -195,26 +195,10 @@
       friendly_name: FACE ago
       unit_of_measurement: seconds
       value_template: >
-        {% set t = states('sensor.time') %}
         {% set s = states('sensor.motion_face_date')|int %}
         {% if s > 0 %}
           {% set s = utcnow().timestamp()|int - s %}
           {% if s < 86400 %}{{ s }}{%- else -%}null{%- endif -%}
-        {%- else -%}null{%- endif -%}
-
-## delay
-- platform: template
-  sensors:
-    motion_face_delay:
-      friendly_name: FACE delay
-      unit_of_measurement: seconds
-      value_template: >
-        {% set e = state_attr('sensor.motion_event_face','event') %}
-        {% if e is mapping %}
-          {% set s = e.end %}
-          {% if s is not none and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
-            {{ utcnow().timestamp()|int - s|int }}
-          {%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif -%}
 
 ## percent
@@ -313,6 +297,29 @@
         {%- else -%}null{%- endif -%}
 
 ## delay
+
+- platform: template
+  sensors:
+    motion_face_delay:
+      friendly_name: FACE delay
+      unit_of_measurement: seconds
+      value_template: >
+        {% if is_state('binary_sensor.motion_face','on') or is_state('binary_sensor.motion_face_expired','off') %}
+          {%- set e = state_attr('sensor.motion_event_face','event') -%}
+          {%- if e|lower != 'unavailable' and e|lower != 'none' and e|lower != 'unknown' and e != null and e is iterable %}
+            {%- set t = state_attr('sensor.motion_event_face_' + e.camera,'timestamp') -%}
+            {%- if t|lower != 'unavailable' and t|lower != 'none' and t|lower != 'unknown' and t != null -%}
+              {%- set e = state_attr('sensor.motion_event_face_' + e.camera,'event') -%}
+              {%- set s = e.timestamp.start -%}
+              {%- set p = e.timestamp.publish -%}
+              {%- set v = p -%}
+              {%- if v|lower != 'unavailable' and v|lower != 'none' and v|lower != 'unknown' and v != null %}
+                {{- as_timestamp(t)|int - as_timestamp(v)|int }}
+              {% else %}null{% endif %}
+            {% else %}null{% endif %}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+
 - platform: template
   sensors:
     motion_face_delay_mean:
