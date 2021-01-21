@@ -6,6 +6,7 @@ THIS_HOSTIP := $(shell hostname -I | awk '{ print $$1 }')
 
 # logging
 LOGGER_DEFAULT ?= $(if $(wildcard LOGGER_DEFAULT),$(shell v=$$(cat LOGGER_DEFAULT) && echo "${TG}== LOGGER_DEFAULT: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="error" && echo "${TB}** LOGGER_DEFAULT unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+LOGGER_MQTT ?= $(if $(wildcard LOGGER_MQTT),$(shell v=$$(cat LOGGER_MQTT) && echo "${TG}== LOGGER_MQTT: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="error" && echo "${TB}** LOGGER_MQTT unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 LOGGER_AUTOMATION ?= $(if $(wildcard LOGGER_AUTOMATION),$(shell v=$$(cat LOGGER_AUTOMATION) && echo "${TG}== LOGGER_AUTOMATION: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="warn" && echo "${TB}** LOGGER_AUTOMATION unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 
 # domain
@@ -145,6 +146,7 @@ $(ACTIONS): necessary
 	  INTERNET_SCAN_INTERVAL="$(INTERNET_SCAN_INTERVAL)" \
 	  INTRANET_SCAN_INTERVAL="$(INTRANET_SCAN_INTERVAL)" \
 	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
+	  LOGGER_MQTT="$(LOGGER_MQTT)" \
 	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
 	  MOTION_GROUP="$(MOTION_GROUP)" \
 	  MOTION_DEVICE="$(MOTION_DEVICE)" \
