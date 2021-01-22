@@ -77,9 +77,7 @@ function motionai::get()
 
   # build YAML
   echo "Building YAML; using default password: ${PASSWORD:-password}"
-  yes "${PASSWORD:-password}" | make 2>&1 >> install.log \
-    && make clean \
-    && make restart
+  yes "${PASSWORD:-password}" | make 2>&1 >> install.log
 
   # change ownership
   echo "Changing ownership on homeassistant/ directory"
