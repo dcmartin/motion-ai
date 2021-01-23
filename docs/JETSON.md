@@ -72,7 +72,7 @@ The Jetson image file is typically saved in the `Downloads` folder with a name e
 <img src="flash-complete.png" width="45%">
 
 ## Step 4
-Install jumper or female-female connector wire on jumper 48 (`J48`) located on left ide in image below.  This jumper enables the use of the _Power Jack_ (`J25`) for best performance (see [here](https://forums.developer.nvidia.com/t/power-supply-considerations-for-jetson-nano-developer-kit/71637) for more information).
+Install jumper or female-female connector wire on jumper 48 (`J48`) located on left side in image below.  This jumper enables the use of the _Power Jack_ (`J25`) for best performance (see [here](https://forums.developer.nvidia.com/t/power-supply-considerations-for-jetson-nano-developer-kit/71637) for more information).
 
 <img src="https://aws1.discourse-cdn.com/nvidia/original/3X/7/8/787490861ef6850d88bc66323867e4b180f6930a.png" width="75%">
 
