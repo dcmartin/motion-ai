@@ -63,7 +63,7 @@ The Jetson image file is typically saved in the `Downloads` folder with a name e
 + Run the Etcher program and select the downloaded Jetpack.
 + Insert micro-SD card -- using an appropriate adapter -- directly into the host computer
 + Select the corresponding drive (aka _device_) in the Etcher user-interface.
-+ Flash the drive with the image.
++ Flash the drive with the image or URL: `https://developer.nvidia.com/jetson-nano-sd-card-image`
 
 <img src="select-image.png" width="45%">
 <img src="select-drive.png" width="45%">
@@ -76,6 +76,9 @@ Install jumper or female-female connector wire on jumper 48 (`J48`) located on l
 
 <img src="https://aws1.discourse-cdn.com/nvidia/original/3X/7/8/787490861ef6850d88bc66323867e4b180f6930a.png" width="75%">
 
+<img src="before-jumper.png" height="200">
+<img src="after-jumper.png" height="200">
+
 ## Step 5
 Insert micro-SD (uSD) card into receiver which is on the side opposite the ports; note that the card is spring-loaded and is removed by pushing down to release.
 
@@ -84,8 +87,7 @@ Insert micro-SD (uSD) card into receiver which is on the side opposite the ports
 ## Step 6
 Attach USB keyboard, mouse, HDMI monitor, and power supply using DC barrel jack connector (n.b. `J25` in diagram in Step 4); **do not use USB-C power** as performance will be limited.
 
-<img src="https://developer.nvidia.com/sites/default/files/akamai/embedded/images/jetsonNano/gettingStarted/Jetbot_animation_500x282_2.gif" width="45%">
-<img src="barrel-power.png" width="45%">
+<img src="https://developer.nvidia.com/sites/default/files/akamai/embedded/images/jetsonNano/gettingStarted/Jetbot_animation_500x282_2.gif" width="75%">
 
 ## Step 7
 After completing installation steps, the system will boot and request a username and password for the initial administrative account, complete software installation, and display the system keyboard shortcuts (see below):
