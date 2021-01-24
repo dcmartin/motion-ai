@@ -202,7 +202,6 @@ make restart
 ```
 
 <hr>
-
 # &#10124; Install external SSD
 Add external SSD hard drive:
 
@@ -237,4 +236,22 @@ sudo -s
 rsync -a /home /sda/home
 rm -fr /home
 ln -s /sda/home /home
+```
+<hr>
+# &#10125; Setup WiFi
+Add external WiFi USB adapter (e.g. [TPLink TL-WN722N](https://www.tp-link.com/us/home-networking/usb-adapter/tl-wn722n/)):
+
+```
+echo '[connection]' | sudo tee /etc/NetworkManager/conf.d/default-wifi-powersave-on.conf
+echo 'wifi.powersave = 2' | sudo tee -a /etc/NetworkManager/conf.d/default-wifi-powersave-on.conf
+```
+
+```
+nmcli device wifi list
+```
+
+```
+SSID="MyNetwork"
+PSK="MyPassowrd"
+sudo nmcli dev wifi connect ${SSID} password ${PSK}
 ```
