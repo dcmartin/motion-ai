@@ -94,9 +94,13 @@ After completing installation steps, the system will boot and request a username
 
 <img src="https://developer.nvidia.com/sites/default/files/akamai/embedded/images/jetsonNano/gettingStarted/Jetson_Nano-Getting_Started-desktop.png" width="90%">
 
-The Jetson Nano out-of-the-box is set to low power; enabling the best performance requires both the larger power-supply and jumper as well as software configuration. 
+**Update: JetPack 4.5**
 
-Start a `terminal` session by right-clicking on the backround and selecting **Terminal** from the list.  Copy and paste the following commands to create the file `/etc/rc.local` which will run on every reboot and ensure complete GPU and CPU capabilities.
+The Jetson Nano out-of-the-box is set to low power; enabling the best performance requires both the larger power-supply and jumper as well as software configuration. The setup process _should_ ask for confirmation of `MAXN` power.
+
+**Optional** - Fix for enabling all CPU
+
+Sometimes the system (under JetPack 4.4) does not enable all CPU.  To force use of all CPU, start a `terminal` session by right-clicking on the backround and selecting **_Terminal_** from the list.  Copy and paste the following commands to create the file `/etc/rc.local` which will run on every reboot and ensure complete GPU and CPU capabilities; password may be requested.
 
 ```
 sudo -s
@@ -112,14 +116,28 @@ chmod 755 /etc/rc.local
 ```
 
 ## Step 8
-Enable remote access by installing `ssh` command, for example:
+Setup automated `sudo` for the current user account:
 
 ```
-sudo apt install -qq -y ssh
+echo "${USER} ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/010_${USER}-nopasswd
 ```
 
 ## Step 9
-Reboot the Jetson, for example:
+Install pre-requisite software components and enable remote access by installing `ssh` command, for example:
+
+```
+sudo apt update -qq -y
+sudo apt install -qq -y ssh make curl git jq rsync python3.8 python3-pip
+```
+
+Install the `jtop` command from the [`jetson-stats`](https://pypi.org/project/jetson-stats/) package:
+
+```
+sudo pip3 install jetson-stats
+```
+
+## Step N
+Reboot Jetson Nano to ensure all changes are applied.
 
 ```
 sudo reboot
@@ -151,10 +169,15 @@ sudo apt install -qq -y make git curl jq
 git clone http://github.com/dcmartin/motion-ai
 cd ~/motion-ai
 sudo ./sh/get.motion-ai.sh
-make
 ```
 
-The `get.motion-ai.sh` script will upgrade the operating sytem components, install all pre-requisites, and initialize.
+The `get.motion-ai.sh` script will upgrade the operating sytem components, install all pre-requisites, and initialize.    First step is to connect to the Home Assistant server at `http://127.0.0.1:8123` using the installed Chromium browser (n.b. see icon on the desktop).
+
+<img src="initial.png" width="50%">
+
+Once the Home Assistant server has been configured, the system will display an initial view without any cameras configured.
+
+<img src="unconfigured.png" width="75%">
 
 ## Step 2
 Install and configure a MQTT broker for sending and receiving messages.  There is a default MQTT broker _add-on_ provided in the Home Assistant **Add-on Store**, for example:
@@ -203,19 +226,51 @@ make restart
 
 <hr>
 # &#10124; Install external SSD
-Add external SSD hard drive:
+Add external SSD storage device and copy Docker and user home directories from SD card to external SSD; use the `lsblk` command to identify the actual identifier.
+
+```
+sudo lsblk
+```
+_Example output_:
+
+```
+NAME         MAJ:MIN RM   SIZE RO TYPE MOUNTPOINT
+loop0          7:0    0    16M  1 loop 
+sda            8:0    0 223.6G  0 disk /media/dcmartin/336fb189-d569-46ce-b271-02cb8e46d27d
+mtdblock0     31:0    0     4M  0 disk 
+mmcblk0      179:0    0  29.8G  0 disk 
+├─mmcblk0p1  179:1    0  29.8G  0 part /
+├─mmcblk0p2  179:2    0   128K  0 part 
+├─mmcblk0p3  179:3    0   448K  0 part 
+├─mmcblk0p4  179:4    0   576K  0 part 
+├─mmcblk0p5  179:5    0    64K  0 part 
+├─mmcblk0p6  179:6    0   192K  0 part 
+├─mmcblk0p7  179:7    0   576K  0 part 
+├─mmcblk0p8  179:8    0    64K  0 part 
+├─mmcblk0p9  179:9    0   640K  0 part 
+├─mmcblk0p10 179:10   0   448K  0 part 
+├─mmcblk0p11 179:11   0   128K  0 part 
+└─mmcblk0p12 179:12   0    80K  0 part 
+```
+
+Unmount device (e.g. mounted above as `/media/dcmartin/336fb189-d569-46ce-b271-02cb8e46d27d`) and then make a new file-system, for example:
+
+```
+sudo umount /dev/sda
+sudo mkfs -t ext4 /dev/sda
+```
 
 ```
 sudo -s
 mkdir /sda
-echo '/dev/sda /sda /ext4' >> /etc/fstab
+echo '/dev/sda /sda ext4 defaults 0 1' >> /etc/fstab
 mount -a
 ```
 
-Install `rsync`
+If the `rsync` command was not installed previously, install using the following command:
 
 ```
-sudo apt install -y rsync
+sudo apt install -qq -y rsync
 ```
 
 Relocate `/var/lib/docker` to SSD:
@@ -237,6 +292,7 @@ rsync -a /home /sda/home
 rm -fr /home
 ln -s /sda/home /home
 ```
+
 <hr>
 # &#10125; Setup WiFi
 Add external WiFi USB adapter (e.g. [TPLink TL-WN722N](https://www.tp-link.com/us/home-networking/usb-adapter/tl-wn722n/)):
