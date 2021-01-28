@@ -90,17 +90,19 @@ Attach USB keyboard, mouse, HDMI monitor, and power supply using DC barrel jack 
 <img src="https://developer.nvidia.com/sites/default/files/akamai/embedded/images/jetsonNano/gettingStarted/Jetbot_animation_500x282_2.gif" width="75%">
 
 ## Step 7
-After completing installation steps, the system will boot and request a username and password for the initial administrative account, complete software installation, and display the system keyboard shortcuts (see below):
+After completing installation steps, the system will boot and request a username and password for the initial administrative account, complete software installation, and display the system **Keyboard Shortcuts** which is dismissed via the _circle-X_ in the upper-left corner; see below. 
 
 <img src="https://developer.nvidia.com/sites/default/files/akamai/embedded/images/jetsonNano/gettingStarted/Jetson_Nano-Getting_Started-desktop.png" width="90%">
 
-**Update: JetPack 4.5**
+After logging into the Jetson, start a `terminal` session by right-clicking on the backround and selecting **_Terminal_** from the list. 
 
-The Jetson Nano out-of-the-box is set to low power; enabling the best performance requires both the larger power-supply and jumper as well as software configuration. The setup process _should_ ask for confirmation of `MAXN` power.
+### Note: JetPack 4.5
 
-**Optional** - Fix for enabling all CPU
+The Jetson Nano out-of-the-box is set to low power; enabling the best performance requires both the larger power-supply and jumper as well as software configuration. The setup process _should_ ask for confirmation of `MAXN` power; see graphic above in upper-right corner.
 
-Sometimes the system (under JetPack 4.4) does not enable all CPU.  To force use of all CPU, start a `terminal` session by right-clicking on the backround and selecting **_Terminal_** from the list.  Copy and paste the following commands to create the file `/etc/rc.local` which will run on every reboot and ensure complete GPU and CPU capabilities; password may be requested.
+### Optional - Enabling all CPUs
+
+Sometimes the system (under JetPack 4.4) does not enable all CPUs.  To force use of all CPUs, **copy and paste ** the following commands into the _terminal_; password may be requested.
 
 ```
 sudo -s
@@ -116,21 +118,34 @@ chmod 755 /etc/rc.local
 ```
 
 ## Step 8
-Setup automated `sudo` for the current user account:
+Setup automated `sudo` for the current user account; **copy and paste** the following into the _terminal_:
 
 ```
 echo "${USER} ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/010_${USER}-nopasswd
 ```
 
 ## Step 9
-Install pre-requisite software components and enable remote access by installing `ssh` command, for example:
+Install pre-requisite software components and enable remote access by installing `ssh` command; **copy and paste** the following into the _terminal_:
 
 ```
 sudo apt update -qq -y
-sudo apt install -qq -y ssh make curl git jq rsync python3.8 python3-pip
+sudo apt install -qq -y ssh make curl git jq rsync python3-dev libpython3-dev python3-pip
+sudo python3 -m pip install --upgrade pip 
 ```
 
+## Step 10
+VNC (Virtual Network Computing) enables you to control your Jetson developer kit from another computer on the same network, by viewing and interacting with the desktop of the developer kit from the other computer.
+
+<img src="https://i.kinja-img.com/gawker-media/image/upload/c_fit,fl_progressive,q_80,w_320/xenuvb0rvave90qyadgi.mp4" width="640">
+
+Install VNC server using these [instructions](https://developer.nvidia.com/embedded/learn/tutorials/vnc-setup).
+
+## Step 11
 Install the `jtop` command from the [`jetson-stats`](https://pypi.org/project/jetson-stats/) package:
+
+<img src="https://raw.githubusercontent.com/wiki/rbonghi/jetson_stats/images/jtop.gif" width="640">
+
+To install `jetson-stats` **copy and paste** the following into the _terminal_:
 
 ```
 sudo pip3 install jetson-stats
@@ -171,6 +186,7 @@ cd ~/motion-ai
 sudo ./sh/get.motion-ai.sh
 ```
 
+## Step 2
 The `get.motion-ai.sh` script will upgrade the operating sytem components, install all pre-requisites, and initialize.    First step is to connect to the Home Assistant server at `http://127.0.0.1:8123` using the installed Chromium browser (n.b. see icon on the desktop).
 
 <img src="initial.png" width="50%">
@@ -179,7 +195,7 @@ Once the Home Assistant server has been configured, the system will display an i
 
 <img src="unconfigured.png" width="75%">
 
-## Step 2
+## Step 3
 Install and configure a MQTT broker for sending and receiving messages.  There is a default MQTT broker _add-on_ provided in the Home Assistant **Add-on Store**, for example:
 
 <img src="official-addons.png" width="90%">
