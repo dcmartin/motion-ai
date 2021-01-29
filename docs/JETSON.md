@@ -334,7 +334,7 @@ sed -i -e "s/mmcblk0p1/sda1/" /mnt/boot/extlinux/extlinux.conf
 Create directory on external SSD `/` file-system for second partition file-system (n.b. `/dev/sda2`) and add to file-system mounting:
 ```
 mkdir /mnt/sda
-echo "/dev/sda2 /sda defaults 0 1" >> /mnt/etc/fstab
+echo "/dev/sda2 /sda ext4 defaults 0 1" >> /mnt/etc/fstab
 ```
 
 Mount the second partition on the external SSD to a temporary directory:
