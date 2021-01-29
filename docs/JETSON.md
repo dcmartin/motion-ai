@@ -136,7 +136,7 @@ sudo python3 -m pip install --upgrade pip
 ## Step 10
 VNC (Virtual Network Computing) enables you to control your Jetson developer kit from another computer on the same network, by viewing and interacting with the desktop of the developer kit from the other computer.
 
-<img src="https://i.kinja-img.com/gawker-media/image/upload/c_fit,fl_progressive,q_80,w_320/xenuvb0rvave90qyadgi.mp4" width="640">
+<img src="http://fabiorehm.com/images/posts/2014-09-11/firefox-demo.gif" width="640">
 
 Install VNC server using these [instructions](https://developer.nvidia.com/embedded/learn/tutorials/vnc-setup).
 
