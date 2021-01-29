@@ -241,6 +241,7 @@ make restart
 ```
 
 <hr>
+
 # &#10124; Install external SSD
 Add external SSD storage device and copy Docker and user home directories from SD card to external SSD; use the `lsblk` command to identify the actual identifier.
 
