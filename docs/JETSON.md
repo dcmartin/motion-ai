@@ -102,7 +102,7 @@ The Jetson Nano out-of-the-box is set to low power; enabling the best performanc
 
 ### Optional - Enabling all CPUs
 
-Sometimes the system (under JetPack 4.4) does not enable all CPUs.  To force use of all CPUs, **copy and paste ** the following commands into the _terminal_; password may be requested.
+Sometimes the system (under JetPack 4.4) does not enable all CPUs.  To force use of all CPUs, **copy and paste** the following commands into the _terminal_; password may be requested.
 
 ```
 sudo -s
@@ -129,29 +129,31 @@ Install pre-requisite software components and enable remote access by installing
 
 ```
 sudo apt update -qq -y
-sudo apt install -qq -y ssh make curl git jq rsync python3-dev libpython3-dev python3-pip
-sudo python3 -m pip install --upgrade pip 
+sudo apt install -qq -y ssh make curl git jq
 ```
 
-## Step 10
-VNC (Virtual Network Computing) enables you to control your Jetson developer kit from another computer on the same network, by viewing and interacting with the desktop of the developer kit from the other computer.
-
-<img src="http://fabiorehm.com/images/posts/2014-09-11/firefox-demo.gif" width="640">
-
-Install VNC server using these [instructions](https://developer.nvidia.com/embedded/learn/tutorials/vnc-setup).
-
-## Step 11
-Install the `jtop` command from the [`jetson-stats`](https://pypi.org/project/jetson-stats/) package:
+## Step 10 - Python & `jtop` _(optional)_
+Install Python version3 and the `jtop` command from the [`jetson-stats`](https://pypi.org/project/jetson-stats/) package:
 
 <img src="https://raw.githubusercontent.com/wiki/rbonghi/jetson_stats/images/jtop.gif" width="640">
 
 To install `jetson-stats` **copy and paste** the following into the _terminal_:
 
 ```
+sudo apt install -qq -y python3-dev libpython3-dev python3-pip
+sudo python3 -m pip install --upgrade pip 
 sudo pip3 install jetson-stats
 ```
 
-## Step N
+## Step 11 - `VNC` _(optional)_
+VNC (Virtual Network Computing) enables you to control your Jetson developer kit from another computer on the same network, by viewing and interacting with the desktop of the developer kit from the other computer.
+
+<img src="http://fabiorehm.com/images/posts/2014-09-11/firefox-demo.gif" width="640">
+
+Install VNC server using these [instructions](https://developer.nvidia.com/embedded/learn/tutorials/vnc-setup).
+
+
+## Step _last_ - `reboot`
 Reboot Jetson Nano to ensure all changes are applied.
 
 ```
@@ -410,8 +412,11 @@ ln -s /sda/home /home
 Add external WiFi USB adapter (e.g. [TPLink TL-WN722N](https://www.tp-link.com/us/home-networking/usb-adapter/tl-wn722n/)):
 
 ```
-echo '[connection]' | sudo tee /etc/NetworkManager/conf.d/default-wifi-powersave-on.conf
-echo 'wifi.powersave = 2' | sudo tee -a /etc/NetworkManager/conf.d/default-wifi-powersave-on.conf
+sudo -s
+cat > /etc/NetworkManager/conf.d/default-wifi-powersave-on.conf << EOF
+[connection]
+wifi.powersave = 2
+EOF
 ```
 
 ```
