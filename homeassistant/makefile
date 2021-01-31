@@ -339,12 +339,12 @@ lovelace.developer.json: lovelace.developer.json.tmpl motion/webcams.json
 	  | envsubst \
 	  | jq '(.data.config.views[]|select(.path=="motion_live").cards[]|select(.title=="OVERVIEW").elements)+='"$$(jq '[.[]|{"type":"icon","entity":("camera.motion_live_"+.name),"icon": ("mdi:"+.icon),"style":{"color":"red","left":(.left|tostring+"%"),"top":(.top|tostring+"%"),"height":"5%","width": "5%"}}]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="notify").cards[]|select(.title=="Per camera notification").cards)+='"$$(jq '[.[]|{"type":"vertical-stack","cards":[{"entities":[{"name":.name,"entity":("input_boolean.motion_detected_entity_notify_"+.name)}],"show_header_toggle":false,"title":"","type":"entities"},{"type":"conditional","conditions":[{"entity":("input_boolean.motion_detected_entity_notify_"+.name),"state":"on"}],"card":{"entities":[{"name":("Select entity to detect at "+.name+" camera"),"entity":("input_select.motion_detect_entity_"+.name)}],"show_header_toggle":false,"title":"","type":"entities"}}]}]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="person").cards[]|select(.title=="Person count mean (μ)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_person_count_"+.name+"_mean")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="person").cards[]|select(.title=="Person ago mean (μ)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_person_ago_"+.name+"_mean")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="vehicle").cards[]|select(.title=="Vehicle count mean (μ)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_vehicle_count_"+.name+"_mean")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="vehicle").cards[]|select(.title=="Vehicle ago mean (μ)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_vehicle_ago_"+.name+"_mean")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="animal").cards[]|select(.title=="Animal count mean (μ)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_animal_count_"+.name+"_mean")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="animal").cards[]|select(.title=="Animal ago mean (μ)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_animal_ago_"+.name+"_mean")]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="person").cards[]|select(.title=="Person count mean (Σμ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_person_count_"+.name+"_mean")]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="person").cards[]|select(.title=="Person ago mean (⧖μ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_person_ago_"+.name+"_mean")]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="vehicle").cards[]|select(.title=="Vehicle count mean (Σμ)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_vehicle_count_"+.name+"_mean")]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="vehicle").cards[]|select(.title=="Vehicle ago mean (⧖μ)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_vehicle_ago_"+.name+"_mean")]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="animal").cards[]|select(.title=="Animal count mean (Σμ)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_animal_count_"+.name+"_mean")]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="animal").cards[]|select(.title=="Animal ago mean (⧖μ)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_animal_ago_"+.name+"_mean")]' motion/webcams.json)" \
 	 > $@
 	@rm -f .storage/lovelace.lovelace_developer
 	-@mkdir -p .storage/
