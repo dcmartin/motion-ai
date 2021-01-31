@@ -22,6 +22,8 @@ HOST_THEME ?= $(if $(wildcard HOST_THEME),$(shell v=$$(cat HOST_THEME) && echo "
 HOST_NETWORK ?= $(shell export HOST_IPADDR=$(HOST_IPADDR) && echo $${HOST_IPADDR%.*}.0)
 HOST_NETWORK_MASK ?= 24
 
+MOTION_ROUTER_NAME ?= $(if $(wildcard MOTION_ROUTER_NAME),$(shell v=$$(cat MOTION_ROUTER_NAME) && echo "${TG}== MOTION_ROUTER_NAME: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='mikrotik' && echo "${TB}** MOTION_ROUTER_NAME unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+
 HOST_LATITUDE ?= $(if $(wildcard HOST_LATITUDE),$(shell v=$$(cat HOST_LATITUDE) && echo "${TG}== HOST_LATITUDE: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="0.0" && echo "${TB}** HOST_LATITUDE unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 HOST_LONGITUDE ?= $(if $(wildcard HOST_LONGITUDE),$(shell v=$$(cat HOST_LONGITUDE) && echo "${TG}== HOST_LONGITUDE: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="0.0" && echo "${TB}** HOST_LONGITUDE unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 
@@ -156,6 +158,7 @@ $(ACTIONS): necessary
 	  MOTION_DEVICE="$(MOTION_DEVICE)" \
 	  MOTION_CLIENT="$(MOTION_CLIENT)" \
 	  MOTION_USER="$(MOTION_USER)" \
+	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
 	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
 	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
 	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
