@@ -133,7 +133,7 @@ homeassistant/motion/webcams.json:
 
 ${MEDIA}:
 	@echo "${MC}Making: MEDIA $@${NC}"
-	@-sudo mkdir -p $@
+	@-if [ ! -e $@ ]; then sudo mkdir -p $@; fi
 
 $(ACTIONS): necessary
 	@echo "${MC}Making: $@${NC}"

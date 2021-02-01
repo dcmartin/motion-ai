@@ -284,7 +284,7 @@ lovelace.json: lovelace.json.tmpl motion/webcams.json
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	&& cat $< \
 	  | envsubst \
-         | jq '(.data.config.views[]|select(.path=="home").cards[].cards[].cards[]?|select(.camera_image=="camera.motion_overview").elements)+='"$$(jq '[.[]|{"type":"icon","entity":("sensor.motion_detected_person_ago_"+.name),"icon": ("mdi:"+.icon),"style":{"color":"red","left":(.left|tostring+"%"),"top":(.top|tostring+"%"),"height":"5%","width": "5%"}}]' motion/webcams.json)" \
+         | jq '(.data.config.views[]|select(.path=="home").cards[].cards[].cards[]?|select(.camera_image=="camera.motion_overview").elements)+='"$$(jq '[.[]|{"type":"icon","entity":("sensor.motion_detected_person_"+.name+"_ago"),"icon": ("mdi:"+.icon),"style":{"color":"red","left":(.left|tostring+"%"),"top":(.top|tostring+"%"),"height":"5%","width": "5%"}}]' motion/webcams.json)" \
 	 > $@
 	@rm -f .storage/lovelace
 	-@mkdir -p .storage/
@@ -341,103 +341,18 @@ lovelace.developer.json: lovelace.developer.json.tmpl motion/webcams.json
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	&& cat $< \
 	  | envsubst \
-	  | jq '(.data.config.views[]|select(.path=="motion_live").cards[]|select(.title=="OVERVIEW").elements)+='"$$(jq '[.[]|{"type":"icon","entity":("camera.motion_live_"+.name),"icon": ("mdi:"+.icon),"style":{"color":"red","left":(.left|tostring+"%"),"top":(.top|tostring+"%"),"height":"5%","width": "5%"}}]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="notify").cards[]|select(.title=="Per camera notification").cards)+='"$$(jq '[.[]|{"type":"vertical-stack","cards":[{"entities":[{"name":.name,"entity":("input_boolean.motion_detected_entity_notify_"+.name)}],"show_header_toggle":false,"title":"","type":"entities"},{"type":"conditional","conditions":[{"entity":("input_boolean.motion_detected_entity_notify_"+.name),"state":"on"}],"card":{"entities":[{"name":("Select entity to detect at "+.name+" camera"),"entity":("input_select.motion_detect_entity_"+.name)}],"show_header_toggle":false,"title":"","type":"entities"}}]}]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="person").cards[]|select(.title=="Person count mean (Σμ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_person_count_"+.name+"_mean")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="person").cards[]|select(.title=="Person ago mean (⧖μ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_person_ago_"+.name+"_mean")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="vehicle").cards[]|select(.title=="Vehicle count mean (Σμ)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_vehicle_count_"+.name+"_mean")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="vehicle").cards[]|select(.title=="Vehicle ago mean (⧖μ)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_vehicle_ago_"+.name+"_mean")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="animal").cards[]|select(.title=="Animal count mean (Σμ)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_animal_count_"+.name+"_mean")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="animal").cards[]|select(.title=="Animal ago mean (⧖μ)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_animal_ago_"+.name+"_mean")]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="motion_live").cards[]|select(.title=="OVERVIEW").elements)+='"$$(jq '[.[]|{"type":"icon","entity":("camera.motion_"+.name+"_live"),"icon": ("mdi:"+.icon),"style":{"color":"red","left":(.left|tostring+"%"),"top":(.top|tostring+"%"),"height":"5%","width": "5%"}}]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="notify").cards[]|select(.title=="Per camera notification").cards)+='"$$(jq '[.[]|{"type":"vertical-stack","cards":[{"entities":[{"name":.name,"entity":("input_boolean.motion_"+.name+"_detected_entity_notify")}],"show_header_toggle":false,"title":"","type":"entities"},{"type":"conditional","conditions":[{"entity":("input_boolean.motion_"+.name+"_detected_entity_notify"),"state":"on"}],"card":{"entities":[{"name":("Select entity to detect at "+.name+" camera"),"entity":("input_select.motion_"+.name+"_detect_entity")}],"show_header_toggle":false,"title":"","type":"entities"}}]}]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="person").cards[]|select(.title=="Person count mean (Σμ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_person_count_mean")]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="person").cards[]|select(.title=="Person ago mean (⧖μ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_person_ago_mean")]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="vehicle").cards[]|select(.title=="Vehicle count mean (Σμ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_vehicle_count_mean")]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="vehicle").cards[]|select(.title=="Vehicle ago mean (⧖μ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_vehicle_ago_mean")]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="animal").cards[]|select(.title=="Animal count mean (Σμ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_animal_count_mean")]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="animal").cards[]|select(.title=="Animal ago mean (⧖μ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_animal_ago_mean")]' motion/webcams.json)" \
 	 > $@
 	@rm -f .storage/lovelace.lovelace_developer
 	-@mkdir -p .storage/
 	@ln -s ../$@ .storage/lovelace.lovelace_developer
-
-lovelace.experimental.json: lovelace.experimental.json.tmpl motion/webcams.json
-	@echo "${MC}Making: $@${NC}"
-	@export \
-	  DOMAIN_NAME="$(DOMAIN_NAME)" \
-	  HOST_LATITUDE="$(HOST_LATITUDE)" \
-	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
-	  HOST_IPADDR="$(HOST_IPADDR)" \
-	  HOST_NAME="$(HOST_NAME)" \
-	  HOST_NETWORK="$(HOST_NETWORK)" \
-	  HOST_NETWORK_MASK="$(HOST_NETWORK_MASK)" \
-	  HOST_PORT="$(HOST_PORT)" \
-	  HOST_THEME="$(HOST_THEME)" \
-	  INTERNET_SCAN_INTERVAL="$(INTERNET_SCAN_INTERVAL)" \
-	  INTRANET_SCAN_INTERVAL="$(INTRANET_SCAN_INTERVAL)" \
-	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
-	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
-	  MOTION_GROUP="$(MOTION_GROUP)" \
-	  MOTION_DEVICE="$(MOTION_DEVICE)" \
-	  MOTION_CLIENT="$(MOTION_CLIENT)" \
-	  MOTION_USER="$(MOTION_USER)" \
-	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
-	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
-	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
-	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
-	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
-	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
-	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
-	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
-	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
-	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
-	  MOTION_DETECTED_PERSON_TUNE="$(MOTION_DETECTED_PERSON_TUNE)" \
-	  MOTION_DETECTED_VEHICLE_TUNE="$(MOTION_DETECTED_VEHICLE_TUNE)" \
-	  MOTION_DETECTED_ANIMAL_TUNE="$(MOTION_DETECTED_ANIMAL_TUNE)" \
-	  MOTION_DETECTED_PERSON_DEVIATION="$(MOTION_DETECTED_PERSON_DEVIATION)" \
-	  MOTION_DETECTED_VEHICLE_DEVIATION="$(MOTION_DETECTED_VEHICLE_DEVIATION)" \
-	  MOTION_DETECTED_ANIMAL_DEVIATION="$(MOTION_DETECTED_ANIMAL_DEVIATION)" \
-	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
-	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
-	  IPERF_HOST="$(IPERF_HOST)" \
-	  MQTT_HOST="$(MQTT_HOST)" \
-	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
-	  MQTT_PORT="$(MQTT_PORT)" \
-	  MQTT_USERNAME="$(MQTT_USERNAME)" \
-	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
-	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
-	  NETDATA_URL="$(NETDATA_URL)" \
-	  JUPYTER_URL="$(JUPYTER_URL)" \
-	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
-	&& cat $< \
-	  | envsubst \
-	  | jq '(.data.config.views[]|select(.path=="motion_live").cards[]|select(.title=="OVERVIEW").elements)+='"$$(jq '[.[]|{"type":"icon","entity":("camera.motion_live_"+.name),"icon": ("mdi:"+.icon),"style":{"color":"red","left":(.left|tostring+"%"),"top":(.top|tostring+"%"),"height":"5%","width": "5%"}}]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_animated_webcams_view").cards)+='"$$(jq '[.[]|{"entity":("sensor.motion_annotated_when_"+.name),"name":.name,"image":("/local/images/motion_end_animated-"+.name+".gif"),"camera_image":("camera.motion_end_animated_"+.name),"type":"picture-entity"}]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="entity_counter_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_counter_"+.name)]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="entity_count_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_count_"+.name)]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="entity_count_mean_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_count_"+.name+"_mean")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="entity_count_stdev_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_count_"+.name+"_stdev")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="entity_count_change_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_count_"+.name+"_change")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="entity_percent_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_percent_"+.name)]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="entity_count_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_count_"+.name)]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="entity_count_mean_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_count_"+.name+"_mean")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="entity_ago_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_ago_"+.name)]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="entity_ago_mean_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_ago_"+.name+"_mean")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="entity_ago_stdev_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_ago_"+.name+"_stdev")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="entity_ago_change_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_ago_"+.name+"_change")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_annotated_view").cards[]|select(.title=="motion_annotated_ago").entities)+='"$$(jq '[.[]|("sensor.motion_annotated_ago_"+.name)]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_annotated_view").cards[]|select(.title=="motion_annotated_counter").entities)+='"$$(jq '[.[]|("sensor.motion_annotated_counter_"+.name)]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_annotated_view").cards[]|select(.title=="motion_annotated_count").entities)+='"$$(jq '[.[]|("sensor.motion_annotated_count_"+.name)]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_annotated_view").cards)+='"$$(jq '[.[]|{"entity":("sensor.motion_annotated_count_"+.name),"aspect_ratio": "0%","camera_image": ("camera.motion_annotated_"+.name),"entities": [{"entity":("binary_sensor.motion_annotated_"+.name)},{"entity":("sensor.motion_annotated_ago_"+.name)}],"title":("Motion Annotated "+.name),"type":"picture-glance"}]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_detected_view").cards[]|select(.title=="motion_detected_ago").entities)+='"$$(jq '[.[]|("sensor.motion_detected_ago_"+.name)]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_detected_view").cards[]|select(.title=="motion_detected_counter").entities)+='"$$(jq '[.[]|("sensor.motion_detected_counter_"+.name)]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_detected_view").cards[]|select(.title=="motion_detected_count").entities)+='"$$(jq '[.[]|("sensor.motion_detected_count_"+.name)]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_detected_view").cards)+='"$$(jq '[.[]|{"entity":("sensor.motion_detected_count_"+.name),"aspect_ratio": "0%","camera_image": ("camera.motion_detected_"+.name),"entities": [{"entity":("binary_sensor.motion_detected_"+.name)},{"entity":("sensor.motion_detected_ago_"+.name)}],"title":("Motion Detected "+.name),"type":"picture-glance"}]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_detected_entity_view").cards[]|select(.title=="motion_detected_entity_ago").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_ago_"+.name)]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_detected_entity_view").cards[]|select(.title=="motion_detected_entity_counter").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_counter_"+.name)]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_detected_entity_view").cards[]|select(.title=="motion_detected_entity_count").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_count_"+.name)]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_detected_entity_view").cards)+='"$$(jq '[.[]|{"entity":("sensor.motion_detected_entity_count_"+.name),"aspect_ratio": "0%","camera_image": ("camera.motion_detected_entity_"+.name),"entities": [{"entity":("binary_sensor.motion_detected_entity_"+.name)},{"entity":("sensor.motion_detected_entity_ago_"+.name)}],"title":("Motion Detected Entity "+.name),"type":"picture-glance"}]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_face_detected_view").cards)+='"$$(jq '[.[]|{"entity":("sensor.motion_face_detected_count_"+.name),"aspect_ratio": "0%","camera_image": ("camera.motion_face_detected_"+.name),"entities": [{"entity":("binary_sensor.motion_face_detected_"+.name)},{"entity":("sensor.motion_face_detected_ago_"+.name)}],"title":("Face "+.name),"type":"picture-glance"}]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_alpr_detected_view").cards)+='"$$(jq '[.[]|{"entity":("sensor.motion_alpr_detected_count_"+.name),"aspect_ratio": "0%","camera_image": ("camera.motion_alpr_detected_"+.name),"entities": [{"entity":("binary_sensor.motion_alpr_detected_"+.name)},{"entity":("sensor.motion_alpr_detected_ago_"+.name)}],"title":("ALPR "+.name),"type":"picture-glance"}]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="Camera Status").entities)+='"$$(jq '[.[]|("sensor.motion_status_camera_"+.name)]' motion/webcams.json)" \
-          | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="Camera Status Counter").entities)+='"$$(jq '[.[]|("sensor.motion_status_camera_counter_"+.name)]' motion/webcams.json)" \
-	 > $@
-	@rm -f .storage/lovelace.lovelace_experimental
-	-@mkdir -p .storage/
-	@ln -s ../$@ .storage/lovelace.lovelace_experimental
 
 lovelace_dashboards.json: lovelace_dashboards.json.tmpl
 	@echo "${MC}Making: $@${NC}"
