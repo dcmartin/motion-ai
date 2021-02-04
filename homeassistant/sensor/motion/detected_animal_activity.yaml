@@ -1,0 +1,682 @@
+###
+# homeassistant/sensor/motion/detected_animal_activity.yaml
+###
+
+## activity 
+
+- platform: template
+  sensors:
+    motion_animal_activity_metrics:
+      friendly_name: 'Animal activity metrics'
+      icon_template: 'mdi:cow'
+      value_template: >-
+        {%- if states.sensor.motion_detected_animal_date is not none
+              and states('sensor.motion_detected_animal_date')|lower != 'unknown'
+              and states('sensor.motion_detected_animal_ago')|lower != 'unknown'
+              and states('sensor.motion_detected_animal_ago_mean')|lower != 'unknown'
+              and states('sensor.motion_detected_animal_ago_mean')|lower != 'null' -%}
+          {%- if states('sensor.motion_detected_animal_ago')|lower == 'null' -%}
+            NONE
+          {%- else -%}
+            {%- set a = states('sensor.motion_detected_animal_ago') -%}
+            {%- set am = states('sensor.motion_detected_animal_ago_mean')|float -%}
+            {%- set ad = states('sensor.motion_detected_animal_ago_stdev')|float -%}
+            {%- set as = states('input_number.motion_detected_animal_ago_deviation')|float -%}
+            Σ: {{ states('sensor.motion_detected_animal_counter_today')|int -}};
+            {{ a -}}s Δ; {{ am|int -}}s μ
+          {%- endif -%}
+        {%- else -%}
+          Σ: {{ states('sensor.motion_detected_animal_counter_today')|int -}};
+          Δ: {{ states('input_number.motion_yolo_scan_interval')|int }} seconds
+        {%- endif -%}
+
+- platform: template
+  sensors:
+    motion_animal_activity_icon:
+      value_template: >-
+        {%- if states.sensor.motion_detected_animal_date is not none
+               and states('sensor.motion_detected_animal_date')|lower != 'unknown'
+               and states('sensor.motion_detected_animal_date')|lower != 'null'
+               and states.sensor.motion_detected_animal_ago is not none
+               and states('sensor.motion_detected_animal_ago')|lower != 'unknown'
+               and states('sensor.motion_detected_animal_ago')|lower != 'null' -%}
+          {%- if states('sensor.motion_detected_animal_counter_today')|lower != 'unknown'
+                 and states('sensor.motion_detected_animal_counter_today')|lower != 'null'
+                 and states('sensor.motion_detected_animal_counter_today')|int <= 0 -%}
+            {{ 'mdi:cow' }}
+          {%- elif (states('sensor.motion_detected_animal_ago')|int / 3600)|int > 0 -%}
+            {{ 'mdi:cow' }}
+          {%- elif is_state('binary_sensor.motion_detected_animal_ago_high_persistent','on') -%}
+            {{ 'mdi:cow' }}
+          {%- elif is_state('binary_sensor.motion_detected_animal_ago_high','on') -%}
+            {{ 'mdi:cow' }}
+          {%- elif is_state('binary_sensor.motion_detected_animal_ago_low_persistent','on') -%}
+            {{ 'mdi:cow' }}
+          {%- elif is_state('binary_sensor.motion_detected_animal_ago_low','on') -%}
+            {{ 'mdi:cow' }}
+          {%- else -%}
+            {{ 'mdi:cow' }}
+          {%- endif -%}
+        {%- else -%}
+          {{ 'mdi:cow' }}
+        {%- endif -%}
+ 
+# begin when
+- platform: template
+  sensors:
+    motion_detected_animal_activity_begin_when:
+      friendly_name: Activity begin
+      icon_template: 'mdi:calendar-clock'
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_animal_activity_begin','on') %}
+          {% set s = now().timestamp()|int %}
+          {% if s|int > 0 %}
+            {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}
+          {% else %}Pending{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_detected_animal_activity_begin_when') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+# activity end when
+- platform: template
+  sensors:
+    motion_detected_animal_activity_end_when:
+      friendly_name: Activity end
+      icon_template: 'mdi:calendar-clock'
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_animal_activity_end','on') %}
+          {% set s = now().timestamp()|int %}
+          {% if s|int > 0 %}
+            {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}
+          {% else %}Pending{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_detected_animal_activity_end_when') %}
+          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+## today
+
+- platform: history_stats
+  name: motion_today_animal_ratio
+  entity_id: binary_sensor.motion_detected_animal
+  state: 'on'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_today_animal_counter
+  entity_id: binary_sensor.motion_detected_animal
+  state: 'on'
+  type: count
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_today_animal_time
+  entity_id: binary_sensor.motion_detected_animal
+  state: 'on'
+  type: time
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: template
+  sensors:
+    motion_detected_animal_ratio_today:
+      friendly_name: Today animal ratio
+      unit_of_measurement: '%'
+      icon_template: 'mdi:percent'
+      value_template: >
+        {% set s = states('sensor.motion_today_animal_ratio') %}
+        {% if s|lower != 'uknown' and s|lower != 'none' and s|lower != 'null ' %}
+          {{ s|float }}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_detected_animal_counter_today:
+      friendly_name: Today animal counter
+      unit_of_measurement: '🐄'
+      icon_template: 'mdi:counter'
+      value_template: >-
+        {% set s = states('sensor.motion_today_animal_counter') %}
+        {% if s|lower != 'uknown' and s|lower != 'none' and s|lower != 'null ' %}
+          {{ s|int }}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_detected_animal_time_today:
+      friendly_name: Today animal time
+      unit_of_measurement: 'h'
+      icon_template: 'mdi:timer-outline'
+      value_template: >
+        {% set s = states('sensor.motion_today_animal_time') %}
+        {% if s|lower != 'uknown' and s|lower != 'none' and s|lower != 'null ' %}
+          {{ s|float }}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_detected_animal_status_today:
+      friendly_name: Today animal
+      icon_template: 'mdi:cow'
+      value_template: >-
+        {% set c = states('sensor.motion_detected_animal_counter_today') %}
+        {% set r = states('sensor.motion_detected_animal_ratio_today') %}
+        {% set t = states('sensor.motion_detected_animal_time_today') %}
+        {% if c|lower != 'unknown' and r|lower != 'unknown' and t|lower != 'unknown' %}
+          {{ c -}}; {{ t }} hours; {{ r }}%
+        {% else %}No animals detected today{% endif %}
+
+
+## activity level enumerated (Pending,Nominal,Low,High,Decreasing,Increasing,Nothing today,None: #h
+
+- platform: template
+  sensors:
+    motion_animal_activity_level:
+      friendly_name: 'Animal activity'
+      icon_template: >-
+        {{ states('sensor.motion_animal_activity_icon') }}
+      value_template: >-
+        {%- if states.sensor.motion_detected_animal_date is not none
+               and states('sensor.motion_detected_animal_date')|lower != 'unknown'
+               and states('sensor.motion_detected_animal_date')|lower != 'null'
+               and states.sensor.motion_detected_animal_ago is not none
+               and states('sensor.motion_detected_animal_ago')|lower != 'unknown'
+               and states('sensor.motion_detected_animal_ago')|lower != 'null' -%}
+          {%- if states('sensor.motion_detected_animal_counter_today')|lower != 'unknown'
+                 and states('sensor.motion_detected_animal_counter_today')|lower != 'null'
+                 and states('sensor.motion_detected_animal_counter_today')|int <= 0 -%}
+            Nothing today
+          {%- elif (states('sensor.motion_detected_animal_ago')|int / 3600)|int > 0 -%}
+            {%- set h = (states('sensor.motion_detected_animal_ago')|int / 3600)|int -%}
+            {%- if h > 12 -%}{%- set h = '12+' -%}{%- endif -%}
+            None: {{ h -}}h
+          {%- elif is_state('binary_sensor.motion_detected_animal_ago_high_persistent','on') -%}
+            Low
+          {%- elif is_state('binary_sensor.motion_detected_animal_ago_high','on') -%}
+            Decreasing
+          {%- elif is_state('binary_sensor.motion_detected_animal_ago_low_persistent','on') -%}
+            High
+          {%- elif is_state('binary_sensor.motion_detected_animal_ago_low','on') -%}
+            Increasing
+          {%- else -%}
+            Nominal
+          {%- endif -%}
+        {%- else -%}
+          Pending
+        {%- endif -%}
+    motion_animal_weeks:
+      value_template: >
+        {%- set s = states('input_number.motion_animal_weeks') -%}
+        {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+          {{ s|int -}}
+        {%- else -%}{{- 1 -}}{%- endif -%}
+    motion_animal_weeks_timestamp:
+      value_template: >
+        {%- set s = states('sensor.motion_animal_weeks') -%}
+        {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+          {{ s|int * 7 * 24 * 60 * 60 -}}
+        {%- else -%}{{- 604800 -}}{%- endif -%}
+    motion_animal_today_nominal_ratio:
+      friendly_name: 'Nominal (1d)'
+      icon_template: 'mdi:cow'
+      unit_of_measurement: '%'
+      value_template: >
+        {%- set s = states('sensor.motion_today_animal_nominal_ratio') -%}
+        {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+          {{- s|float -}}
+        {%- else -%}null{%- endif -%}
+    motion_animal_today_pending_ratio:
+      friendly_name: 'Pending (1d)'
+      icon_template: 'mdi:cow'
+      unit_of_measurement: '%'
+      value_template: >
+        {%- set s = states('sensor.motion_today_animal_pending_ratio') -%}
+        {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+          {{- s|float -}}
+        {%- else -%}null{%- endif -%}
+    motion_animal_today_low_ratio:
+      friendly_name: 'Low (1d)'
+      icon_template: 'mdi:cow'
+      unit_of_measurement: '%'
+      value_template: >
+        {%- set s = states('sensor.motion_today_animal_low_ratio') -%}
+        {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+          {{- s|float -}}
+        {%- else -%}null{%- endif -%}
+    motion_animal_today_high_ratio:
+      friendly_name: 'High (1d)'
+      icon_template: 'mdi:cow'
+      unit_of_measurement: '%'
+      value_template: >
+        {%- set s = states('sensor.motion_today_animal_high_ratio') -%}
+        {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+          {{- s|float -}}
+        {%- else -%}null{%- endif -%}
+    motion_animal_today_decreasing_ratio:
+      friendly_name: 'Decreasing (1d)'
+      icon_template: 'mdi:cow'
+      unit_of_measurement: '%'
+      value_template: >
+        {%- set s = states('sensor.motion_today_animal_decreasing_ratio') -%}
+        {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+          {{- s|float -}}
+        {%- else -%}null{%- endif -%}
+    motion_animal_today_increasing_ratio:
+      friendly_name: 'Increasing (1d)'
+      icon_template: 'mdi:cow'
+      unit_of_measurement: '%'
+      value_template: >
+        {%- set s = states('sensor.motion_today_animal_increasing_ratio') -%}
+        {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+          {{- s|float -}}
+        {%- else -%}null{%- endif -%}
+    motion_animal_weeks_nominal_ratio:
+      friendly_name: 'Nominal (1w)'
+      icon_template: 'mdi:cow'
+      unit_of_measurement: '%'
+      value_template: >
+        {%- set s = states('sensor.motion_weeks_animal_nominal_ratio') -%}
+        {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+          {{- s|float -}}
+        {%- else -%}null{%- endif -%}
+    motion_animal_weeks_pending_ratio:
+      friendly_name: 'Pending (1w)'
+      icon_template: 'mdi:cow'
+      unit_of_measurement: '%'
+      value_template: >
+        {%- set s = states('sensor.motion_weeks_animal_pending_ratio') -%}
+        {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+          {{- s|float -}}
+        {%- else -%}null{%- endif -%}
+    motion_animal_weeks_low_ratio:
+      friendly_name: 'Low (1w)'
+      icon_template: 'mdi:cow'
+      unit_of_measurement: '%'
+      value_template: >
+        {%- set s = states('sensor.motion_weeks_animal_low_ratio') -%}
+        {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+          {{- s|float -}}
+        {%- else -%}null{%- endif -%}
+    motion_animal_weeks_high_ratio:
+      friendly_name: 'High (1w)'
+      icon_template: 'mdi:cow'
+      unit_of_measurement: '%'
+      value_template: >
+        {%- set s = states('sensor.motion_weeks_animal_high_ratio') -%}
+        {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+          {{- s|float -}}
+        {%- else -%}null{%- endif -%}
+    motion_animal_weeks_decreasing_ratio:
+      friendly_name: 'Decreasing (1w)'
+      icon_template: 'mdi:cow'
+      unit_of_measurement: '%'
+      value_template: >
+        {%- set s = states('sensor.motion_weeks_animal_decreasing_ratio') -%}
+        {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+          {{- s|float -}}
+        {%- else -%}null{%- endif -%}
+    motion_animal_weeks_increasing_ratio:
+      friendly_name: 'Increasing (1w)'
+      icon_template: 'mdi:cow'
+      unit_of_measurement: '%'
+      value_template: >
+        {%- set s = states('sensor.motion_weeks_animal_increasing_ratio') -%}
+        {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+          {{- s|float -}}
+        {%- else -%}null{%- endif -%}
+
+## today
+
+- platform: history_stats
+  name: motion_today_animal_nominal_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'Nominal'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_today_animal_pending_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'Pending'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_today_animal_increasing_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'Increasing'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_today_animal_high_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'High'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_today_animal_decreasing_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'Decreasing'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_today_animal_low_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'Low'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_today_animal_nothingtoday_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'Nothing today'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+# hours
+
+- platform: history_stats
+  name: motion_today_animal_none1h_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'None: 1h'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_today_animal_none2h_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'None: 2h'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_today_animal_none3h_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'None: 3h'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_today_animal_none4h_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'None: 4h'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_today_animal_none5h_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'None: 5h'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_today_animal_none6h_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'None: 6h'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_today_animal_none7h_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'None: 7h'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_today_animal_none8h_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'None: 8h'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_today_animal_none9h_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'None: 9h'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_today_animal_none10h_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'None: 10h'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_today_animal_none11h_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'None: 11h'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_today_animal_none12h_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'None: 12h'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_today_animal_none13h_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'None: 12+h'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+## weeks
+
+- platform: history_stats
+  name: motion_weeks_animal_nominal_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'Nominal'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_animal_weeks_timestamp')|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_weeks_animal_pending_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'Pending'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_animal_weeks_timestamp')|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_weeks_animal_increasing_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'Increasing'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_animal_weeks_timestamp')|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_weeks_animal_high_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'High'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_animal_weeks_timestamp')|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_weeks_animal_decreasing_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'Decreasing'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_animal_weeks_timestamp')|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_weeks_animal_low_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'Low'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_animal_weeks_timestamp')|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_weeks_animal_nothingweeks_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'Nothing weeks'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_animal_weeks_timestamp')|int }}
+  end: '{{ now() }}'
+
+# hours
+
+- platform: history_stats
+  name: motion_weeks_animal_none1h_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'None: 1h'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_animal_weeks_timestamp')|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_weeks_animal_none2h_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'None: 2h'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_animal_weeks_timestamp')|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_weeks_animal_none3h_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'None: 3h'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_animal_weeks_timestamp')|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_weeks_animal_none4h_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'None: 4h'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_animal_weeks_timestamp')|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_weeks_animal_none5h_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'None: 5h'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_animal_weeks_timestamp')|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_weeks_animal_none6h_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'None: 6h'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_animal_weeks_timestamp')|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_weeks_animal_none7h_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'None: 7h'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_animal_weeks_timestamp')|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_weeks_animal_none8h_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'None: 8h'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_animal_weeks_timestamp')|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_weeks_animal_none9h_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'None: 9h'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_animal_weeks_timestamp')|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_weeks_animal_none10h_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'None: 10h'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_animal_weeks_timestamp')|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_weeks_animal_none11h_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'None: 11h'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_animal_weeks_timestamp')|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_weeks_animal_none12h_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'None: 12h'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_animal_weeks_timestamp')|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_weeks_animal_none13h_ratio
+  entity_id: sensor.motion_animal_activity_level
+  state: 'None: 12+h'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_animal_weeks_timestamp')|int }}
+  end: '{{ now() }}'
