@@ -446,7 +446,7 @@
     motion_${MOTION_CAMERA}_annotated_status:
       friendly_name: ${MOTION_CAMERA} annotated status
       value_template: >-
-        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_annotated','on') or is_state('binary_sensor.motion_annotated_expired','off') %}
+        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_annotated','on') or is_state('binary_sensor.motion_${MOTION_CAMERA}_annotated_expired','off') %}
           {% set e = state_attr('sensor.motion_${MOTION_CAMERA}_event_annotated','event') %}
           {% if e|lower != 'none' and e|lower != 'unknown' and e|lower != 'unavailable' and e|lower != 'null' and e is mapping %}
             {% set n = utcnow().timestamp()|int %}
@@ -482,7 +482,7 @@
       friendly_name: ${MOTION_CAMERA} annotated count
       unit_of_measurement: entities
       value_template: >
-        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_${MOTION_CAMERA}_annotated','on') or is_state('binary_sensor.motion_annotated_expired','off') %}
+        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_annotated','on') or is_state('binary_sensor.motion_${MOTION_CAMERA}_annotated_expired','off') %}
           {% set count = state_attr('sensor.motion_${MOTION_CAMERA}_event_annotated','count') %}
           {% if count is not none and count|lower != 'unknown' and count != 'null' %}
             {{ count|int }}
@@ -496,7 +496,7 @@
       friendly_name: ${MOTION_CAMERA} annotated count entity
       unit_of_measurement: entities
       value_template: >-
-        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_annotated','on') or is_state('binary_sensor.motion_annotated_expired','off') %}
+        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_annotated','on') or is_state('binary_sensor.motion_${MOTION_CAMERA}_annotated_expired','off') %}
           {% set detected = state_attr('sensor.motion_${MOTION_CAMERA}_event_annotated','detected') %}
           {% if detected is not none and detected|lower != 'unknown' and detected != 'null' %}
             {% set count = detected|selectattr('entity','==',states('sensor.motion_${MOTION_CAMERA}_detect_entity'))|map(attribute='count')|sum %}
@@ -820,7 +820,7 @@
     motion_${MOTION_CAMERA}_detected_count_entity:
       friendly_name: ${MOTION_CAMERA} count entity
       value_template: >-
-        {% set s = state_attr('sensor.motion_${MOTION_CAMERA}_event_${MOTION_CAMERA}_annotated','detected')|selectattr('entity','==',states('sensor.motion_detect_entity'))|map(attribute='count')|sum %}
+        {% set s = state_attr('sensor.motion_${MOTION_CAMERA}_event_annotated','detected')|selectattr('entity','==',states('sensor.motion_${MOTION_CAMERA}_detect_entity'))|map(attribute='count')|sum %}
         {% if s is not none and s|lower != 'unknown' and s != 'null' %}
           {{ s|int }}
         {% else %}null{% endif %}
@@ -873,7 +873,7 @@
     motion_${MOTION_CAMERA}_detected_counts:
       friendly_name: ${MOTION_CAMERA} detected counts
       value_template: >-
-        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_detected','on') or is_state('binary_sensor.motion_detected_expired','off') %}
+        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_detected','on') or is_state('binary_sensor.motion_${MOTION_CAMERA}_detected_expired','off') %}
           {{ states('sensor.motion_${MOTION_CAMERA}_annotated_counts') }}
         {%- else -%}null{%- endif -%}
 
@@ -994,7 +994,7 @@
       friendly_name: ${MOTION_CAMERA} detected count
       unit_of_measurement: entities
       value_template: >
-        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_detected','on') or is_state('binary_sensor.motion_detected_expired','off') %}
+        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_detected','on') or is_state('binary_sensor.motion_${MOTION_CAMERA}_detected_expired','off') %}
           {% set s = states('sensor.motion_${MOTION_CAMERA}_annotated_count') %}
           {% if s is not none and s|lower != 'unknown' and s != 'null' %}
             {{ s|int }}
@@ -1273,7 +1273,7 @@
       friendly_name: ${MOTION_CAMERA} DE count
       unit_of_measurement: entities
       value_template: >
-        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_detected_entity','on') or is_state('binary_sensor.motion_detected_entity_expired','off') %}
+        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_detected_entity','on') or is_state('binary_sensor.motion_${MOTION_CAMERA}_detected_entity_expired','off') %}
           {% set s = states('sensor.motion_${MOTION_CAMERA}_annotated_count_entity') %}
           {% if s is not none and s|lower != 'unknown' and s != 'null' %}
             {{ s|int }}
@@ -1830,13 +1830,21 @@
       icon_template: 'mdi:counter'
       unit_of_measurement: '👱'
       value_template: >
-        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_detected_person','on') or is_state('binary_sensor.motion_detected_person_expired','off') %}
+        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_detected','on') %}
           {% set s = states('sensor.motion_${MOTION_CAMERA}_detected_person') %}
-          {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' and s|length > 0 %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|length > 0 %}
             {% set s = s|from_json %}
-            {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' and s is iterable %}
-              {{ s|sum|int }}
-            {% else %}null{% endif %}
+            {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s is iterable %}
+              {% set p = s|sum|int %}
+            {% endif %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% elif is_state('binary_sensor.motion_${MOTION_CAMERA}_detected_person_expired','off') %}
+          {% set s = states.sensor.motion_${MOTION_CAMERA}_detected_person_count.state %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
+            {{ s }}
           {% else %}null{% endif %}
         {% else %}null{% endif %}
 
@@ -2365,13 +2373,21 @@
       icon_template: 'mdi:counter'
       unit_of_measurement: '🚗'
       value_template: >
-        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_detected_vehicle','on') or is_state('binary_sensor.motion_detected_vehicle_expired','off') %}
+        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_detected','on') %}
           {% set s = states('sensor.motion_${MOTION_CAMERA}_detected_vehicle') %}
-          {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' and s|length > 0 %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|length > 0 %}
             {% set s = s|from_json %}
-            {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' and s is iterable %}
-              {{ s|sum|int }}
-            {% else %}null{% endif %}
+            {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s is iterable %}
+              {% set p = s|sum|int %}
+            {% endif %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% elif is_state('binary_sensor.motion_${MOTION_CAMERA}_detected_vehicle_expired','off') %}
+          {% set s = states.sensor.motion_${MOTION_CAMERA}_detected_vehicle_count.state %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
+            {{ s }}
           {% else %}null{% endif %}
         {% else %}null{% endif %}
 
@@ -2900,13 +2916,21 @@
       icon_template: 'mdi:counter'
       unit_of_measurement: '🐄'
       value_template: >
-        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_detected_animal','on') or is_state('binary_sensor.motion_detected_animal_expired','off') %}
+        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_detected','on') %}
           {% set s = states('sensor.motion_${MOTION_CAMERA}_detected_animal') %}
-          {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' and s|length > 0 %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|length > 0 %}
             {% set s = s|from_json %}
-            {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' and s is iterable %}
-              {{ s|sum|int }}
-            {% else %}null{% endif %}
+            {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s is iterable %}
+              {% set p = s|sum|int %}
+            {% endif %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% elif is_state('binary_sensor.motion_${MOTION_CAMERA}_detected_animal_expired','off') %}
+          {% set s = states.sensor.motion_${MOTION_CAMERA}_detected_animal_count.state %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
+            {{ s }}
           {% else %}null{% endif %}
         {% else %}null{% endif %}
 
@@ -3194,7 +3218,7 @@
       friendly_name: ${MOTION_CAMERA} face count
       unit_of_measurement: face
       value_template: >
-        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_face','on') or is_state('binary_sensor.motion_face_expired','off') %}
+        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_face','on') or is_state('binary_sensor.motion_${MOTION_CAMERA}_face_expired','off') %}
           {% set count = state_attr('sensor.motion_${MOTION_CAMERA}_event_face','count') %}
           {% if count is not none and count|lower != 'unknown' and count != 'null' %}
             {{ count|int }}
@@ -3447,8 +3471,8 @@
     motion_${MOTION_CAMERA}_face_detected_count_entity:
       friendly_name: ${MOTION_CAMERA} face detected count entity
       value_template: >-
-        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_face_${MOTION_CAMERA}_detected','on') or is_state('binary_sensor.motion_face_detected_expired','off') %}
-          {% set s = state_attr('sensor.motion_${MOTION_CAMERA}_event_${MOTION_CAMERA}_annotated','detected')|selectattr('entity','==',states('sensor.motion_detect_entity'))|map(attribute='count')|sum %}
+        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_face_detected','on') or is_state('binary_sensor.motion_${MOTION_CAMERA}_face_detected_expired','off') %}
+          {% set s = state_attr('sensor.motion_${MOTION_CAMERA}_event_annotated','detected')|selectattr('entity','==',states('sensor.motion_${MOTION_CAMERA}_detect_entity'))|map(attribute='count')|sum %}
           {% if s is not none and s|lower != 'unknown' and s != 'null' %}
             {{ s|int }}
           {% else %}null{% endif %}
@@ -3470,7 +3494,7 @@
       friendly_name: ${MOTION_CAMERA} face detected date
       unit_of_measurement: 's'
       value_template: >-
-        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_face_${MOTION_CAMERA}_detected','on') or is_state('binary_sensor.motion_face_detected_expired','off') %}
+        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_face_detected','on') or is_state('binary_sensor.motion_${MOTION_CAMERA}_face_detected_expired','off') %}
           {% set date = states('sensor.motion_${MOTION_CAMERA}_annotated_date')|int %}
           {% if date > 0 %}{{ date }}{% else %}null{% endif %}
         {% else %}
@@ -3555,7 +3579,7 @@
       friendly_name: ${MOTION_CAMERA} face detected count
       unit_of_measurement: face
       value_template: >
-        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_face_${MOTION_CAMERA}_detected','on') or is_state('binary_sensor.motion_face_detected_expired','off') %}
+        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_face_detected','on') or is_state('binary_sensor.motion_${MOTION_CAMERA}_face_detected_expired','off') %}
           {% set s = states('sensor.motion_${MOTION_CAMERA}_annotated_count') %}
           {% if s is not none and s|lower != 'unknown' and s != 'null' %}
             {{ s|int }}
@@ -3698,7 +3722,7 @@
       friendly_name: ${MOTION_CAMERA} alpr count
       unit_of_measurement: license
       value_template: >
-        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_alpr','on') or is_state('binary_sensor.motion_alpr_expired','off') %}
+        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_alpr','on') or is_state('binary_sensor.motion_${MOTION_CAMERA}_alpr_expired','off') %}
           {% set count = state_attr('sensor.motion_${MOTION_CAMERA}_event_alpr','count') %}
           {% if count is not none and count|lower != 'unknown' and count != 'null' %}
             {{ count|int }}
@@ -3857,8 +3881,8 @@
     motion_${MOTION_CAMERA}_alpr_detected_count_entity:
       friendly_name: ${MOTION_CAMERA} ALPR detected count entity
       value_template: >-
-        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_alpr_${MOTION_CAMERA}_detected','on') or is_state('binary_sensor.motion_alpr_detected_expired','off') %}
-          {% set s = state_attr('sensor.motion_${MOTION_CAMERA}_event_${MOTION_CAMERA}_annotated','detected')|selectattr('entity','==',states('sensor.motion_detect_entity'))|map(attribute='count')|sum %}
+        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_alpr_detected','on') or is_state('binary_sensor.motion_${MOTION_CAMERA}_alpr_detected_expired','off') %}
+          {% set s = state_attr('sensor.motion_${MOTION_CAMERA}_event_annotated','detected')|selectattr('entity','==',states('sensor.motion_${MOTION_CAMERA}_detect_entity'))|map(attribute='count')|sum %}
           {% if s is not none and s|lower != 'unknown' and s != 'null' %}
             {{ s|int }}
           {% else %}null{% endif %}
@@ -3880,7 +3904,7 @@
       friendly_name: ${MOTION_CAMERA} ALPR detected date
       unit_of_measurement: 's'
       value_template: >-
-        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_alpr_${MOTION_CAMERA}_detected','on') or is_state('binary_sensor.motion_alpr_detected_expired','off') %}
+        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_alpr_detected','on') or is_state('binary_sensor.motion_${MOTION_CAMERA}_alpr_detected_expired','off') %}
           {% set date = states('sensor.motion_${MOTION_CAMERA}_annotated_date')|int %}
           {% if date > 0 %}{{ date }}{% else %}null{% endif %}
         {% else %}
@@ -3964,7 +3988,7 @@
       friendly_name: ${MOTION_CAMERA} ALPR detected count
       unit_of_measurement: license
       value_template: >
-        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_alpr_${MOTION_CAMERA}_detected','on') or is_state('binary_sensor.motion_alpr_detected_expired','off') %}
+        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_alpr_detected','on') or is_state('binary_sensor.motion_${MOTION_CAMERA}_alpr_detected_expired','off') %}
           {% set s = states('sensor.motion_${MOTION_CAMERA}_annotated_count') %}
           {% if s is not none and s|lower != 'unknown' and s != 'null' %}
             {{ s|int }}
