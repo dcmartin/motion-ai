@@ -30,7 +30,7 @@ find homeassistant/ -name "detected_${p}*.yaml" -print | while read; do
       -e "s/${p^}/${t^}/g" \
       -e "s/${p^^}/${t^^}/g" \
       -e "s/[\' ]*mdi:${ICON}[^ \']*[\']*/ \'mdi:${icon}\'/g" \
-      -e "s/[\' ]*${UOM}[^ \']*[\']*/ \'${uom}\'/g" \
+      -e "s/${UOM}/${uom}/g" \
       "${e}" > "${g}"
   done
 done
