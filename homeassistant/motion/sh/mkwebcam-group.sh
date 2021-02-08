@@ -56,15 +56,15 @@ else
   WEBCAM_SNAPSHOTS='detected detected_entity face_detected alpr_detected'
 fi
 
-for WID in ${WEBCAM_SNAPSHOTS}; do
-  echo "#"
-  echo "motion${WID}_webcams:"
-  echo "  name: motion_${WID}_webcams"
-  echo "  entities:"
-  for C in ${WEBCAMS}; do
-    echo "    - camera.motion_${WID}_${C}_snapshot"
-  done
-done
+#for WID in ${WEBCAM_SNAPSHOTS}; do
+#  echo "#"
+#  echo "motion${WID}_webcams:"
+#  echo "  name: motion_${WID}_webcams"
+#  echo "  entities:"
+#  for C in ${WEBCAMS}; do
+#    echo "    - camera.motion_${WID}_${C}_snapshot"
+#  done
+#done
 
 ## CAMERAS
 if [ "${UNLIMITED_BUILD:-null}" != 'true' ]; then

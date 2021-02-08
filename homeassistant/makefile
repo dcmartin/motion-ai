@@ -111,7 +111,7 @@ MOTION_DIRS := camera/motion group/motion counter/motion sensor/motion automatio
 
 default: all
 
-all: motion/webcams.json lovelace.json lovelace_dashboards.json lovelace.developer.json $(MOTION_DIRS) $(PACKAGES) secrets.yaml
+all: motion/webcams.json lovelace.json lovelace_dashboards.json lovelace.developer.json lovelace.experimental.json $(MOTION_DIRS) $(PACKAGES) secrets.yaml
 
 motion/webcams.json:
 	@echo "MISSING: please create $(PWD)/$@ from example template: $(PWD)/$@.tmpl"
@@ -353,6 +353,63 @@ lovelace.developer.json: lovelace.developer.json.tmpl motion/webcams.json
 	@rm -f .storage/lovelace.lovelace_developer
 	-@mkdir -p .storage/
 	@ln -s ../$@ .storage/lovelace.lovelace_developer
+
+lovelace.experimental.json: lovelace.experimental.json.tmpl motion/webcams.json
+	@echo "${MC}Making: $@${NC}"
+	@export \
+	  DOMAIN_NAME="$(DOMAIN_NAME)" \
+	  HOST_LATITUDE="$(HOST_LATITUDE)" \
+	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
+	  HOST_IPADDR="$(HOST_IPADDR)" \
+	  HOST_NAME="$(HOST_NAME)" \
+	  HOST_NETWORK="$(HOST_NETWORK)" \
+	  HOST_NETWORK_MASK="$(HOST_NETWORK_MASK)" \
+	  HOST_PORT="$(HOST_PORT)" \
+	  HOST_THEME="$(HOST_THEME)" \
+	  INTERNET_SCAN_INTERVAL="$(INTERNET_SCAN_INTERVAL)" \
+	  INTRANET_SCAN_INTERVAL="$(INTRANET_SCAN_INTERVAL)" \
+	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
+	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
+	  MOTION_GROUP="$(MOTION_GROUP)" \
+	  MOTION_DEVICE="$(MOTION_DEVICE)" \
+	  MOTION_CLIENT="$(MOTION_CLIENT)" \
+	  MOTION_USER="$(MOTION_USER)" \
+	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
+	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
+	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
+	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
+	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
+	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
+	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
+	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
+	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
+	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
+	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
+	  MOTION_DETECTED_PERSON_TUNE="$(MOTION_DETECTED_PERSON_TUNE)" \
+	  MOTION_DETECTED_VEHICLE_TUNE="$(MOTION_DETECTED_VEHICLE_TUNE)" \
+	  MOTION_DETECTED_ANIMAL_TUNE="$(MOTION_DETECTED_ANIMAL_TUNE)" \
+	  MOTION_DETECTED_PERSON_DEVIATION="$(MOTION_DETECTED_PERSON_DEVIATION)" \
+	  MOTION_DETECTED_VEHICLE_DEVIATION="$(MOTION_DETECTED_VEHICLE_DEVIATION)" \
+	  MOTION_DETECTED_ANIMAL_DEVIATION="$(MOTION_DETECTED_ANIMAL_DEVIATION)" \
+	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
+	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
+	  IPERF_HOST="$(IPERF_HOST)" \
+	  MQTT_HOST="$(MQTT_HOST)" \
+	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
+	  MQTT_PORT="$(MQTT_PORT)" \
+	  MQTT_USERNAME="$(MQTT_USERNAME)" \
+	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
+	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
+	  NETDATA_URL="$(NETDATA_URL)" \
+	  JUPYTER_URL="$(JUPYTER_URL)" \
+	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
+	&& cat $< \
+	  | envsubst \
+	  | jq '(.data.config.views)+=$$views[0]' --slurpfile views "$$(jq '[.[]|{"badges":[],"panel":false,"icon":("mdi:"+.icon),"path":.name,"title":.name,"cards":[ {"cards":[ {"type":"picture-elements","camera_image":("camera.motion_"+.name+"_detected_person"),"elements":[ {"type":"conditional","conditions":[ {"entity":("sensor.motion_"+.name+"_detected_person_when"),"state":"Pending"}],"elements":[ {"type":"image","camera_image":"camera.motion_nosignal_animated","style":{"position":null,"opacity":1,"top":"50%","left":"50%","width":"100%","height":"100%"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_person_when"),"prefix":"Person:","style":{"top":"50%","left":"50%","font-size":"200%","color":"cyan"}}]},{"type":"conditional","conditions":[ {"entity":("sensor.motion_"+.name+"_detected_person_when"),"state_not":"Pending"}],"elements":[ {"type":"state-label","entity":("sensor.motion_"+.name+"_camera_name"),"prefix":"Person at ","style":{"top":"75%","left":"50%","font-size":"200%","color":"cyan"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_person_ago_relative"),"prefix":"Ago:","style":{"top":"10%","left":"80%","font-size":"150%","color":"cyan"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_person_when"),"style":{"top":"90%","left":"50%","font-size":"100%","color":"cyan"}},{"type":"image","camera_image":("camera.motion_"+.name+"_detected_person_animated"),"style":{"position":null,"opacity":0.4,"top":"50%","left":"50%","width":"100%","height":"100%"}}]}]},{"type":"picture-elements","camera_image":("camera.motion_"+.name+"_detected"),"elements":[ {"type":"conditional","conditions":[ {"entity":("sensor.motion_"+.name+"_detected_when"),"state":"Pending"}],"elements":[ {"type":"image","camera_image":"camera.motion_nosignal_animated","style":{"position":null,"opacity":1,"top":"50%","left":"50%","width":"100%","height":"100%"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_when"),"prefix":"Detected:","style":{"top":"50%","left":"50%","font-size":"200%","color":"magenta"}}]},{"type":"conditional","conditions":[ {"entity":("sensor.motion_"+.name+"_detected_when"),"state_not":"Pending"}],"elements":[ {"type":"state-label","entity":("sensor.motion_"+.name+"_camera_name"),"prefix":"Detected at ","style":{"top":"75%","left":"50%","font-size":"200%","color":"magenta"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_ago_relative"),"prefix":"Ago:","style":{"top":"10%","left":"80%","font-size":"150%","color":"magenta"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_when"),"style":{"top":"90%","left":"50%","font-size":"100%","color":"magenta"}},{"type":"image","camera_image":("camera.motion_"+.name+"_detected_animated"),"style":{"position":null,"opacity":0.4,"top":"50%","left":"50%","width":"100%","height":"100%"}}]}]}],"type":"vertical-stack"},{"cards":[ {"entities":[ {"name":"Last detection","icon":"mdi:eye","entity":("sensor.motion_"+.name+"_detected_status")}],"show_header_toggle":false,"title":"","type":"entities"},{"type":"picture-elements","elements":[ {"type":"state-label","entity":"sensor.time","prefix":"LIVE:","style":{"top":"10%","left":"15%","font-size":"125%","color":"yellow"}},{"type":"state-label","entity":"sensor.date","style":{"top":"10%","left":"85%","font-size":"125%","color":"yellow"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_camera_name"),"style":{"top":"90%","left":"50%","font-size":"200%","color":"yellow"}}],"camera_image":("camera.motion_"+.name+"_live")},{"type":"glance","entities":[ {"name":"Person ago","icon":"mdi:account","entity":("sensor.motion_"+.name+"_detected_person_ago_relative")},{"name":"Vehicle ago","icon":"mdi:car","entity":("sensor.motion_"+.name+"_detected_vehicle_ago_relative")},{"name":"Animal ago","icon":"mdi:cow","entity":("sensor.motion_"+.name+"_detected_animal_ago_relative")},{"name":"Entity ago","icon":"mdi:eye","entity":("sensor.motion_"+.name+"_detected_entity_ago_relative")},{"name":"Notify entity","entity":("sensor.motion_"+.name+"_detect_entity")}],"show_icon":true,"show_name":true}],"type":"vertical-stack"},{"cards":[ {"type":"picture-elements","camera_image":("camera.motion_"+.name+"_detected_vehicle"),"elements":[ {"type":"conditional","conditions":[ {"entity":("sensor.motion_"+.name+"_detected_vehicle_when"),"state":"Pending"}],"elements":[ {"type":"image","camera_image":"camera.motion_nosignal_animated","style":{"position":null,"opacity":1,"top":"50%","left":"50%","width":"100%","height":"100%"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_vehicle_when"),"prefix":"Vehicle:","style":{"top":"50%","left":"50%","font-size":"200%","color":"gold"}}]},{"type":"conditional","conditions":[ {"entity":("sensor.motion_"+.name+"_detected_vehicle_when"),"state_not":"Pending"}],"elements":[ {"type":"state-label","entity":("sensor.motion_"+.name+"_camera_name"),"prefix":"Vehicle at ","style":{"top":"75%","left":"50%","font-size":"200%","color":"gold"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_vehicle_ago_relative"),"prefix":"Ago:","style":{"top":"10%","left":"80%","font-size":"150%","color":"gold"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_vehicle_when"),"style":{"top":"90%","left":"50%","font-size":"100%","color":"gold"}},{"type":"image","camera_image":("camera.motion_"+.name+"_detected_vehicle_animated"),"style":{"position":null,"opacity":0.4,"top":"50%","left":"50%","width":"100%","height":"100%"}}]}]},{"type":"picture-elements","camera_image":("camera.motion_"+.name+"_detected_animal"),"elements":[ {"type":"conditional","conditions":[ {"entity":("sensor.motion_"+.name+"_detected_animal_when"),"state":"Pending"}],"elements":[ {"type":"image","camera_image":"camera.motion_nosignal_animated","style":{"position":null,"opacity":1,"top":"50%","left":"50%","width":"100%","height":"100%"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_animal_when"),"prefix":"Animal:","style":{"top":"50%","left":"50%","font-size":"200%","color":"chartreuse"}}]},{"type":"conditional","conditions":[ {"entity":("sensor.motion_"+.name+"_detected_animal_when"),"state_not":"Pending"}],"elements":[ {"type":"state-label","entity":("sensor.motion_"+.name+"_camera_name"),"prefix":"Animal at ","style":{"top":"75%","left":"50%","font-size":"200%","color":"chartreuse"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_animal_ago_relative"),"prefix":"Ago:","style":{"top":"10%","left":"80%","font-size":"150%","color":"chartreuse"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_animal_when"),"style":{"top":"90%","left":"50%","font-size":"100%","color":"chartreuse"}},{"type":"image","camera_image":("camera.motion_"+.name+"_detected_animal_animated"),"style":{"position":null,"opacity":0.4,"top":"50%","left":"50%","width":"100%","height":"100%"}}]}]}],"type":"vertical-stack"}]}]' motion/webcams.json > /tmp/cards.json; echo /tmp/cards.json)" \
+	 > $@
+	@rm -f .storage/lovelace.lovelace_experimental
+	-@mkdir -p .storage/
+	@ln -s ../$@ .storage/lovelace.lovelace_experimental
 
 lovelace_dashboards.json: lovelace_dashboards.json.tmpl
 	@echo "${MC}Making: $@${NC}"
