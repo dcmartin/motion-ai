@@ -40,7 +40,7 @@ To install on a Jetson Nano you will need the following items in addition to the
 
 There are nine (9) steps:
 
-1. Download [JetPack disk image](https://developer.nvidia.com/jetson-nano-sd-card-image)
+1. Download [JetPack 4.4.1 disk image](https://developer.nvidia.com/jetson-nano-sd-card-image-441)
 2. Install [Balena Etcher](https://www.balena.io/etcher/)
 3. Flash micro-SD (uSD) card (64 Gbyte) using Etcher
 4. Install jumper or female-female connector wire
@@ -51,7 +51,7 @@ There are nine (9) steps:
 9. Reboot
 
 ## Step 1
-This download is large, over six (6) gigabytes (GB); ensure sufficient disk space.  Download the [JetPack](https://developer.nvidia.com/jetson-nano-sd-card-image) from nVidia over the Internet.
+This download is large, over six (6) gigabytes (GB); ensure sufficient disk space.  Download the [JetPack](https://developer.nvidia.com/jetson-nano-sd-card-image-441) from nVidia over the Internet.
 
 ## Step 2
 Download and install [Balena Etcher](https://www.balena.io/etcher/) for your operating system (macOS, Windows, LINUX).
@@ -182,7 +182,7 @@ Install Motion-AI from the Github [repository](http://github.com/dcmartin/motion
 
 ```
 sudo apt update -qq -y
-sudo apt install -qq -y make git curl jq
+sudo apt install -qq -y make git curl jq apt-utils ssh
 git clone http://github.com/dcmartin/motion-ai
 cd ~/motion-ai
 sudo ./sh/get.motion-ai.sh

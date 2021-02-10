@@ -44,32 +44,6 @@ machine()
 
 function motionai::get()
 {
-  # test iff docker running
-  if [ $(docker ps | tail +2 | wc -l) -eq 0 ]; then
-    echo "Docker containers are not running; please reboot and run again." &> /dev/stderr
-    return
-  fi
-
-  # wait for HA
-  t=0; while [ ! -z "$(command -v ha)" ]; do
-    info=$(ha core info 2> /dev/null | egrep '^version:' | awk '{ print $2 }')
-    t=$((t+1))
-    if [ ! -z "${info:-}" ] && [ "${info}" != 'landingpage' ]; then break; fi
-    if [ ${t:-0} -gt 30 ]; then break; fi
-    echo -n "."
-    sleep 60
-  done
-
-  if [ ${t:-0} -ge 0 ]; then
-    echo " done; version: ${info}"
-    if [ "${info}" != '0.116.4' ]; then
-      echo "Version of Home Assistant is ${info}"
-    fi
-  else
-    echo 'Problem installing Home Assistant; check with "ha core info" command' &> /dev/stderr
-    exit 1
-  fi
-
   echo 'Downloading yolo weights'; \
     bash ${0%/*}/get.weights.sh \
     || \
@@ -215,12 +189,36 @@ echo "Installing using ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine)" \
 
 # download AI containers and models
 if [ "${0##*/}" == 'get.motion-ai.sh' ]; then
+
+  # get container images and weights for AI(s)
+  motionai::get &
+
+  # wait for HA
   echo -n "Waiting on Home Assistant "
   sleep 30
-  motionai::get
+  t=0; while [ ! -z "$(command -v ha)" ]; do
+    info=$(ha core info 2> /dev/null | egrep '^version:' | awk '{ print $2 }')
+    t=$((t+1))
+    if [ ! -z "${info:-}" ] && [ "${info}" != 'landingpage' ]; then break; fi
+    if [ ${t:-0} -gt 30 ]; then break; fi
+    echo -n "."
+    sleep 60
+  done
+
+  if [ ${t:-0} -ge 0 ]; then
+    echo " done; version: ${info}"
+    if [ "${info}" != '0.116.4' ]; then
+      echo "Version of Home Assistant is ${info}"
+    fi
+  else
+    echo 'Problem installing Home Assistant; check with "ha core info" command' &> /dev/stderr
+    exit 1
+  fi
+
 else
   echo "Not getting motion-ai"
 fi
+
 
 # reboot
 echo 'Reboot to start afresh; "sudo reboot"' &> /dev/stderr
