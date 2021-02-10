@@ -77,7 +77,7 @@ WEBCAM_YAML := \
 ##
 
 # entity's items to track
-HIGHLOW_ENTITYS := detected detected_entity # detected_person detected_vehicle detected_animal # image end annotated 
+HIGHLOW_ENTITYS := annotated # detected # detected_entity # detected_person detected_vehicle detected_animal # image end annotated 
 HIGHLOW_ITEMS := count ago
 
 # HIGHLOW templates
