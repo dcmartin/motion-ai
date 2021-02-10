@@ -16,13 +16,19 @@ UOM='👱'
 find homeassistant/ -name "detected_${p}*.yaml" -print | while read; do
   e="${REPLY}"
   echo "${e}"
-  for t in animal vehicle; do 
+  for t in animal vehicle entity; do 
     if [ "${t}" = 'animal' ]; then 
       uom='🐄'
       icon='cow'
-    else
+    elif [ "${t}" = 'vehicle' ]; then
       uom='🚗'
       icon='car'
+    elif [ "${t}" = 'entity' ]; then
+      uom='🚶'
+      icon='motion-sensor'
+    else 
+      echo "ERROR: no such element: ${t}"
+      exit 1
     fi
     g=$(echo "${e}" | sed "s/person/${t}/g")
     ${gnused} \
