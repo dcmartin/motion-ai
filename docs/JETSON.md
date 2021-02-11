@@ -96,10 +96,6 @@ After completing installation steps, the system will boot and request a username
 
 After logging into the Jetson, start a `terminal` session by right-clicking on the backround and selecting **_Terminal_** from the list. 
 
-### Note: JetPack 4.5
-
-The Jetson Nano out-of-the-box is set to low power; enabling the best performance requires both the larger power-supply and jumper as well as software configuration. The setup process _should_ ask for confirmation of `MAXN` power; see graphic above in upper-right corner.
-
 ### Optional - Enabling all CPUs
 
 Sometimes the system (under JetPack 4.4) does not enable all CPUs.  To force use of all CPUs, **copy and paste** the following commands into the _terminal_; password may be requested.
@@ -117,6 +113,8 @@ EOF
 chmod 755 /etc/rc.local
 ```
 
+The Jetson Nano out-of-the-box is set to low power; enabling the best performance requires both the larger power-supply and jumper as well as software configuration. The setup process _should_ ask for confirmation of `MAXN` power; see graphic above in upper-right corner.
+
 ## Step 8
 Setup automated `sudo` for the current user account; **copy and paste** the following into the _terminal_:
 
@@ -129,7 +127,15 @@ Install pre-requisite software components and enable remote access by installing
 
 ```
 sudo apt update -qq -y
-sudo apt install -qq -y ssh make curl git jq
+sudo apt install -qq -y make curl git jq apt-utils ssh
+```
+
+### Note: JetPack version 4.4.1
+JetPack 4.4.1 has an [issue](https://forums.developer.nvidia.com/t/dist-uopgrade-fails-on-l4t-bootloader/121346/5) with the bootloader; to eliminate this issue, edit the file below using the `sed` command to delete lines 733 to 762; make a backup copy, for example:
+
+```
+cp /usr/sbin/l4t_payload_updater_t210 /usr/sbin/l4t_payload_updater_t210.orig
+sed -e '733,762d' -i /usr/sbin/l4t_payload_updater_t210
 ```
 
 ## Step 10 - Python & `jtop` _(optional)_
