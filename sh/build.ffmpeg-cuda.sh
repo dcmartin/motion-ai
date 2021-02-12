@@ -29,7 +29,7 @@ NVCH='nv-codec-headers'
 if [ ! -d ${NVCH} ]; then
   git clone https://git.videolan.org/git/ffmpeg/nv-codec-headers.git ${NVCH}
 fi
-pushd ${NCVH}
+pushd ${NVCH}
 sudo make install
 popd
 
