@@ -415,7 +415,7 @@ ln -s /sda/home /home
 
 <hr>
 # &#10125; Setup WiFi
-Add external WiFi USB adapter (e.g. [TPLink TL-WN722N](https://www.tp-link.com/us/home-networking/usb-adapter/tl-wn722n/)):
+Add external WiFi USB adapter, for example a [TPLink TL-WN722N](https://www.tp-link.com/us/home-networking/usb-adapter/tl-wn722n/) adapter.
 
 ```
 sudo -s
