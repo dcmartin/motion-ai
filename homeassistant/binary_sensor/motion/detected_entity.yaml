@@ -19,19 +19,23 @@
 - platform: template
   sensors:
     motion_detected_entity:
-      friendly_name: Entity found
+      friendly_name: '🚶 detected'
       icon_template: 'mdi:motion-sensor'
       value_template: >-
         {% set results = state_attr('sensor.motion_event_annotated','results') %}
-        {% if results|lower != 'none' and results|lower != 'unavailable' and results|lower != 'unknown' and results|length > 0 %}
-          {% set options = state_attr('input_select.motion_detect_entity','options') %}
-          {% if options|lower != 'none' and options|lower != 'unavailable' and options|lower != 'unknown' and options|length > 0 %}
-            {% if results|selectattr('entity','in',options)|map(attribute='confidence')|list|length > 0 %}
-              {% set c = results|selectattr('entity','in',options)|map(attribute='confidence')|max %}
-              {% if c|lower != 'none' and c|lower != 'unknown' and c|float > 0 %}
-                {{ c|float >= states('sensor.motion_detected_entity_threshold')|float }}
-              {% else %}false{% endif %}
-            {% else %}false{% endif %}
+        {% if results|lower != 'none' and results|lower != 'unavailable' and results|lower != 'unknown' and results|lower != 'null' and results|length > 0 %}
+          {% set option = states('input_select.motion_detect_entity') %}
+          {% if option|lower == 'all' or option|lower == 'entity' %}
+            {% set options = state_attr('input_select.motion_detect_entity','options') %}
+            {% if options|lower != 'none' and options|lower != 'unknown' and options|length > 0 %}
+              {% set l = results|selectattr('entity','in',options)|map(attribute='confidence')|list %}
+            {% endif %}
+          {% else %}
+            {% set l = results|selectattr('entity','==',option)|map(attribute='confidence')|list %}
+          {% endif %}
+          {% if l is defined and l is iterable and l|length > 0 %}
+            {% set p = l|list|max|int %}
+            {{ p >= states('sensor.motion_detected_entity_threshold')|int }}
           {% else %}false{% endif %}
         {% else %}false{% endif %}
 

@@ -336,15 +336,7 @@
 
 - platform: template
   sensors:
-    motion_detected_person_most_camera:
-      friendly_name: '👱 most camera'
-      icon_template: 'mdi:account'
-      value_template: >-
-        {{ states('sensor.motion_detected_person_most_cameras').split(' ')|last }}
-
-- platform: template
-  sensors:
-    motion_detected_person_most_cameras:
+    motion_detected_person_camera_mosts:
       friendly_name: '👱 most cameras'
       icon_template: 'mdi:account'
       value_template: >-
@@ -455,16 +447,29 @@
 
 - platform: template
   sensors:
-    motion_detected_person_often_camera:
-      friendly_name: '👱 often camera'
-      icon_template: 'mdi:account'
+    motion_detected_person_camera_most:
+      friendly_name: '👱 most (Σ)'
+      icon_template: 'mdi:map-marker'
       value_template: >-
-        {{ states('sensor.motion_detected_person_often_cameras').split(' ')|last }}
+        {% set s = states('sensor.motion_detected_person_camera_mosts') %}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+          {{ states('sensor.motion_detected_person_camera_mosts').split(' ')|last }}
+        {%- else -%}Pending{%- endif -%}
 
 - platform: template
   sensors:
-    motion_detected_person_often_cameras:
-      friendly_name: '👱 often cameras'
+    motion_detected_person_camera_often:
+      friendly_name: '👱 often (%)'
+      icon_template: 'mdi:map-marker'
+      value_template: >-
+        {% set s = states('sensor.motion_detected_person_camera_oftens') %}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+          {{ states('sensor.motion_detected_person_camera_oftens').split(' ')|last }}
+        {%- else -%}Pending{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_detected_person_camera_oftens:
       icon_template: 'mdi:account'
       value_template: >-
         {%- set s = states('sensor.motion_detected_person_percents') -%}
@@ -474,7 +479,7 @@
            and o|lower != 'none' and o|lower != 'unknown' and o|lower != 'unavailable' and o|length > 0
            and m|lower != 'none' and m|lower != 'unknown' and m|lower != 'unavailable' and m|int > 0 -%}
           {%- set s = s|from_json -%}
-          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s is iterable -%}
             {%- for p in s -%}
               {%- if p|int >= m|int -%}
                 {{ o[loop.index0] }}
@@ -485,12 +490,12 @@
 
 - platform: template
   sensors:
-    motion_detected_person_often_ago:
+    motion_detected_person_ago_often:
       friendly_name: '👱 often ago'
       icon_template: 'mdi:account'
       unit_of_measurement: 's'
       value_template: >-
-        {%- set c = states('sensor.motion_detected_person_often_camera') -%}
+        {%- set c = states('sensor.motion_detected_person_camera_often') -%}
         {%- if c|lower != 'none' and c|lower != 'unknown' and c|lower != 'unavailable' and c|lower != 'null' %}
           {%- set p = states('sensor.motion_' + c + '_detected_person_ago') %}
           {% if p|lower != 'none' and p|lower != 'unknown' and p|lower != 'unavailable' and p|lower != 'null' -%}
@@ -893,7 +898,7 @@
                 {%- set e = results.entity -%}
                 {%- if e|lower != 'none' and e|lower != 'unknown' and e|lower != 'null' -%}
                   {%- set c = results.confidence -%}
-                  {%- if ( option|string == 'all' or e in options ) and c|float >= t|float -%}
+                  {%- if ( option|string == 'all' or option|string == 'person' or e in options ) and c|float >= t|float -%}
                     1
                   {%- else -%}
                     0
@@ -1051,25 +1056,33 @@
       unit_of_measurement: 'β'
       value_template: >
         {% if is_state('binary_sensor.motion_detected','on') %}
-          {% set s = state_attr('sensor.motion_event_annotated','results') %}
-          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|length > 0 %}
-            {% set options = state_attr('input_select.motion_detect_person','options') %}
-            {% if options|lower != 'none' and options|lower != 'unknown' and options|length > 0 %}
-              {% set l = s|selectattr('entity','in',options)|map(attribute='confidence')|list %}
-              {% if l|lower != 'none' and l|length > 0 %}
-                {% set p = s|selectattr('entity','in',options)|map(attribute='confidence')|max|int %}
+          {% set results = state_attr('sensor.motion_event_annotated','results') %}
+          {% if results|lower != 'none' and results|lower != 'unavailable' and results|lower != 'unknown' and results|length > 0 %}
+            {% set option = states('input_select.motion_detect_person') %}
+            {% if option|lower == 'all' or option|lower == 'person' %}
+              {% set options = state_attr('input_select.motion_detect_person','options') %}
+              {% if options|lower != 'none' and options|lower != 'unknown' and options|length > 0 %}
+                {% set l = results|selectattr('entity','in',options)|map(attribute='confidence')|list %}
               {% endif %}
+            {% else %}
+              {% set options = state_attr('input_select.motion_detect_person','options') %}
+              {% if options|lower != 'none' and options|lower != 'unknown' and options|length > 0 %}
+                {% set l = results|selectattr('entity','==',option)|map(attribute='confidence')|list %}
+              {% endif %}
+            {% endif %}
+            {% if l|lower != 'none' and l|length > 0 %}
+              {% set p = l|max|int %}
             {% endif %}
           {% endif %}
         {% endif %}
         {% if p is defined %}
           {{ p }}
-        {% else %}
+        {%- elif is_state('binary_sensor.motion_detected_person_expired','off') -%}
           {% set s = states.sensor.motion_detected_person_confidence.state %}
-          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
             {{ s }}
           {% else %}null{% endif %}
-        {% endif %}
+        {% else %}null{% endif %}
     motion_detected_person_confidence_confirmed:
       friendly_name: '👱✅ (β)'
       icon_template: 'mdi:account'
@@ -1078,9 +1091,17 @@
         {% if is_state('binary_sensor.motion_detected_person','on') %}
           {% set s = states('sensor.motion_detected_person_confidence') %}
           {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
-            {{ s|int }}
+            {% set p = s|int %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% else %}
+          {% set s = states.sensor.motion_detected_person_confidence_confirmed.state %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {{ s }}
           {% else %}null{% endif %}
-        {% else %}null{% endif %}
+        {% endif %}
 
 - platform: statistics
   name: motion_detected_person_confidence_confirmed_statistics
