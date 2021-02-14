@@ -122,9 +122,13 @@ PACKAGES := motion
 ## directories for output files from scripts
 MOTION_DIRS := camera/motion group/motion counter/motion sensor/motion automation/motion device_tracker/motion history_graph/motion
 
+# dashboards
+MOTION_DASHBOARDS := developer experimental person animal vehicle
+LOVELACE_DASHBOARDS := $(shell for C in $(MOTION_DASHBOARDS); do echo lovelace.$${C}.json; done)
+
 default: all
 
-all: motion/webcams.json lovelace.json lovelace_dashboards.json lovelace.developer.json lovelace.experimental.json $(MOTION_DIRS) $(PACKAGES) secrets.yaml
+all: motion/webcams.json lovelace.json lovelace_dashboards.json ${LOVELACE_DASHBOARDS} $(MOTION_DIRS) $(PACKAGES) secrets.yaml
 
 motion/webcams.json:
 	@echo "MISSING: please create $(PWD)/$@ from example template: $(PWD)/$@.tmpl"
@@ -348,6 +352,56 @@ lovelace.developer.json: lovelace.developer.json.tmpl motion/webcams.json
 	  | envsubst \
 	  | jq '(.data.config.views[]|select(.path=="motion_live").cards[]|select(.title=="OVERVIEW").elements)+='"$$(jq '[.[]|{"type":"icon","entity":("camera.motion_"+.name+"_live"),"icon": ("mdi:"+.icon),"style":{"color":"red","left":(.left|tostring+"%"),"top":(.top|tostring+"%"),"height":"5%","width": "5%"}}]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="notify").cards[]|select(.title=="Per camera notification").cards)+='"$$(jq '[.[]|{"type":"vertical-stack","cards":[{"entities":[{"name":.name,"entity":("input_boolean.motion_"+.name+"_detected_entity_notify")}],"show_header_toggle":false,"title":"","type":"entities"},{"type":"conditional","conditions":[{"entity":("input_boolean.motion_"+.name+"_detected_entity_notify"),"state":"on"}],"card":{"entities":[{"name":("Select entity to detect at "+.name+" camera"),"entity":("input_select.motion_"+.name+"_detect_entity")}],"show_header_toggle":false,"title":"","type":"entities"}}]}]' motion/webcams.json)" \
+	 > $@
+	@rm -f .storage/lovelace.lovelace_developer
+	-@mkdir -p .storage/
+	@ln -s ../$@ .storage/lovelace.lovelace_developer
+
+lovelace.person.json: lovelace.person.json.tmpl motion/webcams.json
+	@echo "${MC}Making: $@${NC}"
+	@export \
+	  DOMAIN_NAME="$(DOMAIN_NAME)" \
+	  HOST_LATITUDE="$(HOST_LATITUDE)" \
+	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
+	  HOST_IPADDR="$(HOST_IPADDR)" \
+	  HOST_NAME="$(HOST_NAME)" \
+	  HOST_NETWORK="$(HOST_NETWORK)" \
+	  HOST_NETWORK_MASK="$(HOST_NETWORK_MASK)" \
+	  HOST_PORT="$(HOST_PORT)" \
+	  HOST_THEME="$(HOST_THEME)" \
+	  INTERNET_SCAN_INTERVAL="$(INTERNET_SCAN_INTERVAL)" \
+	  INTRANET_SCAN_INTERVAL="$(INTRANET_SCAN_INTERVAL)" \
+	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
+	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
+	  MOTION_GROUP="$(MOTION_GROUP)" \
+	  MOTION_DEVICE="$(MOTION_DEVICE)" \
+	  MOTION_CLIENT="$(MOTION_CLIENT)" \
+	  MOTION_USER="$(MOTION_USER)" \
+	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
+	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
+	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
+	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
+	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
+	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
+	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
+	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
+	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
+	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
+	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
+	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
+	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
+	  IPERF_HOST="$(IPERF_HOST)" \
+	  MQTT_HOST="$(MQTT_HOST)" \
+	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
+	  MQTT_PORT="$(MQTT_PORT)" \
+	  MQTT_USERNAME="$(MQTT_USERNAME)" \
+	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
+	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
+	  NETDATA_URL="$(NETDATA_URL)" \
+	  JUPYTER_URL="$(JUPYTER_URL)" \
+	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
+	&& cat $< \
+	  | envsubst \
 	  | jq '(.data.config.views[]|select(.path=="person").cards[]|select(.title=="Person count mean (Σμ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_person_count_mean")]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="person").cards[]|select(.title=="Person ago mean (⧖μ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_person_ago_mean")]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="vehicle").cards[]|select(.title=="Vehicle count mean (Σμ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_vehicle_count_mean")]' motion/webcams.json)" \
@@ -355,9 +409,113 @@ lovelace.developer.json: lovelace.developer.json.tmpl motion/webcams.json
 	  | jq '(.data.config.views[]|select(.path=="animal").cards[]|select(.title=="Animal count mean (Σμ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_animal_count_mean")]' motion/webcams.json)" \
 	  | jq '(.data.config.views[]|select(.path=="animal").cards[]|select(.title=="Animal ago mean (⧖μ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_animal_ago_mean")]' motion/webcams.json)" \
 	 > $@
-	@rm -f .storage/lovelace.lovelace_developer
+	@rm -f .storage/lovelace.lovelace_person
 	-@mkdir -p .storage/
-	@ln -s ../$@ .storage/lovelace.lovelace_developer
+	@ln -s ../$@ .storage/lovelace.lovelace_person
+
+lovelace.vehicle.json: lovelace.vehicle.json.tmpl motion/webcams.json
+	@echo "${MC}Making: $@${NC}"
+	@export \
+	  DOMAIN_NAME="$(DOMAIN_NAME)" \
+	  HOST_LATITUDE="$(HOST_LATITUDE)" \
+	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
+	  HOST_IPADDR="$(HOST_IPADDR)" \
+	  HOST_NAME="$(HOST_NAME)" \
+	  HOST_NETWORK="$(HOST_NETWORK)" \
+	  HOST_NETWORK_MASK="$(HOST_NETWORK_MASK)" \
+	  HOST_PORT="$(HOST_PORT)" \
+	  HOST_THEME="$(HOST_THEME)" \
+	  INTERNET_SCAN_INTERVAL="$(INTERNET_SCAN_INTERVAL)" \
+	  INTRANET_SCAN_INTERVAL="$(INTRANET_SCAN_INTERVAL)" \
+	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
+	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
+	  MOTION_GROUP="$(MOTION_GROUP)" \
+	  MOTION_DEVICE="$(MOTION_DEVICE)" \
+	  MOTION_CLIENT="$(MOTION_CLIENT)" \
+	  MOTION_USER="$(MOTION_USER)" \
+	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
+	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
+	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
+	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
+	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
+	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
+	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
+	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
+	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
+	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
+	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
+	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
+	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
+	  IPERF_HOST="$(IPERF_HOST)" \
+	  MQTT_HOST="$(MQTT_HOST)" \
+	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
+	  MQTT_PORT="$(MQTT_PORT)" \
+	  MQTT_USERNAME="$(MQTT_USERNAME)" \
+	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
+	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
+	  NETDATA_URL="$(NETDATA_URL)" \
+	  JUPYTER_URL="$(JUPYTER_URL)" \
+	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
+	&& cat $< \
+	  | envsubst \
+	  | jq '(.data.config.views[]|select(.path=="vehicle").cards[]|select(.title=="Vehicle count mean (Σμ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_vehicle_count_mean")]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="vehicle").cards[]|select(.title=="Vehicle ago mean (⧖μ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_vehicle_ago_mean")]' motion/webcams.json)" \
+	 > $@
+	@rm -f .storage/lovelace.lovelace_vehicle
+	-@mkdir -p .storage/
+	@ln -s ../$@ .storage/lovelace.lovelace_vehicle
+
+lovelace.animal.json: lovelace.animal.json.tmpl motion/webcams.json
+	@echo "${MC}Making: $@${NC}"
+	@export \
+	  DOMAIN_NAME="$(DOMAIN_NAME)" \
+	  HOST_LATITUDE="$(HOST_LATITUDE)" \
+	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
+	  HOST_IPADDR="$(HOST_IPADDR)" \
+	  HOST_NAME="$(HOST_NAME)" \
+	  HOST_NETWORK="$(HOST_NETWORK)" \
+	  HOST_NETWORK_MASK="$(HOST_NETWORK_MASK)" \
+	  HOST_PORT="$(HOST_PORT)" \
+	  HOST_THEME="$(HOST_THEME)" \
+	  INTERNET_SCAN_INTERVAL="$(INTERNET_SCAN_INTERVAL)" \
+	  INTRANET_SCAN_INTERVAL="$(INTRANET_SCAN_INTERVAL)" \
+	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
+	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
+	  MOTION_GROUP="$(MOTION_GROUP)" \
+	  MOTION_DEVICE="$(MOTION_DEVICE)" \
+	  MOTION_CLIENT="$(MOTION_CLIENT)" \
+	  MOTION_USER="$(MOTION_USER)" \
+	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
+	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
+	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
+	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
+	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
+	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
+	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
+	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
+	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
+	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
+	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
+	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
+	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
+	  IPERF_HOST="$(IPERF_HOST)" \
+	  MQTT_HOST="$(MQTT_HOST)" \
+	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
+	  MQTT_PORT="$(MQTT_PORT)" \
+	  MQTT_USERNAME="$(MQTT_USERNAME)" \
+	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
+	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
+	  NETDATA_URL="$(NETDATA_URL)" \
+	  JUPYTER_URL="$(JUPYTER_URL)" \
+	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
+	&& cat $< \
+	  | envsubst \
+	  | jq '(.data.config.views[]|select(.path=="animal").cards[]|select(.title=="Animal count mean (Σμ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_animal_count_mean")]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="animal").cards[]|select(.title=="Animal ago mean (⧖μ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_animal_ago_mean")]' motion/webcams.json)" \
+	 > $@
+	@rm -f .storage/lovelace.lovelace_animal
+	-@mkdir -p .storage/
+	@ln -s ../$@ .storage/lovelace.lovelace_animal
 
 lovelace.experimental.json: lovelace.experimental.json.tmpl motion/webcams.json
 	@echo "${MC}Making: $@${NC}"
@@ -470,7 +628,7 @@ tidy:
 neat: tidy
 	@echo "${MC}Making: $@${NC}"
 	@rm -f motion/webcams.json
-	@rm -f lovelace.json lovelace_dashboards.json lovelace.developer.json
+	@rm -f lovelace.json lovelace_dashboards.json ${LOVELACE_DASHBOARDS}
 
 clean: stop logclean neat
 	@echo "${MC}Making: $@${NC}"
