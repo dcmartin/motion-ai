@@ -21,8 +21,8 @@ sudo apt update -qq -y
 sudo apt install -qq -y build-essential yasm cmake libtool libc6 libc6-dev unzip wget libnuma1 libnuma-dev
 sudo apt upgrade -qq -y
 
-mkdir -p /tmp/ffmpeg
-cd /tmp/ffmpeg
+mkdir -p /tmp/ffmpeg-build
+cd /tmp/ffmpeg-build
 VERSION=latest
 
 NVCH='nv-codec-headers'
@@ -41,7 +41,11 @@ fi
 
 cd ffmpeg/
 
-./configure --enable-nonfree --enable-cuda-nvcc --extra-cflags="-I/usr/local/cuda/include" --extra-ldflags="-L/usr/local/cuda/lib64"
+DIR=$(pwd -P)
+
+export PKG_CONFIG_PATH="${DIR}/ffmpeg_build/lib/pkgconfig"
+
+./configure --enable-cuda --enable-nonfree  --extra-cflags="-I/usr/local/cuda/include" --extra-ldflags="-L/usr/local/cuda/lib"
 
 make -j$(nproc)
 
