@@ -2,34 +2,53 @@
 # homeassistant/sensor/motion/detected_person.yaml
 ###
 
+- platform: template
+  sensors:
+    motion_detected_person_api:
+      friendly_name: '👱 API'
+      icon_template: 'mdi:account'
+      value_template: >-
+        {% set d = 'http://127.0.0.1:7999' %}
+        {% set c = states('sensor.motion_detected_person_camera') %}
+        {% set s = state_attr('sensor.motion_addon_config','config') %}
+        {% if s|lower != 'null' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' and s is mapping %}
+          {% set s = s.cameras|selectattr("name","==",c)|list %}
+          {% if s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' and s|length > 0 %}
+            {% set s = s|map(attribute="addon_api")|first %}
+            {% if s|lower != 'null' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' and s|length > 0 %}
+              {{ s }}
+            {% else %}{{ d }}{% endif %}
+          {% else %}{{ d }}{% endif %}
+        {% else %}{{ d }}{% endif %}
+
 ## counts
 
 - platform: template
   sensors:
     motion_detected_person_counts:
       value_template: >-
-        {% if is_state('binary_sensor.motion_detected_person','on') or is_state('binary_sensor.motion_detected_person_expired','off') -%}
+        {% if is_state('binary_sensor.motion_detected_person','on') -%}
           {%- set s = state_attr('input_select.motion_camera_name','options') -%}
           {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|length > 0 -%}
             [{%- for i in s -%}
-              {%- set j = states('sensor.motion_detected_person_count_' + i) -%}
+              {%- set j = states('sensor.motion_' + i + '_detected_person_count') -%}
               {%- if loop.first -%}{%- else -%},{%- endif -%}
               {%- if j|lower != 'none' and j|lower != 'unknown' and j|lower != 'unavailable' and j|lower != 'null' -%}
                 {%- if j|int > 0 -%}{{- j|int -}}{%- else -%}0{%- endif -%}
               {%- else -%}0{%- endif -%}
             {%- endfor -%}]
           {%- else -%}null{%- endif -%}
-        {%- else -%}
+        {%- elif is_state('binary_sensor.motion_detected_person_expired','off') -%}
           {%- set s = states.sensor.motion_detected_person_counts.state -%}
           {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
             {{ s }}
           {%- else -%}null{%- endif -%}
-        {%- endif %}
+        {%- else -%}null{%- endif -%}
 
 - platform: template
   sensors:
     motion_detected_person_counts_total:
-      friendly_name: 'Person Σ'
+      friendly_name: '👱 ∀Σ'
       icon_template: 'mdi:account'
       unit_of_measurement: '👱'
       value_template: >-
@@ -40,6 +59,25 @@
             {% set s = s|sum %}
             {% if s|int > 0 %}{{ s|int }}{%- else -%}null{%- endif -%}
           {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+
+# 24h
+- platform: statistics
+  name: motion_detected_person_counts_total_24h
+  entity_id: sensor.motion_detected_person_counts_total
+  sampling_size: 1200
+  max_age:
+    hours: 24
+
+- platform: template
+  sensors:
+    motion_detected_person_counts_total_24h_mean:
+      friendly_name: '👱 ∀Σ μ 24h'
+      icon_template: 'mdi:account'
+      unit_of_measurement: '👱'
+      value_template: >-
+        {% if states('sensor.motion_detected_person_counts_total_24h') != 'unknown' %}
+          {{ states('sensor.motion_detected_person_counts_total_24h')|float }}
         {%- else -%}null{%- endif -%}
 
 # 1m
@@ -53,7 +91,7 @@
 - platform: template
   sensors:
     motion_detected_person_counts_total_1m_mean:
-      friendly_name: 'Σ μ 1m'
+      friendly_name: '👱 ∀Σ μ 1m'
       icon_template: 'mdi:account'
       unit_of_measurement: '👱'
       value_template: >-
@@ -72,7 +110,7 @@
 - platform: template
   sensors:
     motion_detected_person_counts_total_5m_mean:
-      friendly_name: 'Σ μ 5m'
+      friendly_name: '👱 ∀Σ μ 5m'
       icon_template: 'mdi:account'
       unit_of_measurement: '👱'
       value_template: >-
@@ -91,26 +129,27 @@
 - platform: template
   sensors:
     motion_detected_person_counts_total_15m_mean:
-      friendly_name: 'Σ μ 15m'
+      friendly_name: '👱 ∀Σ μ 15m'
       icon_template: 'mdi:account'
       unit_of_measurement: '👱'
       value_template: >-
         {% if states('sensor.motion_detected_person_counts_total_15m') != 'unknown' %}
           {{ states('sensor.motion_detected_person_counts_total_15m')|float }}
         {%- else -%}null{%- endif -%}
-
+ 
 # 30m
+
 - platform: statistics
   name: motion_detected_person_counts_total_30m
   entity_id: sensor.motion_detected_person_counts_total
-  sampling_size: 600
+  sampling_size: 60
   max_age:
     minutes: 30
 
 - platform: template
   sensors:
     motion_detected_person_counts_total_30m_mean:
-      friendly_name: 'Σ μ 30m'
+      friendly_name: '👱 ∀Σ μ 30m'
       icon_template: 'mdi:account'
       unit_of_measurement: '👱'
       value_template: >-
@@ -118,10 +157,138 @@
           {{ states('sensor.motion_detected_person_counts_total_30m')|float }}
         {%- else -%}null{%- endif -%}
 
+## DELTA
+
+- platform: template
+  sensors:
+    motion_detected_person_counts_total_1m_delta:
+      friendly_name: '👱 ∀Σ μ 1m Δ'
+      icon_template: 'mdi:account'
+      unit_of_measurement: '👱'
+      value_template: >-
+        {% set f = states('sensor.motion_detected_person_counts_total_24h') %}
+        {% set o = states('sensor.motion_detected_person_counts_total_1m') %}
+        {% if f|lower != 'unknown' and o|lower != 'unknown' %}
+          {{ (f|float - o|float)|abs }}
+        {%- else -%}null{%- endif %}
+
+- platform: statistics
+  name: motion_detected_person_counts_total_1m_delta_statistics
+  entity_id: sensor.motion_detected_person_counts_total_1m_delta
+  sampling_size: 100
+  max_age:
+    minutes: 5
+
+- platform: template
+  sensors:
+    motion_detected_person_counts_total_1m_delta_mean:
+      friendly_name: '👱 ∀Σ 1m Δμ'
+      icon_template: 'mdi:account'
+      unit_of_measurement: '👱'
+      value_template: >-
+        {% if states('sensor.motion_detected_person_counts_total_1m_delta_statistics') != 'unknown' %}
+          {{ states('sensor.motion_detected_person_counts_total_1m_delta_statistics')|float }}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_detected_person_counts_total_5m_delta:
+      friendly_name: '👱 ∀Σ μ 5m Δ'
+      icon_template: 'mdi:account'
+      unit_of_measurement: '👱'
+      value_template: >-
+        {% set f = states('sensor.motion_detected_person_counts_total_5m') %}
+        {% set o = states('sensor.motion_detected_person_counts_total_1m') %}
+        {% if f|lower != 'unknown' and o|lower != 'unknown' %}
+          {{ (f|float - o|float)|abs }}
+        {%- else -%}null{%- endif %}
+
+- platform: statistics
+  name: motion_detected_person_counts_total_5m_delta_statistics
+  entity_id: sensor.motion_detected_person_counts_total_5m_delta
+  sampling_size: 100
+  max_age:
+    minutes: 30
+
+- platform: template
+  sensors:
+    motion_detected_person_counts_total_5m_delta_mean:
+      friendly_name: '👱 ∀Σ 5m Δμ'
+      icon_template: 'mdi:account'
+      unit_of_measurement: '👱'
+      value_template: >-
+        {% if states('sensor.motion_detected_person_counts_total_5m_delta_statistics') != 'unknown' %}
+          {{ states('sensor.motion_detected_person_counts_total_5m_delta_statistics')|float }}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_detected_person_counts_total_15m_delta:
+      friendly_name: '👱 ∀Σ μ 15m Δ'
+      icon_template: 'mdi:account'
+      unit_of_measurement: '👱'
+      value_template: >-
+        {% set f = states('sensor.motion_detected_person_counts_total_15m') %}
+        {% set o = states('sensor.motion_detected_person_counts_total_1m') %}
+        {% if f|lower != 'unknown' and o|lower != 'unknown' %}
+          {{ (f|float - o|float)|abs }}
+        {%- else -%}null{%- endif %}
+
+- platform: statistics
+  name: motion_detected_person_counts_total_15m_delta_statistics
+  entity_id: sensor.motion_detected_person_counts_total_15m_delta
+  sampling_size: 100
+  max_age:
+    minutes: 90
+
+- platform: template
+  sensors:
+    motion_detected_person_counts_total_15m_delta_mean:
+      friendly_name: '👱 ∀Σ 15m Δμ'
+      icon_template: 'mdi:account'
+      unit_of_measurement: '👱'
+      value_template: >-
+        {% if states('sensor.motion_detected_person_counts_total_15m_delta_statistics') != 'unknown' %}
+          {{ states('sensor.motion_detected_person_counts_total_15m_delta_statistics')|float }}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_detected_person_counts_total_30m_delta:
+      friendly_name: '👱 ∀Σ μ 30m Δ'
+      icon_template: 'mdi:account'
+      unit_of_measurement: '👱'
+      value_template: >-
+        {% set f = states('sensor.motion_detected_person_counts_total_30m') %}
+        {% set o = states('sensor.motion_detected_person_counts_total_1m') %}
+        {% if f|lower != 'unknown' and o|lower != 'unknown' %}
+          {{ (f|float - o|float)|abs }}
+        {%- else -%}null{%- endif %}
+
+- platform: statistics
+  name: motion_detected_person_counts_total_30m_delta_statistics
+  entity_id: sensor.motion_detected_person_counts_total_30m_delta
+  sampling_size: 100
+  max_age:
+    minutes: 180
+
+- platform: template
+  sensors:
+    motion_detected_person_counts_total_30m_delta_mean:
+      friendly_name: '👱 ∀Σ 30m Δμ'
+      icon_template: 'mdi:account'
+      unit_of_measurement: '👱'
+      value_template: >-
+        {% if states('sensor.motion_detected_person_counts_total_30m_delta_statistics') != 'unknown' %}
+          {{ states('sensor.motion_detected_person_counts_total_30m_delta_statistics')|float }}
+        {%- else -%}null{%- endif -%}
+
+# logical
+
 - platform: template
   sensors:
     motion_detected_person_most:
-      friendly_name: 'Person counts max'
+      friendly_name: '👱 Most'
       icon_template: 'mdi:account'
       unit_of_measurement: '👱'
       value_template: >-
@@ -136,7 +303,7 @@
 - platform: template
   sensors:
     motion_detected_person_occupancy:
-      friendly_name: 'Person counts %'
+      friendly_name: '👱 occupancy %'
       icon_template: 'mdi:account'
       unit_of_measurement: '%'
       value_template: >-
@@ -155,7 +322,7 @@
 - platform: template
   sensors:
     motion_detected_person_occupancy_max:
-      friendly_name: 'Person max %'
+      friendly_name: '👱 occupancy max'
       icon_template: 'mdi:account'
       unit_of_measurement: '%'
       value_template: >-
@@ -169,16 +336,8 @@
 
 - platform: template
   sensors:
-    motion_detected_person_most_camera:
-      friendly_name: 'Person most camera'
-      icon_template: 'mdi:account'
-      value_template: >-
-        {{ states('sensor.motion_detected_person_most_cameras').split(' ')|last }}
-
-- platform: template
-  sensors:
-    motion_detected_person_most_cameras:
-      friendly_name: 'Person most cameras'
+    motion_detected_person_camera_mosts:
+      friendly_name: '👱 most cameras'
       icon_template: 'mdi:account'
       value_template: >-
         {%- set s = states('sensor.motion_detected_person_counts') -%}
@@ -200,16 +359,16 @@
 - platform: template
   sensors:
     motion_detected_person_count_status:
-      friendly_name: 'Person count'
+      friendly_name: '👱 count'
       icon_template: 'mdi:account'
       value_template: >-
         {%- set p = states('sensor.motion_detected_person_counts_total') -%}
         {%- if p|lower != 'none' and p|lower != 'unknown' and p|lower != 'unavailable' and p|lower != 'null' -%}
-          Σ: {{ p -}};
-          {% set a = states('sensor.motion_detected_person_counts_total_mean') %}
+          ∀Σ: {{ p -}};
+          {% set a = states('sensor.motion_detected_person_counts_total_24h') %}
           {%- if a|lower != 'none' and a|lower != 'unknown' and a|lower != 'unavailable' and a|lower != 'null' %}
             μ: {{ a -}};
-            n: {{ state_attr('sensor.motion_detected_person_counts_total_statistics','count') }}
+            n: {{ state_attr('sensor.motion_detected_person_counts_total_24h','count') }}
           {%- endif %}
         {%- else -%}
           {%- set s = states.sensor.motion_detected_person_count_status.state -%}
@@ -223,13 +382,13 @@
 - platform: template
   sensors:
     motion_detected_person_counters:
-      friendly_name: 'All person counters'
+      friendly_name: '👱 all counters'
       icon_template: 'mdi:counter'
       value_template: >-
         {% set s = state_attr('input_select.motion_camera_name','options') %}
         {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|length > 0 %}
           [{% for i in s -%}
-            {%- set j = states('sensor.motion_detected_person_counter_' + i) -%}
+            {%- set j = states('sensor.motion_' + i + '_detected_person_counter') -%}
             {%- if loop.first %}{% else %},{% endif %}
             {%- if j|int > 0 -%}{{- j|int -}}{% else %}0{%- endif -%}
           {%- endfor -%}]
@@ -238,7 +397,7 @@
 - platform: template
   sensors:
     motion_detected_person_counters_total:
-      friendly_name: 'Person counters total'
+      friendly_name: '👱 counters total'
       icon_template: 'mdi:counter'
       value_template: >-
         {% set s = states('sensor.motion_detected_person_counters') %}
@@ -252,7 +411,7 @@
 - platform: template
   sensors:
     motion_detected_person_counter_max:
-      friendly_name: 'Person counters max'
+      friendly_name: '👱 counters max'
       icon_template: 'mdi:account'
       value_template: >-
         {% set s = states('sensor.motion_detected_person_counters') %}
@@ -263,7 +422,7 @@
 - platform: template
   sensors:
     motion_detected_person_percents:
-      friendly_name: 'Person counters %'
+      friendly_name: '👱 counters %'
       icon_template: 'mdi:percent'
       value_template: >-
         {% set n = states('sensor.motion_detected_person_counters_total') %}
@@ -278,7 +437,7 @@
 - platform: template
   sensors:
     motion_detected_person_often:
-      friendly_name: 'Person max %'
+      friendly_name: '👱 max %'
       icon_template: 'mdi:percent'
       value_template: >-
         {% set s = states('sensor.motion_detected_person_percents') %}
@@ -288,16 +447,29 @@
 
 - platform: template
   sensors:
-    motion_detected_person_often_camera:
-      friendly_name: 'Person often camera'
-      icon_template: 'mdi:account'
+    motion_detected_person_camera_most:
+      friendly_name: '👱 most (Σ)'
+      icon_template: 'mdi:map-marker'
       value_template: >-
-        {{ states('sensor.motion_detected_person_often_cameras').split(' ')|last }}
+        {% set s = states('sensor.motion_detected_person_camera_mosts') %}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+          {{ states('sensor.motion_detected_person_camera_mosts').split(' ')|last }}
+        {%- else -%}Pending{%- endif -%}
 
 - platform: template
   sensors:
-    motion_detected_person_often_cameras:
-      friendly_name: 'Person often cameras'
+    motion_detected_person_camera_often:
+      friendly_name: '👱 often (⧖)'
+      icon_template: 'mdi:map-marker'
+      value_template: >-
+        {% set s = states('sensor.motion_detected_person_camera_oftens') %}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+          {{ states('sensor.motion_detected_person_camera_oftens').split(' ')|last }}
+        {%- else -%}Pending{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_detected_person_camera_oftens:
       icon_template: 'mdi:account'
       value_template: >-
         {%- set s = states('sensor.motion_detected_person_percents') -%}
@@ -307,7 +479,7 @@
            and o|lower != 'none' and o|lower != 'unknown' and o|lower != 'unavailable' and o|length > 0
            and m|lower != 'none' and m|lower != 'unknown' and m|lower != 'unavailable' and m|int > 0 -%}
           {%- set s = s|from_json -%}
-          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s is iterable -%}
             {%- for p in s -%}
               {%- if p|int >= m|int -%}
                 {{ o[loop.index0] }}
@@ -318,14 +490,14 @@
 
 - platform: template
   sensors:
-    motion_detected_person_often_ago:
-      friendly_name: 'Person often ago'
+    motion_detected_person_ago_often:
+      friendly_name: '👱 often ⧖'
       icon_template: 'mdi:account'
-      unit_of_measurement: seconds
+      unit_of_measurement: 's'
       value_template: >-
-        {%- set c = states('sensor.motion_detected_person_often_camera') -%}
+        {%- set c = states('sensor.motion_detected_person_camera_often') -%}
         {%- if c|lower != 'none' and c|lower != 'unknown' and c|lower != 'unavailable' and c|lower != 'null' %}
-          {%- set p = states('sensor.motion_detected_person_ago_' + c) %}
+          {%- set p = states('sensor.motion_' + c + '_detected_person_ago') %}
           {% if p|lower != 'none' and p|lower != 'unknown' and p|lower != 'unavailable' and p|lower != 'null' -%}
             {{ p }}
           {%- else -%}null{%- endif %}
@@ -341,7 +513,7 @@
 - platform: template
   sensors:
     motion_detected_person_ago_low_counter:
-      friendly_name: 'Person activity high counter'
+      friendly_name: '👱 activity high counter'
       icon_template: 'mdi:counter'
       value_template: >
         {% if states('counter.motion_detected_person_ago_low_counter')|lower != 'unavailable' %}
@@ -351,7 +523,7 @@
 - platform: template
   sensors:
     motion_detected_person_ago_low_percent:
-      friendly_name: 'Person activity high percent'
+      friendly_name: '👱 activity high percent'
       icon_template: 'mdi:percent'
       unit_of_measurement: '%'
       value_template: >
@@ -364,7 +536,7 @@
 - platform: template
   sensors:
     motion_detected_person_ago_high_counter:
-      friendly_name: 'Person activity low counter'
+      friendly_name: '👱 activity low counter'
       icon_template: 'mdi:counter'
       value_template: >
         {% if states('counter.motion_detected_person_ago_high_counter')|lower != 'unavailable' %}
@@ -374,7 +546,7 @@
 - platform: template
   sensors:
     motion_detected_person_ago_high_percent:
-      friendly_name: 'Person activity low percent'
+      friendly_name: '👱 activity low percent'
       icon_template: 'mdi:percent'
       unit_of_measurement: '%'
       value_template: >
@@ -384,105 +556,11 @@
           {{ c|float / ic|float * 100.0 }}
         {%- else -%}null{%- endif -%}
  
-## summary
-
-- platform: template
-  sensors:
-    motion_person_activity_metrics:
-      friendly_name: 'Person activity metrics'
-      icon_template: 'mdi:account'
-      value_template: >-
-        {%- if states.sensor.motion_detected_person_date is not none
-              and states('sensor.motion_detected_person_date')|lower != 'unknown'
-              and states('sensor.motion_detected_person_ago')|lower != 'unknown'
-              and states('sensor.motion_detected_person_ago_mean')|lower != 'unknown'
-              and states('sensor.motion_detected_person_ago_mean')|lower != 'null' -%}
-          {%- if states('sensor.motion_detected_person_ago')|lower == 'null' -%}
-            NONE
-          {%- else -%}
-            {%- set a = states('sensor.motion_detected_person_ago') -%}
-            {%- set am = states('sensor.motion_detected_person_ago_mean')|float -%}
-            {%- set ad = states('sensor.motion_detected_person_ago_stdev')|float -%}
-            {%- set as = states('input_number.motion_detected_person_ago_deviation')|float -%}
-            Σ: {{ states('sensor.motion_detected_person_counter_today')|int -}};
-            {{ a -}}s Δ; {{ am|int -}}s μ
-          {%- endif -%}
-        {%- else -%}
-          Σ: {{ states('sensor.motion_detected_person_counter_today')|int -}};
-          Δ: {{ states('input_number.motion_yolo_scan_interval')|int }} seconds
-        {%- endif -%}
-
-- platform: template
-  sensors:
-    motion_person_activity_icon:
-      value_template: >-
-        {%- if states.sensor.motion_detected_person_date is not none
-               and states('sensor.motion_detected_person_date')|lower != 'unknown'
-               and states('sensor.motion_detected_person_date')|lower != 'null'
-               and states.sensor.motion_detected_person_ago is not none
-               and states('sensor.motion_detected_person_ago')|lower != 'unknown'
-               and states('sensor.motion_detected_person_ago')|lower != 'null' -%}
-          {%- if states('sensor.motion_detected_person_counter_today')|lower != 'unknown'
-                 and states('sensor.motion_detected_person_counter_today')|lower != 'null'
-                 and states('sensor.motion_detected_person_counter_today')|int <= 0 -%}
-            {{ 'mdi:account-box' }}
-          {%- elif (states('sensor.motion_detected_person_ago')|int / 3600)|int > 0 -%}
-            {{ 'mdi:account-multiple-remove' }}
-          {%- elif is_state('binary_sensor.motion_detected_person_ago_high_persistent','on') -%}
-            {{ 'mdi:account-multiple-minus' }}
-          {%- elif is_state('binary_sensor.motion_detected_person_ago_high','on') -%}
-            {{ 'mdi:account-minus' }}
-          {%- elif is_state('binary_sensor.motion_detected_person_ago_low_persistent','on') -%}
-            {{ 'mdi:account-multiple-plus' }}
-          {%- elif is_state('binary_sensor.motion_detected_person_ago_low','on') -%}
-            {{ 'mdi:account-plus' }}
-          {%- else -%}
-            {{ 'mdi:account' }}
-          {%- endif -%}
-        {%- else -%}
-          {{ 'mdi:account-clock' }}
-        {%- endif -%}
-
-- platform: template
-  sensors:
-    motion_person_activity_level:
-      friendly_name: 'Person activity'
-      icon_template: >-
-        {{ states('sensor.motion_person_activity_icon') }}
-      value_template: >-
-        {%- if states.sensor.motion_detected_person_date is not none
-               and states('sensor.motion_detected_person_date')|lower != 'unknown'
-               and states('sensor.motion_detected_person_date')|lower != 'null'
-               and states.sensor.motion_detected_person_ago is not none
-               and states('sensor.motion_detected_person_ago')|lower != 'unknown'
-               and states('sensor.motion_detected_person_ago')|lower != 'null' -%}
-          {%- if states('sensor.motion_detected_person_counter_today')|lower != 'unknown'
-                 and states('sensor.motion_detected_person_counter_today')|lower != 'null'
-                 and states('sensor.motion_detected_person_counter_today')|int <= 0 -%}
-            Nothing today
-          {%- elif (states('sensor.motion_detected_person_ago')|int / 3600)|int > 0 -%}
-            {%- set h = (states('sensor.motion_detected_person_ago')|int / 3600)|int -%}
-            None: {{ h -}}h
-          {%- elif is_state('binary_sensor.motion_detected_person_ago_high_persistent','on') -%}
-            Low
-          {%- elif is_state('binary_sensor.motion_detected_person_ago_high','on') -%}
-            Decreasing
-          {%- elif is_state('binary_sensor.motion_detected_person_ago_low_persistent','on') -%}
-            High
-          {%- elif is_state('binary_sensor.motion_detected_person_ago_low','on') -%}
-            Increasing
-          {%- else -%}
-            Nominal
-          {%- endif -%}
-        {%- else -%}
-          Pending
-        {%- endif -%}
-
 ## status
 - platform: template
   sensors:
     motion_detected_person_status:
-      friendly_name: PERSON
+      friendly_name: 'PERSON (👱)'
       icon_template: 'mdi:account'
       value_template: >-
         {% if is_state('binary_sensor.motion_detected_person','on') %}
@@ -506,7 +584,7 @@
           δ: {{ elapsed -}}s
         {% else %}
           {% set s = states.sensor.motion_detected_person_status.state %}
-          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
             {{ s }}
           {% else %}Pending{% endif %}
         {% endif %}
@@ -515,19 +593,19 @@
 - platform: template
   sensors:
     motion_detected_person_event:
-      friendly_name: Person event
+      friendly_name: '👱 event'
       value_template: >
-        {% if is_state('binary_sensor.motion_detected_person','on') and is_state('binary_sensor.motion_detected_person_old','off') %}
-          {% set s = states.sensor.motion_event_annotated.attributes.event %}
-          {% if s is not none and s is mapping %}
-            {% set p = s.event %}
+        {% if is_state('binary_sensor.motion_detected_person','on') %}
+          {% set s = states('sensor.motion_detected_event') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {% set p = s %}
           {% endif %}
         {% endif %}
         {% if p is defined %}
           {{ p }}
         {% else %}
           {% set s = states.sensor.motion_detected_person_event.state %}
-          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
             {{ s }}
           {% else %}null{% endif %}
         {% endif %}
@@ -535,63 +613,62 @@
 - platform: template
   sensors:
     motion_detected_person_device:
-      friendly_name: Person device
+      friendly_name: '👱 device'
       icon_template: 'mdi:raspberry-pi'
       value_template: >
-        {% if is_state('binary_sensor.motion_detected_person','on') and is_state('binary_sensor.motion_detected_person_old','off') %}
-          {% set s = states.sensor.motion_event_annotated.attributes.event %}
-          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s is mapping %}
-            {% set p = s.device %}
+        {% if is_state('binary_sensor.motion_detected_person','on') %}
+          {% set s = states('sensor.motion_detected_device') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {% set p = s %}
           {% endif %}
         {% endif %}
         {% if p is defined %}
           {{ p }}
         {% else %}
           {% set s = states.sensor.motion_detected_person_device.state %}
-          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
             {{ s }}
           {% else %}null{% endif %}
         {% endif %}
-
 
 - platform: template
   sensors:
     motion_detected_person_camera:
-      friendly_name: Person camera
+      friendly_name: '👱 camera'
       icon_template: 'mdi:account'
       value_template: >
-        {% if is_state('binary_sensor.motion_detected_person','on') and is_state('binary_sensor.motion_detected_person_old','off') %}
-          {% set s = states.sensor.motion_event_annotated.attributes.event %}
-          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s is mapping %}
-            {% set p = s.camera %}
+        {% if is_state('binary_sensor.motion_detected_person','on') %}
+          {% set s = states('sensor.motion_detected_camera') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {% set p = s %}
           {% endif %}
         {% endif %}
         {% if p is defined %}
           {{ p }}
-        {% else %}
+        {% elif is_state('binary_sensor.motion_detected_person_expired','off') %}
           {% set s = states.sensor.motion_detected_person_camera.state %}
-          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
             {{ s }}
           {% else %}null{% endif %}
-        {% endif %}
+        {% else %}null{% endif %}
 
 - platform: template
   sensors:
     motion_detected_person_elapsed:
-      friendly_name: Person elapsed
+      friendly_name: '👱 elapsed'
       icon_template: 'mdi:timer'
       value_template: >
-        {% if is_state('binary_sensor.motion_detected_person','on') and is_state('binary_sensor.motion_detected_person_old','off') %}
-          {% set s = states.sensor.motion_event_annotated.attributes.event %}
-          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s is mapping %}
-            {% set p = s.elapsed %}
+        {% if is_state('binary_sensor.motion_detected_person','on') %}
+          {% set s = states('sensor.motion_detected_elapsed') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {% set p = s %}
           {% endif %}
         {% endif %}
         {% if p is defined %}
           {{ p }}
         {% else %}
           {% set s = states.sensor.motion_detected_person_elapsed.state %}
-          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
             {{ s }}
           {% else %}null{% endif %}
         {% endif %}
@@ -599,37 +676,61 @@
 - platform: template
   sensors:
     motion_detected_person_date:
-      friendly_name: Person date
+      friendly_name: '👱 date'
       value_template: >
-        {% if is_state('binary_sensor.motion_detected_person','on') and is_state('binary_sensor.motion_detected_person_old','off') %}
-          {% set s = states.sensor.motion_event_annotated.attributes.event %}
-          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s is mapping %}
-            {% set p = s.end %}
+        {% if is_state('binary_sensor.motion_detected_person','on') %}
+          {% set s = states('sensor.motion_detected_date') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {% set p = s %}
           {% endif %}
         {% endif %}
         {% if p is defined %}
           {{ p }}
         {% else %}
           {% set s = states.sensor.motion_detected_person_date.state %}
-          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
             {{ s }}
           {% else %}null{% endif %}
         {% endif %}
 
 - platform: template
   sensors:
+    motion_detected_person_where:
+      friendly_name: '👱 where'
+      icon_template: 'mdi:map-marker'
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_person','on') %}
+          {% set s = states('sensor.motion_detected_person_camera') %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+            {% set p = s %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% else %}
+          {% set s = states('sensor.motion_detected_person_where') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {{ s }}
+          {% else %}Pending{% endif %}
+        {% endif %}
+
+- platform: template
+  sensors:
     motion_detected_person_when:
-      friendly_name: Person when
+      friendly_name: '👱 when'
       icon_template: 'mdi:calendar-clock'
       value_template: >
-        {% if states('sensor.motion_detected_person_date')|int > 0 %}
+        {% if is_state('binary_sensor.motion_detected_person','on') %}
           {% set s = states('sensor.motion_detected_person_date') %}
-          {% if s|int > 0 %}
-            {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}
-          {% else %}Pending{% endif %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+            {% set p = s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
         {% else %}
           {% set s = states('sensor.motion_detected_person_when') %}
-          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
             {{ s }}
           {% else %}Pending{% endif %}
         {% endif %}
@@ -639,19 +740,19 @@
 - platform: template
   sensors:
     motion_camera_detected_person_live:
-      friendly_name: Person camera live
+      friendly_name: '👱 camera live'
       value_template: >-
         {% set camera = states('sensor.motion_detected_person_camera') %}
-        {% if camera is not none and camera|lower != 'unavailable' and camera|lower != 'unknown' and camera != 'null' and camera|length > 0 %}
-          {% set ep = state_attr('camera.motion_live_' + camera,'entity_picture') %}
-          {% if ep is not none and ep|lower != 'unknown' and ep|lower != 'unavailable' and ep|length > 0 %}
+        {% if camera|lower != 'none' and camera|lower != 'unavailable' and camera|lower != 'unknown' and camera|lower != 'null' and camera|length > 0 %}
+          {% set ep = state_attr('camera.motion_' + camera + '_live','entity_picture') %}
+          {% if ep|lower != 'none' and ep|lower != 'unknown' and ep|lower != 'unavailable' and ep|length > 0 %}
             {% set bu = states('sensor.motion_base_url') %}
-            {% if bu is not none and bu|lower != 'unknown' and bu|lower != 'unavailable' and bu|length > 0 %}
+            {% if bu|lower != 'none' and bu|lower != 'unknown' and bu|lower != 'unavailable' and bu|length > 0 %}
               {% set p = bu + ep %}
             {% endif %}
           {% endif %}
         {% endif %}
-        {% if p is defined and p is not none and p|lower != 'unavailable' and p|lower != 'unknown' and p|length > 0 %}
+        {% if p is defined and p|lower != 'none' and p|lower != 'unavailable' and p|lower != 'unknown' and p|length > 0 %}
           {{ p }}
         {% else %}
           {{ states('sensor.motion_nosignal_animated') }}
@@ -661,36 +762,9 @@
 
 - platform: template
   sensors:
-    motion_detected_person:
-      icon_template: 'mdi:counter'
-      value_template: >-
-        {%- set options = state_attr('input_select.motion_detect_person','options') -%}
-        {%- if options|lower != 'none' and options|lower != 'unknown' and options is iterable -%}
-          {%- set array = state_attr('sensor.motion_event_annotated','results') -%}
-          {%- if array|lower != 'none' and array|lower != 'unknown' and array is iterable -%}
-            {%- set t = states('sensor.motion_detected_person_threshold') -%}
-            {%- if t|lower != 'none' and t|lower != 'unknown' and t|lower != 'null' -%}
-              {%- for results in array -%}
-                {%- if loop.first -%}[{%- else -%},{%- endif -%}
-                {%- set e = results.entity -%}
-                {%- if e|lower != 'none' and e|lower != 'unknown' and e|lower != 'null' -%}
-                  {%- set c = results.confidence -%}
-                  {%- if e in options and c|float >= t|float -%}
-                    1
-                  {%- else -%}
-                    0
-                  {%- endif -%}
-                {%- else -%}
-                  0
-                {%- endif -%}
-                {%- if loop.last -%}]{%- endif -%}
-              {%- endfor -%}
-            {%- else -%}null{%- endif -%}
-          {%- else -%}null{%- endif -%}
-        {%- else -%}null{%- endif -%}
     motion_detected_person_loop:
       value_template: >-
-        {%- if is_state('binary_sensor.motion_detected_person','on') and is_state('binary_sensor.motion_detected_person_old','off') -%}
+        {%- if is_state('binary_sensor.motion_detected_person','on') -%}
           {%- set options = state_attr('input_select.motion_detect_person','options') -%}
           {%- if options|lower != 'none' and options|lower != 'unknown' and options is iterable -%}
             {%- set array = state_attr('sensor.motion_event_annotated','results') -%}
@@ -727,9 +801,9 @@
         {%- endif -%}
     motion_detected_person_list:
       icon_template: 'mdi:account'
-      friendly_name: Person list
+      friendly_name: '👱 list'
       value_template: >-
-        {%- if is_state('binary_sensor.motion_detected_person','on') and is_state('binary_sensor.motion_detected_person_old','off') -%}
+        {%- if is_state('binary_sensor.motion_detected_person','on') -%}
           {%- set s = states('sensor.motion_detected_person_loop') -%}
           {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|length > 0 -%}
             {%- set s = s|from_json -%}
@@ -752,53 +826,98 @@
 - platform: template
   sensors:
     motion_detected_person_threshold:
-      friendly_name: 'Person threshold (β)'
+      friendly_name: '👱 threshold (β)'
       unit_of_measurement: 'β' 
       icon_template: 'mdi:beta'
       value_template: >-
-        {% if is_state('input_boolean.motion_detected_person_tune','off') %}
-          {{ states('input_number.motion_detected_person_percent')|int }}
-        {% else %}
-          {{ states('sensor.motion_detected_person_threshold_tune') }}
-        {% endif %}
+        {% set s = states('input_boolean.motion_detected_person_tune') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'unavailable' %}
+          {% if is_state('input_boolean.motion_detected_person_tune','off') %}
+            {% set s = states('input_number.motion_detected_person_percent') %}
+          {% else %}
+            {% set s = states('sensor.motion_detected_person_threshold_tune') %}
+          {% endif %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'unavailable' %}
+            {{ s|int }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
 
 - platform: template
   sensors:
     motion_detected_person_threshold_deviation:
-      friendly_name: 'Person β deviation'
+      friendly_name: '👱 β deviation'
       unit_of_measurement: 'βσ'
       icon_template: 'mdi:sigma-lower'
       value_template: >-
-        {% set p = states('input_number.motion_detected_person_percent_deviation')|float %}
-        {% if p is not none and p|lower != 'unknown' and p|lower != 'none' and p|lower != 'unavailable' %}
-          {{ states('input_number.motion_detected_person_percent_deviation')|float }}
+        {% set p = states('input_number.motion_detected_person_percent_deviation') %}
+        {% if p|lower != 'none' and p|lower != 'unknown' and p|lower != 'null' and p|lower != 'unavailable' %}
+          {{ p|float }}
         {% else %}null{% endif %}
  
 - platform: template
   sensors:
     motion_detected_person_threshold_tune:
-      friendly_name: 'Person auto-threshold'
+      friendly_name: '👱 auto-threshold'
       unit_of_measurement: 'β'
       icon_template: 'mdi:account'
       value_template: >-
-        {% set m = states('sensor.motion_detected_person_confidence_max_value')|float %}
-        {% set d = states('sensor.motion_detected_person_confidence_stdev')|float %}
-        {% set p = states('sensor.motion_detected_person_threshold_deviation')|float %}
-        {% set n = ( m - p * d )|float %}
-        {% set z = states('input_number.motion_detected_person_percent')|float %}
-        {% if n > z %}{{ n|int }}{% else %}{{ z|int }}{% endif %}
+        {% set m = states('sensor.motion_detected_person_confidence_max_value') %}
+        {% if m|lower != 'none' and m|lower != 'unknown' and m|lower != 'unavailable' and m|lower != 'null' %}
+          {% set d = states('sensor.motion_detected_person_confidence_stdev') %}
+          {% if d|lower != 'none' and d|lower != 'unknown' and d|lower != 'unavailable' and d|lower != 'null' %}
+            {% set p = states('sensor.motion_detected_person_threshold_deviation') %}
+            {% if p|lower != 'none' and p|lower != 'unknown' and p|lower != 'unavailable' and p|lower != 'null' %}
+              {% set z = states('input_number.motion_detected_person_percent') %}
+              {% if z|lower != 'none' and z|lower != 'unknown' and z|lower != 'unavailable' and z|lower != 'null' %}
+                {% set n = ( m|float - p|float * d|float )|float %}
+                {% if n > z|float %}
+                  {{ n|int }}
+                {% else %}
+                  {{ z|int }}
+                {% endif %}
+              {% else %}null{% endif %}
+            {% else %}null{% endif %}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
  
 ## count
 
 - platform: template
   sensors:
+    motion_detected_person_array:
+      value_template: >-
+        {%- set options = state_attr('input_select.motion_detect_person','options') -%}
+        {%- if options|lower != 'none' and options|lower != 'unknown' and options is iterable -%}
+          {%- set option = states('input_select.motion_detect_person') -%}
+          {%- set array = state_attr('sensor.motion_event_annotated','results') -%}
+          {%- if array|lower != 'none' and array|lower != 'unknown' and array is iterable -%}
+            {%- set t = states('sensor.motion_detected_person_threshold') -%}
+            {%- if t|lower != 'none' and t|lower != 'unknown' and t|lower != 'null' -%}
+              {%- for results in array -%}
+                {%- if loop.first -%}[{%- else -%},{%- endif -%}
+                {%- set e = results.entity -%}
+                {%- if e|lower != 'none' and e|lower != 'unknown' and e|lower != 'null' -%}
+                  {%- set c = results.confidence -%}
+                  {%- if ( option|string == 'all' or option|string == 'person' or e in options ) and c|float >= t|float -%}
+                    1
+                  {%- else -%}
+                    0
+                  {%- endif -%}
+                {%- else -%}
+                  0
+                {%- endif -%}
+                {%- if loop.last -%}]{%- endif -%}
+              {%- endfor -%}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
     motion_detected_person_count:
-      friendly_name: 'Person count (Σ)'
+      friendly_name: '👱 Count (Σ)'
       unit_of_measurement: '👱'
       icon_template: 'mdi:account'
       value_template: >
-        {% if is_state('binary_sensor.motion_detected_person','on') %}
-          {% set s = states('sensor.motion_detected_person') %}
+        {% if is_state('binary_sensor.motion_detected','on') %}
+          {% set s = states('sensor.motion_detected_person_array') %}
           {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|length > 0 %}
             {% set s = s|from_json %}
             {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s is iterable %}
@@ -818,14 +937,14 @@
 - platform: statistics
   name: motion_detected_person_count_statistics
   entity_id: sensor.motion_detected_person_count
-  sampling_size: 1000
+  sampling_size: 100
   max_age:
-    hours: 72
+    hours: 8
 
 - platform: template
   sensors:
     motion_detected_person_count_mean:
-      friendly_name: 'Person Σ μ'
+      friendly_name: '👱 Σ μ'
       unit_of_measurement: '👱'
       icon_template: 'mdi:account'
       value_template: >-
@@ -833,7 +952,7 @@
           {{ states('sensor.motion_detected_person_count_statistics')|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_person_count_min_value:
-      friendly_name: 'Person Σ min'
+      friendly_name: '👱 Σ min'
       unit_of_measurement: '👱'
       icon_template: 'mdi:account'
       value_template: >-
@@ -841,7 +960,7 @@
           {{ state_attr('sensor.motion_detected_person_count_statistics','min_value')|int }}
         {%- else -%}null{%- endif -%}
     motion_detected_person_count_max_value:
-      friendly_name: 'Person Σ max'
+      friendly_name: '👱 Σ max'
       unit_of_measurement: '👱'
       icon_template: 'mdi:account'
       value_template: >-
@@ -849,7 +968,7 @@
           {{ state_attr('sensor.motion_detected_person_count_statistics','max_value')|int }}
         {%- else -%}null{%- endif -%}
     motion_detected_person_count_stdev:
-      friendly_name: 'Person Σ σ'
+      friendly_name: '👱 Σ σ'
       unit_of_measurement: '👱'
       icon_template: 'mdi:account'
       value_template: >
@@ -857,7 +976,7 @@
           {{ state_attr('sensor.motion_detected_person_count_statistics','standard_deviation')|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_person_count_change:
-      friendly_name: 'Person Σ Δ'
+      friendly_name: '👱 Σ Δ'
       unit_of_measurement: '👱'
       icon_template: 'mdi:account'
       value_template: >
@@ -868,28 +987,28 @@
 - platform: statistics
   name: motion_detected_person_count_stdev_statistics
   entity_id: sensor.motion_detected_person_count_stdev
-  sampling_size: 1000
+  sampling_size: 100
   max_age:
-    hours: 72
+    hours: 24
 
 - platform: template
   sensors:
     motion_detected_person_count_stdev_mean:
-      friendly_name: 'Person Σ σ μ'
+      friendly_name: '👱 Σ σ μ'
       unit_of_measurement: '👱'
       value_template: >
         {% if states.sensor.motion_detected_person_count_stdev_statistics|lower != 'none' %}
           {{ states('sensor.motion_detected_person_count_stdev_statistics')|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_person_count_stdev_change:
-      friendly_name: 'Person Σ σ Δ'
+      friendly_name: '👱 Σ σ Δ'
       unit_of_measurement: '👱'
       value_template: >
         {% if states.sensor.motion_detected_person_count_stdev_statistics|lower != 'none' %}
           {{ state_attr('sensor.motion_detected_person_count_stdev_statistics','change')|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_person_count_stdev_stdev:
-      friendly_name: 'Person Σ σ σ'
+      friendly_name: '👱 Σ σ σ'
       unit_of_measurement: '👱'
       value_template: >
         {% if states.sensor.motion_detected_person_count_stdev_statistics|lower != 'none' %}
@@ -899,28 +1018,28 @@
 - platform: statistics
   name: motion_detected_person_count_change_statistics
   entity_id: sensor.motion_detected_person_count_change
-  sampling_size: 1000
+  sampling_size: 100
   max_age:
-    hours: 72
+    hours: 24
 
 - platform: template
   sensors:
     motion_detected_person_count_change_mean:
-      friendly_name: 'Person Σ Δ μ'
+      friendly_name: '👱 Σ Δ μ'
       unit_of_measurement: '👱'
       value_template: >
         {% if states.sensor.motion_detected_person_count_change_statistics|lower != 'none' %}
           {{ states('sensor.motion_detected_person_count_change_statistics')|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_person_count_change_stdev:
-      friendly_name: 'Person Σ Δ σ'
+      friendly_name: '👱 Σ Δ σ'
       unit_of_measurement: '👱'
       value_template: >
         {% if states.sensor.motion_detected_person_count_change_statistics|lower != 'none' %}
           {{ state_attr('sensor.motion_detected_person_count_change_statistics','standard_deviation')|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_person_count_change_change:
-      friendly_name: 'Person Σ Δ Δ'
+      friendly_name: '👱 Σ Δ Δ'
       unit_of_measurement: '👱'
       value_template: >
         {% if states.sensor.motion_detected_person_count_change_statistics|lower != 'none' %}
@@ -932,30 +1051,99 @@
 - platform: template
   sensors:
     motion_detected_person_confidence:
-      friendly_name: 'Person confidence (β)'
+      friendly_name: '👱 confidence (β)'
       icon_template: 'mdi:account'
       unit_of_measurement: 'β'
       value_template: >
-        {% if is_state('binary_sensor.motion_detected','on') and is_state('binary_sensor.motion_detected_person_old','off') %}
-          {% set s = state_attr('sensor.motion_event_annotated','results') %}
-          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|length > 0 %}
-            {% set options = state_attr('input_select.motion_detect_person','options') %}
-            {% if options is not none and options|lower != 'unknown' and options|length > 0 %}
-              {% set l = s|selectattr('entity','in',options)|map(attribute='confidence')|list %}
-              {% if l is not none and l|length > 0 %}
-                {% set p = s|selectattr('entity','in',options)|map(attribute='confidence')|max|int %}
+        {% if is_state('binary_sensor.motion_detected','on') %}
+          {% set results = state_attr('sensor.motion_event_annotated','results') %}
+          {% if results|lower != 'none' and results|lower != 'unavailable' and results|lower != 'unknown' and results|length > 0 %}
+            {% set option = states('input_select.motion_detect_person') %}
+            {% if option|lower == 'all' or option|lower == 'person' %}
+              {% set options = state_attr('input_select.motion_detect_person','options') %}
+              {% if options|lower != 'none' and options|lower != 'unknown' and options|length > 0 %}
+                {% set l = results|selectattr('entity','in',options)|map(attribute='confidence')|list %}
               {% endif %}
+            {% else %}
+              {% set options = state_attr('input_select.motion_detect_person','options') %}
+              {% if options|lower != 'none' and options|lower != 'unknown' and options|length > 0 %}
+                {% set l = results|selectattr('entity','==',option)|map(attribute='confidence')|list %}
+              {% endif %}
+            {% endif %}
+            {% if l|lower != 'none' and l|length > 0 %}
+              {% set p = l|max|int %}
             {% endif %}
           {% endif %}
         {% endif %}
         {% if p is defined %}
           {{ p }}
-        {% else %}
+        {%- elif is_state('binary_sensor.motion_detected_person_expired','off') -%}
           {% set s = states.sensor.motion_detected_person_confidence.state %}
-          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+    motion_detected_person_confidence_confirmed:
+      friendly_name: '👱✅ (β)'
+      icon_template: 'mdi:account'
+      unit_of_measurement: 'β'
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_person','on') %}
+          {% set s = states('sensor.motion_detected_person_confidence') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {% set p = s|int %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% else %}
+          {% set s = states.sensor.motion_detected_person_confidence_confirmed.state %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
             {{ s }}
           {% else %}null{% endif %}
         {% endif %}
+
+- platform: statistics
+  name: motion_detected_person_confidence_confirmed_statistics
+  entity_id: sensor.motion_detected_person_confidence_confirmed
+  sampling_size: 1000
+  max_age:
+    hours: 72
+
+- platform: template
+  sensors:
+    motion_detected_person_confidence_confirmed_mean:
+      friendly_name: '👱✅ β μ'
+      icon_template: 'mdi:account'
+      unit_of_measurement: 'β'
+      value_template: >-
+        {% if states('sensor.motion_detected_person_confidence_confirmed_statistics') != 'unknown' %}
+          {{ states('sensor.motion_detected_person_confidence_confirmed_statistics')|float }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_person_confidence_confirmed_min_value:
+      friendly_name: '👱✅ β min'
+      unit_of_measurement: 'β'
+      icon_template: 'mdi:account'
+      value_template: >-
+        {% if states('sensor.motion_detected_person_confidence_statistics') != 'unknown' %}
+          {{ state_attr('sensor.motion_detected_person_confidence_statistics','min_value')|int }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_person_confidence_confirmed_max_value:
+      friendly_name: '👱✅ β max'
+      unit_of_measurement: 'β'
+      icon_template: 'mdi:account'
+      value_template: >-
+        {% if states('sensor.motion_detected_person_confidence_statistics') != 'unknown' %}
+          {{ state_attr('sensor.motion_detected_person_confidence_statistics','max_value')|int }}
+        {%- else -%}null{%- endif -%}
+    motion_detected_person_confidence_confirmed_stdev:
+      friendly_name: '👱✅ β σ'
+      unit_of_measurement: 'β'
+      icon_template: 'mdi:account'
+      value_template: >
+        {% if states('sensor.motion_detected_person_confidence_confirmed_statistics') != 'unknown' %}
+          {{ state_attr('sensor.motion_detected_person_confidence_confirmed_statistics','standard_deviation')|float }}
+        {%- else -%}null{%- endif -%}
 
 - platform: statistics
   name: motion_detected_person_confidence_statistics
@@ -967,7 +1155,7 @@
 - platform: template
   sensors:
     motion_detected_person_confidence_mean:
-      friendly_name: 'Person β μ'
+      friendly_name: '👱 β μ'
       icon_template: 'mdi:account'
       unit_of_measurement: 'β'
       value_template: >-
@@ -975,7 +1163,7 @@
           {{ states('sensor.motion_detected_person_confidence_statistics')|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_person_confidence_min_value:
-      friendly_name: 'Person β min'
+      friendly_name: '👱 β min'
       unit_of_measurement: 'β'
       icon_template: 'mdi:account'
       value_template: >-
@@ -983,7 +1171,7 @@
           {{ state_attr('sensor.motion_detected_person_confidence_statistics','min_value')|int }}
         {%- else -%}null{%- endif -%}
     motion_detected_person_confidence_max_value:
-      friendly_name: 'Person β max'
+      friendly_name: '👱 β max'
       unit_of_measurement: 'β'
       icon_template: 'mdi:account'
       value_template: >-
@@ -991,7 +1179,7 @@
           {{ state_attr('sensor.motion_detected_person_confidence_statistics','max_value')|int }}
         {%- else -%}null{%- endif -%}
     motion_detected_person_confidence_stdev:
-      friendly_name: 'Person β σ'
+      friendly_name: '👱 β σ'
       unit_of_measurement: 'β'
       icon_template: 'mdi:account'
       value_template: >
@@ -999,7 +1187,7 @@
           {{ state_attr('sensor.motion_detected_person_confidence_statistics','standard_deviation')|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_person_confidence_change:
-      friendly_name: 'Person β Δ'
+      friendly_name: '👱 β Δ'
       unit_of_measurement: 'β'
       icon_template: 'mdi:account'
       value_template: >
@@ -1017,21 +1205,21 @@
 - platform: template
   sensors:
     motion_detected_person_confidence_stdev_mean:
-      friendly_name: 'Person β σ μ'
+      friendly_name: '👱 β σ μ'
       unit_of_measurement: 'β'
       value_template: >
         {% if states.sensor.motion_detected_person_confidence_stdev_statistics|lower != 'none' %}
           {{ states('sensor.motion_detected_person_confidence_stdev_statistics')|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_person_confidence_stdev_change:
-      friendly_name: 'Person β σ Δ'
+      friendly_name: '👱 β σ Δ'
       unit_of_measurement: 'β'
       value_template: >
         {% if states.sensor.motion_detected_person_confidence_stdev_statistics|lower != 'none' %}
           {{ state_attr('sensor.motion_detected_person_confidence_stdev_statistics','change')|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_person_confidence_stdev_stdev:
-      friendly_name: 'Person β σ σ'
+      friendly_name: '👱 β σ σ'
       unit_of_measurement: 'β'
       value_template: >
         {% if states.sensor.motion_detected_person_confidence_stdev_statistics|lower != 'none' %}
@@ -1048,21 +1236,21 @@
 - platform: template
   sensors:
     motion_detected_person_confidence_change_mean:
-      friendly_name: 'Person β Δ μ'
+      friendly_name: '👱 β Δ μ'
       unit_of_measurement: 'β'
       value_template: >
         {% if states.sensor.motion_detected_person_confidence_change_statistics|lower != 'none' %}
           {{ states('sensor.motion_detected_person_confidence_change_statistics')|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_person_confidence_change_stdev:
-      friendly_name: 'Person β Δ σ'
+      friendly_name: '👱 β Δ σ'
       unit_of_measurement: 'β'
       value_template: >
         {% if states.sensor.motion_detected_person_confidence_change_statistics|lower != 'none' %}
           {{ state_attr('sensor.motion_detected_person_confidence_change_statistics','standard_deviation')|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_person_confidence_change_change:
-      friendly_name: 'Person β Δ Δ'
+      friendly_name: '👱 β Δ Δ'
       unit_of_measurement: 'β'
       value_template: >
         {% if states.sensor.motion_detected_person_confidence_change_statistics|lower != 'none' %}
@@ -1074,7 +1262,7 @@
 - platform: template
   sensors:
     motion_detected_person_ago_relative:
-      friendly_name: 'Person ago relative'
+      friendly_name: '👱 ago'
       icon_template: 'mdi:account'
       value_template: >
         {% set s = states('sensor.motion_detected_person_ago')|int %}
@@ -1101,9 +1289,9 @@
 - platform: template
   sensors:
     motion_detected_person_ago:
-      friendly_name: 'Person ago (⧖)'
+      friendly_name: '👱 ago (⧖)'
       icon_template: 'mdi:camera-timer'
-      unit_of_measurement: seconds
+      unit_of_measurement: 's'
       value_template: >
         {% set t = states('sensor.time') %}
         {% set s = states('sensor.motion_detected_person_date')|int %}
@@ -1115,43 +1303,119 @@
 - platform: statistics
   name: motion_detected_person_ago_statistics
   entity_id: sensor.motion_detected_person_ago
-  sampling_size: 1000
+  sampling_size: 100
   max_age:
-    hours: 72
+    hours: 8
+
+# 1m
+- platform: statistics
+  name: motion_detected_person_ago_1m
+  entity_id: sensor.motion_detected_person_ago
+  sampling_size: 20
+  max_age:
+    minutes: 1
+
+- platform: template
+  sensors:
+    motion_detected_person_ago_1m_mean:
+      friendly_name: '👱 ⧖ μ 1m'
+      icon_template: 'mdi:acago'
+      unit_of_measurement: 's'
+      value_template: >-
+        {% if states('sensor.motion_detected_person_ago_1m') != 'unknown' %}
+          {{ states('sensor.motion_detected_person_ago_1m')|float }}
+        {%- else -%}null{%- endif -%}
+
+# 5m
+- platform: statistics
+  name: motion_detected_person_ago_5m
+  entity_id: sensor.motion_detected_person_ago
+  sampling_size: 100
+  max_age:
+    minutes: 5
+
+- platform: template
+  sensors:
+    motion_detected_person_ago_5m_mean:
+      friendly_name: '👱 ⧖ μ 5m'
+      icon_template: 'mdi:acago'
+      unit_of_measurement: 's'
+      value_template: >-
+        {% if states('sensor.motion_detected_person_ago_5m') != 'unknown' %}
+          {{ states('sensor.motion_detected_person_ago_5m')|float }}
+        {%- else -%}null{%- endif -%}
+
+# 15m
+- platform: statistics
+  name: motion_detected_person_ago_15m
+  entity_id: sensor.motion_detected_person_ago
+  sampling_size: 300
+  max_age:
+    minutes: 15
+
+- platform: template
+  sensors:
+    motion_detected_person_ago_15m_mean:
+      friendly_name: '👱 ⧖ μ 15m'
+      icon_template: 'mdi:acago'
+      unit_of_measurement: 's'
+      value_template: >-
+        {% if states('sensor.motion_detected_person_ago_15m') != 'unknown' %}
+          {{ states('sensor.motion_detected_person_ago_15m')|float }}
+        {%- else -%}null{%- endif -%}
+
+# 30m
+- platform: statistics
+  name: motion_detected_person_ago_30m
+  entity_id: sensor.motion_detected_person_ago
+  sampling_size: 600
+  max_age:
+    minutes: 30
+
+- platform: template
+  sensors:
+    motion_detected_person_ago_30m_mean:
+      friendly_name: '👱 ⧖ μ 30m'
+      icon_template: 'mdi:acago'
+      unit_of_measurement: 's'
+      value_template: >-
+        {% if states('sensor.motion_detected_person_ago_30m') != 'unknown' %}
+          {{ states('sensor.motion_detected_person_ago_30m')|float }}
+        {%- else -%}null{%- endif -%}
 
 - platform: template
   sensors:
     motion_detected_person_ago_mean:
-      friendly_name: 'Person ⧖ μ'
-      unit_of_measurement: seconds
+      friendly_name: '👱 ⧖ μ'
+      unit_of_measurement: 's'
       value_template: >-
         {% if states('sensor.motion_detected_person_ago_statistics') != 'unknown' %}
           {{ states('sensor.motion_detected_person_ago_statistics')|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_person_ago_min_value:
-      friendly_name: 'Person ⧖ min'
-      unit_of_measurement: seconds
+      friendly_name: '👱 ⧖ min'
+      unit_of_measurement: 's'
       value_template: >-
         {% if states('sensor.motion_detected_person_ago_statistics') != 'unknown' %}
           {{ state_attr('sensor.motion_detected_person_ago_statistics','min_value')|int }}
         {%- else -%}null{%- endif -%}
     motion_detected_person_ago_max_value:
-      friendly_name: 'Person ⧖ max'
-      unit_of_measurement: seconds
+      friendly_name: '👱 ⧖ max'
+      unit_of_measurement: 's'
       value_template: >-
         {% if states('sensor.motion_detected_person_ago_statistics') != 'unknown' %}
           {{ state_attr('sensor.motion_detected_person_ago_statistics','max_value')|int }}
         {%- else -%}null{%- endif -%}
     motion_detected_person_ago_stdev:
-      friendly_name: 'Person ⧖ σ'
-      unit_of_measurement: seconds
+      friendly_name: '👱 ⧖ σ'
+      unit_of_measurement: 's'
       value_template: >
         {% if states('sensor.motion_detected_person_ago_statistics') != 'unknown' %}
           {{ state_attr('sensor.motion_detected_person_ago_statistics','standard_deviation')|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_person_ago_change:
-      friendly_name: 'Person ⧖ Δ'
-      unit_of_measurement: seconds
+      friendly_name: '👱 ⧖ Δ'
+      unit_of_measurement: 's'
       value_template: >
         {% if states('sensor.motion_detected_person_ago_statistics') != 'unknown' %}
           {{ state_attr('sensor.motion_detected_person_ago_statistics','change')|float }}
@@ -1160,29 +1424,29 @@
 - platform: statistics
   name: motion_detected_person_ago_stdev_statistics
   entity_id: sensor.motion_detected_person_ago_stdev
-  sampling_size: 1000
+  sampling_size: 100
   max_age:
-    hours: 72
+    hours: 24
 
 - platform: template
   sensors:
     motion_detected_person_ago_stdev_mean:
-      friendly_name: 'Person ⧖ σ μ'
-      unit_of_measurement: seconds
+      friendly_name: '👱 ⧖ σ μ'
+      unit_of_measurement: 's'
       value_template: >
         {% if states.sensor.motion_detected_person_ago_stdev_statistics|lower != 'none' %}
           {{ states('sensor.motion_detected_person_ago_stdev_statistics')|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_person_ago_stdev_change:
-      friendly_name: 'Person ⧖ σ Δ'
-      unit_of_measurement: seconds
+      friendly_name: '👱 ⧖ σ Δ'
+      unit_of_measurement: 's'
       value_template: >
         {% if states.sensor.motion_detected_person_ago_stdev_statistics|lower != 'none' %}
           {{ state_attr('sensor.motion_detected_person_ago_stdev_statistics','change')|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_person_ago_stdev_stdev:
-      friendly_name: 'Person ⧖ σ σ'
-      unit_of_measurement: seconds
+      friendly_name: '👱 ⧖ σ σ'
+      unit_of_measurement: 's'
       value_template: >
         {% if states.sensor.motion_detected_person_ago_stdev_statistics|lower != 'none' %}
           {{ state_attr('sensor.motion_detected_person_ago_stdev_statistics','standard_deviation')|float }}
@@ -1191,156 +1455,30 @@
 - platform: statistics
   name: motion_detected_person_ago_change_statistics
   entity_id: sensor.motion_detected_person_ago_change
-  sampling_size: 1000
+  sampling_size: 100
   max_age:
-    hours: 72
+    hours: 24
 
 - platform: template
   sensors:
     motion_detected_person_ago_change_mean:
-      friendly_name: 'Person ⧖ Δ μ'
-      unit_of_measurement: seconds
+      friendly_name: '👱 ⧖ Δ μ'
+      unit_of_measurement: 's'
       value_template: >
         {% if states.sensor.motion_detected_person_ago_change_statistics|lower != 'none' %}
           {{ states('sensor.motion_detected_person_ago_change_statistics')|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_person_ago_change_stdev:
-      friendly_name: 'Person ⧖ Δ σ'
-      unit_of_measurement: seconds
+      friendly_name: '👱 ⧖ Δ σ'
+      unit_of_measurement: 's'
       value_template: >
         {% if states.sensor.motion_detected_person_ago_change_statistics|lower != 'none' %}
           {{ state_attr('sensor.motion_detected_person_ago_change_statistics','standard_deviation')|float }}
         {%- else -%}null{%- endif -%}
     motion_detected_person_ago_change_change:
-      friendly_name: 'Person ⧖ Δ Δ'
-      unit_of_measurement: seconds
+      friendly_name: '👱 ⧖ Δ Δ'
+      unit_of_measurement: 's'
       value_template: >
         {% if states.sensor.motion_detected_person_ago_change_statistics|lower != 'none' %}
           {{ state_attr('sensor.motion_detected_person_ago_change_statistics','change')|float }}
         {%- else -%}null{%- endif -%}
-
-## today
-
-- platform: history_stats
-  name: motion_today_person_ratio
-  entity_id: binary_sensor.motion_detected_person
-  state: 'on'
-  type: ratio
-  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
-  end: '{{ now() }}'
-
-- platform: history_stats
-  name: motion_today_person_counter
-  entity_id: binary_sensor.motion_detected_person
-  state: 'on'
-  type: count
-  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
-  end: '{{ now() }}'
-
-- platform: history_stats
-  name: motion_today_person_time
-  entity_id: binary_sensor.motion_detected_person
-  state: 'on'
-  type: time
-  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
-  end: '{{ now() }}'
-
-
-- platform: template
-  sensors:
-    motion_detected_person_ratio_today:
-      friendly_name: Today person ratio
-      unit_of_measurement: '%'
-      icon_template: 'mdi:percent'
-      value_template: >
-        {{ states('sensor.motion_today_person_ratio') }}
-
-- platform: template
-  sensors:
-    motion_detected_person_counter_today:
-      friendly_name: Today person counter
-      unit_of_measurement: '👱'
-      icon_template: 'mdi:counter'
-      value_template: >-
-        {{ states('sensor.motion_today_person_counter')|int }}
-
-- platform: template
-  sensors:
-    motion_detected_person_time_today:
-      friendly_name: Today person time
-      unit_of_measurement: 'hours'
-      icon_template: 'mdi:timer-outline'
-      value_template: >
-        {{ states('sensor.motion_today_person_time')|float }}
-
-- platform: template
-  sensors:
-    motion_detected_person_status_today:
-      friendly_name: Today person
-      icon_template: 'mdi:account'
-      value_template: >-
-        {% set c = states('sensor.motion_detected_person_counter_today') %}
-        {% set r = states('sensor.motion_detected_person_ratio_today') %}
-        {% set t = states('sensor.motion_detected_person_time_today') %}
-        {% if c|lower != 'unknown' and r|lower != 'unknown' and t|lower != 'unknown' %}
-          {{ c -}}; {{ t }} hours; {{ r }}%
-        {% else %}No persons detected today{% endif %}
-
-## activity 
-
-# begin when
-- platform: template
-  sensors:
-    motion_detected_person_activity_begin_when:
-      friendly_name: Activity begin
-      icon_template: 'mdi:calendar-clock'
-      value_template: >
-        {% if is_state('binary_sensor.motion_detected_person_activity_begin','on') %}
-          {% set s = now().timestamp()|int %}
-          {% if s|int > 0 %}
-            {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}
-          {% else %}Pending{% endif %}
-        {% else %}
-          {% set s = states('sensor.motion_detected_person_activity_begin_when') %}
-          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
-            {{ s }}
-          {% else %}null{% endif %}
-        {% endif %}
-
-# activity end when
-- platform: template
-  sensors:
-    motion_detected_person_activity_end_when:
-      friendly_name: Activity end
-      icon_template: 'mdi:calendar-clock'
-      value_template: >
-        {% if is_state('binary_sensor.motion_detected_person_activity_end','on') %}
-          {% set s = now().timestamp()|int %}
-          {% if s|int > 0 %}
-            {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}
-          {% else %}Pending{% endif %}
-        {% else %}
-          {% set s = states('sensor.motion_detected_person_activity_end_when') %}
-          {% if s is not none and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
-            {{ s }}
-          {% else %}null{% endif %}
-        {% endif %}
-
-- platform: template
-  sensors:
-    motion_detected_person_api:
-      friendly_name: 'Person API'
-      icon_template: 'mdi:account'
-      value_template: >-
-        {% set d = 'http://127.0.0.1:7999' %}
-        {% set c = states('sensor.motion_detected_person_camera') %}
-        {% set s = state_attr('sensor.motion_addon_config','config') %}
-        {% if s|lower != 'null' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' and s is mapping %}
-          {% set s = s.cameras|selectattr("name","==",c)|list %}
-          {% if s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' and s|length > 0 %}
-            {% set s = s|map(attribute="addon_api")|first %}
-            {% if s|lower != 'null' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' and s|length > 0 %}
-              {{ s }}
-            {% else %}{{ d }}{% endif %}
-          {% else %}{{ d }}{% endif %}
-        {% else %}{{ d }}{% endif %}

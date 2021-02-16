@@ -10,9 +10,9 @@ WEBCAMS=$(jq -r '.[].name' ${1:-webcams.json})
 
 ## SENSORS
 if [ "${UNLIMITED_BUILD:-null}" != 'true' ]; then
-  WEBCAM_SENSORS='motion_annotated_ago motion_annotated_counter motion_annotated_percent motion_detected_ago motion_detected_counter motion_detected_entity_ago motion_detected_entity_counter'
+  WEBCAM_SENSORS='annotated_ago annotated_counter annotated_percent detected_ago detected_counter detected_entity_ago detected_entity_counter'
 else
-  WEBCAM_SENSORS='motion_annotated_percent motion_detected_ago motion_detected_percent motion_detected_entity_ago motion_detected_entity_percent'
+  WEBCAM_SENSORS='annotated_percent detected_ago detected_percent detected_entity_ago detected_entity_percent'
 fi
 
 echo "###"
@@ -23,62 +23,62 @@ echo ""
 
 for WID in ${WEBCAM_SENSORS}; do
   echo "#"
-  echo "${WID}:"
-  echo "  name: ${WID}"
+  echo "motion_${WID}:"
+  echo "  name: motion_${WID}"
   echo "  entities:"
   for C in ${WEBCAMS}; do
-    echo "    - sensor.${WID}_${C}"
+    echo "    - sensor.motion_${C}_${WID}"
   done
 done
 
 ## BINARY_SENSORS
 if [ "${UNLIMITED_BUILD:-null}" != 'true' ]; then
-  WEBCAM_BINARY_SENSORS='motion_status_camera motion_end motion_annotated motion_detected motion_detected_entity'
+  WEBCAM_BINARY_SENSORS='status_camera end annotated detected detected_entity'
 else
-  WEBCAM_BINARY_SENSORS='motion_status_camera motion_detected motion_detected_entity motion_face_detected motion_alpr_detected'
+  WEBCAM_BINARY_SENSORS='status_camera detected detected_entity face_detected alpr_detected'
 fi
 
 for WID in ${WEBCAM_BINARY_SENSORS}; do
   echo "#"
-  echo "${WID}:"
-  echo "  name: ${WID}"
+  echo "motion_${WID}:"
+  echo "  name: motion_${WID}"
   echo "  all: true"
   echo "  entities:"
   for C in ${WEBCAMS}; do
-    echo "    - binary_sensor.${WID}_${C}"
+    echo "    - binary_sensor.motion_${C}_${WID}"
   done
 done
 
 ## SNAPSHOTS
 if [ "${UNLIMITED_BUILD:-null}" != 'true' ]; then
-  WEBCAM_SNAPSHOTS='motion_end motion_annotated motion_detected motion_detected_entity'
+  WEBCAM_SNAPSHOTS='end annotated detected detected_entity'
 else
-  WEBCAM_SNAPSHOTS='motion_detected motion_detected_entity motion_face_detected motion_alpr_detected'
+  WEBCAM_SNAPSHOTS='detected detected_entity face_detected alpr_detected'
 fi
 
-for WID in ${WEBCAM_SNAPSHOTS}; do
-  echo "#"
-  echo "${WID}_webcams:"
-  echo "  name: ${WID}_webcams"
-  echo "  entities:"
-  for C in ${WEBCAMS}; do
-    echo "    - camera.${WID}_snapshot_${C}"
-  done
-done
+#for WID in ${WEBCAM_SNAPSHOTS}; do
+#  echo "#"
+#  echo "motion${WID}_webcams:"
+#  echo "  name: motion_${WID}_webcams"
+#  echo "  entities:"
+#  for C in ${WEBCAMS}; do
+#    echo "    - camera.motion_${WID}_${C}_snapshot"
+#  done
+#done
 
 ## CAMERAS
 if [ "${UNLIMITED_BUILD:-null}" != 'true' ]; then
-  WEBCAM_CAMERAS='motion_event_animated motion_live'
+  WEBCAM_CAMERAS='event_animated live'
 else
-  WEBCAM_CAMERAS='motion_live'
+  WEBCAM_CAMERAS='live'
 fi
 
 for WID in ${WEBCAM_CAMERAS}; do
   echo "#"
-  echo "${WID}_webcams:"
-  echo "  name: ${WID}_webcams"
+  echo "motion_${WID}_webcams:"
+  echo "  name: motion_${WID}_webcams"
   echo "  entities:"
   for C in ${WEBCAMS}; do
-    echo "    - camera.${WID}_${C}"
+    echo "    - camera.motion_${C}_${WID}"
   done
 done

@@ -6,7 +6,7 @@
   sensors:
     motion_detected_vehicle_old:
       value_template: >-
-        {{ as_timestamp(states.binary_sensor.motion_detected_vehicle.last_updated) < as_timestamp(states.sensor.motion_event_annotated.last_updated) }}
+        {{ as_timestamp(states.binary_sensor.motion_detected_vehicle.last_updated) < as_timestamp(states.binary_sensor.motion_detected.last_updated) }}
 
 - platform: template
   sensors:
@@ -19,37 +19,23 @@
 - platform: template
   sensors:
     motion_detected_vehicle:
-      friendly_name: Vehicle detected
-      icon_template: 'mdi:car'
-      value_template: >-
-        {% if is_state('input_boolean.motion_detected_vehicle_tune','off') %}
-          {% set s = states('sensor.motion_detected_vehicle') %}
-          {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|length > 0 %}
-            {% set s = s|from_json %}
-            {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s is iterable %}
-              {{ s|sum|int > 0 }}
-            {% else %}false{% endif %}
-          {% else %}false{% endif %}
-        {% else %}
-          {{ states('binary_sensor.motion_vehicle_detected') }}
-        {% endif %}
-
-- platform: template
-  sensors:
-    motion_vehicle_detected:
-      friendly_name: Vehicle found
+      friendly_name: '🚗 detected'
       icon_template: 'mdi:car'
       value_template: >-
         {% set results = state_attr('sensor.motion_event_annotated','results') %}
-        {% if results is not none and results|lower != 'unavailable' and results|lower != 'unknown' and results|length > 0 %}
-          {% set options = state_attr('input_select.motion_detect_vehicle','options') %}
-          {% if options is not none and options|lower != 'unavailable' and options|lower != 'unknown' and options|length > 0 %}
-            {% if results|selectattr('entity','in',options)|map(attribute='confidence')|list|length > 0 %}
-              {% set c = results|selectattr('entity','in',options)|map(attribute='confidence')|max %}
-              {% if c is not none and c|lower != 'unknown' and c|float > 0 %}
-                {{ c|float >= states('sensor.motion_detected_vehicle_threshold_tune')|float }}
-              {% else %}false{% endif %}
-            {% else %}false{% endif %}
+        {% if results|lower != 'none' and results|lower != 'unavailable' and results|lower != 'unknown' and results|lower != 'null' and results|length > 0 %}
+          {% set option = states('input_select.motion_detect_vehicle') %}
+          {% if option|lower == 'all' or option|lower == 'vehicle' %}
+            {% set options = state_attr('input_select.motion_detect_vehicle','options') %}
+            {% if options|lower != 'none' and options|lower != 'unknown' and options|length > 0 %}
+              {% set l = results|selectattr('entity','in',options)|map(attribute='confidence')|list %}
+            {% endif %}
+          {% else %}
+            {% set l = results|selectattr('entity','==',option)|map(attribute='confidence')|list %}
+          {% endif %}
+          {% if l is defined and l is iterable and l|length > 0 %}
+            {% set p = l|list|max|int %}
+            {{ p >= states('sensor.motion_detected_vehicle_threshold')|int }}
           {% else %}false{% endif %}
         {% else %}false{% endif %}
 
@@ -74,10 +60,10 @@
         {%- set pa = states('sensor.motion_detected_vehicle_ago') -%}
         {%- set pam = states('sensor.motion_detected_vehicle_ago_mean') -%}
         {%- set pas = states('sensor.motion_detected_vehicle_ago_stdev') -%}
-        {% if pa is not none and pa|lower != 'null' and pa|lower != 'unavailable' and pa|lower != 'unknown'
-          and pam is not none and pam|lower != 'null' and pam|lower != 'unavailable' and pam|lower != 'unknown'
+        {% if pa|lower != 'none' and pa|lower != 'null' and pa|lower != 'unavailable' and pa|lower != 'unknown'
+          and pam|lower != 'none' and pam|lower != 'null' and pam|lower != 'unavailable' and pam|lower != 'unknown'
           and pas|lower != 'none' and pas|lower != 'null' and pas|lower != 'unavailable' and pas|lower != 'unknown' and pas|float > 0.0
-          and pad is not none and pad|lower != 'null' and pad|lower != 'unavailable' and pad|lower != 'unknown' %}
+          and pad|lower != 'none' and pad|lower != 'null' and pad|lower != 'unavailable' and pad|lower != 'unknown' %}
           {{ ((pam|float - pa|float) / pas|float) >= pad|float }}
         {%- else -%}null{%- endif %}
 
@@ -92,11 +78,11 @@
         {%- set pam = states('sensor.motion_detected_vehicle_ago_mean') -%}
         {%- set pas = states('sensor.motion_detected_vehicle_ago_stdev') -%}
         {%- set pasm = states('sensor.motion_detected_vehicle_ago_stdev_mean') -%}
-        {% if pa is not none and pa|lower != 'null' and pa|lower != 'unavailable' and pa|lower != 'unknown'
-          and pam is not none and pam|lower != 'null' and pam|lower != 'unavailable' and pam|lower != 'unknown'
+        {% if pa|lower != 'none' and pa|lower != 'null' and pa|lower != 'unavailable' and pa|lower != 'unknown'
+          and pam|lower != 'none' and pam|lower != 'null' and pam|lower != 'unavailable' and pam|lower != 'unknown'
           and pas|lower != 'none' and pas|lower != 'null' and pas|lower != 'unavailable' and pas|lower != 'unknown' and pas|float > 0.0
           and pasm|lower != 'none' and pasm|lower != 'null' and pasm|lower != 'unavailable' and pasm|lower != 'unknown' and pasm|float > 0.0
-          and pad is not none and pad|lower != 'null' and pad|lower != 'unavailable' and pad|lower != 'unknown' %}
+          and pad|lower != 'none' and pad|lower != 'null' and pad|lower != 'unavailable' and pad|lower != 'unknown' %}
           {{ ((pam|float - pa|float) / pasm|float) >= pad|float }}
         {%- else -%}null{%- endif %}
 
@@ -110,10 +96,10 @@
         {%- set pa = states('sensor.motion_detected_vehicle_ago') -%}
         {%- set pam = states('sensor.motion_detected_vehicle_ago_mean') -%}
         {%- set pas = states('sensor.motion_detected_vehicle_ago_stdev') -%}
-        {% if pa is not none and pa|lower != 'null' and pa|lower != 'unavailable' and pa|lower != 'unknown'
-          and pam is not none and pam|lower != 'null' and pam|lower != 'unavailable' and pam|lower != 'unknown'
+        {% if pa|lower != 'none' and pa|lower != 'null' and pa|lower != 'unavailable' and pa|lower != 'unknown'
+          and pam|lower != 'none' and pam|lower != 'null' and pam|lower != 'unavailable' and pam|lower != 'unknown'
           and pas|lower != 'none' and pas|lower != 'null' and pas|lower != 'unavailable' and pas|lower != 'unknown' and pas|float > 0.0
-          and pad is not none and pad|lower != 'null' and pad|lower != 'unavailable' and pad|lower != 'unknown' %}
+          and pad|lower != 'none' and pad|lower != 'null' and pad|lower != 'unavailable' and pad|lower != 'unknown' %}
           {{ ((pa|float - pam|float) / pas|float) >= pad|float }}
         {%- else -%}null{%- endif %}
 
@@ -128,11 +114,11 @@
         {%- set pam = states('sensor.motion_detected_vehicle_ago_mean') -%}
         {%- set pas = states('sensor.motion_detected_vehicle_ago_stdev') -%}
         {%- set pasm = states('sensor.motion_detected_vehicle_ago_stdev_mean') -%}
-        {% if pa is not none and pa|lower != 'null' and pa|lower != 'unavailable' and pa|lower != 'unknown'
-          and pam is not none and pam|lower != 'null' and pam|lower != 'unavailable' and pam|lower != 'unknown'
+        {% if pa|lower != 'none' and pa|lower != 'null' and pa|lower != 'unavailable' and pa|lower != 'unknown'
+          and pam|lower != 'none' and pam|lower != 'null' and pam|lower != 'unavailable' and pam|lower != 'unknown'
           and pas|lower != 'none' and pas|lower != 'null' and pas|lower != 'unavailable' and pas|lower != 'unknown' and pas|float > 0.0
           and pasm|lower != 'none' and pasm|lower != 'null' and pasm|lower != 'unavailable' and pasm|lower != 'unknown' and pasm|float > 0.0
-          and pad is not none and pad|lower != 'null' and pad|lower != 'unavailable' and pad|lower != 'unknown' %}
+          and pad|lower != 'none' and pad|lower != 'null' and pad|lower != 'unavailable' and pad|lower != 'unknown' %}
           {{ ((pa|float - pam|float) / pasm|float) >= pad|float }}
         {%- else -%}null{%- endif %}
 

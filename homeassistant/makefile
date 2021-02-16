@@ -6,6 +6,7 @@ THIS_HOSTIP ?= $(shell hostname -i | awk '{ print $$1 }')
 
 # logging
 LOGGER_DEFAULT ?= $(if $(wildcard LOGGER_DEFAULT),$(shell v=$$(cat LOGGER_DEFAULT) && echo "${TG}== LOGGER_DEFAULT: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="warn" && echo "${TB}** LOGGER_DEFAULT unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
+LOGGER_MQTT ?= $(if $(wildcard LOGGER_MQTT),$(shell v=$$(cat LOGGER_MQTT) && echo "${TG}== LOGGER_MQTT: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="warn" && echo "${TB}** LOGGER_MQTT unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
 LOGGER_AUTOMATION ?= $(if $(wildcard LOGGER_AUTOMATION),$(shell v=$$(cat LOGGER_AUTOMATION) && echo "${TG}== LOGGER_AUTOMATION: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="warn" && echo "${TB}** LOGGER_AUTOMATION unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
 
 # automation(s)
@@ -23,6 +24,8 @@ HOST_THEME ?= $(if $(wildcard HOST_THEME),$(shell v=$$(cat HOST_THEME) && echo "
 HOST_NETWORK ?= $(shell export HOST_IPADDR=$(HOST_IPADDR) && echo $${HOST_IPADDR%.*}.0)
 HOST_NETWORK_MASK ?= 24
 
+MOTION_ROUTER_NAME ?= $(if $(wildcard MOTION_ROUTER_NAME),$(shell v=$$(cat MOTION_ROUTER_NAME) && echo "${TG}== MOTION_ROUTER_NAME: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='mikrotik' && echo "${TB}** MOTION_ROUTER_NAME unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+
 # MQTT
 MQTT_HOST ?= $(if $(wildcard MQTT_HOST),$(shell v=$$(cat MQTT_HOST) && echo "${TG}== MQTT_HOST: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="$(HOST_IPADDR)" && echo "${TB}** MQTT_HOST unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
 MQTT_PORT ?= $(if $(wildcard MQTT_PORT),$(shell v=$$(cat MQTT_PORT) && echo "${TG}== MQTT_PORT: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="1883" && echo "${TB}** MQTT_PORT unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
@@ -39,7 +42,7 @@ MOTION_GROUP ?= $(if $(wildcard MOTION_GROUP),$(shell v=$$(cat MOTION_GROUP) && 
 MOTION_DEVICE ?= $(if $(wildcard MOTION_DEVICE),$(shell v=$$(cat MOTION_DEVICE) && echo "${TG}== MOTION_DEVICE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v=$$(hostname -s) && echo "${TB}** MOTION_DEVICE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_CLIENT ?= $(if $(wildcard MOTION_CLIENT),$(shell v=$$(cat MOTION_CLIENT) && echo "${TG}== MOTION_CLIENT: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='+' && echo "${TB}** MOTION_CLIENT unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_USER ?= $(if $(wildcard MOTION_USER),$(shell v=$$(cat MOTION_USER) && echo "${TG}== MOTION_USER: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v=$(shell whoami) && echo "${TB}** MOTION_USER unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
-MOTION_DETECT_ENTITY ?= $(if $(wildcard MOTION_DETECT_ENTITY),$(shell v=$$(cat MOTION_DETECT_ENTITY) && echo "${TG}== MOTION_DETECT_ENTITY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="person" && echo "${TB}** MOTION_DETECT_ENTITY unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_DETECT_ENTITY ?= $(if $(wildcard MOTION_DETECT_ENTITY),$(shell v=$$(cat MOTION_DETECT_ENTITY) && echo "${TG}== MOTION_DETECT_ENTITY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="all" && echo "${TB}** MOTION_DETECT_ENTITY unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_EXPIRE_AFTER ?= $(if $(wildcard MOTION_EXPIRE_AFTER),$(shell v=$$(cat MOTION_EXPIRE_AFTER) && echo "${TG}== MOTION_EXPIRE_AFTER: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="5" && echo "${TB}** MOTION_EXPIRE_AFTER unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_FORCE_UPDATE ?= $(if $(wildcard MOTION_FORCE_UPDATE),$(shell v=$$(cat MOTION_FORCE_UPDATE) && echo "${TG}== MOTION_FORCE_UPDATE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="false" && echo "${TB}** MOTION_FORCE_UPDATE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_MEDIA_SAVE ?= $(if $(wildcard MOTION_MEDIA_SAVE),$(shell v=$$(cat MOTION_MEDIA_SAVE) && echo "${TG}== MOTION_MEDIA_SAVE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="true" && echo "${TB}** MOTION_MEDIA_SAVE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
@@ -59,10 +62,22 @@ MOTION_OVERVIEW_MODE ?= $(if $(wildcard MOTION_OVERVIEW_MODE),$(shell v=$$(cat M
 MOTION_OVERVIEW_ZOOM ?= $(if $(wildcard MOTION_OVERVIEW_ZOOM),$(shell v=$$(cat MOTION_OVERVIEW_ZOOM) && echo "${TG}== MOTION_OVERVIEW_ZOOM: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="20" && echo "${TB}** MOTION_OVERVIEW_ZOOM unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_OVERVIEW_IMAGE ?= $(if $(wildcard MOTION_OVERVIEW_IMAGE),$(shell v=$$(cat MOTION_OVERVIEW_IMAGE) && echo "${TG}== MOTION_OVERVIEW_IMAGE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="overview.jpg" && echo "${TB}** MOTION_OVERVIEW_IMAGE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
 
+MOTION_DETECTED_ENTITY_NOTIFY ?= $(if $(wildcard MOTION_DETECTED_ENTITY_NOTIFY),$(shell v=$$(cat MOTION_DETECTED_ENTITY_NOTIFY) && echo "${TG}== MOTION_DETECTED_ENTITY_NOTIFY: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "${TB}** MOTION_DETECTED_ENTITY_NOTIFY unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_DETECTED_PERSON_NOTIFY ?= $(if $(wildcard MOTION_DETECTED_PERSON_NOTIFY),$(shell v=$$(cat MOTION_DETECTED_PERSON_NOTIFY) && echo "${TG}== MOTION_DETECTED_PERSON_NOTIFY: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "${TB}** MOTION_DETECTED_PERSON_NOTIFY unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_DETECTED_VEHICLE_NOTIFY ?= $(if $(wildcard MOTION_DETECTED_VEHICLE_NOTIFY),$(shell v=$$(cat MOTION_DETECTED_VEHICLE_NOTIFY) && echo "${TG}== MOTION_DETECTED_VEHICLE_NOTIFY: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "${TB}** MOTION_DETECTED_VEHICLE_NOTIFY unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_DETECTED_ANIMAL_NOTIFY ?= $(if $(wildcard MOTION_DETECTED_ANIMAL_NOTIFY),$(shell v=$$(cat MOTION_DETECTED_ANIMAL_NOTIFY) && echo "${TG}== MOTION_DETECTED_ANIMAL_NOTIFY: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "${TB}** MOTION_DETECTED_ANIMAL_NOTIFY unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+
+MOTION_DETECTED_ENTITY_SPEAK ?= $(if $(wildcard MOTION_DETECTED_ENTITY_SPEAK),$(shell v=$$(cat MOTION_DETECTED_ENTITY_SPEAK) && echo "${TG}== MOTION_DETECTED_ENTITY_SPEAK: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${TB}** MOTION_DETECTED_ENTITY_SPEAK unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_DETECTED_PERSON_SPEAK ?= $(if $(wildcard MOTION_DETECTED_PERSON_SPEAK),$(shell v=$$(cat MOTION_DETECTED_PERSON_SPEAK) && echo "${TG}== MOTION_DETECTED_PERSON_SPEAK: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${TB}** MOTION_DETECTED_PERSON_SPEAK unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_DETECTED_VEHICLE_SPEAK ?= $(if $(wildcard MOTION_DETECTED_VEHICLE_SPEAK),$(shell v=$$(cat MOTION_DETECTED_VEHICLE_SPEAK) && echo "${TG}== MOTION_DETECTED_VEHICLE_SPEAK: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${TB}** MOTION_DETECTED_VEHICLE_SPEAK unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_DETECTED_ANIMAL_SPEAK ?= $(if $(wildcard MOTION_DETECTED_ANIMAL_SPEAK),$(shell v=$$(cat MOTION_DETECTED_ANIMAL_SPEAK) && echo "${TG}== MOTION_DETECTED_ANIMAL_SPEAK: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${TB}** MOTION_DETECTED_ANIMAL_SPEAK unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+
+MOTION_DETECTED_ENTITY_TUNE ?= $(if $(wildcard MOTION_DETECTED_ENTITY_TUNE),$(shell v=$$(cat MOTION_DETECTED_ENTITY_TUNE) && echo "${TG}== MOTION_DETECTED_ENTITY_TUNE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${TB}** MOTION_DETECTED_ENTITY_TUNE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_DETECTED_PERSON_TUNE ?= $(if $(wildcard MOTION_DETECTED_PERSON_TUNE),$(shell v=$$(cat MOTION_DETECTED_PERSON_TUNE) && echo "${TG}== MOTION_DETECTED_PERSON_TUNE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${TB}** MOTION_DETECTED_PERSON_TUNE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_DETECTED_VEHICLE_TUNE ?= $(if $(wildcard MOTION_DETECTED_VEHICLE_TUNE),$(shell v=$$(cat MOTION_DETECTED_VEHICLE_TUNE) && echo "${TG}== MOTION_DETECTED_VEHICLE_TUNE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${TB}** MOTION_DETECTED_VEHICLE_TUNE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_DETECTED_ANIMAL_TUNE ?= $(if $(wildcard MOTION_DETECTED_ANIMAL_TUNE),$(shell v=$$(cat MOTION_DETECTED_ANIMAL_TUNE) && echo "${TG}== MOTION_DETECTED_ANIMAL_TUNE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${TB}** MOTION_DETECTED_ANIMAL_TUNE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
 
+MOTION_DETECTED_ENTITY_DEVIATION ?= $(if $(wildcard MOTION_DETECTED_ENTITY_DEVIATION),$(shell v=$$(cat MOTION_DETECTED_ENTITY_DEVIATION) && echo "${TG}== MOTION_DETECTED_ENTITY_DEVIATION: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='5.0' && echo "${TB}** MOTION_DETECTED_ENTITY_DEVIATION unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_DETECTED_PERSON_DEVIATION ?= $(if $(wildcard MOTION_DETECTED_PERSON_DEVIATION),$(shell v=$$(cat MOTION_DETECTED_PERSON_DEVIATION) && echo "${TG}== MOTION_DETECTED_PERSON_DEVIATION: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='5.0' && echo "${TB}** MOTION_DETECTED_PERSON_DEVIATION unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_DETECTED_VEHICLE_DEVIATION ?= $(if $(wildcard MOTION_DETECTED_VEHICLE_DEVIATION),$(shell v=$$(cat MOTION_DETECTED_VEHICLE_DEVIATION) && echo "${TG}== MOTION_DETECTED_VEHICLE_DEVIATION: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='5.0' && echo "${TB}** MOTION_DETECTED_VEHICLE_DEVIATION unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_DETECTED_ANIMAL_DEVIATION ?= $(if $(wildcard MOTION_DETECTED_ANIMAL_DEVIATION),$(shell v=$$(cat MOTION_DETECTED_ANIMAL_DEVIATION) && echo "${TG}== MOTION_DETECTED_ANIMAL_DEVIATION: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='5.0' && echo "${TB}** MOTION_DETECTED_ANIMAL_DEVIATION unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
@@ -71,6 +86,11 @@ MOTION_DETECTED_ANIMAL_DEVIATION ?= $(if $(wildcard MOTION_DETECTED_ANIMAL_DEVIA
 MOTION_ANNOTATED_AGO ?= $(if $(wildcard MOTION_ANNOTATED_AGO),$(shell v=$$(cat MOTION_ANNOTATED_AGO) && echo "${TG}== MOTION_ANNOTATED_AGO: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='30' && echo "${TB}** MOTION_ANNOTATED_AGO unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_DETECTED_AGO ?= $(if $(wildcard MOTION_DETECTED_AGO),$(shell v=$$(cat MOTION_DETECTED_AGO) && echo "${TG}== MOTION_DETECTED_AGO: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='30' && echo "${TB}** MOTION_DETECTED_AGO unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_DETECTED_ENTITY_AGO ?= $(if $(wildcard MOTION_DETECTED_ENTITY_AGO),$(shell v=$$(cat MOTION_DETECTED_ENTITY_AGO) && echo "${TG}== MOTION_DETECTED_ENTITY_AGO: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='30' && echo "${TB}** MOTION_DETECTED_ENTITY_AGO unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
+
+MOTION_DETECTED_ENTITY_AGO ?= $(if $(wildcard MOTION_DETECTED_ENTITY_AGO),$(shell v=$$(cat MOTION_DETECTED_ENTITY_AGO) && echo "${TG}== MOTION_DETECTED_ENTITY_AGO: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='300' && echo "${TB}** MOTION_DETECTED_ENTITY_AGO unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_DETECTED_PERSON_AGO ?= $(if $(wildcard MOTION_DETECTED_PERSON_AGO),$(shell v=$$(cat MOTION_DETECTED_PERSON_AGO) && echo "${TG}== MOTION_DETECTED_PERSON_AGO: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='300' && echo "${TB}** MOTION_DETECTED_PERSON_AGO unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_DETECTED_VEHICLE_AGO ?= $(if $(wildcard MOTION_DETECTED_VEHICLE_AGO),$(shell v=$$(cat MOTION_DETECTED_VEHICLE_AGO) && echo "${TG}== MOTION_DETECTED_VEHICLE_AGO: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='30' && echo "${TB}** MOTION_DETECTED_VEHICLE_AGO unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_DETECTED_ANIMAL_AGO ?= $(if $(wildcard MOTION_DETECTED_ANIMAL_AGO),$(shell v=$$(cat MOTION_DETECTED_ANIMAL_AGO) && echo "${TG}== MOTION_DETECTED_ANIMAL_AGO: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='30' && echo "${TB}** MOTION_DETECTED_ANIMAL_AGO unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 
 # webcam
 NETCAM_USERNAME ?= $(if $(wildcard NETCAM_USERNAME),$(shell v=$$(cat NETCAM_USERNAME) && echo "${TG}== NETCAM_USERNAME: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="username" && echo "${TB}** NETCAM_USERNAME unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"))
@@ -102,9 +122,13 @@ PACKAGES := motion
 ## directories for output files from scripts
 MOTION_DIRS := camera/motion group/motion counter/motion sensor/motion automation/motion device_tracker/motion history_graph/motion
 
+# dashboards
+MOTION_DASHBOARDS := developer experimental person animal vehicle
+LOVELACE_DASHBOARDS := $(shell for C in $(MOTION_DASHBOARDS); do echo lovelace.$${C}.json; done)
+
 default: all
 
-all: motion/webcams.json lovelace.json lovelace_dashboards.json lovelace.developer.json $(MOTION_DIRS) $(PACKAGES) secrets.yaml
+all: motion/webcams.json lovelace.json lovelace_dashboards.json ${LOVELACE_DASHBOARDS} $(MOTION_DIRS) $(PACKAGES) secrets.yaml
 
 motion/webcams.json:
 	@echo "MISSING: please create $(PWD)/$@ from example template: $(PWD)/$@.tmpl"
@@ -206,19 +230,27 @@ secrets.yaml: secrets.yaml.tmpl makefile $(PWD)
           MOTION_ANNOTATED_AGO="$(MOTION_ANNOTATED_AGO)" \
           MOTION_DETECTED_AGO="$(MOTION_DETECTED_AGO)" \
           MOTION_DETECTED_ENTITY_AGO="$(MOTION_DETECTED_ENTITY_AGO)" \
+          MOTION_DETECTED_PERSON_AGO="$(MOTION_DETECTED_PERSON_AGO)" \
+          MOTION_DETECTED_VEHICLE_AGO="$(MOTION_DETECTED_VEHICLE_AGO)" \
+          MOTION_DETECTED_ANIMAL_AGO="$(MOTION_DETECTED_ANIMAL_AGO)" \
+          MOTION_DETECTED_ENTITY_NOTIFY="$(MOTION_DETECTED_ENTITY_NOTIFY)" \
           MOTION_DETECTED_PERSON_NOTIFY="$(MOTION_DETECTED_PERSON_NOTIFY)" \
           MOTION_DETECTED_VEHICLE_NOTIFY="$(MOTION_DETECTED_VEHICLE_NOTIFY)" \
           MOTION_DETECTED_ANIMAL_NOTIFY="$(MOTION_DETECTED_ANIMAL_NOTIFY)" \
+	  MOTION_DETECTED_ENTITY_SPEAK="$(MOTION_DETECTED_ENTITY_SPEAK)" \
 	  MOTION_DETECTED_PERSON_SPEAK="$(MOTION_DETECTED_PERSON_SPEAK)" \
 	  MOTION_DETECTED_VEHICLE_SPEAK="$(MOTION_DETECTED_VEHICLE_SPEAK)" \
 	  MOTION_DETECTED_ANIMAL_SPEAK="$(MOTION_DETECTED_ANIMAL_SPEAK)" \
+	  MOTION_DETECTED_ENTITY_TUNE="$(MOTION_DETECTED_ENTITY_TUNE)" \
 	  MOTION_DETECTED_PERSON_TUNE="$(MOTION_DETECTED_PERSON_TUNE)" \
 	  MOTION_DETECTED_VEHICLE_TUNE="$(MOTION_DETECTED_VEHICLE_TUNE)" \
 	  MOTION_DETECTED_ANIMAL_TUNE="$(MOTION_DETECTED_ANIMAL_TUNE)" \
+	  MOTION_DETECTED_ENTITY_DEVIATION="$(MOTION_DETECTED_ENTITY_DEVIATION)" \
 	  MOTION_DETECTED_PERSON_DEVIATION="$(MOTION_DETECTED_PERSON_DEVIATION)" \
 	  MOTION_DETECTED_VEHICLE_DEVIATION="$(MOTION_DETECTED_VEHICLE_DEVIATION)" \
 	  MOTION_DETECTED_ANIMAL_DEVIATION="$(MOTION_DETECTED_ANIMAL_DEVIATION)" \
 	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
+	  LOGGER_MQTT="$(LOGGER_MQTT)" \
 	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
 	&& cat $< | envsubst > $@
 
@@ -242,6 +274,7 @@ lovelace.json: lovelace.json.tmpl motion/webcams.json
 	  MOTION_DEVICE="$(MOTION_DEVICE)" \
 	  MOTION_CLIENT="$(MOTION_CLIENT)" \
 	  MOTION_USER="$(MOTION_USER)" \
+	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
 	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
 	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
 	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
@@ -252,12 +285,6 @@ lovelace.json: lovelace.json.tmpl motion/webcams.json
 	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
 	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
 	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
-	  MOTION_DETECTED_PERSON_TUNE="$(MOTION_DETECTED_PERSON_TUNE)" \
-	  MOTION_DETECTED_VEHICLE_TUNE="$(MOTION_DETECTED_VEHICLE_TUNE)" \
-	  MOTION_DETECTED_ANIMAL_TUNE="$(MOTION_DETECTED_ANIMAL_TUNE)" \
-	  MOTION_DETECTED_PERSON_DEVIATION="$(MOTION_DETECTED_PERSON_DEVIATION)" \
-	  MOTION_DETECTED_VEHICLE_DEVIATION="$(MOTION_DETECTED_VEHICLE_DEVIATION)" \
-	  MOTION_DETECTED_ANIMAL_DEVIATION="$(MOTION_DETECTED_ANIMAL_DEVIATION)" \
 	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
 	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
 	  IPERF_HOST="$(IPERF_HOST)" \
@@ -272,13 +299,11 @@ lovelace.json: lovelace.json.tmpl motion/webcams.json
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	&& cat $< \
 	  | envsubst \
-	  | jq '(.data.config.views[]|select(.path=="home").cards[].cards[].cards[]|select(.camera_image=="camera.motion_overview").elements)+='"$$(jq '[.[]|{"type":"icon","entity":("sensor.motion_detected_person_ago_"+.name),"icon": ("mdi:"+.icon),"style":{"color":"red","left":(.left|tostring+"%"),"top":(.top|tostring+"%"),"height":"5%","width": "5%"}}]' motion/webcams.json)" \
+         | jq '(.data.config.views[]|select(.path=="home").cards[].cards[].cards[]?|select(.camera_image=="camera.motion_overview").elements)+='"$$(jq '[.[]|{"type":"icon","entity":("sensor.motion_"+.name+"_detected_person_ago"),"icon": ("mdi:"+.icon),"style":{"color":"red","left":(.left|tostring+"%"),"top":(.top|tostring+"%"),"height":"5%","width": "5%"}}]' motion/webcams.json)" \
 	 > $@
 	@rm -f .storage/lovelace
 	-@mkdir -p .storage/
 	@ln -s ../$@ .storage/lovelace
-
-#	  | jq '(.data.config.views[]|select(.path=="motion_live").cards)+='"$$(jq '[.[]|{"entity":("camera.motion_live_"+.name),"type":"picture-entity"}]' motion/webcams.json)" \
 
 lovelace.developer.json: lovelace.developer.json.tmpl motion/webcams.json
 	@echo "${MC}Making: $@${NC}"
@@ -300,6 +325,7 @@ lovelace.developer.json: lovelace.developer.json.tmpl motion/webcams.json
 	  MOTION_DEVICE="$(MOTION_DEVICE)" \
 	  MOTION_CLIENT="$(MOTION_CLIENT)" \
 	  MOTION_USER="$(MOTION_USER)" \
+	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
 	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
 	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
 	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
@@ -310,12 +336,6 @@ lovelace.developer.json: lovelace.developer.json.tmpl motion/webcams.json
 	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
 	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
 	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
-	  MOTION_DETECTED_PERSON_TUNE="$(MOTION_DETECTED_PERSON_TUNE)" \
-	  MOTION_DETECTED_VEHICLE_TUNE="$(MOTION_DETECTED_VEHICLE_TUNE)" \
-	  MOTION_DETECTED_ANIMAL_TUNE="$(MOTION_DETECTED_ANIMAL_TUNE)" \
-	  MOTION_DETECTED_PERSON_DEVIATION="$(MOTION_DETECTED_PERSON_DEVIATION)" \
-	  MOTION_DETECTED_VEHICLE_DEVIATION="$(MOTION_DETECTED_VEHICLE_DEVIATION)" \
-	  MOTION_DETECTED_ANIMAL_DEVIATION="$(MOTION_DETECTED_ANIMAL_DEVIATION)" \
 	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
 	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
 	  IPERF_HOST="$(IPERF_HOST)" \
@@ -330,18 +350,172 @@ lovelace.developer.json: lovelace.developer.json.tmpl motion/webcams.json
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	&& cat $< \
 	  | envsubst \
-	  | jq '(.data.config.views[]|select(.path=="motion_live").cards[]|select(.title=="OVERVIEW").elements)+='"$$(jq '[.[]|{"type":"icon","entity":("camera.motion_live_"+.name),"icon": ("mdi:"+.icon),"style":{"color":"red","left":(.left|tostring+"%"),"top":(.top|tostring+"%"),"height":"5%","width": "5%"}}]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="settings_view").cards[]|select(.title=="Detect entity").entities)+='"$$(jq '[.[]|{"name":("Detect at "+.name),"entity":("input_select.motion_detect_entity_"+.name)},{"name":("Notify at "+.name),"entity":("input_boolean.motion_detected_entity_notify_"+.name)}]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="person").cards[]|select(.title=="Person count mean (μ)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_person_count_"+.name+"_mean")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="person").cards[]|select(.title=="Person ago mean (μ)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_person_ago_"+.name+"_mean")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="vehicle").cards[]|select(.title=="Vehicle count mean (μ)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_vehicle_count_"+.name+"_mean")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="vehicle").cards[]|select(.title=="Vehicle ago mean (μ)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_vehicle_ago_"+.name+"_mean")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="animal").cards[]|select(.title=="Animal count mean (μ)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_animal_count_"+.name+"_mean")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="animal").cards[]|select(.title=="Animal ago mean (μ)").entities)+='"$$(jq '[.[]|("sensor.motion_detected_animal_ago_"+.name+"_mean")]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="motion_live").cards[]|select(.title=="OVERVIEW").elements)+='"$$(jq '[.[]|{"type":"icon","entity":("camera.motion_"+.name+"_live"),"icon": ("mdi:"+.icon),"style":{"color":"red","left":(.left|tostring+"%"),"top":(.top|tostring+"%"),"height":"5%","width": "5%"}}]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="notify").cards[]|select(.title=="Per camera notification").cards)+='"$$(jq '[.[]|{"type":"vertical-stack","cards":[{"entities":[{"name":.name,"entity":("input_boolean.motion_"+.name+"_detected_entity_notify")}],"show_header_toggle":false,"title":"","type":"entities"},{"type":"conditional","conditions":[{"entity":("input_boolean.motion_"+.name+"_detected_entity_notify"),"state":"on"}],"card":{"entities":[{"name":("Select entity to detect at "+.name+" camera"),"entity":("input_select.motion_"+.name+"_detect_entity")}],"show_header_toggle":false,"title":"","type":"entities"}}]}]' motion/webcams.json)" \
 	 > $@
 	@rm -f .storage/lovelace.lovelace_developer
 	-@mkdir -p .storage/
 	@ln -s ../$@ .storage/lovelace.lovelace_developer
+
+lovelace.person.json: lovelace.person.json.tmpl motion/webcams.json
+	@echo "${MC}Making: $@${NC}"
+	@export \
+	  DOMAIN_NAME="$(DOMAIN_NAME)" \
+	  HOST_LATITUDE="$(HOST_LATITUDE)" \
+	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
+	  HOST_IPADDR="$(HOST_IPADDR)" \
+	  HOST_NAME="$(HOST_NAME)" \
+	  HOST_NETWORK="$(HOST_NETWORK)" \
+	  HOST_NETWORK_MASK="$(HOST_NETWORK_MASK)" \
+	  HOST_PORT="$(HOST_PORT)" \
+	  HOST_THEME="$(HOST_THEME)" \
+	  INTERNET_SCAN_INTERVAL="$(INTERNET_SCAN_INTERVAL)" \
+	  INTRANET_SCAN_INTERVAL="$(INTRANET_SCAN_INTERVAL)" \
+	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
+	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
+	  MOTION_GROUP="$(MOTION_GROUP)" \
+	  MOTION_DEVICE="$(MOTION_DEVICE)" \
+	  MOTION_CLIENT="$(MOTION_CLIENT)" \
+	  MOTION_USER="$(MOTION_USER)" \
+	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
+	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
+	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
+	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
+	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
+	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
+	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
+	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
+	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
+	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
+	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
+	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
+	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
+	  IPERF_HOST="$(IPERF_HOST)" \
+	  MQTT_HOST="$(MQTT_HOST)" \
+	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
+	  MQTT_PORT="$(MQTT_PORT)" \
+	  MQTT_USERNAME="$(MQTT_USERNAME)" \
+	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
+	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
+	  NETDATA_URL="$(NETDATA_URL)" \
+	  JUPYTER_URL="$(JUPYTER_URL)" \
+	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
+	&& cat $< \
+	  | envsubst \
+	  | jq '(.data.config.views[]|select(.path=="person").cards[]|select(.title=="Person count mean (Σμ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_person_count_mean")]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="person").cards[]|select(.title=="Person ago mean (⧖μ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_person_ago_mean")]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="vehicle").cards[]|select(.title=="Vehicle count mean (Σμ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_vehicle_count_mean")]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="vehicle").cards[]|select(.title=="Vehicle ago mean (⧖μ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_vehicle_ago_mean")]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="animal").cards[]|select(.title=="Animal count mean (Σμ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_animal_count_mean")]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="animal").cards[]|select(.title=="Animal ago mean (⧖μ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_animal_ago_mean")]' motion/webcams.json)" \
+	 > $@
+	@rm -f .storage/lovelace.lovelace_person
+	-@mkdir -p .storage/
+	@ln -s ../$@ .storage/lovelace.lovelace_person
+
+lovelace.vehicle.json: lovelace.vehicle.json.tmpl motion/webcams.json
+	@echo "${MC}Making: $@${NC}"
+	@export \
+	  DOMAIN_NAME="$(DOMAIN_NAME)" \
+	  HOST_LATITUDE="$(HOST_LATITUDE)" \
+	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
+	  HOST_IPADDR="$(HOST_IPADDR)" \
+	  HOST_NAME="$(HOST_NAME)" \
+	  HOST_NETWORK="$(HOST_NETWORK)" \
+	  HOST_NETWORK_MASK="$(HOST_NETWORK_MASK)" \
+	  HOST_PORT="$(HOST_PORT)" \
+	  HOST_THEME="$(HOST_THEME)" \
+	  INTERNET_SCAN_INTERVAL="$(INTERNET_SCAN_INTERVAL)" \
+	  INTRANET_SCAN_INTERVAL="$(INTRANET_SCAN_INTERVAL)" \
+	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
+	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
+	  MOTION_GROUP="$(MOTION_GROUP)" \
+	  MOTION_DEVICE="$(MOTION_DEVICE)" \
+	  MOTION_CLIENT="$(MOTION_CLIENT)" \
+	  MOTION_USER="$(MOTION_USER)" \
+	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
+	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
+	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
+	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
+	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
+	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
+	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
+	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
+	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
+	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
+	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
+	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
+	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
+	  IPERF_HOST="$(IPERF_HOST)" \
+	  MQTT_HOST="$(MQTT_HOST)" \
+	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
+	  MQTT_PORT="$(MQTT_PORT)" \
+	  MQTT_USERNAME="$(MQTT_USERNAME)" \
+	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
+	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
+	  NETDATA_URL="$(NETDATA_URL)" \
+	  JUPYTER_URL="$(JUPYTER_URL)" \
+	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
+	&& cat $< \
+	  | envsubst \
+	  | jq '(.data.config.views[]|select(.path=="vehicle").cards[]|select(.title=="Vehicle count mean (Σμ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_vehicle_count_mean")]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="vehicle").cards[]|select(.title=="Vehicle ago mean (⧖μ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_vehicle_ago_mean")]' motion/webcams.json)" \
+	 > $@
+	@rm -f .storage/lovelace.lovelace_vehicle
+	-@mkdir -p .storage/
+	@ln -s ../$@ .storage/lovelace.lovelace_vehicle
+
+lovelace.animal.json: lovelace.animal.json.tmpl motion/webcams.json
+	@echo "${MC}Making: $@${NC}"
+	@export \
+	  DOMAIN_NAME="$(DOMAIN_NAME)" \
+	  HOST_LATITUDE="$(HOST_LATITUDE)" \
+	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
+	  HOST_IPADDR="$(HOST_IPADDR)" \
+	  HOST_NAME="$(HOST_NAME)" \
+	  HOST_NETWORK="$(HOST_NETWORK)" \
+	  HOST_NETWORK_MASK="$(HOST_NETWORK_MASK)" \
+	  HOST_PORT="$(HOST_PORT)" \
+	  HOST_THEME="$(HOST_THEME)" \
+	  INTERNET_SCAN_INTERVAL="$(INTERNET_SCAN_INTERVAL)" \
+	  INTRANET_SCAN_INTERVAL="$(INTRANET_SCAN_INTERVAL)" \
+	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
+	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
+	  MOTION_GROUP="$(MOTION_GROUP)" \
+	  MOTION_DEVICE="$(MOTION_DEVICE)" \
+	  MOTION_CLIENT="$(MOTION_CLIENT)" \
+	  MOTION_USER="$(MOTION_USER)" \
+	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
+	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
+	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
+	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
+	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
+	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
+	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
+	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
+	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
+	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
+	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
+	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
+	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
+	  IPERF_HOST="$(IPERF_HOST)" \
+	  MQTT_HOST="$(MQTT_HOST)" \
+	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
+	  MQTT_PORT="$(MQTT_PORT)" \
+	  MQTT_USERNAME="$(MQTT_USERNAME)" \
+	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
+	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
+	  NETDATA_URL="$(NETDATA_URL)" \
+	  JUPYTER_URL="$(JUPYTER_URL)" \
+	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
+	&& cat $< \
+	  | envsubst \
+	  | jq '(.data.config.views[]|select(.path=="animal").cards[]|select(.title=="Animal count mean (Σμ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_animal_count_mean")]' motion/webcams.json)" \
+	  | jq '(.data.config.views[]|select(.path=="animal").cards[]|select(.title=="Animal ago mean (⧖μ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_animal_ago_mean")]' motion/webcams.json)" \
+	 > $@
+	@rm -f .storage/lovelace.lovelace_animal
+	-@mkdir -p .storage/
+	@ln -s ../$@ .storage/lovelace.lovelace_animal
 
 lovelace.experimental.json: lovelace.experimental.json.tmpl motion/webcams.json
 	@echo "${MC}Making: $@${NC}"
@@ -363,6 +537,7 @@ lovelace.experimental.json: lovelace.experimental.json.tmpl motion/webcams.json
 	  MOTION_DEVICE="$(MOTION_DEVICE)" \
 	  MOTION_CLIENT="$(MOTION_CLIENT)" \
 	  MOTION_USER="$(MOTION_USER)" \
+	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
 	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
 	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
 	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
@@ -373,12 +548,6 @@ lovelace.experimental.json: lovelace.experimental.json.tmpl motion/webcams.json
 	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
 	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
 	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
-	  MOTION_DETECTED_PERSON_TUNE="$(MOTION_DETECTED_PERSON_TUNE)" \
-	  MOTION_DETECTED_VEHICLE_TUNE="$(MOTION_DETECTED_VEHICLE_TUNE)" \
-	  MOTION_DETECTED_ANIMAL_TUNE="$(MOTION_DETECTED_ANIMAL_TUNE)" \
-	  MOTION_DETECTED_PERSON_DEVIATION="$(MOTION_DETECTED_PERSON_DEVIATION)" \
-	  MOTION_DETECTED_VEHICLE_DEVIATION="$(MOTION_DETECTED_VEHICLE_DEVIATION)" \
-	  MOTION_DETECTED_ANIMAL_DEVIATION="$(MOTION_DETECTED_ANIMAL_DEVIATION)" \
 	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
 	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
 	  IPERF_HOST="$(IPERF_HOST)" \
@@ -393,36 +562,7 @@ lovelace.experimental.json: lovelace.experimental.json.tmpl motion/webcams.json
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	&& cat $< \
 	  | envsubst \
-	  | jq '(.data.config.views[]|select(.path=="motion_live").cards[]|select(.title=="OVERVIEW").elements)+='"$$(jq '[.[]|{"type":"icon","entity":("camera.motion_live_"+.name),"icon": ("mdi:"+.icon),"style":{"color":"red","left":(.left|tostring+"%"),"top":(.top|tostring+"%"),"height":"5%","width": "5%"}}]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_animated_webcams_view").cards)+='"$$(jq '[.[]|{"entity":("sensor.motion_annotated_when_"+.name),"name":.name,"image":("/local/images/motion_end_animated-"+.name+".gif"),"camera_image":("camera.motion_end_animated_"+.name),"type":"picture-entity"}]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="entity_counter_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_counter_"+.name)]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="entity_count_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_count_"+.name)]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="entity_count_mean_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_count_"+.name+"_mean")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="entity_count_stdev_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_count_"+.name+"_stdev")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="entity_count_change_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_count_"+.name+"_change")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="entity_percent_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_percent_"+.name)]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="entity_count_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_count_"+.name)]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="entity_count_mean_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_count_"+.name+"_mean")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="entity_ago_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_ago_"+.name)]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="entity_ago_mean_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_ago_"+.name+"_mean")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="entity_ago_stdev_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_ago_"+.name+"_stdev")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="entity_ago_change_webcams").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_ago_"+.name+"_change")]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_annotated_view").cards[]|select(.title=="motion_annotated_ago").entities)+='"$$(jq '[.[]|("sensor.motion_annotated_ago_"+.name)]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_annotated_view").cards[]|select(.title=="motion_annotated_counter").entities)+='"$$(jq '[.[]|("sensor.motion_annotated_counter_"+.name)]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_annotated_view").cards[]|select(.title=="motion_annotated_count").entities)+='"$$(jq '[.[]|("sensor.motion_annotated_count_"+.name)]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_annotated_view").cards)+='"$$(jq '[.[]|{"entity":("sensor.motion_annotated_count_"+.name),"aspect_ratio": "0%","camera_image": ("camera.motion_annotated_"+.name),"entities": [{"entity":("binary_sensor.motion_annotated_"+.name)},{"entity":("sensor.motion_annotated_ago_"+.name)}],"title":("Motion Annotated "+.name),"type":"picture-glance"}]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_detected_view").cards[]|select(.title=="motion_detected_ago").entities)+='"$$(jq '[.[]|("sensor.motion_detected_ago_"+.name)]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_detected_view").cards[]|select(.title=="motion_detected_counter").entities)+='"$$(jq '[.[]|("sensor.motion_detected_counter_"+.name)]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_detected_view").cards[]|select(.title=="motion_detected_count").entities)+='"$$(jq '[.[]|("sensor.motion_detected_count_"+.name)]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_detected_view").cards)+='"$$(jq '[.[]|{"entity":("sensor.motion_detected_count_"+.name),"aspect_ratio": "0%","camera_image": ("camera.motion_detected_"+.name),"entities": [{"entity":("binary_sensor.motion_detected_"+.name)},{"entity":("sensor.motion_detected_ago_"+.name)}],"title":("Motion Detected "+.name),"type":"picture-glance"}]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_detected_entity_view").cards[]|select(.title=="motion_detected_entity_ago").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_ago_"+.name)]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_detected_entity_view").cards[]|select(.title=="motion_detected_entity_counter").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_counter_"+.name)]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_detected_entity_view").cards[]|select(.title=="motion_detected_entity_count").entities)+='"$$(jq '[.[]|("sensor.motion_detected_entity_count_"+.name)]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_detected_entity_view").cards)+='"$$(jq '[.[]|{"entity":("sensor.motion_detected_entity_count_"+.name),"aspect_ratio": "0%","camera_image": ("camera.motion_detected_entity_"+.name),"entities": [{"entity":("binary_sensor.motion_detected_entity_"+.name)},{"entity":("sensor.motion_detected_entity_ago_"+.name)}],"title":("Motion Detected Entity "+.name),"type":"picture-glance"}]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_face_detected_view").cards)+='"$$(jq '[.[]|{"entity":("sensor.motion_face_detected_count_"+.name),"aspect_ratio": "0%","camera_image": ("camera.motion_face_detected_"+.name),"entities": [{"entity":("binary_sensor.motion_face_detected_"+.name)},{"entity":("sensor.motion_face_detected_ago_"+.name)}],"title":("Face "+.name),"type":"picture-glance"}]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_alpr_detected_view").cards)+='"$$(jq '[.[]|{"entity":("sensor.motion_alpr_detected_count_"+.name),"aspect_ratio": "0%","camera_image": ("camera.motion_alpr_detected_"+.name),"entities": [{"entity":("binary_sensor.motion_alpr_detected_"+.name)},{"entity":("sensor.motion_alpr_detected_ago_"+.name)}],"title":("ALPR "+.name),"type":"picture-glance"}]' motion/webcams.json)" \
-	  | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="Camera Status").entities)+='"$$(jq '[.[]|("sensor.motion_status_camera_"+.name)]' motion/webcams.json)" \
-          | jq '(.data.config.views[]|select(.path=="motion_graphs_view").cards[]|select(.title=="Camera Status Counter").entities)+='"$$(jq '[.[]|("sensor.motion_status_camera_counter_"+.name)]' motion/webcams.json)" \
+	  | jq '(.data.config.views)+=$$views[0]' --slurpfile views "$$(jq '[.[]|{"badges":[],"panel":false,"icon":("mdi:"+.icon),"path":.name,"title":.name,"cards":[ {"cards":[ {"type":"picture-elements","camera_image":("camera.motion_"+.name+"_detected_person"),"elements":[ {"type":"conditional","conditions":[ {"entity":("sensor.motion_"+.name+"_detected_person_when"),"state":"Pending"}],"elements":[ {"type":"image","camera_image":"camera.motion_nosignal_animated","style":{"position":null,"opacity":1,"top":"50%","left":"50%","width":"100%","height":"100%"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_person_when"),"prefix":"Person:","style":{"top":"50%","left":"50%","font-size":"200%","color":"cyan"}}]},{"type":"conditional","conditions":[ {"entity":("sensor.motion_"+.name+"_detected_person_when"),"state_not":"Pending"}],"elements":[ {"type":"state-label","entity":("sensor.motion_"+.name+"_camera_name"),"prefix":"Person at ","style":{"top":"75%","left":"50%","font-size":"200%","color":"cyan"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_person_ago_relative"),"prefix":"Ago:","style":{"top":"10%","left":"80%","font-size":"150%","color":"cyan"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_person_when"),"style":{"top":"90%","left":"50%","font-size":"100%","color":"cyan"}},{"type":"image","camera_image":("camera.motion_"+.name+"_detected_person_animated"),"style":{"position":null,"opacity":0.4,"top":"50%","left":"50%","width":"100%","height":"100%"}}]}]},{"type":"picture-elements","camera_image":("camera.motion_"+.name+"_detected"),"elements":[ {"type":"conditional","conditions":[ {"entity":("sensor.motion_"+.name+"_detected_when"),"state":"Pending"}],"elements":[ {"type":"image","camera_image":"camera.motion_nosignal_animated","style":{"position":null,"opacity":1,"top":"50%","left":"50%","width":"100%","height":"100%"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_when"),"prefix":"Detected:","style":{"top":"50%","left":"50%","font-size":"200%","color":"magenta"}}]},{"type":"conditional","conditions":[ {"entity":("sensor.motion_"+.name+"_detected_when"),"state_not":"Pending"}],"elements":[ {"type":"state-label","entity":("sensor.motion_"+.name+"_camera_name"),"prefix":"Detected at ","style":{"top":"75%","left":"50%","font-size":"200%","color":"magenta"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_ago_relative"),"prefix":"Ago:","style":{"top":"10%","left":"80%","font-size":"150%","color":"magenta"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_when"),"style":{"top":"90%","left":"50%","font-size":"100%","color":"magenta"}},{"type":"image","camera_image":("camera.motion_"+.name+"_detected_animated"),"style":{"position":null,"opacity":0.4,"top":"50%","left":"50%","width":"100%","height":"100%"}}]}]}],"type":"vertical-stack"},{"cards":[ {"entities":[ {"name":"Last detection","icon":"mdi:eye","entity":("sensor.motion_"+.name+"_detected_status")}],"show_header_toggle":false,"title":"","type":"entities"},{"type":"picture-elements","elements":[ {"type":"state-label","entity":"sensor.time","prefix":"LIVE:","style":{"top":"10%","left":"15%","font-size":"125%","color":"yellow"}},{"type":"state-label","entity":"sensor.date","style":{"top":"10%","left":"85%","font-size":"125%","color":"yellow"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_camera_name"),"style":{"top":"90%","left":"50%","font-size":"200%","color":"yellow"}}],"camera_image":("camera.motion_"+.name+"_live")},{"type":"glance","entities":[ {"name":"Person ago","icon":"mdi:account","entity":("sensor.motion_"+.name+"_detected_person_ago_relative")},{"name":"Vehicle ago","icon":"mdi:car","entity":("sensor.motion_"+.name+"_detected_vehicle_ago_relative")},{"name":"Animal ago","icon":"mdi:cow","entity":("sensor.motion_"+.name+"_detected_animal_ago_relative")},{"name":"Entity ago","icon":"mdi:motion-sensor","entity":("sensor.motion_"+.name+"_detected_entity_ago_relative")},{"name":"Entity ∀βμ","icon":"mdi:beta","entity":("sensor.motion_"+.name+"_detected_entity_confidence_mean")}],"show_icon":true,"show_name":true},{"type":"vertical-stack","cards":[{"entities":[{"name":("Notify if entity detected at "+.name+" camera"),"entity":("input_boolean.motion_"+.name+"_detected_entity_notify")}],"show_header_toggle":false,"title":"","type":"entities"},{"type":"conditional","conditions":[{"entity":("binary_sensor.motion_"+.name+"_detected_entity_notify"),"state":"on"}],"card":{"entities":[{"name":("Entity to detect at "+.name+" camera"),"entity":("input_select.motion_"+.name+"_detect_entity")}],"show_header_toggle":false,"title":"","type":"entities"}}]}],"type":"vertical-stack"},{"cards":[ {"type":"picture-elements","camera_image":("camera.motion_"+.name+"_detected_vehicle"),"elements":[ {"type":"conditional","conditions":[ {"entity":("sensor.motion_"+.name+"_detected_vehicle_when"),"state":"Pending"}],"elements":[ {"type":"image","camera_image":"camera.motion_nosignal_animated","style":{"position":null,"opacity":1,"top":"50%","left":"50%","width":"100%","height":"100%"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_vehicle_when"),"prefix":"Vehicle:","style":{"top":"50%","left":"50%","font-size":"200%","color":"gold"}}]},{"type":"conditional","conditions":[ {"entity":("sensor.motion_"+.name+"_detected_vehicle_when"),"state_not":"Pending"}],"elements":[ {"type":"state-label","entity":("sensor.motion_"+.name+"_camera_name"),"prefix":"Vehicle at ","style":{"top":"75%","left":"50%","font-size":"200%","color":"gold"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_vehicle_ago_relative"),"prefix":"Ago:","style":{"top":"10%","left":"80%","font-size":"150%","color":"gold"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_vehicle_when"),"style":{"top":"90%","left":"50%","font-size":"100%","color":"gold"}},{"type":"image","camera_image":("camera.motion_"+.name+"_detected_vehicle_animated"),"style":{"position":null,"opacity":0.4,"top":"50%","left":"50%","width":"100%","height":"100%"}}]}]},{"type":"picture-elements","camera_image":("camera.motion_"+.name+"_detected_animal"),"elements":[ {"type":"conditional","conditions":[ {"entity":("sensor.motion_"+.name+"_detected_animal_when"),"state":"Pending"}],"elements":[ {"type":"image","camera_image":"camera.motion_nosignal_animated","style":{"position":null,"opacity":1,"top":"50%","left":"50%","width":"100%","height":"100%"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_animal_when"),"prefix":"Animal:","style":{"top":"50%","left":"50%","font-size":"200%","color":"chartreuse"}}]},{"type":"conditional","conditions":[ {"entity":("sensor.motion_"+.name+"_detected_animal_when"),"state_not":"Pending"}],"elements":[ {"type":"state-label","entity":("sensor.motion_"+.name+"_camera_name"),"prefix":"Animal at ","style":{"top":"75%","left":"50%","font-size":"200%","color":"chartreuse"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_animal_ago_relative"),"prefix":"Ago:","style":{"top":"10%","left":"80%","font-size":"150%","color":"chartreuse"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_animal_when"),"style":{"top":"90%","left":"50%","font-size":"100%","color":"chartreuse"}},{"type":"image","camera_image":("camera.motion_"+.name+"_detected_animal_animated"),"style":{"position":null,"opacity":0.4,"top":"50%","left":"50%","width":"100%","height":"100%"}}]}]}],"type":"vertical-stack"}]}]' motion/webcams.json > /tmp/cards.json; echo /tmp/cards.json)" \
 	 > $@
 	@rm -f .storage/lovelace.lovelace_experimental
 	-@mkdir -p .storage/
@@ -458,12 +598,6 @@ lovelace_dashboards.json: lovelace_dashboards.json.tmpl
 	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
 	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
 	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
-	  MOTION_DETECTED_PERSON_TUNE="$(MOTION_DETECTED_PERSON_TUNE)" \
-	  MOTION_DETECTED_VEHICLE_TUNE="$(MOTION_DETECTED_VEHICLE_TUNE)" \
-	  MOTION_DETECTED_ANIMAL_TUNE="$(MOTION_DETECTED_ANIMAL_TUNE)" \
-	  MOTION_DETECTED_PERSON_DEVIATION="$(MOTION_DETECTED_PERSON_DEVIATION)" \
-	  MOTION_DETECTED_VEHICLE_DEVIATION="$(MOTION_DETECTED_VEHICLE_DEVIATION)" \
-	  MOTION_DETECTED_ANIMAL_DEVIATION="$(MOTION_DETECTED_ANIMAL_DEVIATION)" \
 	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
 	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
 	  IPERF_HOST="$(IPERF_HOST)" \
@@ -494,7 +628,7 @@ tidy:
 neat: tidy
 	@echo "${MC}Making: $@${NC}"
 	@rm -f motion/webcams.json
-	@rm -f lovelace.json lovelace_dashboards.json lovelace.developer.json
+	@rm -f lovelace.json lovelace_dashboards.json ${LOVELACE_DASHBOARDS}
 
 clean: stop logclean neat
 	@echo "${MC}Making: $@${NC}"
@@ -505,7 +639,7 @@ realclean: clean
 	-@sudo rm -f home-assistant_v2.*
 	-@sudo rm -f known_devices.yaml
 	-@sudo rm -f home-assistant.log
-	-@sudo rm -f www/images/motion/
+	-@sudo rm -fr www/images/motion/
 
 distclean: realclean
 	-@sudo rm -f .storage

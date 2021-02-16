@@ -28,6 +28,6 @@ get_config "${url}" "${json}"
 config=$(jq -c '.' "${json}" 2> /dev/null)
 
 echo "${config:-[]}" \
-  | jq '[.config?.cameras?[]|{name:.name,type:.type,top:.top,left:.left,icon:.icon,w3w:.w3w,mjpeg_url:.mjpeg_url,username:.username,password:.password}]' \
+  | jq '[.config?.cameras?[]|{name:.name,type:.type,top:.top,left:.left,icon:.icon,w3w:.w3w,mjpeg_url:.mjpeg_url,username:.username,password:.password}]|sort_by(.name)' \
   && exit 0 \
   || exit 1
