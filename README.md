@@ -46,7 +46,7 @@ The initial configuration presumes a locally attached camera on `/dev/video0`.  
 ```
 sudo apt update -qq -y
 sudo apt install -qq -y make git curl jq apt-utils ssh
-git clone http://github.com/dcmartin/motion-ai
+git clone http://github.com/motion-ai/motion-ai
 cd ~/motion-ai
 sudo ./sh/get.motion-ai.sh
 sudo reboot
