@@ -269,7 +269,7 @@ git merge upstream/master
 ```
 
 ## Stargazers
-[![Stargazers over time](https://starchart.cc/dcmartin/motion.svg)](https://starchart.cc/dcmartin/motion)
+[![Stargazers over time](https://starchart.cc/motion-ai/motion-ai.svg)](https://starchart.cc/dcmartin/motion)
 
 ## `CLOC`
 
