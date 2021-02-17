@@ -434,3 +434,4 @@ SSID="MyNetwork"
 PSK="MyPassowrd"
 sudo nmcli dev wifi connect ${SSID} password ${PSK}
 ```
+man find own
