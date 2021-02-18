@@ -81,7 +81,6 @@ if [ "${USER:-null}" != 'root' ]; then
   exit 1
 fi
 
->>>>>>> upstream/master
 if [ -z "$(command -v curl)" ]; then
   echo 'Install curl; sudo apt install -qq -y curl' &> /dev/stderr
   exit 1
