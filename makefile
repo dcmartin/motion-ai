@@ -131,10 +131,7 @@ ACTIONS := all run stop logs restart refresh tidy neat clean realclean distclean
 
 default: necessary all
 
-necessary: homeassistant/setup.json homeassistant/motion/webcams.json ${MEDIA}
-
-homeassistant/motion/webcams.json:
-	@-./sh/mkwebcams.sh > homeassistant/motion/webcams.json
+necessary: homeassistant/setup.json ${MEDIA}
 
 ${MEDIA}:
 	@echo "${MC}Making: MEDIA $@${NC}"
