@@ -15,15 +15,25 @@ AUTOMATION_INTERNET ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.AUTOMATI
 AUTOMATION_INTRANET ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.AUTOMATION_INTRANET' setup.json) && echo "${TS}++ AUTOMATION_INTRANET: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard AUTOMATION_INTRANET),$(shell v=$$(cat AUTOMATION_INTRANET) && echo "${TG}== AUTOMATION_INTRANET: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell echo "** AUTOMATION_INTRANET unset; default: off" > /dev/stderr && echo "off")))
 
 # domain
-DOMAIN_NAME ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.LOGGER_DEFAULT' setup.json) && echo "${TS}++ LOGGER_DEFAULT: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard DOMAIN_NAME),$(shell v=$$(cat DOMAIN_NAME) && echo "${TG}== DOMAIN_NAME: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v=$$(hostnamee-d) && v=$${v:-local} && echo "${TB}** DOMAIN_NAME unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+DOMAIN_NAME ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.DOMAIN_NAME' setup.json) && echo "${TS}++ DOMAIN_NAME: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard DOMAIN_NAME),$(shell v=$$(cat DOMAIN_NAME) && echo "${TG}== DOMAIN_NAME: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v=$$(hostnamee-d) && v=$${v:-local} && echo "${TB}** DOMAIN_NAME unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 
 # host
 HOST_NAME ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.HOST_NAME' setup.json) && echo "${TS}++ HOST_NAME: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard HOST_NAME),$(shell v=$$(cat HOST_NAME) && echo "${TG}== HOST_NAME: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v=$$(hostname -f) && v=$${v%%.*} && echo "${TB}** HOST_NAME unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+HOST_TIMEZONE ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.HOST_TIMEZONE' setup.json) && echo "${TS}++ HOST_TIMEZONE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard HOST_TIMEZONE),$(shell v=$$(cat HOST_TIMEZONE) && echo "${TG}== HOST_TIMEZONE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="GMT" && echo "${TB}** HOST_TIMEZONE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 HOST_IPADDR ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.HOST_IPADDR' setup.json) && echo "${TS}++ HOST_IPADDR: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard HOST_IPADDR),$(shell v=$$(cat HOST_IPADDR) && echo "${TG}== HOST_IPADDR: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v=${THIS_HOSTIP} && echo "${TB}** HOST_IPADDR unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 HOST_PORT ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.HOST_PORT' setup.json) && echo "${TS}++ HOST_PORT: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard HOST_PORT),$(shell v=$$(cat HOST_PORT) && echo "${TG}== HOST_PORT: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="8123" && echo "${TB}** HOST_PORT unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
-HOST_THEME ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.LOGGER_DEFAULT' setup.json) && echo "${TS}++ LOGGER_DEFAULT: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard HOST_THEME),$(shell v=$$(cat HOST_THEME) && echo "${TG}== HOST_THEME: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="default" && echo "${TB}** HOST_THEME unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+HOST_THEME ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.HOST_THEME' setup.json) && echo "${TS}++ HOST_THEME: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard HOST_THEME),$(shell v=$$(cat HOST_THEME) && echo "${TG}== HOST_THEME: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="default" && echo "${TB}** HOST_THEME unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 HOST_NETWORK ?= $(shell export HOST_IPADDR=$(HOST_IPADDR) && echo $${HOST_IPADDR%.*}.0)
 HOST_NETWORK_MASK ?= 24
+
+HOST_LATITUDE ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.HOST_LATITUDE' setup.json) && echo "${TS}++ HOST_LATITUDE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard HOST_LATITUDE),$(shell v=$$(cat HOST_LATITUDE) && echo "${TG}== HOST_LATITUDE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="0.0" && echo "${TB}** HOST_LATITUDE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+HOST_LONGITUDE ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.HOST_LONGITUDE' setup.json) && echo "${TS}++ HOST_LONGITUDE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard HOST_LONGITUDE),$(shell v=$$(cat HOST_LONGITUDE) && echo "${TG}== HOST_LONGITUDE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="0.0" && echo "${TB}** HOST_LONGITUDE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+
+## MOTION
+MOTION_GROUP ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_GROUP' setup.json) && echo "${TS}++ MOTION_GROUP: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_GROUP),$(shell v=$$(cat MOTION_GROUP) && echo "${TG}== MOTION_GROUP: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='motion' && echo "${TB}** MOTION_GROUP unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+MOTION_DEVICE ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_DEVICE' setup.json) && echo "${TS}++ MOTION_DEVICE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_DEVICE),$(shell v=$$(cat MOTION_DEVICE) && echo "${TG}== MOTION_DEVICE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v=$$(hostname -s) && echo "${TB}** MOTION_DEVICE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+MOTION_CLIENT ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_CLIENT' setup.json) && echo "${TS}++ MOTION_CLIENT: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_CLIENT),$(shell v=$$(cat MOTION_CLIENT) && echo "${TG}== MOTION_CLIENT: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='+' && echo "${TB}** MOTION_CLIENT unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+MOTION_USER ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_USER' setup.json) && echo "${TS}++ MOTION_USER: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_USER),$(shell v=$$(cat MOTION_USER) && echo "${TG}== MOTION_USER: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v=$(shell whoami) && echo "${TB}** MOTION_USER unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 
 MOTION_ROUTER_NAME ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_ROUTER_NAME' setup.json) && echo "${TS}++ MOTION_ROUTER_NAME: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_ROUTER_NAME),$(shell v=$$(cat MOTION_ROUTER_NAME) && echo "${TG}== MOTION_ROUTER_NAME: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='mikrotik' && echo "${TB}** MOTION_ROUTER_NAME unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}")))
 
@@ -33,16 +43,18 @@ MQTT_PORT ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MQTT_PORT' setup.j
 MQTT_USERNAME ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MQTT_USERNAME' setup.json) && echo "${TS}++ MQTT_USERNAME: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MQTT_USERNAME),$(shell v=$$(cat MQTT_USERNAME) && echo "${TG}== MQTT_USERNAME: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="username" && echo "${TB}** MQTT_USERNAME unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 MQTT_PASSWORD ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MQTT_PASSWORD' setup.json) && echo "${TS}++ MQTT_PASSWORD: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MQTT_PASSWORD),$(shell v=$$(cat MQTT_PASSWORD) && echo "${TG}== MQTT_PASSWORD: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="password" && echo "${TB}** MQTT_PASSWORD unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 
+# MARIADB
 MARIADB_PASSWORD ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MARIADB_PASSWORD' setup.json) && echo "${TS}++ MARIADB_PASSWORD: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MARIADB_PASSWORD),$(shell v=$$(cat MARIADB_PASSWORD) && echo "${TG}== MARIADB_PASSWORD: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="HomeAssistant1234" && echo "${TB}** MARIADB_PASSWORD unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 MARIADB_HOST ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MARIADB_HOST' setup.json) && echo "${TS}++ MARIADB_HOST: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MARIADB_HOST),$(shell v=$$(cat MARIADB_HOST) && echo "${TG}== MARIADB_HOST: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="core-mariadb" && echo "${TB}** MARIADB_HOST unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 
+# INFLUXDB
+INFLUXDB_HOST ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.INFLUXDB_HOST' setup.json) && echo "${TS}++ INFLUXDB_HOST: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard INFLUXDB_HOST),$(shell v=$$(cat INFLUXDB_HOST) && echo "${TG}== INFLUXDB_HOST: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="core-mariadb" && echo "${TB}** INFLUXDB_HOST unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+INFLUXDB_DATABASE ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.INFLUXDB_DATABASE' setup.json) && echo "${TS}++ INFLUXDB_DATABASE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard INFLUXDB_DATABASE),$(shell v=$$(cat INFLUXDB_DATABASE) && echo "${TG}== INFLUXDB_DATABASE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='$(HOST_NAME)' && echo "${TB}** INFLUXDB_DATABASE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+INFLUXDB_USERNAME ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.INFLUXDB_USERNAME' setup.json) && echo "${TS}++ INFLUXDB_USERNAME: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard INFLUXDB_USERNAME),$(shell v=$$(cat INFLUXDB_USERNAME) && echo "${TG}== INFLUXDB_USERNAME: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="HomeAssistant1234" && echo "${TB}** INFLUXDB_USERNAME unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+INFLUXDB_PASSWORD ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.INFLUXDB_PASSWORD' setup.json) && echo "${TS}++ INFLUXDB_PASSWORD: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard INFLUXDB_PASSWORD),$(shell v=$$(cat INFLUXDB_PASSWORD) && echo "${TG}== INFLUXDB_PASSWORD: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="HomeAssistant1234" && echo "${TB}** INFLUXDB_PASSWORD unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+
 IPERF_HOST ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.IPERF_HOST' setup.json) && echo "${TS}++ IPERF_HOST: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard IPERF_HOST),$(shell v=$$(cat IPERF_HOST) && echo "${TG}== IPERF_HOST: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="$(IPERF_HOST)" && echo "${TB}** IPERF_HOST unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 
-## MOTION
-MOTION_GROUP ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_GROUP' setup.json) && echo "${TS}++ MOTION_GROUP: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_GROUP),$(shell v=$$(cat MOTION_GROUP) && echo "${TG}== MOTION_GROUP: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='motion' && echo "${TB}** MOTION_GROUP unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
-MOTION_DEVICE ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_DEVICE' setup.json) && echo "${TS}++ MOTION_DEVICE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_DEVICE),$(shell v=$$(cat MOTION_DEVICE) && echo "${TG}== MOTION_DEVICE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v=$$(hostname -s) && echo "${TB}** MOTION_DEVICE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
-MOTION_CLIENT ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_CLIENT' setup.json) && echo "${TS}++ MOTION_CLIENT: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_CLIENT),$(shell v=$$(cat MOTION_CLIENT) && echo "${TG}== MOTION_CLIENT: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='+' && echo "${TB}** MOTION_CLIENT unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
-MOTION_USER ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_USER' setup.json) && echo "${TS}++ MOTION_USER: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_USER),$(shell v=$$(cat MOTION_USER) && echo "${TG}== MOTION_USER: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v=$(shell whoami) && echo "${TB}** MOTION_USER unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 MOTION_DETECT_ENTITY ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_DETECT_ENTITY' setup.json) && echo "${TS}++ MOTION_DETECT_ENTITY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_DETECT_ENTITY),$(shell v=$$(cat MOTION_DETECT_ENTITY) && echo "${TG}== MOTION_DETECT_ENTITY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="all" && echo "${TB}** MOTION_DETECT_ENTITY unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 MOTION_EXPIRE_AFTER ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_EXPIRE_AFTER' setup.json) && echo "${TS}++ MOTION_EXPIRE_AFTER: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_EXPIRE_AFTER),$(shell v=$$(cat MOTION_EXPIRE_AFTER) && echo "${TG}== MOTION_EXPIRE_AFTER: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="5" && echo "${TB}** MOTION_EXPIRE_AFTER unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 MOTION_FORCE_UPDATE ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_FORCE_UPDATE' setup.json) && echo "${TS}++ MOTION_FORCE_UPDATE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_FORCE_UPDATE),$(shell v=$$(cat MOTION_FORCE_UPDATE) && echo "${TG}== MOTION_FORCE_UPDATE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="false" && echo "${TB}** MOTION_FORCE_UPDATE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
@@ -176,93 +188,98 @@ secrets.yaml: secrets.yaml.tmpl makefile $(PWD)
 	@export \
 	  AUTOMATION_INTERNET="$(AUTOMATION_INTERNET)" \
 	  AUTOMATION_INTRANET="$(AUTOMATION_INTRANET)" \
+	  CONSUL_URL="$(CONSUL_URL)" \
+	  COUCHDB_URL="$(COUCHDB_URL)" \
+	  DIGITS_URL="$(DIGITS_URL)" \
+	  EDGEX_URL="$(EDGEX_URL)" \
+	  EXCHANGE_APIKEY="$(EXCHANGE_APIKEY)" \
+	  EXCHANGE_ORG_ADMIN="$(EXCHANGE_ORG_ADMIN)" \
+	  EXCHANGE_ORG="$(EXCHANGE_ORG)" \
+	  EXCHANGE_URL="$(EXCHANGE_URL)" \
+	  GRAFANA_URL="$(GRAFANA_URL)" \
+	  HOST_IPADDR="$(HOST_IPADDR)" \
+	  HOST_TIMEZONE="$(HOST_TIMEZONE)" \
 	  HOST_LATITUDE="$(HOST_LATITUDE)" \
 	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
 	  HOST_NAME="$(HOST_NAME)" \
-	  HOST_IPADDR="$(HOST_IPADDR)" \
 	  HOST_NETWORK="$(HOST_NETWORK)" \
 	  HOST_NETWORK_MASK="$(HOST_NETWORK_MASK)" \
 	  HOST_PORT="$(HOST_PORT)" \
 	  HOST_THEME="$(HOST_THEME)" \
 	  HZNMONITOR_URL="$(HZNMONITOR_URL)" \
-	  CONSUL_URL="$(CONSUL_URL)" \
-	  COUCHDB_URL="$(COUCHDB_URL)" \
-	  DIGITS_URL="$(DIGITS_URL)" \
-	  EDGEX_URL="$(EDGEX_URL)" \
-	  EXCHANGE_URL="$(EXCHANGE_URL)" \
-	  EXCHANGE_APIKEY="$(EXCHANGE_APIKEY)" \
-	  EXCHANGE_ORG="$(EXCHANGE_ORG)" \
-	  EXCHANGE_ORG_ADMIN="$(EXCHANGE_ORG_ADMIN)" \
-	  GRAFANA_URL="$(GRAFANA_URL)" \
-	  NETDATA_URL="$(NETDATA_URL)" \
-	  JUPYTER_URL="$(JUPYTER_URL)" \
-	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
-	  INFLUXDB_HOST="$(INFLUXDB_HOST)" \
-	  INFLUXDB_USERNAME="$(INFLUXDB_USERNAME)" \
 	  INFLUXDB_DATABASE="$(INFLUXDB_DATABASE)" \
+	  INFLUXDB_HOST="$(INFLUXDB_HOST)" \
 	  INFLUXDB_PASSWORD="$(INFLUXDB_PASSWORD)" \
+	  INFLUXDB_USERNAME="$(INFLUXDB_USERNAME)" \
 	  INTERNET_SCAN_INTERVAL="$(INTERNET_SCAN_INTERVAL)" \
 	  INTRANET_SCAN_INTERVAL="$(INTRANET_SCAN_INTERVAL)" \
 	  IPERF_HOST="$(IPERF_HOST)" \
-	  MQTT_HOST="$(MQTT_HOST)" \
-	  MQTT_PORT="$(MQTT_PORT)" \
-	  MQTT_USERNAME="$(MQTT_USERNAME)" \
-	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
-	  MARIADB_PASSWORD="$(MARIADB_PASSWORD)" \
+	  JUPYTER_URL="$(JUPYTER_URL)" \
+	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
+	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
+	  LOGGER_MQTT="$(LOGGER_MQTT)" \
 	  MARIADB_HOST="$(MARIADB_HOST)" \
-	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
-	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
-	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
+	  MARIADB_PASSWORD="$(MARIADB_PASSWORD)" \
+          MOTION_ANNOTATED_AGO="$(MOTION_ANNOTATED_AGO)" \
+	  MOTION_CAMERA_RESTART="$(MOTION_CAMERA_RESTART)" \
 	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
+	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
+	  MOTION_CLIENT="$(MOTION_CLIENT)" \
+          MOTION_DETECTED_AGO="$(MOTION_DETECTED_AGO)" \
+          MOTION_DETECTED_ANIMAL_AGO="$(MOTION_DETECTED_ANIMAL_AGO)" \
+	  MOTION_DETECTED_ANIMAL_DEVIATION="$(MOTION_DETECTED_ANIMAL_DEVIATION)" \
+          MOTION_DETECTED_ANIMAL_NOTIFY="$(MOTION_DETECTED_ANIMAL_NOTIFY)" \
+	  MOTION_DETECTED_ANIMAL_SPEAK="$(MOTION_DETECTED_ANIMAL_SPEAK)" \
+	  MOTION_DETECTED_ANIMAL_TUNE="$(MOTION_DETECTED_ANIMAL_TUNE)" \
+          MOTION_DETECTED_ENTITY_AGO="$(MOTION_DETECTED_ENTITY_AGO)" \
+	  MOTION_DETECTED_ENTITY_DEVIATION="$(MOTION_DETECTED_ENTITY_DEVIATION)" \
+          MOTION_DETECTED_ENTITY_NOTIFY="$(MOTION_DETECTED_ENTITY_NOTIFY)" \
+	  MOTION_DETECTED_ENTITY_SPEAK="$(MOTION_DETECTED_ENTITY_SPEAK)" \
+	  MOTION_DETECTED_ENTITY_TUNE="$(MOTION_DETECTED_ENTITY_TUNE)" \
+          MOTION_DETECTED_PERSON_AGO="$(MOTION_DETECTED_PERSON_AGO)" \
+	  MOTION_DETECTED_PERSON_DEVIATION="$(MOTION_DETECTED_PERSON_DEVIATION)" \
+          MOTION_DETECTED_PERSON_NOTIFY="$(MOTION_DETECTED_PERSON_NOTIFY)" \
+	  MOTION_DETECTED_PERSON_SPEAK="$(MOTION_DETECTED_PERSON_SPEAK)" \
+	  MOTION_DETECTED_PERSON_TUNE="$(MOTION_DETECTED_PERSON_TUNE)" \
+          MOTION_DETECTED_VEHICLE_AGO="$(MOTION_DETECTED_VEHICLE_AGO)" \
+	  MOTION_DETECTED_VEHICLE_DEVIATION="$(MOTION_DETECTED_VEHICLE_DEVIATION)" \
+          MOTION_DETECTED_VEHICLE_NOTIFY="$(MOTION_DETECTED_VEHICLE_NOTIFY)" \
+	  MOTION_DETECTED_VEHICLE_SPEAK="$(MOTION_DETECTED_VEHICLE_SPEAK)" \
+	  MOTION_DETECTED_VEHICLE_TUNE="$(MOTION_DETECTED_VEHICLE_TUNE)" \
 	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
+	  MOTION_DEVICE="$(MOTION_DEVICE)" \
 	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
 	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
-	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
-	  MOTION_CAMERA_RESTART="$(MOTION_CAMERA_RESTART)" \
+	  MOTION_GROUP="$(MOTION_GROUP)" \
 	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
-	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
+	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
+	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
+	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
+	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
+	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
           MOTION_TWILIO_NAME="$(MOTION_TWILIO_NAME)" \
           MOTION_TWILIO_NUMBER="$(MOTION_TWILIO_NUMBER)" \
           MOTION_TWILIO_SID="$(MOTION_TWILIO_SID)" \
           MOTION_TWILIO_TOKEN="$(MOTION_TWILIO_TOKEN)" \
-	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
-	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
-	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
-	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
-          MOTION_ANNOTATED_AGO="$(MOTION_ANNOTATED_AGO)" \
-          MOTION_DETECTED_AGO="$(MOTION_DETECTED_AGO)" \
-          MOTION_DETECTED_ENTITY_AGO="$(MOTION_DETECTED_ENTITY_AGO)" \
-          MOTION_DETECTED_PERSON_AGO="$(MOTION_DETECTED_PERSON_AGO)" \
-          MOTION_DETECTED_VEHICLE_AGO="$(MOTION_DETECTED_VEHICLE_AGO)" \
-          MOTION_DETECTED_ANIMAL_AGO="$(MOTION_DETECTED_ANIMAL_AGO)" \
-          MOTION_DETECTED_ENTITY_NOTIFY="$(MOTION_DETECTED_ENTITY_NOTIFY)" \
-          MOTION_DETECTED_PERSON_NOTIFY="$(MOTION_DETECTED_PERSON_NOTIFY)" \
-          MOTION_DETECTED_VEHICLE_NOTIFY="$(MOTION_DETECTED_VEHICLE_NOTIFY)" \
-          MOTION_DETECTED_ANIMAL_NOTIFY="$(MOTION_DETECTED_ANIMAL_NOTIFY)" \
-	  MOTION_DETECTED_ENTITY_SPEAK="$(MOTION_DETECTED_ENTITY_SPEAK)" \
-	  MOTION_DETECTED_PERSON_SPEAK="$(MOTION_DETECTED_PERSON_SPEAK)" \
-	  MOTION_DETECTED_VEHICLE_SPEAK="$(MOTION_DETECTED_VEHICLE_SPEAK)" \
-	  MOTION_DETECTED_ANIMAL_SPEAK="$(MOTION_DETECTED_ANIMAL_SPEAK)" \
-	  MOTION_DETECTED_ENTITY_TUNE="$(MOTION_DETECTED_ENTITY_TUNE)" \
-	  MOTION_DETECTED_PERSON_TUNE="$(MOTION_DETECTED_PERSON_TUNE)" \
-	  MOTION_DETECTED_VEHICLE_TUNE="$(MOTION_DETECTED_VEHICLE_TUNE)" \
-	  MOTION_DETECTED_ANIMAL_TUNE="$(MOTION_DETECTED_ANIMAL_TUNE)" \
-	  MOTION_DETECTED_ENTITY_DEVIATION="$(MOTION_DETECTED_ENTITY_DEVIATION)" \
-	  MOTION_DETECTED_PERSON_DEVIATION="$(MOTION_DETECTED_PERSON_DEVIATION)" \
-	  MOTION_DETECTED_VEHICLE_DEVIATION="$(MOTION_DETECTED_VEHICLE_DEVIATION)" \
-	  MOTION_DETECTED_ANIMAL_DEVIATION="$(MOTION_DETECTED_ANIMAL_DEVIATION)" \
-	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
-	  LOGGER_MQTT="$(LOGGER_MQTT)" \
-	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
+	  MOTION_USER="$(MOTION_USER)" \
+	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
+	  MQTT_HOST="$(MQTT_HOST)" \
+	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
+	  MQTT_PORT="$(MQTT_PORT)" \
+	  MQTT_USERNAME="$(MQTT_USERNAME)" \
+	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
+	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
+	  NETDATA_URL="$(NETDATA_URL)" \
+	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	&& cat $< | envsubst > $@
 
 lovelace.json: lovelace.json.tmpl $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  DOMAIN_NAME="$(DOMAIN_NAME)" \
+	  HOST_IPADDR="$(HOST_IPADDR)" \
 	  HOST_LATITUDE="$(HOST_LATITUDE)" \
 	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
-	  HOST_IPADDR="$(HOST_IPADDR)" \
 	  HOST_NAME="$(HOST_NAME)" \
 	  HOST_NETWORK="$(HOST_NETWORK)" \
 	  HOST_NETWORK_MASK="$(HOST_NETWORK_MASK)" \
@@ -270,26 +287,27 @@ lovelace.json: lovelace.json.tmpl $(WEBCAMS)
 	  HOST_THEME="$(HOST_THEME)" \
 	  INTERNET_SCAN_INTERVAL="$(INTERNET_SCAN_INTERVAL)" \
 	  INTRANET_SCAN_INTERVAL="$(INTRANET_SCAN_INTERVAL)" \
-	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
+	  IPERF_HOST="$(IPERF_HOST)" \
+	  JUPYTER_URL="$(JUPYTER_URL)" \
 	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
-	  MOTION_GROUP="$(MOTION_GROUP)" \
-	  MOTION_DEVICE="$(MOTION_DEVICE)" \
-	  MOTION_CLIENT="$(MOTION_CLIENT)" \
-	  MOTION_USER="$(MOTION_USER)" \
-	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
-	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
-	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
-	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
-	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
-	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
-	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
-	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
-	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
-	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
-	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
+	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
 	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
 	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
-	  IPERF_HOST="$(IPERF_HOST)" \
+	  MOTION_CLIENT="$(MOTION_CLIENT)" \
+	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
+	  MOTION_DEVICE="$(MOTION_DEVICE)" \
+	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
+	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
+	  MOTION_GROUP="$(MOTION_GROUP)" \
+	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
+	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
+	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
+	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
+	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
+	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
+	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
+	  MOTION_USER="$(MOTION_USER)" \
+	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
 	  MQTT_HOST="$(MQTT_HOST)" \
 	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
 	  MQTT_PORT="$(MQTT_PORT)" \
@@ -297,7 +315,6 @@ lovelace.json: lovelace.json.tmpl $(WEBCAMS)
 	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
 	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
 	  NETDATA_URL="$(NETDATA_URL)" \
-	  JUPYTER_URL="$(JUPYTER_URL)" \
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	&& cat $< \
 	  | envsubst \
@@ -311,9 +328,9 @@ lovelace.developer.json: lovelace.developer.json.tmpl $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  DOMAIN_NAME="$(DOMAIN_NAME)" \
+	  HOST_IPADDR="$(HOST_IPADDR)" \
 	  HOST_LATITUDE="$(HOST_LATITUDE)" \
 	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
-	  HOST_IPADDR="$(HOST_IPADDR)" \
 	  HOST_NAME="$(HOST_NAME)" \
 	  HOST_NETWORK="$(HOST_NETWORK)" \
 	  HOST_NETWORK_MASK="$(HOST_NETWORK_MASK)" \
@@ -321,26 +338,27 @@ lovelace.developer.json: lovelace.developer.json.tmpl $(WEBCAMS)
 	  HOST_THEME="$(HOST_THEME)" \
 	  INTERNET_SCAN_INTERVAL="$(INTERNET_SCAN_INTERVAL)" \
 	  INTRANET_SCAN_INTERVAL="$(INTRANET_SCAN_INTERVAL)" \
-	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
+	  IPERF_HOST="$(IPERF_HOST)" \
+	  JUPYTER_URL="$(JUPYTER_URL)" \
 	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
-	  MOTION_GROUP="$(MOTION_GROUP)" \
-	  MOTION_DEVICE="$(MOTION_DEVICE)" \
-	  MOTION_CLIENT="$(MOTION_CLIENT)" \
-	  MOTION_USER="$(MOTION_USER)" \
-	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
-	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
-	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
-	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
-	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
-	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
-	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
-	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
-	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
-	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
-	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
+	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
 	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
 	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
-	  IPERF_HOST="$(IPERF_HOST)" \
+	  MOTION_CLIENT="$(MOTION_CLIENT)" \
+	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
+	  MOTION_DEVICE="$(MOTION_DEVICE)" \
+	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
+	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
+	  MOTION_GROUP="$(MOTION_GROUP)" \
+	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
+	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
+	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
+	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
+	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
+	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
+	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
+	  MOTION_USER="$(MOTION_USER)" \
+	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
 	  MQTT_HOST="$(MQTT_HOST)" \
 	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
 	  MQTT_PORT="$(MQTT_PORT)" \
@@ -348,7 +366,6 @@ lovelace.developer.json: lovelace.developer.json.tmpl $(WEBCAMS)
 	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
 	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
 	  NETDATA_URL="$(NETDATA_URL)" \
-	  JUPYTER_URL="$(JUPYTER_URL)" \
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	&& cat $< \
 	  | envsubst \
@@ -363,9 +380,9 @@ lovelace.person.json: lovelace.person.json.tmpl $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  DOMAIN_NAME="$(DOMAIN_NAME)" \
+	  HOST_IPADDR="$(HOST_IPADDR)" \
 	  HOST_LATITUDE="$(HOST_LATITUDE)" \
 	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
-	  HOST_IPADDR="$(HOST_IPADDR)" \
 	  HOST_NAME="$(HOST_NAME)" \
 	  HOST_NETWORK="$(HOST_NETWORK)" \
 	  HOST_NETWORK_MASK="$(HOST_NETWORK_MASK)" \
@@ -373,26 +390,27 @@ lovelace.person.json: lovelace.person.json.tmpl $(WEBCAMS)
 	  HOST_THEME="$(HOST_THEME)" \
 	  INTERNET_SCAN_INTERVAL="$(INTERNET_SCAN_INTERVAL)" \
 	  INTRANET_SCAN_INTERVAL="$(INTRANET_SCAN_INTERVAL)" \
-	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
+	  IPERF_HOST="$(IPERF_HOST)" \
+	  JUPYTER_URL="$(JUPYTER_URL)" \
 	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
-	  MOTION_GROUP="$(MOTION_GROUP)" \
-	  MOTION_DEVICE="$(MOTION_DEVICE)" \
-	  MOTION_CLIENT="$(MOTION_CLIENT)" \
-	  MOTION_USER="$(MOTION_USER)" \
-	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
-	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
-	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
-	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
-	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
-	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
-	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
-	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
-	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
-	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
-	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
+	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
 	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
 	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
-	  IPERF_HOST="$(IPERF_HOST)" \
+	  MOTION_CLIENT="$(MOTION_CLIENT)" \
+	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
+	  MOTION_DEVICE="$(MOTION_DEVICE)" \
+	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
+	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
+	  MOTION_GROUP="$(MOTION_GROUP)" \
+	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
+	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
+	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
+	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
+	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
+	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
+	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
+	  MOTION_USER="$(MOTION_USER)" \
+	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
 	  MQTT_HOST="$(MQTT_HOST)" \
 	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
 	  MQTT_PORT="$(MQTT_PORT)" \
@@ -400,7 +418,6 @@ lovelace.person.json: lovelace.person.json.tmpl $(WEBCAMS)
 	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
 	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
 	  NETDATA_URL="$(NETDATA_URL)" \
-	  JUPYTER_URL="$(JUPYTER_URL)" \
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	&& cat $< \
 	  | envsubst \
@@ -419,9 +436,9 @@ lovelace.vehicle.json: lovelace.vehicle.json.tmpl $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  DOMAIN_NAME="$(DOMAIN_NAME)" \
+	  HOST_IPADDR="$(HOST_IPADDR)" \
 	  HOST_LATITUDE="$(HOST_LATITUDE)" \
 	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
-	  HOST_IPADDR="$(HOST_IPADDR)" \
 	  HOST_NAME="$(HOST_NAME)" \
 	  HOST_NETWORK="$(HOST_NETWORK)" \
 	  HOST_NETWORK_MASK="$(HOST_NETWORK_MASK)" \
@@ -429,26 +446,27 @@ lovelace.vehicle.json: lovelace.vehicle.json.tmpl $(WEBCAMS)
 	  HOST_THEME="$(HOST_THEME)" \
 	  INTERNET_SCAN_INTERVAL="$(INTERNET_SCAN_INTERVAL)" \
 	  INTRANET_SCAN_INTERVAL="$(INTRANET_SCAN_INTERVAL)" \
-	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
+	  IPERF_HOST="$(IPERF_HOST)" \
+	  JUPYTER_URL="$(JUPYTER_URL)" \
 	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
-	  MOTION_GROUP="$(MOTION_GROUP)" \
-	  MOTION_DEVICE="$(MOTION_DEVICE)" \
-	  MOTION_CLIENT="$(MOTION_CLIENT)" \
-	  MOTION_USER="$(MOTION_USER)" \
-	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
-	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
-	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
-	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
-	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
-	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
-	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
-	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
-	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
-	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
-	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
+	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
 	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
 	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
-	  IPERF_HOST="$(IPERF_HOST)" \
+	  MOTION_CLIENT="$(MOTION_CLIENT)" \
+	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
+	  MOTION_DEVICE="$(MOTION_DEVICE)" \
+	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
+	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
+	  MOTION_GROUP="$(MOTION_GROUP)" \
+	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
+	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
+	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
+	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
+	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
+	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
+	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
+	  MOTION_USER="$(MOTION_USER)" \
+	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
 	  MQTT_HOST="$(MQTT_HOST)" \
 	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
 	  MQTT_PORT="$(MQTT_PORT)" \
@@ -456,7 +474,6 @@ lovelace.vehicle.json: lovelace.vehicle.json.tmpl $(WEBCAMS)
 	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
 	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
 	  NETDATA_URL="$(NETDATA_URL)" \
-	  JUPYTER_URL="$(JUPYTER_URL)" \
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	&& cat $< \
 	  | envsubst \
@@ -471,9 +488,9 @@ lovelace.animal.json: lovelace.animal.json.tmpl $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  DOMAIN_NAME="$(DOMAIN_NAME)" \
+	  HOST_IPADDR="$(HOST_IPADDR)" \
 	  HOST_LATITUDE="$(HOST_LATITUDE)" \
 	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
-	  HOST_IPADDR="$(HOST_IPADDR)" \
 	  HOST_NAME="$(HOST_NAME)" \
 	  HOST_NETWORK="$(HOST_NETWORK)" \
 	  HOST_NETWORK_MASK="$(HOST_NETWORK_MASK)" \
@@ -481,26 +498,27 @@ lovelace.animal.json: lovelace.animal.json.tmpl $(WEBCAMS)
 	  HOST_THEME="$(HOST_THEME)" \
 	  INTERNET_SCAN_INTERVAL="$(INTERNET_SCAN_INTERVAL)" \
 	  INTRANET_SCAN_INTERVAL="$(INTRANET_SCAN_INTERVAL)" \
-	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
+	  IPERF_HOST="$(IPERF_HOST)" \
+	  JUPYTER_URL="$(JUPYTER_URL)" \
 	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
-	  MOTION_GROUP="$(MOTION_GROUP)" \
-	  MOTION_DEVICE="$(MOTION_DEVICE)" \
-	  MOTION_CLIENT="$(MOTION_CLIENT)" \
-	  MOTION_USER="$(MOTION_USER)" \
-	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
-	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
-	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
-	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
-	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
-	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
-	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
-	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
-	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
-	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
-	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
+	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
 	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
 	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
-	  IPERF_HOST="$(IPERF_HOST)" \
+	  MOTION_CLIENT="$(MOTION_CLIENT)" \
+	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
+	  MOTION_DEVICE="$(MOTION_DEVICE)" \
+	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
+	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
+	  MOTION_GROUP="$(MOTION_GROUP)" \
+	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
+	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
+	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
+	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
+	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
+	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
+	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
+	  MOTION_USER="$(MOTION_USER)" \
+	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
 	  MQTT_HOST="$(MQTT_HOST)" \
 	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
 	  MQTT_PORT="$(MQTT_PORT)" \
@@ -508,7 +526,6 @@ lovelace.animal.json: lovelace.animal.json.tmpl $(WEBCAMS)
 	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
 	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
 	  NETDATA_URL="$(NETDATA_URL)" \
-	  JUPYTER_URL="$(JUPYTER_URL)" \
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	&& cat $< \
 	  | envsubst \
@@ -523,9 +540,9 @@ lovelace.experimental.json: lovelace.experimental.json.tmpl $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  DOMAIN_NAME="$(DOMAIN_NAME)" \
+	  HOST_IPADDR="$(HOST_IPADDR)" \
 	  HOST_LATITUDE="$(HOST_LATITUDE)" \
 	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
-	  HOST_IPADDR="$(HOST_IPADDR)" \
 	  HOST_NAME="$(HOST_NAME)" \
 	  HOST_NETWORK="$(HOST_NETWORK)" \
 	  HOST_NETWORK_MASK="$(HOST_NETWORK_MASK)" \
@@ -533,26 +550,27 @@ lovelace.experimental.json: lovelace.experimental.json.tmpl $(WEBCAMS)
 	  HOST_THEME="$(HOST_THEME)" \
 	  INTERNET_SCAN_INTERVAL="$(INTERNET_SCAN_INTERVAL)" \
 	  INTRANET_SCAN_INTERVAL="$(INTRANET_SCAN_INTERVAL)" \
-	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
+	  IPERF_HOST="$(IPERF_HOST)" \
+	  JUPYTER_URL="$(JUPYTER_URL)" \
 	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
-	  MOTION_GROUP="$(MOTION_GROUP)" \
-	  MOTION_DEVICE="$(MOTION_DEVICE)" \
-	  MOTION_CLIENT="$(MOTION_CLIENT)" \
-	  MOTION_USER="$(MOTION_USER)" \
-	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
-	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
-	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
-	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
-	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
-	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
-	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
-	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
-	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
-	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
-	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
+	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
 	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
 	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
-	  IPERF_HOST="$(IPERF_HOST)" \
+	  MOTION_CLIENT="$(MOTION_CLIENT)" \
+	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
+	  MOTION_DEVICE="$(MOTION_DEVICE)" \
+	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
+	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
+	  MOTION_GROUP="$(MOTION_GROUP)" \
+	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
+	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
+	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
+	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
+	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
+	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
+	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
+	  MOTION_USER="$(MOTION_USER)" \
+	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
 	  MQTT_HOST="$(MQTT_HOST)" \
 	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
 	  MQTT_PORT="$(MQTT_PORT)" \
@@ -560,7 +578,6 @@ lovelace.experimental.json: lovelace.experimental.json.tmpl $(WEBCAMS)
 	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
 	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
 	  NETDATA_URL="$(NETDATA_URL)" \
-	  JUPYTER_URL="$(JUPYTER_URL)" \
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	&& cat $< \
 	  | envsubst \
@@ -574,9 +591,9 @@ lovelace_dashboards.json: lovelace_dashboards.json.tmpl
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  DOMAIN_NAME="$(DOMAIN_NAME)" \
+	  HOST_IPADDR="$(HOST_IPADDR)" \
 	  HOST_LATITUDE="$(HOST_LATITUDE)" \
 	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
-	  HOST_IPADDR="$(HOST_IPADDR)" \
 	  HOST_NAME="$(HOST_NAME)" \
 	  HOST_NETWORK="$(HOST_NETWORK)" \
 	  HOST_NETWORK_MASK="$(HOST_NETWORK_MASK)" \
@@ -584,25 +601,26 @@ lovelace_dashboards.json: lovelace_dashboards.json.tmpl
 	  HOST_THEME="$(HOST_THEME)" \
 	  INTERNET_SCAN_INTERVAL="$(INTERNET_SCAN_INTERVAL)" \
 	  INTRANET_SCAN_INTERVAL="$(INTRANET_SCAN_INTERVAL)" \
-	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
+	  IPERF_HOST="$(IPERF_HOST)" \
+	  JUPYTER_URL="$(JUPYTER_URL)" \
 	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
-	  MOTION_GROUP="$(MOTION_GROUP)" \
-	  MOTION_DEVICE="$(MOTION_DEVICE)" \
-	  MOTION_CLIENT="$(MOTION_CLIENT)" \
-	  MOTION_USER="$(MOTION_USER)" \
-	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
-	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
-	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
-	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
-	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
-	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
-	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
-	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
-	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
-	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
+	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
 	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
 	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
-	  IPERF_HOST="$(IPERF_HOST)" \
+	  MOTION_CLIENT="$(MOTION_CLIENT)" \
+	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
+	  MOTION_DEVICE="$(MOTION_DEVICE)" \
+	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
+	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
+	  MOTION_GROUP="$(MOTION_GROUP)" \
+	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
+	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
+	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
+	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
+	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
+	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
+	  MOTION_USER="$(MOTION_USER)" \
+	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
 	  MQTT_HOST="$(MQTT_HOST)" \
 	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
 	  MQTT_PORT="$(MQTT_PORT)" \
@@ -610,7 +628,6 @@ lovelace_dashboards.json: lovelace_dashboards.json.tmpl
 	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
 	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
 	  NETDATA_URL="$(NETDATA_URL)" \
-	  JUPYTER_URL="$(JUPYTER_URL)" \
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	&& cat $< \
 	  | envsubst \
