@@ -256,7 +256,7 @@ secrets.yaml: secrets.yaml.tmpl makefile $(PWD)
 	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
 	&& cat $< | envsubst > $@
 
-lovelace.json: lovelace.json.tmpl
+lovelace.json: lovelace.json.tmpl $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  DOMAIN_NAME="$(DOMAIN_NAME)" \
@@ -307,7 +307,7 @@ lovelace.json: lovelace.json.tmpl
 	-@mkdir -p .storage/
 	@ln -s ../$@ .storage/lovelace
 
-lovelace.developer.json: lovelace.developer.json.tmpl
+lovelace.developer.json: lovelace.developer.json.tmpl $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  DOMAIN_NAME="$(DOMAIN_NAME)" \
@@ -415,7 +415,7 @@ lovelace.person.json: lovelace.person.json.tmpl $(WEBCAMS)
 	-@mkdir -p .storage/
 	@ln -s ../$@ .storage/lovelace.lovelace_person
 
-lovelace.vehicle.json: lovelace.vehicle.json.tmpl
+lovelace.vehicle.json: lovelace.vehicle.json.tmpl $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  DOMAIN_NAME="$(DOMAIN_NAME)" \
@@ -519,7 +519,7 @@ lovelace.animal.json: lovelace.animal.json.tmpl $(WEBCAMS)
 	-@mkdir -p .storage/
 	@ln -s ../$@ .storage/lovelace.lovelace_animal
 
-lovelace.experimental.json: lovelace.experimental.json.tmpl
+lovelace.experimental.json: lovelace.experimental.json.tmpl $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  DOMAIN_NAME="$(DOMAIN_NAME)" \
