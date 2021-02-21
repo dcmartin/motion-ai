@@ -671,7 +671,7 @@ logclean:
 	  && echo 'Attempting to remove log file (requires sudo): '"$${LOGPATH}" \
 	  && sudo LOGPATH=$${LOGPATH} /bin/rm -f $${LOGPATH}
 
-.PHONY: refresh neat tidy all default run stop logs restart clean realclean distclean $(PACKAGES) lovelace.*.json
+.PHONY: refresh neat tidy all default run stop logs restart clean realclean distclean $(PACKAGES) $(WEBCAMS) lovelace.*.json
 
 ##
 ## COLORS
