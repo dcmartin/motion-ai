@@ -12,9 +12,13 @@ MQTT='{"host":"'${MQTT_HOST}'","port":'${MQTT_PORT}',"username":"'${MQTT_USERNAM
 
 ## MOTION
 if [ -z "${MOTION_GROUP:-}" ] && [ -s MOTION_GROUP ]; then MOTION_GROUP=$(cat MOTION_GROUP); fi; MOTION_GROUP=${MOTION_GROUP:-motion}
-if [ -z "${MOTION_CLIENT:-}" ] && [ -s MOTION_CLIENT ]; then MOTION_CLIENT=$(cat MOTION_CLIENT); fi; MOTION_CLIENT=${MOTION_CLIENT:-+}
+if [ -z "${MOTION_DEVICE:-}" ] && [ -s MOTION_DEVICE ]; then MOTION_DEVICE=$(cat MOTION_DEVICE); fi; MOTION_DEVICE=${MOTION_DEVICE:-$(hostname -s | sed -e "s/-//g" -e "s/ /_/g")}
+if [ -z "${MOTION_CLIENT:-}" ] && [ -s MOTION_CLIENT ]; then MOTION_CLIENT=$(cat MOTION_CLIENT); fi; MOTION_CLIENT=${MOTION_CLIENT:-${MOTION_DEVICE}}
 if [ -z "${MOTION_CAMERA:-}" ] && [ -s MOTION_CAMERA ]; then MOTION_CAMERA=$(cat MOTION_CAMERA); fi; MOTION_CAMERA=${MOTION_CAMERA:-+}
-MOTION='{"group":"'${MOTION_GROUP}'","client":"'${MOTION_CLIENT}'","camera":"'${MOTION_CAMERA}'"}'
+if [ -z "${AI_GROUP:-}" ] && [ -s AI_GROUP ]; then AI_GROUP=$(cat AI_GROUP); fi; AI_GROUP=${AI_GROUP:-${MOTION_GROUP}}
+if [ -z "${AI_CLIENT:-}" ] && [ -s AI_CLIENT ]; then AI_CLIENT=$(cat AI_CLIENT); fi; AI_CLIENT=${AI_CLIENT:-${MOTION_CLIENT}}
+if [ -z "${AI_CAMERA:-}" ] && [ -s AI_CAMERA ]; then AI_CAMERA=$(cat AI_CAMERA); fi; AI_CAMERA=${AI_CAMERA:-${MOTION_CAMERA}}
+MOTION='{"group":"'${AI_GROUP}'","client":"'${AI_CLIENT}'","camera":"'${AI_CAMERA}'"}'
 
 # parameters
 SERVICE='{"label":"face4motion","id":"com.github.dcmartin.open-horizon.face4motion","version":"'${SERVICE_VERSION:-0.0.2}'","arch":"'${SERVICE_ARCH:-${BUILD_ARCH}}'","ports":{"service":'${SERVICE_PORT:-80}',"host":'${HOST_PORT:-4664}'}}'

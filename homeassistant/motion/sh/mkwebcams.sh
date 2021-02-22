@@ -20,8 +20,7 @@ function get_config()
 ###
 
 url='http://localhost:7999/cgi-bin/config'
-json='homeassistant/motion/config.json'
-
+json="${0%/*}/../config.json"
 # get the configuration from the motion addon
 get_config "${url}" "${json}"
 
