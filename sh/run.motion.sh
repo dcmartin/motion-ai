@@ -5,7 +5,7 @@ HOSTID=$(uname -n | sed 's/[-+#]*//g')
 
 # container
 LABEL='motion'
-IMAGE='dcmartin/addon-motion-video0:0.10.112'
+IMAGE='dcmartin/addon-motion-video0:0.10.115'
 
 # defaults
 OPTIONS='{"log_level":"info","log_motion_level":"info","log_motion_type":"ALL","default":{"changes":"on","event_gap":30,"framerate":5,"minimum_motion_frames":15,"post_pictures":"best","text_scale":2,"threshold_maximum":100000,"threshold_percent":1,"username":"username","password":"password","netcam_userpass":"nothing:nothing","width":640,"height":480},"mqtt":{"host":"127.0.0.1","port":1883,"username":"username","password":"password"},"group":"motion","device":"rpi0w","client":"rpi0w","timezone":"America/Los_Angeles","cameras":[]}'
@@ -35,7 +35,7 @@ if [ -z "${MOTION_EVENT_GAP:-}" ] && [ -s MOTION_EVENT_GAP ]; then MOTION_EVENT_
 if [ -z "${MOTION_LIGHTSWITCH_PERCENT:-}" ] && [ -s MOTION_LIGHTSWITCH_PERCENT ]; then MOTION_LIGHTSWITCH_PERCENT=$(cat MOTION_LIGHTSWITCH_PERCENT); fi; MOTION_LIGHTSWITCH_PERCENT=${MOTION_LIGHTSWITCH_PERCENT:-0}
 if [ -z "${MOTION_LIGHTSWITCH_FRAMES:-}" ] && [ -s MOTION_LIGHTSWITCH_FRAMES ]; then MOTION_LIGHTSWITCH_FRAMES=$(cat MOTION_LIGHTSWITCH_FRAMES); fi; MOTION_LIGHTSWITCH_FRAMES=${MOTION_LIGHTSWITCH_FRAMES:-5}
 
-if [ -z "${MOTION_CAMERA_NAME:-}" ] && [ -s MOTION_CAMERA_NAME ]; then MOTION_CAMERA_NAME=$(cat MOTION_CAMERA_NAME); fi; MOTION_CAMERA_NAME=${MOTION_CAMERA_NAME:-${MOTION_DEVICE}}
+if [ -z "${MOTION_CAMERA_NAME:-}" ] && [ -s MOTION_CAMERA_NAME ]; then MOTION_CAMERA_NAME=$(cat MOTION_CAMERA_NAME); fi; MOTION_CAMERA_NAME=${MOTION_CAMERA_NAME:-${MOTION_CLIENT}}
 if [ -z "${MOTION_CAMERA_TYPE:-}" ] && [ -s MOTION_CAMERA_TYPE ]; then MOTION_CAMERA_TYPE=$(cat MOTION_CAMERA_TYPE); fi; MOTION_CAMERA_TYPE=${MOTION_CAMERA_TYPE:-local}
 
 if [ -z "${MOTION_CAMERA_DEVICE:-}" ] && [ -s MOTION_CAMERA_DEVICE ]; then MOTION_CAMERA_DEVICE=$(cat MOTION_CAMERA_DEVICE); fi; MOTION_CAMERA_DEVICE=${MOTION_CAMERA_DEVICE:-/dev/video0}
