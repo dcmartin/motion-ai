@@ -165,7 +165,7 @@ $(WEBCAMS):
 
 $(MOTION_DIRS):
 	@-mkdir -p $@
-	-sudo chown -R ${USER} $@
+	@-sudo chown -R ${USER} $@
 
 $(PACKAGES): makefile
 	@echo "${MC}Making: $@${NC}"
