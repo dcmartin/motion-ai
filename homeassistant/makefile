@@ -169,16 +169,23 @@ CAMERA_DIRS := $(shell for C in $(CAMERAS); do echo www/images/motion/$${C}; don
 
 $(CAMERA_DIRS): $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
-	@-mkdir -p $@
-	@-for e in "" entity person vehicle animal; do \
-	  if [ ! -z "${e}" ]; then f="detected_${e}"; else f="detected"; fi; \
-	  sudo cp -n www/images/test-signal.gif $@/$${f}_animated.gif; \
-	  sudo cp -n www/images/test-signal.gif $@/$${f}_animated_mask.gif; \
-	  sudo cp -n www/images/test-signal.jpg $@/$${f}.jpg; \
+	@-sudo mkdir -p $@
+	@-for e in entity person vehicle animal; do \
+	  sudo cp -n www/images/test-signal.gif $@/detected_$${e}_animated.gif; \
+	  sudo cp -n www/images/test-signal.gif $@/detected_$${e}_animated_mask.gif; \
+	  sudo cp -n www/images/test-signal.jpg $@/detected_$${e}.jpg; \
+	  sudo cp -n www/images/test-signal.gif $@/../detected_$${e}_animated.gif; \
+	  sudo cp -n www/images/test-signal.gif $@/../detected_$${e}_animated_mask.gif; \
+	  sudo cp -n www/images/test-signal.jpg $@/../detected_$${e}.jpg; \
 	done
-	-@sudo cp -n www/images/test-signal.gif $@/../$${f}_animated.gif
-	-@sudo cp -n www/images/test-signal.gif $@/../$${f}_animated_mask.gif
-	-@sudo cp -n www/images/test-signal.jpg $@/../$${f}.jpg
+	@-for e in face alpr pose person-face vehicle-alpr; do \
+	  sudo cp -n www/images/test-signal.gif $@/$${e}_detected_animated.gif; \
+	  sudo cp -n www/images/test-signal.gif $@/$${e}_detected_animated_mask.gif; \
+	  sudo cp -n www/images/test-signal.jpg $@/$${e}_detected.jpg; \
+	  sudo cp -n www/images/test-signal.gif $@/../$${e}_detected_animated.gif; \
+	  sudo cp -n www/images/test-signal.gif $@/../$${e}_detected_animated_mask.gif; \
+	  sudo cp -n www/images/test-signal.jpg $@/../$${e}_detected.jpg; \
+	done
 
 cameras: $(CAMERA_DIRS)
 
