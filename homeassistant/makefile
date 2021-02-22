@@ -174,12 +174,18 @@ $(CAMERA_DIRS): $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
 	@-sudo mkdir -p $@
 	@-for e in entity person vehicle animal; do \
+	  sudo cp -n www/images/test-signal.gif $@/detected_animated.gif; \
+	  sudo cp -n www/images/test-signal.gif $@/detected_animated_mask.gif; \
+	  sudo cp -n www/images/test-signal.jpg $@/detected.jpg; \
 	  sudo cp -n www/images/test-signal.gif $@/detected_$${e}_animated.gif; \
 	  sudo cp -n www/images/test-signal.gif $@/detected_$${e}_animated_mask.gif; \
 	  sudo cp -n www/images/test-signal.jpg $@/detected_$${e}.jpg; \
 	  sudo cp -n www/images/test-signal.gif $@/../detected_$${e}_animated.gif; \
 	  sudo cp -n www/images/test-signal.gif $@/../detected_$${e}_animated_mask.gif; \
 	  sudo cp -n www/images/test-signal.jpg $@/../detected_$${e}.jpg; \
+	  sudo cp -n www/images/test-signal.gif $@/../detected_animated.gif; \
+	  sudo cp -n www/images/test-signal.gif $@/../detected_animated_mask.gif; \
+	  sudo cp -n www/images/test-signal.jpg $@/../detected.jpg; \
 	done
 	@-for e in face alpr pose; do \
 	  sudo cp -n www/images/test-signal.gif $@/$${e}_detected_animated.gif; \
