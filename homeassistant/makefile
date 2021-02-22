@@ -678,8 +678,8 @@ realclean: clean
 	-@sudo rm -fr www/images/motion/
 
 distclean: realclean
-	-@sudo rm -f .storage
-	-@suro rm -fr .uuid .HA_VERSION .cloud deps tts .storage
+	-@sudo rm -fr .storage
+	-@sudo rm -fr .uuid .HA_VERSION .cloud deps tts .storage
 	-@sudo rm -fr "../media/Motion-Ã👁"
 
 logclean:
