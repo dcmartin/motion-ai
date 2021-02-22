@@ -132,7 +132,23 @@ INTRANET_SCAN_INTERVAL ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.INTRA
 PACKAGES := motion
 
 ## directories for output files from scripts
-MOTION_DIRS := camera/motion group/motion counter/motion sensor/motion automation/motion device_tracker/motion history_graph/motion
+MOTION_DIRS := \
+	automation/motion \
+	binary_sensor/motion \
+	camera/motion \
+	counter/motion \
+	device_tracker/motion \
+	group/motion \
+	history_graph/motion \
+	image_processing/motion \
+	input_boolean/motion \
+	input_datetime/motion \
+	input_numeric/motion \
+	input_select/motion \
+	input_text/motion \
+	notify/motion \
+	sensor/motion \
+	shell_command/motion
 
 # dashboards
 MOTION_DASHBOARDS := developer experimental person animal vehicle
@@ -148,7 +164,8 @@ $(WEBCAMS):
 	@-./motion/sh/mkwebcams.sh > $@
 
 $(MOTION_DIRS):
-	-mkdir -p $@
+	@-mkdir -p $@
+	@-sudo chown -R ${USER} $@
 
 $(PACKAGES): makefile
 	@echo "${MC}Making: $@${NC}"
@@ -661,8 +678,8 @@ realclean: clean
 	-@sudo rm -fr www/images/motion/
 
 distclean: realclean
-	-@sudo rm -f .storage
-	-@suro rm -fr .uuid .HA_VERSION .cloud deps tts .storage
+	-@sudo rm -fr .storage
+	-@sudo rm -fr .uuid .HA_VERSION .cloud deps tts .storage
 	-@sudo rm -fr "../media/Motion-Ã👁"
 
 logclean:
@@ -671,7 +688,7 @@ logclean:
 	  && echo 'Attempting to remove log file (requires sudo): '"$${LOGPATH}" \
 	  && sudo LOGPATH=$${LOGPATH} /bin/rm -f $${LOGPATH}
 
-.PHONY: refresh neat tidy all default run stop logs restart clean realclean distclean $(PACKAGES) $(WEBCAMS) lovelace.*.json
+.PHONY: refresh neat tidy all default run stop logs restart clean realclean distclean $(PACKAGES) $(WEBCAMS) lovelace.*.json $(MOTION_DIRS)
 
 ##
 ## COLORS
