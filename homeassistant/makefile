@@ -15,7 +15,7 @@ AUTOMATION_INTERNET ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.AUTOMATI
 AUTOMATION_INTRANET ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.AUTOMATION_INTRANET' setup.json) && echo "${TS}++ AUTOMATION_INTRANET: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard AUTOMATION_INTRANET),$(shell v=$$(cat AUTOMATION_INTRANET) && echo "${TG}== AUTOMATION_INTRANET: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell echo "** AUTOMATION_INTRANET unset; default: off" > /dev/stderr && echo "off")))
 
 # domain
-DOMAIN_NAME ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.DOMAIN_NAME' setup.json) && echo "${TS}++ DOMAIN_NAME: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard DOMAIN_NAME),$(shell v=$$(cat DOMAIN_NAME) && echo "${TG}== DOMAIN_NAME: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v=$$(hostnamee-d) && v=$${v:-local} && echo "${TB}** DOMAIN_NAME unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+DOMAIN_NAME ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.DOMAIN_NAME' setup.json) && echo "${TS}++ DOMAIN_NAME: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard DOMAIN_NAME),$(shell v=$$(cat DOMAIN_NAME) && echo "${TG}== DOMAIN_NAME: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v=$$(hostname -d) && v=$${v:-local} && echo "${TB}** DOMAIN_NAME unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 
 # host
 HOST_NAME ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.HOST_NAME' setup.json) && echo "${TS}++ HOST_NAME: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard HOST_NAME),$(shell v=$$(cat HOST_NAME) && echo "${TG}== HOST_NAME: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v=$$(hostname -f) && v=$${v%%.*} && echo "${TB}** HOST_NAME unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
@@ -156,12 +156,31 @@ LOVELACE_DASHBOARDS := $(shell for C in $(MOTION_DASHBOARDS); do echo lovelace.$
 
 default: all
 
-all: $(WEBCAMS) lovelace.json lovelace_dashboards.json ${LOVELACE_DASHBOARDS} $(MOTION_DIRS) $(PACKAGES) secrets.yaml
+all: $(WEBCAMS) lovelace.json lovelace_dashboards.json ${LOVELACE_DASHBOARDS} $(MOTION_DIRS) $(PACKAGES) secrets.yaml cameras
 
 WEBCAMS := motion/webcams.json
 
 $(WEBCAMS):
+	@echo "${MC}Making: $@${NC}"
 	@-./motion/sh/mkwebcams.sh > $@
+
+CAMERAS := $(shell jq -r '.[].name' $(WEBCAMS))
+CAMERA_DIRS := $(shell for C in $(CAMERAS); do echo www/images/motion/$${C}; done)
+
+$(CAMERA_DIRS): $(WEBCAMS)
+	@echo "${MC}Making: $@${NC}"
+	@-mkdir -p $@
+	@-for e in "" entity person vehicle animal; do \
+	  if [ ! -z "${e}" ]; then f="detected_${e}"; else f="detected"; fi; \
+	  sudo cp -n www/images/test-signal.gif $@/$${f}_animated.gif; \
+	  sudo cp -n www/images/test-signal.gif $@/$${f}_animated_mask.gif; \
+	  sudo cp -n www/images/test-signal.jpg $@/$${f}.jpg; \
+	done
+	-@sudo cp -n www/images/test-signal.gif $@/../$${f}_animated.gif
+	-@sudo cp -n www/images/test-signal.gif $@/../$${f}_animated_mask.gif
+	-@sudo cp -n www/images/test-signal.jpg $@/../$${f}.jpg
+
+cameras: $(CAMERA_DIRS)
 
 $(MOTION_DIRS):
 	@-mkdir -p $@
@@ -688,7 +707,7 @@ logclean:
 	  && echo 'Attempting to remove log file (requires sudo): '"$${LOGPATH}" \
 	  && sudo LOGPATH=$${LOGPATH} /bin/rm -f $${LOGPATH}
 
-.PHONY: refresh neat tidy all default run stop logs restart clean realclean distclean $(PACKAGES) $(WEBCAMS) lovelace.*.json $(MOTION_DIRS)
+.PHONY: refresh neat tidy all default run stop logs restart clean realclean distclean $(PACKAGES) $(WEBCAMS) cameras lovelace.*.json $(MOTION_DIRS)
 
 ##
 ## COLORS
