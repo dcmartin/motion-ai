@@ -236,7 +236,7 @@ refresh: stop logclean neat run
 logs:
 	docker logs -f homeassistant
 
-secrets.yaml: secrets.yaml.tmpl makefile $(PWD)
+secrets.yaml: secrets.yaml.tmpl
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  AUTOMATION_INTERNET="$(AUTOMATION_INTERNET)" \
