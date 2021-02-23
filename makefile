@@ -38,9 +38,6 @@ MARIADB_HOST ?= $(if $(wildcard MARIADB_HOST),$(shell v=$$(cat MARIADB_HOST) && 
 
 IPERF_HOST ?= $(if $(wildcard IPERF_HOST),$(shell v=$$(cat IPERF_HOST) && echo "${TG}== IPERF_HOST: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="$(MQTT_HOST)" && echo "${DF}** IPERF_HOST${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 
-# AI
-AI_CLIENT ?= $(if $(wildcard AI_CLIENT),$(shell v=$$(cat AI_CLIENT) && echo "${TG}== AI_CLIENT: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='$(MOTION_DEVICE)' && echo "${DF}** AI_CLIENT${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
-
 ## MOTION
 MOTION_GROUP ?= $(if $(wildcard MOTION_GROUP),$(shell v=$$(cat MOTION_GROUP) && echo "${TG}== MOTION_GROUP: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='motion' && echo "${DF}** MOTION_GROUP${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_DEVICE ?= $(if $(wildcard MOTION_DEVICE),$(shell v=$$(cat MOTION_DEVICE) && echo "${TG}== MOTION_DEVICE: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v=$$(echo $(HOST_NAME) | sed -e "s/-//g" -e "s/ /_/g") && echo "${DF}** MOTION_DEVICE${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
@@ -143,7 +140,6 @@ ${MEDIA}:
 $(ACTIONS): necessary
 	@echo "${MC}Making: $@${NC}"
 	@export \
-	  AI_CLIENT="$(AI_CLIENT)" \
 	  DOMAIN_NAME="$(DOMAIN_NAME)" \
 	  HOST_LATITUDE="$(HOST_LATITUDE)" \
 	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
@@ -226,7 +222,6 @@ $(ACTIONS): necessary
 homeassistant/setup.json: setup.json.tmpl
 	@echo "${MC}Making: $@${NC}"
 	@export \
-	  AI_CLIENT="$(AI_CLIENT)" \
 	  DOMAIN_NAME="$(DOMAIN_NAME)" \
 	  HOST_LATITUDE="$(HOST_LATITUDE)" \
 	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \

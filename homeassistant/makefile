@@ -29,9 +29,6 @@ HOST_NETWORK_MASK ?= 24
 HOST_LATITUDE ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.HOST_LATITUDE' setup.json) && echo "${TS}++ HOST_LATITUDE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard HOST_LATITUDE),$(shell v=$$(cat HOST_LATITUDE) && echo "${TG}== HOST_LATITUDE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="0.0" && echo "${TB}** HOST_LATITUDE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 HOST_LONGITUDE ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.HOST_LONGITUDE' setup.json) && echo "${TS}++ HOST_LONGITUDE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard HOST_LONGITUDE),$(shell v=$$(cat HOST_LONGITUDE) && echo "${TG}== HOST_LONGITUDE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="0.0" && echo "${TB}** HOST_LONGITUDE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 
-# AI
-AI_CLIENT ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.AI_CLIENT' setup.json) && echo "${TS}++ AI_CLIENT: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard AI_CLIENT),$(shell v=$$(cat AI_CLIENT) && echo "${TG}== AI_CLIENT: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='$(MOTION_DEVICE)' && echo "${TB}** AI_CLIENT unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
-
 ## MOTION
 MOTION_GROUP ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_GROUP' setup.json) && echo "${TS}++ MOTION_GROUP: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_GROUP),$(shell v=$$(cat MOTION_GROUP) && echo "${TG}== MOTION_GROUP: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='motion' && echo "${TB}** MOTION_GROUP unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 MOTION_DEVICE ?= $(if $(wildcard MOTION_DEVICE),$(shell v=$$(cat MOTION_DEVICE) && echo "${TG}== MOTION_DEVICE: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v=$$(echo $(HOST_NAME) | sed -e "s/-//g" -e "s/ /_/g") && echo "${DF}** MOTION_DEVICE${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
@@ -242,7 +239,6 @@ logs:
 secrets.yaml: secrets.yaml.tmpl makefile $(PWD)
 	@echo "${MC}Making: $@${NC}"
 	@export \
-	  AI_CLIENT="$(AI_CLIENT)" \
 	  AUTOMATION_INTERNET="$(AUTOMATION_INTERNET)" \
 	  AUTOMATION_INTRANET="$(AUTOMATION_INTRANET)" \
 	  CONSUL_URL="$(CONSUL_URL)" \
