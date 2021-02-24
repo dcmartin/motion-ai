@@ -50,6 +50,7 @@ MOTION_MEDIA_MASK ?= $(if $(wildcard MOTION_MEDIA_MASK),$(shell v=$$(cat MOTION_
 MOTION_CAMERA_RESTART ?= $(if $(wildcard MOTION_CAMERA_RESTART),$(shell v=$$(cat MOTION_CAMERA_RESTART) && echo "${TG}== MOTION_CAMERA_RESTART: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${DF}** MOTION_CAMERA_RESTART${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 
 MOTION_YOLO_IP ?= $(if $(wildcard MOTION_YOLO_IP),$(shell v=$$(cat MOTION_YOLO_IP) && echo "${TG}== MOTION_YOLO_IP: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='${THIS_HOSTIP}' && echo "${DF}** MOTION_YOLO_IP${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_YOLO_CONFIG ?= $(if $(wildcard MOTION_YOLO_CONFIG),$(shell v=$$(cat MOTION_YOLO_CONFIG) && echo "${TG}== MOTION_YOLO_CONFIG: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='tiny-v2' && echo "${DF}** MOTION_YOLO_CONFIG${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 
 MOTION_TWILIO_NAME ?= $(if $(wildcard MOTION_TWILIO_NAME),$(shell v=$$(cat MOTION_TWILIO_NAME) && echo "${TG}== MOTION_TWILIO_NAME: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v=$(HOST_NAME) && echo "${DF}** MOTION_TWILIO_NAME${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_TWILIO_NUMBER ?= $(if $(wildcard MOTION_TWILIO_NUMBER),$(shell v=$$(cat MOTION_TWILIO_NUMBER) && echo "${TG}== MOTION_TWILIO_NUMBER: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='none' && echo "${DF}** MOTION_TWILIO_NUMBER${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
@@ -168,6 +169,7 @@ $(ACTIONS): necessary
 	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
 	  MOTION_CAMERA_RESTART="$(MOTION_CAMERA_RESTART)" \
 	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
+	  MOTION_YOLO_CONFIG="$(MOTION_YOLO_CONFIG)" \
 	  MOTION_TWILIO_NAME="$(MOTION_TWILIO_NAME)" \
 	  MOTION_TWILIO_NUMBER="$(MOTION_TWILIO_NUMBER)" \
 	  MOTION_TWILIO_SID="$(MOTION_TWILIO_SID)" \
@@ -251,6 +253,7 @@ homeassistant/setup.json: setup.json.tmpl
 	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
 	  MOTION_CAMERA_RESTART="$(MOTION_CAMERA_RESTART)" \
 	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
+	  MOTION_YOLO_CONFIG="$(MOTION_YOLO_CONFIG)" \
 	  MOTION_TWILIO_NAME="$(MOTION_TWILIO_NAME)" \
 	  MOTION_TWILIO_NUMBER="$(MOTION_TWILIO_NUMBER)" \
 	  MOTION_TWILIO_SID="$(MOTION_TWILIO_SID)" \

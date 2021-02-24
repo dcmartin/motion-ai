@@ -44,6 +44,8 @@ machine()
 
 function motionai::get()
 {
+  local pull=$(1:-pull}
+
   echo 'Downloading yolo weights'; \
     bash ${0%/*}/get.weights.sh \
     || \
@@ -58,10 +60,10 @@ function motionai::get()
   chown -R ${SUDO_USER:-${USER}} homeassistant/
 
   for m in yolo face alpr; do \
-    echo "Pulling container for AI: ${m}"; \
-    bash ${0%/*}/${m}4motion.sh pull \
+    echo "Executing ${pull} on container for AI: ${m}"; \
+    bash ${0%/*}/${m}4motion.sh ${pull} \
     || \
-    echo "Unable to pull container image for AI: ${m}; use ${0%/*}/${m}4motion.sh" &> /dev/stderr
+    echo "Unable to ${pull} container for AI: ${m}; use ${0%/*}/${m}4motion.sh" &> /dev/stderr
   done
 }
 
@@ -191,7 +193,7 @@ echo "Installing using ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine)" \
 if [ "${0##*/}" == 'get.motion-ai.sh' ]; then
 
   # get container images and weights for AI(s)
-  motionai::get &
+  motionai::get 'run' &
 
   # wait for HA
   echo -n "Waiting on Home Assistant "

@@ -57,7 +57,8 @@ if [ -z "${MOTION_CAMERA:-}" ] && [ -s MOTION_CAMERA ]; then MOTION_CAMERA=$(cat
 MOTION='{"group":"'${MOTION_GROUP}'","client":"'${MOTION_CLIENT}'","camera":"'${MOTION_CAMERA}'"}'
 
 ## YOLO
-if [ -z "${YOLO_CONFIG:-}" ] && [ -s YOLO_CONFIG ]; then YOLO_CONFIG=$(cat YOLO_CONFIG); fi; YOLO_CONFIG=${YOLO_CONFIG:-tiny-v2}
+if [ -z "${MOTION_YOLO_CONFIG:-}" ] && [ -s MOTION_YOLO_CONFIG ]; then MOTION_YOLO_CONFIG=$(cat MOTION_YOLO_CONFIG); fi
+if [ -z "${YOLO_CONFIG:${MOTION_YOLO_CONFIG:-}}" ] && [ -s YOLO_CONFIG ]; then YOLO_CONFIG=$(cat YOLO_CONFIG); fi; YOLO_CONFIG=${MOTION_YOLO_CONFIG:${YOLO_CONFIG:-tiny-v2}}
 if [ -z "${YOLO_ENTITY:-}" ] && [ -s YOLO_ENTITY ]; then YOLO_ENTITY=$(cat YOLO_ENTITY); fi; YOLO_ENTITY=${YOLO_ENTITY:-all}
 if [ -z "${YOLO_SCALE:-}" ] && [ -s YOLO_SCALE ]; then YOLO_SCALE=$(cat YOLO_SCALE); fi; YOLO_SCALE=${YOLO_SCALE:-640x480}
 if [ -z "${YOLO_THRESHOLD:-}" ] && [ -s YOLO_THRESHOLD ]; then YOLO_THRESHOLD=$(cat YOLO_THRESHOLD); fi; YOLO_THRESHOLD=${YOLO_THRESHOLD:-0.25}
