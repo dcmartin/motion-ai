@@ -28,7 +28,7 @@ HOST_LATITUDE ?= $(if $(wildcard HOST_LATITUDE),$(shell v=$$(cat HOST_LATITUDE) 
 HOST_LONGITUDE ?= $(if $(wildcard HOST_LONGITUDE),$(shell v=$$(cat HOST_LONGITUDE) && echo "${TG}== HOST_LONGITUDE: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="0.0" && echo "${DF}** HOST_LONGITUDE${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 
 # MQTT
-MQTT_HOST ?= $(if $(wildcard MQTT_HOST),$(shell v=$$(cat MQTT_HOST) && echo "${TG}== MQTT_HOST: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="$(HOST_IPADDR)" && echo "${DF}** MQTT_HOST${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MQTT_HOST ?= $(if $(wildcard MQTT_HOST),$(shell v=$$(cat MQTT_HOST) && echo "${TG}== MQTT_HOST: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="127.0.0.1" && echo "${DF}** MQTT_HOST${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MQTT_PORT ?= $(if $(wildcard MQTT_PORT),$(shell v=$$(cat MQTT_PORT) && echo "${TG}== MQTT_PORT: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="1883" && echo "${DF}** MQTT_PORT${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MQTT_USERNAME ?= $(if $(wildcard MQTT_USERNAME),$(shell v=$$(cat MQTT_USERNAME) && echo "${TG}== MQTT_USERNAME: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="username" && echo "${DF}** MQTT_USERNAME${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MQTT_PASSWORD ?= $(if $(wildcard MQTT_PASSWORD),$(shell v=$$(cat MQTT_PASSWORD) && echo "${TG}== MQTT_PASSWORD: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="password" && echo "${DF}** MQTT_PASSWORD${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
