@@ -221,6 +221,7 @@ $(ACTIONS): necessary
 
 homeassistant/setup.json: setup.json.tmpl
 	@echo "${MC}Making: $@${NC}"
+	-@rm -f $@
 	@export \
 	  DOMAIN_NAME="$(DOMAIN_NAME)" \
 	  HOST_LATITUDE="$(HOST_LATITUDE)" \
