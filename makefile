@@ -300,7 +300,7 @@ homeassistant/setup.json: setup.json.tmpl
 	  INFLUXDB_PASSWORD="$(INFLUXDB_PASSWORD)" \
 	&& cat $< | envsubst > $@
 
-.PHONY: ${MEDIA} necessary all default run stop logs restart tidy clean realclean distclean $(PACKAGES) homeassistant/motion/webcams.json
+.PHONY: ${MEDIA} necessary all default run stop logs restart tidy clean realclean distclean $(PACKAGES) homeassistant/motion/webcams.json homeassistant/setup.json
 
 ##
 ## COLORS
