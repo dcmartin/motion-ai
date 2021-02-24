@@ -50,7 +50,7 @@
           {% set s = s|from_json %}
           {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s is iterable -%}
             {%- set total = s|length -%}
-            {%- set list = s|select("integer")|list -%}
+            {%- set list = s|select("number")|list -%}
             {%- set count = list|count -%}
             {%- if count > 0 -%}
               {{- list|sum -}}
@@ -292,8 +292,11 @@
         {% set s = states('sensor.motion_detected_person_count_array') %}
         {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
           {% set s = s|from_json %}
-          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s is iterable %}
-            {{ s|max }}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s is iterable and s|length > 0 %}
+            {% set s = s|select("number")|list %}
+            {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable and s|length > 0 %}
+              {{ s|max }}
+            {%- else -%}null{%- endif -%}
           {%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif -%}
 
@@ -346,7 +349,7 @@
           {%- set s = s|from_json -%}
           {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
             {%- for p in s -%}
-              {%- if p|int >= m|int -%}
+              {%- if p|lower != 'null' and p|int >= m|int -%}
                 {{ o[loop.index0] }}
               {% endif -%}
             {%- endfor -%}
@@ -403,7 +406,7 @@
           {%- set s = s|from_json -%}
           {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s is iterable -%}
             {%- set total = s|length -%}
-            {%- set list = s|select("integer")|list -%}
+            {%- set list = s|select("number")|list -%}
             {%- set count = list|count -%}
             {%- if count > 0 -%}
               {{- list|min -}}
@@ -422,7 +425,7 @@
         {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
           {%- set s = s|from_json -%}
           {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s is iterable -%}
-            {%- set list = s|select("integer")|list -%}
+            {%- set list = s|select("number")|list -%}
             {%- if list|length > 0 -%}
               {{- list|min -}}
             {%- else -%}null{%- endif -%}
@@ -714,9 +717,15 @@
       friendly_name: '👱 max %'
       icon_template: 'mdi:percent'
       value_template: >-
-        {% set s = states('sensor.motion_detected_person_percents') %}
+        {% set s = states('sensor.motion_detected_person_ago_array') %}
         {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-          {{ s|from_json|max }}
+          {% set s = s|from_json %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s is iterable and s|length > 0 %}
+            {% set s = s|select("number")|list %}
+            {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable and s|length > 0 %}
+              {{ s|max }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif -%}
 
 - platform: template
@@ -725,10 +734,17 @@
       friendly_name: '👱 most (Σ)'
       icon_template: 'mdi:map-marker'
       value_template: >-
-        {% set s = states('sensor.motion_detected_person_camera_mosts') %}
-        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-          {{ states('sensor.motion_detected_person_camera_mosts').split(' ')|last }}
-        {%- else -%}Pending{%- endif -%}
+        {%- set s = states('sensor.motion_detected_person_camera_mosts') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {%- set s = states('sensor.motion_detected_person_camera_mosts') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|length > 0 -%}
+            {%- set s = s.split(' ')|list -%}
+            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|length > 0 -%}
+              {%- set p = s|last -%}
+            {%- endif -%} 
+          {%- endif -%} 
+        {%- endif -%} 
+        {%- if p is defined -%}{{- p -}}{%- else -%}Pending{%- endif -%}
 
 - platform: template
   sensors:
@@ -736,10 +752,17 @@
       friendly_name: '👱 often (⧖)'
       icon_template: 'mdi:map-marker'
       value_template: >-
-        {% set s = states('sensor.motion_detected_person_camera_oftens') %}
-        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-          {{ states('sensor.motion_detected_person_camera_oftens').split(' ')|last }}
-        {%- else -%}Pending{%- endif -%}
+        {%- set s = states('sensor.motion_detected_person_camera_oftens') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {%- set s = states('sensor.motion_detected_person_camera_oftens') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|length > 0 -%}
+            {%- set s = s.split(' ')|list -%}
+            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|length > 0 -%}
+              {%- set p = s|last -%}
+            {%- endif -%} 
+          {%- endif -%} 
+        {%- endif -%} 
+        {%- if p is defined -%}{{- p -}}{%- else -%}Pending{%- endif -%}
 
 - platform: template
   sensors:
@@ -755,7 +778,7 @@
           {%- set s = s|from_json -%}
           {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s is iterable -%}
             {%- for p in s -%}
-              {%- if p|int >= m|int -%}
+              {%- if p|lower != 'null' and p|int >= m|int -%}
                 {{ o[loop.index0] }}
               {% endif -%}
             {%- endfor -%}
