@@ -2,6 +2,7 @@
 ### makefile
 ###
 
+TIMESTAMP ?= $(shell date -u '%FT%TZ')
 THIS_HOSTIP ?= $(shell hostname -i | awk '{ print $$1 }')
 
 # logging
