@@ -14,12 +14,12 @@ function copyit()
   local e="${*}"
   local t
   local ICON='emoticon-outline'
-  local UOM='👱'
+  local UOM='😐'
 
   echo "${e}"
   for t in alpr pose; do 
     if [ "${t}" = 'alpr' ]; then
-      uom='🚗'
+      uom='🚘'
       icon='license'
     elif [ "${t}" = 'pose' ]; then
       uom='🚶'

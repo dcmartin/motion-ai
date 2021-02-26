@@ -40,6 +40,7 @@ WEBCAM_GROUPS := $(shell for C in $(WEBCAMS); do echo group/webcam-$${C}.yaml; d
 WEBCAM_SENSORS := $(shell for C in $(WEBCAMS); do echo sensor/webcam-$${C}.yaml; done)
 WEBCAM_DETECTED_ENTITYS := $(shell for C in $(WEBCAMS); do echo sensor/detected_entity-$${C}.yaml; done)
 WEBCAM_DETECTED_PERSONS := $(shell for C in $(WEBCAMS); do echo sensor/detected_person-$${C}.yaml; done)
+WEBCAM_PERSON_FACES := $(shell for C in $(WEBCAMS); do echo sensor/person_face-$${C}.yaml; done)
 WEBCAM_DETECTED_VEHICLES := $(shell for C in $(WEBCAMS); do echo sensor/detected_vehicle-$${C}.yaml; done)
 WEBCAM_DETECTED_ANIMALS := $(shell for C in $(WEBCAMS); do echo sensor/detected_animal-$${C}.yaml; done)
 WEBCAM_ALPR_DETECTEDS := $(shell for C in $(WEBCAMS); do echo sensor/alpr_detected-$${C}.yaml; done)
@@ -60,6 +61,7 @@ WEBCAM_GROUP_TEMPLATE := group.webcam.yaml.tmpl
 WEBCAM_SENSOR_TEMPLATE := sensor.webcam.yaml.tmpl
 WEBCAM_DETECTED_ENTITY_TEMPLATE := sensor.detected_entity.yaml.tmpl
 WEBCAM_DETECTED_PERSON_TEMPLATE := sensor.detected_person.yaml.tmpl
+WEBCAM_PERSON_FACE_TEMPLATE := sensor.person_face.yaml.tmpl
 WEBCAM_DETECTED_VEHICLE_TEMPLATE := sensor.detected_vehicle.yaml.tmpl
 WEBCAM_DETECTED_ANIMAL_TEMPLATE := sensor.detected_animal.yaml.tmpl
 WEBCAM_ALPR_DETECTED_TEMPLATE := sensor.alpr_detected.yaml.tmpl
@@ -78,6 +80,7 @@ WEBCAM_YAML := \
 	$(WEBCAM_SENSORS) \
 	$(WEBCAM_DETECTED_ENTITYS) \
 	$(WEBCAM_DETECTED_PERSONS) \
+	$(WEBCAM_PERSON_FACES) \
 	$(WEBCAM_DETECTED_VEHICLES) \
 	$(WEBCAM_DETECTED_ANIMALS) \
 	$(WEBCAM_DETECTED_ALPRS) \
@@ -299,6 +302,16 @@ $(WEBCAM_DETECTED_ENTITYS): $(WEBCAM_DETECTED_ENTITY_TEMPLATE) makefile ${WEBCAM
 	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
 	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
 	  cat $(WEBCAM_DETECTED_ENTITY_TEMPLATE) | envsubst > $@
+
+$(WEBCAM_PERSON_FACES): $(WEBCAM_PERSON_FACE_TEMPLATE) makefile ${WEBCAMS_JSON}
+	@export TARGET="$@"; \
+	  export MOTION_CAMERA=$${TARGET%%.*}; \
+	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
+	  export MOTION_GROUP="$(MOTION_GROUP)"; \
+	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
+	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
+	  cat $(WEBCAM_PERSON_FACE_TEMPLATE) | envsubst > $@
 
 $(WEBCAM_DETECTED_PERSONS): $(WEBCAM_DETECTED_PERSON_TEMPLATE) makefile ${WEBCAMS_JSON}
 	@export TARGET="$@"; \
