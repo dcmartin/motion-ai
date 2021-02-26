@@ -9,12 +9,13 @@ else
   exit 1
 fi
 
-p='face'
-ICON='face'
-UOM='👱'
+function copyit()
+{
+  local e="${*}"
+  local t
+  local ICON='emoticon-outline'
+  local UOM='👱'
 
-find homeassistant/ -name "*${p}_*.yaml*" -print | while read; do
-  e="${REPLY}"
   echo "${e}"
   for t in alpr pose; do 
     if [ "${t}" = 'alpr' ]; then
@@ -36,4 +37,10 @@ find homeassistant/ -name "*${p}_*.yaml*" -print | while read; do
       -e "s/${UOM}/${uom}/g" \
       "${e}" > "${g}"
   done
-done
+}
+
+p='face'
+
+find homeassistant/ -name "${p}.yaml" -print | while read; do copyit "${REPLY}"; done
+find homeassistant/ -name "${p}_detected.yaml" -print | while read; do copyit "${REPLY}"; done
+find homeassistant/ -name "*.${p}_detected.yaml.tmpl" -print | while read; do copyit "${REPLY}"; done
