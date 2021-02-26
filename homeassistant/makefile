@@ -333,46 +333,8 @@ secrets.yaml: secrets.yaml.tmpl
 lovelace.json: lovelace.json.tmpl $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
 	@export \
-	  DOMAIN_NAME="$(DOMAIN_NAME)" \
-	  HOST_IPADDR="$(HOST_IPADDR)" \
-	  HOST_LATITUDE="$(HOST_LATITUDE)" \
-	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
 	  HOST_NAME="$(HOST_NAME)" \
-	  HOST_NETWORK="$(HOST_NETWORK)" \
-	  HOST_NETWORK_MASK="$(HOST_NETWORK_MASK)" \
-	  HOST_PORT="$(HOST_PORT)" \
-	  HOST_THEME="$(HOST_THEME)" \
-	  INTERNET_SCAN_INTERVAL="$(INTERNET_SCAN_INTERVAL)" \
-	  INTRANET_SCAN_INTERVAL="$(INTRANET_SCAN_INTERVAL)" \
-	  IPERF_HOST="$(IPERF_HOST)" \
-	  JUPYTER_URL="$(JUPYTER_URL)" \
-	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
-	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
-	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
-	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
-	  MOTION_CLIENT="$(MOTION_CLIENT)" \
-	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
-	  MOTION_DEVICE="$(MOTION_DEVICE)" \
-	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
-	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
-	  MOTION_GROUP="$(MOTION_GROUP)" \
-	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
-	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
-	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
-	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
-	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
-	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
-	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
 	  MOTION_USER="$(MOTION_USER)" \
-	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
-	  MQTT_HOST="$(MQTT_HOST)" \
-	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
-	  MQTT_PORT="$(MQTT_PORT)" \
-	  MQTT_USERNAME="$(MQTT_USERNAME)" \
-	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
-	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
-	  NETDATA_URL="$(NETDATA_URL)" \
-	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	&& cat $< \
 	  | envsubst \
          | jq '(.data.config.views[]|select(.path=="home").cards[].cards[].cards[]?|select(.camera_image=="camera.motion_overview").elements)+='"$$(jq '[.[]|{"type":"icon","entity":("sensor.motion_"+.name+"_detected_person_ago"),"icon": ("mdi:"+.icon),"style":{"color":"red","left":(.left|tostring+"%"),"top":(.top|tostring+"%"),"height":"5%","width": "5%"}}]' $(WEBCAMS))" \
@@ -384,46 +346,8 @@ lovelace.json: lovelace.json.tmpl $(WEBCAMS)
 lovelace.developer.json: lovelace.developer.json.tmpl $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
 	@export \
-	  DOMAIN_NAME="$(DOMAIN_NAME)" \
-	  HOST_IPADDR="$(HOST_IPADDR)" \
-	  HOST_LATITUDE="$(HOST_LATITUDE)" \
-	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
 	  HOST_NAME="$(HOST_NAME)" \
-	  HOST_NETWORK="$(HOST_NETWORK)" \
-	  HOST_NETWORK_MASK="$(HOST_NETWORK_MASK)" \
-	  HOST_PORT="$(HOST_PORT)" \
-	  HOST_THEME="$(HOST_THEME)" \
-	  INTERNET_SCAN_INTERVAL="$(INTERNET_SCAN_INTERVAL)" \
-	  INTRANET_SCAN_INTERVAL="$(INTRANET_SCAN_INTERVAL)" \
-	  IPERF_HOST="$(IPERF_HOST)" \
-	  JUPYTER_URL="$(JUPYTER_URL)" \
-	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
-	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
-	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
-	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
-	  MOTION_CLIENT="$(MOTION_CLIENT)" \
-	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
-	  MOTION_DEVICE="$(MOTION_DEVICE)" \
-	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
-	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
-	  MOTION_GROUP="$(MOTION_GROUP)" \
-	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
-	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
-	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
-	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
-	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
-	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
-	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
 	  MOTION_USER="$(MOTION_USER)" \
-	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
-	  MQTT_HOST="$(MQTT_HOST)" \
-	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
-	  MQTT_PORT="$(MQTT_PORT)" \
-	  MQTT_USERNAME="$(MQTT_USERNAME)" \
-	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
-	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
-	  NETDATA_URL="$(NETDATA_URL)" \
-	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	&& cat $< \
 	  | envsubst \
 	  | jq '(.data.config.views[]|select(.path=="motion_live").cards[]|select(.title=="OVERVIEW").elements)+='"$$(jq '[.[]|{"type":"icon","entity":("camera.motion_"+.name+"_live"),"icon": ("mdi:"+.icon),"style":{"color":"red","left":(.left|tostring+"%"),"top":(.top|tostring+"%"),"height":"5%","width": "5%"}}]' $(WEBCAMS))" \
@@ -436,46 +360,8 @@ lovelace.developer.json: lovelace.developer.json.tmpl $(WEBCAMS)
 lovelace.person.json: lovelace.person.json.tmpl $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
 	@export \
-	  DOMAIN_NAME="$(DOMAIN_NAME)" \
-	  HOST_IPADDR="$(HOST_IPADDR)" \
-	  HOST_LATITUDE="$(HOST_LATITUDE)" \
-	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
 	  HOST_NAME="$(HOST_NAME)" \
-	  HOST_NETWORK="$(HOST_NETWORK)" \
-	  HOST_NETWORK_MASK="$(HOST_NETWORK_MASK)" \
-	  HOST_PORT="$(HOST_PORT)" \
-	  HOST_THEME="$(HOST_THEME)" \
-	  INTERNET_SCAN_INTERVAL="$(INTERNET_SCAN_INTERVAL)" \
-	  INTRANET_SCAN_INTERVAL="$(INTRANET_SCAN_INTERVAL)" \
-	  IPERF_HOST="$(IPERF_HOST)" \
-	  JUPYTER_URL="$(JUPYTER_URL)" \
-	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
-	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
-	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
-	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
-	  MOTION_CLIENT="$(MOTION_CLIENT)" \
-	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
-	  MOTION_DEVICE="$(MOTION_DEVICE)" \
-	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
-	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
-	  MOTION_GROUP="$(MOTION_GROUP)" \
-	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
-	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
-	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
-	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
-	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
-	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
-	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
 	  MOTION_USER="$(MOTION_USER)" \
-	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
-	  MQTT_HOST="$(MQTT_HOST)" \
-	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
-	  MQTT_PORT="$(MQTT_PORT)" \
-	  MQTT_USERNAME="$(MQTT_USERNAME)" \
-	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
-	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
-	  NETDATA_URL="$(NETDATA_URL)" \
-	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	&& cat $< \
 	  | envsubst \
 	  | jq '(.data.config.views[]|select(.path=="person").cards[]|select(.title=="Person count mean (Σμ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_person_count_mean")]' $(WEBCAMS))" \
@@ -492,46 +378,8 @@ lovelace.person.json: lovelace.person.json.tmpl $(WEBCAMS)
 lovelace.vehicle.json: lovelace.vehicle.json.tmpl $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
 	@export \
-	  DOMAIN_NAME="$(DOMAIN_NAME)" \
-	  HOST_IPADDR="$(HOST_IPADDR)" \
-	  HOST_LATITUDE="$(HOST_LATITUDE)" \
-	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
 	  HOST_NAME="$(HOST_NAME)" \
-	  HOST_NETWORK="$(HOST_NETWORK)" \
-	  HOST_NETWORK_MASK="$(HOST_NETWORK_MASK)" \
-	  HOST_PORT="$(HOST_PORT)" \
-	  HOST_THEME="$(HOST_THEME)" \
-	  INTERNET_SCAN_INTERVAL="$(INTERNET_SCAN_INTERVAL)" \
-	  INTRANET_SCAN_INTERVAL="$(INTRANET_SCAN_INTERVAL)" \
-	  IPERF_HOST="$(IPERF_HOST)" \
-	  JUPYTER_URL="$(JUPYTER_URL)" \
-	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
-	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
-	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
-	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
-	  MOTION_CLIENT="$(MOTION_CLIENT)" \
-	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
-	  MOTION_DEVICE="$(MOTION_DEVICE)" \
-	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
-	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
-	  MOTION_GROUP="$(MOTION_GROUP)" \
-	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
-	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
-	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
-	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
-	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
-	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
-	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
 	  MOTION_USER="$(MOTION_USER)" \
-	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
-	  MQTT_HOST="$(MQTT_HOST)" \
-	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
-	  MQTT_PORT="$(MQTT_PORT)" \
-	  MQTT_USERNAME="$(MQTT_USERNAME)" \
-	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
-	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
-	  NETDATA_URL="$(NETDATA_URL)" \
-	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	&& cat $< \
 	  | envsubst \
 	  | jq '(.data.config.views[]|select(.path=="vehicle").cards[]|select(.title=="Vehicle count mean (Σμ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_vehicle_count_mean")]' $(WEBCAMS))" \
@@ -544,46 +392,8 @@ lovelace.vehicle.json: lovelace.vehicle.json.tmpl $(WEBCAMS)
 lovelace.animal.json: lovelace.animal.json.tmpl $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
 	@export \
-	  DOMAIN_NAME="$(DOMAIN_NAME)" \
-	  HOST_IPADDR="$(HOST_IPADDR)" \
-	  HOST_LATITUDE="$(HOST_LATITUDE)" \
-	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
 	  HOST_NAME="$(HOST_NAME)" \
-	  HOST_NETWORK="$(HOST_NETWORK)" \
-	  HOST_NETWORK_MASK="$(HOST_NETWORK_MASK)" \
-	  HOST_PORT="$(HOST_PORT)" \
-	  HOST_THEME="$(HOST_THEME)" \
-	  INTERNET_SCAN_INTERVAL="$(INTERNET_SCAN_INTERVAL)" \
-	  INTRANET_SCAN_INTERVAL="$(INTRANET_SCAN_INTERVAL)" \
-	  IPERF_HOST="$(IPERF_HOST)" \
-	  JUPYTER_URL="$(JUPYTER_URL)" \
-	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
-	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
-	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
-	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
-	  MOTION_CLIENT="$(MOTION_CLIENT)" \
-	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
-	  MOTION_DEVICE="$(MOTION_DEVICE)" \
-	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
-	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
-	  MOTION_GROUP="$(MOTION_GROUP)" \
-	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
-	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
-	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
-	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
-	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
-	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
-	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
 	  MOTION_USER="$(MOTION_USER)" \
-	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
-	  MQTT_HOST="$(MQTT_HOST)" \
-	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
-	  MQTT_PORT="$(MQTT_PORT)" \
-	  MQTT_USERNAME="$(MQTT_USERNAME)" \
-	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
-	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
-	  NETDATA_URL="$(NETDATA_URL)" \
-	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	&& cat $< \
 	  | envsubst \
 	  | jq '(.data.config.views[]|select(.path=="animal").cards[]|select(.title=="Animal count mean (Σμ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_animal_count_mean")]' $(WEBCAMS))" \
@@ -596,46 +406,8 @@ lovelace.animal.json: lovelace.animal.json.tmpl $(WEBCAMS)
 lovelace.experimental.json: lovelace.experimental.json.tmpl $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
 	@export \
-	  DOMAIN_NAME="$(DOMAIN_NAME)" \
-	  HOST_IPADDR="$(HOST_IPADDR)" \
-	  HOST_LATITUDE="$(HOST_LATITUDE)" \
-	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
 	  HOST_NAME="$(HOST_NAME)" \
-	  HOST_NETWORK="$(HOST_NETWORK)" \
-	  HOST_NETWORK_MASK="$(HOST_NETWORK_MASK)" \
-	  HOST_PORT="$(HOST_PORT)" \
-	  HOST_THEME="$(HOST_THEME)" \
-	  INTERNET_SCAN_INTERVAL="$(INTERNET_SCAN_INTERVAL)" \
-	  INTRANET_SCAN_INTERVAL="$(INTRANET_SCAN_INTERVAL)" \
-	  IPERF_HOST="$(IPERF_HOST)" \
-	  JUPYTER_URL="$(JUPYTER_URL)" \
-	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
-	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
-	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
-	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
-	  MOTION_CLIENT="$(MOTION_CLIENT)" \
-	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
-	  MOTION_DEVICE="$(MOTION_DEVICE)" \
-	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
-	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
-	  MOTION_GROUP="$(MOTION_GROUP)" \
-	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
-	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
-	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
-	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
-	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
-	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
-	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
 	  MOTION_USER="$(MOTION_USER)" \
-	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
-	  MQTT_HOST="$(MQTT_HOST)" \
-	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
-	  MQTT_PORT="$(MQTT_PORT)" \
-	  MQTT_USERNAME="$(MQTT_USERNAME)" \
-	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
-	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
-	  NETDATA_URL="$(NETDATA_URL)" \
-	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	&& cat $< \
 	  | envsubst \
 	  | jq '(.data.config.views)+=$$views[0]' --slurpfile views "$$(jq '[.[]|{"badges":[],"panel":false,"icon":("mdi:"+.icon),"path":.name,"title":.name,"cards":[{"cards":[{"type":"picture-elements","camera_image":("camera.motion_"+.name+"_detected_person"),"elements":[{"type":"conditional","conditions":[{"entity":("sensor.motion_"+.name+"_detected_person_when"),"state":"Pending"}],"elements":[{"type":"image","camera_image":"camera.motion_nosignal_animated","style":{"position":null,"opacity":1,"top":"50%","left":"50%","width":"100%","height":"100%"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_person_when"),"prefix":"Person:","style":{"top":"50%","left":"50%","font-size":"200%","color":"cyan"}}]},{"type":"conditional","conditions":[{"entity":("sensor.motion_"+.name+"_detected_person_when"),"state_not":"Pending"}],"elements":[{"type":"state-label","entity":("sensor.motion_"+.name+"_camera_name"),"prefix":"Person at ","style":{"top":"75%","left":"50%","font-size":"200%","color":"cyan"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_person_ago_relative"),"prefix":"Ago:","style":{"top":"10%","left":"80%","font-size":"150%","color":"cyan"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_person_when"),"style":{"top":"90%","left":"50%","font-size":"100%","color":"cyan"}},{"type":"image","camera_image":("camera.motion_"+.name+"_detected_person_animated"),"style":{"position":null,"opacity":0.4,"top":"50%","left":"50%","width":"100%","height":"100%"}}]}]},{"type":"picture-elements","camera_image":("camera.motion_"+.name+"_detected"),"elements":[{"type":"conditional","conditions":[{"entity":("sensor.motion_"+.name+"_detected_when"),"state":"Pending"}],"elements":[{"type":"image","camera_image":"camera.motion_nosignal_animated","style":{"position":null,"opacity":1,"top":"50%","left":"50%","width":"100%","height":"100%"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_when"),"prefix":"Detected:","style":{"top":"50%","left":"50%","font-size":"200%","color":"magenta"}}]},{"type":"conditional","conditions":[{"entity":("sensor.motion_"+.name+"_detected_when"),"state_not":"Pending"}],"elements":[{"type":"state-label","entity":("sensor.motion_"+.name+"_camera_name"),"prefix":"Detected at ","style":{"top":"75%","left":"50%","font-size":"200%","color":"magenta"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_ago_relative"),"prefix":"Ago:","style":{"top":"10%","left":"80%","font-size":"150%","color":"magenta"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_when"),"style":{"top":"90%","left":"50%","font-size":"100%","color":"magenta"}},{"type":"image","camera_image":("camera.motion_"+.name+"_detected_animated"),"style":{"position":null,"opacity":0.4,"top":"50%","left":"50%","width":"100%","height":"100%"}}]}]}],"type":"vertical-stack"},{"cards":[{"entities":[{"name":"Last detection","icon":"mdi:eye","entity":("sensor.motion_"+.name+"_detected_status")}],"show_header_toggle":false,"title":"","type":"entities"},{"type":"picture-elements","elements":[{"type":"state-label","entity":"sensor.time","prefix":"LIVE:","style":{"top":"10%","left":"15%","font-size":"125%","color":"yellow"}},{"type":"state-label","entity":"sensor.date","style":{"top":"10%","left":"85%","font-size":"125%","color":"yellow"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_camera_name"),"style":{"top":"90%","left":"50%","font-size":"200%","color":"yellow"}}],"camera_image":("camera.motion_"+.name+"_live")},{"type":"glance","entities":[{"name":"Person ago","icon":"mdi:account","entity":("sensor.motion_"+.name+"_detected_person_ago_relative")},{"name":"Vehicle ago","icon":"mdi:car","entity":("sensor.motion_"+.name+"_detected_vehicle_ago_relative")},{"name":"Animal ago","icon":"mdi:cow","entity":("sensor.motion_"+.name+"_detected_animal_ago_relative")},{"name":"Entity ago","icon":"mdi:motion-sensor","entity":("sensor.motion_"+.name+"_detected_entity_ago_relative")},{"name":"Entity ∀βμ","icon":"mdi:beta","entity":("sensor.motion_"+.name+"_detected_entity_confidence_mean")}],"show_icon":true,"show_name":true},{"type":"vertical-stack","cards":[{"entities":[{"name":("Notify if entity detected at "+.name+" camera"),"entity":("input_boolean.motion_"+.name+"_detected_entity_notify")}],"show_header_toggle":false,"title":"","type":"entities"},{"type":"conditional","conditions":[{"entity":("binary_sensor.motion_"+.name+"_detected_entity_notify"),"state":"on"}],"card":{"entities":[{"name":("Entity to detect at "+.name+" camera"),"entity":("input_select.motion_"+.name+"_detect_entity")}],"show_header_toggle":false,"title":"","type":"entities"}}]}],"type":"vertical-stack"},{"cards":[{"type":"picture-elements","camera_image":("camera.motion_"+.name+"_detected_vehicle"),"elements":[{"type":"conditional","conditions":[{"entity":("sensor.motion_"+.name+"_detected_vehicle_when"),"state":"Pending"}],"elements":[{"type":"image","camera_image":"camera.motion_nosignal_animated","style":{"position":null,"opacity":1,"top":"50%","left":"50%","width":"100%","height":"100%"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_vehicle_when"),"prefix":"Vehicle:","style":{"top":"50%","left":"50%","font-size":"200%","color":"gold"}}]},{"type":"conditional","conditions":[{"entity":("sensor.motion_"+.name+"_detected_vehicle_when"),"state_not":"Pending"}],"elements":[{"type":"state-label","entity":("sensor.motion_"+.name+"_camera_name"),"prefix":"Vehicle at ","style":{"top":"75%","left":"50%","font-size":"200%","color":"gold"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_vehicle_ago_relative"),"prefix":"Ago:","style":{"top":"10%","left":"80%","font-size":"150%","color":"gold"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_vehicle_when"),"style":{"top":"90%","left":"50%","font-size":"100%","color":"gold"}},{"type":"image","camera_image":("camera.motion_"+.name+"_detected_vehicle_animated"),"style":{"position":null,"opacity":0.4,"top":"50%","left":"50%","width":"100%","height":"100%"}}]}]},{"type":"picture-elements","camera_image":("camera.motion_"+.name+"_detected_animal"),"elements":[{"type":"conditional","conditions":[{"entity":("sensor.motion_"+.name+"_detected_animal_when"),"state":"Pending"}],"elements":[{"type":"image","camera_image":"camera.motion_nosignal_animated","style":{"position":null,"opacity":1,"top":"50%","left":"50%","width":"100%","height":"100%"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_animal_when"),"prefix":"Animal:","style":{"top":"50%","left":"50%","font-size":"200%","color":"chartreuse"}}]},{"type":"conditional","conditions":[{"entity":("sensor.motion_"+.name+"_detected_animal_when"),"state_not":"Pending"}],"elements":[{"type":"state-label","entity":("sensor.motion_"+.name+"_camera_name"),"prefix":"Animal at ","style":{"top":"75%","left":"50%","font-size":"200%","color":"chartreuse"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_animal_ago_relative"),"prefix":"Ago:","style":{"top":"10%","left":"80%","font-size":"150%","color":"chartreuse"}},{"type":"state-label","entity":("sensor.motion_"+.name+"_detected_animal_when"),"style":{"top":"90%","left":"50%","font-size":"100%","color":"chartreuse"}},{"type":"image","camera_image":("camera.motion_"+.name+"_detected_animal_animated"),"style":{"position":null,"opacity":0.4,"top":"50%","left":"50%","width":"100%","height":"100%"}}]}]}],"type":"vertical-stack"}]}]' $(WEBCAMS) > /tmp/cards.json; echo /tmp/cards.json)" \
@@ -647,45 +419,8 @@ lovelace.experimental.json: lovelace.experimental.json.tmpl $(WEBCAMS)
 lovelace_dashboards.json: lovelace_dashboards.json.tmpl
 	@echo "${MC}Making: $@${NC}"
 	@export \
-	  DOMAIN_NAME="$(DOMAIN_NAME)" \
-	  HOST_IPADDR="$(HOST_IPADDR)" \
-	  HOST_LATITUDE="$(HOST_LATITUDE)" \
-	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
 	  HOST_NAME="$(HOST_NAME)" \
-	  HOST_NETWORK="$(HOST_NETWORK)" \
-	  HOST_NETWORK_MASK="$(HOST_NETWORK_MASK)" \
-	  HOST_PORT="$(HOST_PORT)" \
-	  HOST_THEME="$(HOST_THEME)" \
-	  INTERNET_SCAN_INTERVAL="$(INTERNET_SCAN_INTERVAL)" \
-	  INTRANET_SCAN_INTERVAL="$(INTRANET_SCAN_INTERVAL)" \
-	  IPERF_HOST="$(IPERF_HOST)" \
-	  JUPYTER_URL="$(JUPYTER_URL)" \
-	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
-	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
-	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
-	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
-	  MOTION_CLIENT="$(MOTION_CLIENT)" \
-	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
-	  MOTION_DEVICE="$(MOTION_DEVICE)" \
-	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
-	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
-	  MOTION_GROUP="$(MOTION_GROUP)" \
-	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
-	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
-	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
-	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
-	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
-	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
 	  MOTION_USER="$(MOTION_USER)" \
-	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
-	  MQTT_HOST="$(MQTT_HOST)" \
-	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
-	  MQTT_PORT="$(MQTT_PORT)" \
-	  MQTT_USERNAME="$(MQTT_USERNAME)" \
-	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
-	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
-	  NETDATA_URL="$(NETDATA_URL)" \
-	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	&& cat $< \
 	  | envsubst \
 	 > $@
