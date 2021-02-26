@@ -451,6 +451,7 @@ realclean: clean
 	-@sudo rm -f known_devices.yaml
 	-@sudo rm -f home-assistant.log
 	-@sudo rm -fr www/images/motion/
+	-@sudo rm -fr .storare/core.{config_entries,device_registry}
 
 distclean: realclean
 	-@sudo rm -fr .storage
