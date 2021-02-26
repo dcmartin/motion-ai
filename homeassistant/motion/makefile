@@ -94,7 +94,6 @@ HIGHLOW_YAML := ${HIGHLOW_BINARY_SENSORS} # ${HIGHLOW_AUTOMATIONS}
 # TEMPLATES
 
 MOTION_YAML := \
-	input_text/config.yaml \
 	automation/storage.yaml \
 	automation/mqtt_attributes.yaml \
 	automation/internet_publish.yaml \
@@ -157,6 +156,7 @@ sensor/%.yaml : sensor.%.yaml.tmpl
 	  MOTION_GROUP="$(MOTION_GROUP)" \
 	  MOTION_DEVICE="$(MOTION_DEVICE)" \
 	  MOTION_CLIENT="${MOTION_CLIENT}" \
+	  MOTION_ROUTER_NAME="${MOTION_ROUTER_NAME}" \
 	  && cat $< | envsubst > $@
 
 binary_sensor/%.yaml : binary_sensor.%.yaml.tmpl
@@ -165,7 +165,6 @@ binary_sensor/%.yaml : binary_sensor.%.yaml.tmpl
 	  MOTION_GROUP="$(MOTION_GROUP)" \
 	  MOTION_DEVICE="$(MOTION_DEVICE)" \
 	  MOTION_CLIENT="${MOTION_CLIENT}" \
-	  MOTION_ROUTER_NAME="${MOTION_ROUTER_NAME}" \
 	  && cat $< | envsubst > $@
 
 ## HIGHLOW targets
