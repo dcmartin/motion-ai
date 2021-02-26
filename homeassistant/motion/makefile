@@ -9,6 +9,7 @@ DOMAIN_NAME ?= $(if $(DOMAIN_NAME),$(shell v=$(DOMAIN_NAME) && echo "-- INFO: DO
 MOTION_GROUP ?= $(if $(MOTION_GROUP),$(shell v=$(MOTION_GROUP) && echo "-- INFO: MOTION_GROUP: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(echo "motion") && echo "++ WARN: MOTION_GROUP unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MOTION_DEVICE ?= $(if $(MOTION_DEVICE),$(shell v=$(MOTION_DEVICE) && echo "-- INFO: MOTION_DEVICE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(echo "$${HOST_NAME:-$$(hostname)}" | sed 's/[\#+ \/]/_/g') && echo "++ WARN: MOTION_DEVICE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MOTION_CLIENT ?= $(if $(MOTION_CLIENT),$(shell v=$(MOTION_CLIENT) && echo "-- INFO: MOTION_CLIENT: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='+' && echo "++ WARN: MOTION_CLIENT unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MOTION_ROUTER_NAME ?= $(if $(MOTION_ROUTER_NAME),$(shell v=$(MOTION_ROUTER_NAME) && echo "-- INFO: MOTION_ROUTER_NAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='unknown' && echo "++ WARN: MOTION_ROUTER_NAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 ## MQTT
 MQTT_HOST ?= $(if $(MQTT_HOST),$(shell v=$(MQTT_HOST) && echo "-- INFO: MQTT_HOST: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="mqtt.$(DOMAIN_NAME)" && echo "++ WARN: MQTT_HOST unset; default: $${v}" > /dev/stderr && echo "$${v}"))
@@ -108,6 +109,7 @@ MOTION_YAML := \
 	sensor/device_start.yaml \
 	sensor/lost.yaml \
 	sensor/found.yaml \
+	sensor/router.yaml \
 	camera/event_image.yaml \
 	camera/event_end.yaml \
 	camera/event_animated.yaml \
@@ -163,6 +165,7 @@ binary_sensor/%.yaml : binary_sensor.%.yaml.tmpl
 	  MOTION_GROUP="$(MOTION_GROUP)" \
 	  MOTION_DEVICE="$(MOTION_DEVICE)" \
 	  MOTION_CLIENT="${MOTION_CLIENT}" \
+	  MOTION_ROUTER_NAME="${MOTION_ROUTER_NAME}" \
 	  && cat $< | envsubst > $@
 
 ## HIGHLOW targets

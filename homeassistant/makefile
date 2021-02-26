@@ -36,7 +36,7 @@ MOTION_DEVICE ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_DEVICE'
 MOTION_CLIENT ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_CLIENT' setup.json) && echo "${TS}++ MOTION_CLIENT: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_CLIENT),$(shell v=$$(cat MOTION_CLIENT) && echo "${TG}== MOTION_CLIENT: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='$(MOTION_DEVICE)' && echo "${TB}** MOTION_CLIENT unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 MOTION_USER ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_USER' setup.json) && echo "${TS}++ MOTION_USER: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_USER),$(shell v=$$(cat MOTION_USER) && echo "${TG}== MOTION_USER: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v=$(shell whoami) && echo "${TB}** MOTION_USER unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 
-MOTION_ROUTER_NAME ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_ROUTER_NAME' setup.json) && echo "${TS}++ MOTION_ROUTER_NAME: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_ROUTER_NAME),$(shell v=$$(cat MOTION_ROUTER_NAME) && echo "${TG}== MOTION_ROUTER_NAME: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='mikrotik' && echo "${TB}** MOTION_ROUTER_NAME unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}")))
+MOTION_ROUTER_NAME ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_ROUTER_NAME' setup.json) && echo "${TS}++ MOTION_ROUTER_NAME: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_ROUTER_NAME),$(shell v=$$(cat MOTION_ROUTER_NAME) && echo "${TG}== MOTION_ROUTER_NAME: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='mikrotik_router' && echo "${TB}** MOTION_ROUTER_NAME unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}")))
 
 # MQTT
 MQTT_HOST ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MQTT_HOST' setup.json) && echo "${TS}++ MQTT_HOST: $${v}${NC}" > /dev/stderr && echo "$${v}"), $(if $(wildcard MQTT_HOST),$(shell v=$$(cat MQTT_HOST) && echo "${TG}== MQTT_HOST: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="core-mosquitto" && echo "${TB}** MQTT_HOST unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
@@ -253,7 +253,6 @@ secrets.yaml: secrets.yaml.tmpl
 	  EXCHANGE_URL="$(EXCHANGE_URL)" \
 	  GRAFANA_URL="$(GRAFANA_URL)" \
 	  HOST_IPADDR="$(HOST_IPADDR)" \
-	  HOST_TIMEZONE="$(HOST_TIMEZONE)" \
 	  HOST_LATITUDE="$(HOST_LATITUDE)" \
 	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
 	  HOST_NAME="$(HOST_NAME)" \
@@ -261,6 +260,7 @@ secrets.yaml: secrets.yaml.tmpl
 	  HOST_NETWORK_MASK="$(HOST_NETWORK_MASK)" \
 	  HOST_PORT="$(HOST_PORT)" \
 	  HOST_THEME="$(HOST_THEME)" \
+	  HOST_TIMEZONE="$(HOST_TIMEZONE)" \
 	  HZNMONITOR_URL="$(HZNMONITOR_URL)" \
 	  INFLUXDB_DATABASE="$(INFLUXDB_DATABASE)" \
 	  INFLUXDB_HOST="$(INFLUXDB_HOST)" \
@@ -286,9 +286,9 @@ secrets.yaml: secrets.yaml.tmpl
           MOTION_DETECTED_ANIMAL_NOTIFY="$(MOTION_DETECTED_ANIMAL_NOTIFY)" \
 	  MOTION_DETECTED_ANIMAL_SPEAK="$(MOTION_DETECTED_ANIMAL_SPEAK)" \
 	  MOTION_DETECTED_ANIMAL_TUNE="$(MOTION_DETECTED_ANIMAL_TUNE)" \
-          MOTION_DETECTED_ENTITY="$(MOTION_DETECTED_ENTITY)" \
           MOTION_DETECTED_ENTITY_AGO="$(MOTION_DETECTED_ENTITY_AGO)" \
 	  MOTION_DETECTED_ENTITY_DEVIATION="$(MOTION_DETECTED_ENTITY_DEVIATION)" \
+          MOTION_DETECTED_ENTITY="$(MOTION_DETECTED_ENTITY)" \
           MOTION_DETECTED_ENTITY_NOTIFY="$(MOTION_DETECTED_ENTITY_NOTIFY)" \
 	  MOTION_DETECTED_ENTITY_SPEAK="$(MOTION_DETECTED_ENTITY_SPEAK)" \
 	  MOTION_DETECTED_ENTITY_TUNE="$(MOTION_DETECTED_ENTITY_TUNE)" \
@@ -313,6 +313,7 @@ secrets.yaml: secrets.yaml.tmpl
 	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
 	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
 	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
+	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
           MOTION_TWILIO_NAME="$(MOTION_TWILIO_NAME)" \
           MOTION_TWILIO_NUMBER="$(MOTION_TWILIO_NUMBER)" \
           MOTION_TWILIO_SID="$(MOTION_TWILIO_SID)" \
