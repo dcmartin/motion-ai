@@ -13,7 +13,7 @@ p='person'
 
 ICON='account'
 UOM='👱'
-find homeassistant/ -name "detected_${p}*.yaml" -print | while read; do
+find homeassistant/ -name "*detected_${p}*.yaml*" -print | while read; do
   e="${REPLY}"
   echo "${e}"
   for t in animal vehicle entity; do 
@@ -24,18 +24,18 @@ find homeassistant/ -name "detected_${p}*.yaml" -print | while read; do
       uom='🚗'
       icon='car'
     elif [ "${t}" = 'entity' ]; then
-      uom='🚶'
+      uom='👁'
       icon='motion-sensor'
     else 
       echo "ERROR: no such element: ${t}"
       exit 1
     fi
-    g=$(echo "${e}" | sed "s/person/${t}/g")
+    g=$(echo "${e}" | sed "s/${p}/${t}/g")
     ${gnused} \
+      -e "s/[\' ]*mdi:${ICON}[^ \']*[\']*/ \'mdi:${icon}\'/g" \
       -e "s/${p}/${t}/g" \
       -e "s/${p^}/${t^}/g" \
       -e "s/${p^^}/${t^^}/g" \
-      -e "s/[\' ]*mdi:${ICON}[^ \']*[\']*/ \'mdi:${icon}\'/g" \
       -e "s/${UOM}/${uom}/g" \
       "${e}" > "${g}"
   done
