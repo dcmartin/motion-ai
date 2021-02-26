@@ -1,0 +1,555 @@
+###
+## motion/sensor/pose_detected.yaml
+###
+
+## STATUS
+
+- platform: template
+  sensors:
+    motion_pose_detected_status:
+      friendly_name: POSE detected
+      icon_template: 'mdi:walk'
+      value_template: >-
+        {% if is_state('binary_sensor.motion_pose_detected','on') %}
+          {% set e = state_attr('sensor.motion_event_pose','event') %}
+          {% if e is mapping %}
+            {% set n = utcnow().timestamp()|int %}
+            {% set end = e.end|int %}
+            {% set event = e.event %}
+            {% set device = e.device %}
+            {% set camera = e.camera %}
+            {% set elapsed = e.elapsed|int %}
+            {% set what = state_attr('sensor.motion_event_pose','detected') %}
+            {% if what is none or what|lower == 'unknown' or what|length == 0 %}{% set what = 'nothing' %}{% endif %}
+            {% set count = state_attr('sensor.motion_event_pose','count')|int %}
+            {% set when = end|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
+            {% set delay = n - end %}
+            POSE DETECTED: {{ count }} {{ what }};
+            from {{ device -}}/{{- camera -}}/{{- event -}};
+            at {{ when }};
+            delay: {{ delay }};
+            duration: {{ elapsed }};
+            counter: {{ states('counter.motion_pose_detected_counter') -}}/{{- states('sensor.motion_pose_detected_counter') -}}
+          {% else %}Pending{% endif %}
+        {% elif is_state('binary_sensor.motion_pose','on') %}
+          {% set e = state_attr('sensor.motion_event_pose','event') %}
+          {% if e is mapping %}
+            {% set n = utcnow().timestamp()|int %}
+            {% set end = e.end|int %}
+            {% set event = e.event %}
+            {% set device = e.device %}
+            {% set camera = e.camera %}
+            {% set elapsed = e.elapsed|int %}
+            {% set what = state_attr('sensor.motion_event_pose','detected') %}
+            {% set count = state_attr('sensor.motion_event_pose','count') %}
+            {% set when = end|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
+            {% set delay = n - end %}
+            {%- if count|int > 0 -%}
+              POSE TOO LOW: {{ count }} {{ what }};
+              minimum: {{ states('input_number.motion_pose_detected_percent') }};
+            {%- else %}
+              POSE NONE:
+            {%- endif %}
+            {{ device -}}/{{- camera -}}/{{- event -}};
+            at {{ when }};
+            delay: {{ delay }};
+            duration: {{ elapsed }};
+          {% else %}NONE{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_pose_detected_status') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
+            {{ s }}
+          {% else %}Pending{% endif %}
+        {% endif %}
+        
+- platform: history_stats
+  name: motion_pose_detected_ratio_today
+  entity_id: binary_sensor.motion_pose_detected
+  state: 'on'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: template
+  sensors:
+    motion_pose_detected_threshold:
+      unit_of_measurement: '%' 
+      friendly_name: POSE threshold
+      icon_template: 'mdi:percent'
+      value_template: >-
+        {{ states('input_number.motion_pose_detected_percent')|int }}
+
+- platform: template
+  sensors:
+    motion_pose_detected_ratio_duration:
+      value_template: >
+        {{ state_attr('sensor.motion_pose_detected_ratio_today','value') }}
+
+- platform: history_stats
+  name: motion_pose_detected_count_today
+  entity_id: binary_sensor.motion_pose_detected
+  state: 'on'
+  type: count
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: template
+  sensors:
+    motion_pose_detected_today:
+      friendly_name: POSE today detected entity
+      value_template: >-
+        {% set s = states('sensor.motion_pose_detected_count_today') %}
+        {% if s|lower != 'unknown' and s|int > 0  %}
+          {{ states('sensor.motion_pose_detected_count_today') }} {{ states('sensor.motion_detect_entity') }} occurences; {{ states('sensor.motion_pose_detected_ratio_today') -}}%; {{ states('sensor.motion_pose_detected_ratio_duration') }}
+        {% else %}No poses detected today{% endif %}
+
+## count
+- platform: template
+  sensors:
+    motion_pose_detected_count_loop:
+      unit_of_measurement: '🚶'
+      value_template: >
+        {% set detected = state_attr('sensor.motion_event_pose','detected') %}
+        {% if detected|lower != 'none' and detected|lower != 'unavailable' and detected|lower != 'unknown' and detected != 'null' %}
+          {% set s = detected|length %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' %}
+            {{ s|int }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_pose_detected_count:
+      friendly_name: POSE detected count
+      unit_of_measurement: '🚶'
+      value_template: >
+        {% if is_state('binary_sensor.motion_pose_detected','on') or is_state('binary_sensor.motion_pose_detected_expired','off') %} 
+          {% set s = states('sensor.motion_pose_detected_count_loop') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'unknown' and s != 'null' %}
+            {{ s|int }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+
+## counter
+- platform: template
+  sensors:
+    motion_pose_detected_counter:
+      friendly_name: POSE detected counter
+      unit_of_measurement: count
+      value_template: >
+        {% set value = states('counter.motion_pose_detected_counter') %}
+        {% if value|lower != 'unavailable' and value|lower != 'unknown' %}
+          {{ value|int }}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_pose_detected_elapsed:
+      friendly_name: POSE detected elapsed
+      value_template: >-
+        {% if is_state('binary_sensor.motion_pose_detected','on') %}
+          {% set e = state_attr('sensor.motion_event_pose','event') %}
+          {% if e is mapping %}
+            {% set s = e.elapsed %}
+            {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
+              {{ s|int }}
+            {%- else -%}null{%- endif -%}
+          {% else %}null{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_pose_detected_elapsed') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+## event
+- platform: template
+  sensors:
+    # device
+    motion_pose_detected_event:
+      friendly_name: POSE detected event
+      value_template: >-
+        {% if is_state('binary_sensor.motion_pose_detected','on') %}
+          {% set e = state_attr('sensor.motion_event_pose','event') %}
+          {% if e is mapping %}
+            {% set s = e.event %}
+            {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
+              {{ s }}
+            {%- else -%}null{%- endif -%}
+          {% else %}null{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_pose_detected_event') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+## device
+- platform: template
+  sensors:
+    motion_pose_detected_device:
+      friendly_name: POSE detected device
+      icon_template: 'mdi:raspberry-pi'
+      value_template: >-
+        {% if is_state('binary_sensor.motion_pose_detected','on') %}
+          {% set e = state_attr('sensor.motion_event_pose','event') %}
+          {% if e is mapping %}
+            {% set s = e.device %}
+            {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' %}
+              {{ s }}
+            {%- else -%}null{%- endif -%}
+          {% else %}null{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_pose_detected_device') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+## camera
+- platform: template
+  sensors:
+    motion_pose_detected_camera:
+      friendly_name: POSE detected camera
+      icon_template: 'mdi:camera'
+      value_template: >-
+        {% if is_state('binary_sensor.motion_pose_detected','on') %}
+          {% set e = state_attr('sensor.motion_event_pose','event') %}
+          {% if e is mapping %}
+            {% set s = e.camera %}
+            {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' %}
+              {{ s }}
+            {%- else -%}null{%- endif -%}
+          {% else %}null{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_pose_detected_camera') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+## date
+- platform: template
+  sensors:
+    motion_pose_detected_date:
+      unit_of_measurement: 's'
+      value_template: >-
+        {% if is_state('binary_sensor.motion_pose_detected','on') %}
+          {% set e = state_attr('sensor.motion_event_pose','event') %}
+          {% if e is mapping %}
+            {% set s = e.end %}
+            {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
+              {{ s|int }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        {% else %}
+          {% set s = states('sensor.motion_pose_detected_date') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+## when - human readable
+- platform: template
+  sensors:
+    motion_pose_detected_when:
+      friendly_name: POSE detected at
+      icon_template: 'mdi:calendar-clock'
+      value_template: >-
+        {% set s = states('sensor.motion_pose_detected_date')|int %}
+        {% if s > 0 %}
+          {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}
+        {% else %}Pending{% endif %}
+
+## ago
+- platform: template
+  sensors:
+    motion_pose_detected_ago:
+      friendly_name: POSE detected ago
+      icon_template: 'mdi:camera-timer'
+      unit_of_measurement: 's'
+      value_template: >
+        {% set t = states('sensor.time') %}
+        {% set s = states('sensor.motion_pose_detected_date')|int %}
+        {% if s > 0 %}
+          {% set s = utcnow().timestamp()|int - s %}
+          {% if s < 86400 %}{{ s }}{%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+
+## pose_detected_list
+- platform: template
+  sensors:
+    motion_pose_detected_list:
+      friendly_name: POSE detected list
+      value_template: >-
+        {% if is_state('binary_sensor.motion_pose_detected','on') %} 
+          {% set detected = state_attr('sensor.motion_event_pose','detected') %}
+          {% if detected|lower != 'none' and detected|lower != 'unknown' and detected|length > 0 %}
+            {{ detected|list }}
+          {% else %}null{% endif %}
+        {%- else -%}null{%- endif -%}
+
+## percent
+- platform: template
+  sensors:
+    motion_pose_detected_percent:
+      icon_template: 'mdi:percent'
+      friendly_name: POSE detected percent
+      unit_of_measurement: '%'
+      value_template: >-
+        {% if states.counter.motion_pose_detected_counter|lower != 'none'
+              and states.counter.motion_pose_detected_counter.state != 'null'
+              and states.counter.motion_pose_counter|lower != 'none'
+              and states.counter.motion_pose_counter.state|int > 0 %}
+          {% set value = states.counter.motion_pose_detected_counter.state|int / states.counter.motion_pose_counter.state|int * 100.0 %}
+          {{ "%.2f"|format(value|float) }}
+        {%- else -%}null{%- endif -%}
+
+###
+# statistics
+###
+
+## ago
+- platform: template
+  sensors:
+    motion_pose_detected_ago_mean:
+      friendly_name: POSE avg ago found
+      unit_of_measurement: 's'
+      value_template: >-
+        {% if states('sensor.motion_pose_detected_ago_statistics') != 'unknown' %}
+          {{ states.sensor.motion_pose_detected_ago_statistics.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_pose_detected_ago_min:
+      friendly_name: POSE min ago found
+      unit_of_measurement: 's'
+      value_template: >-
+        {% if states('sensor.motion_pose_detected_ago_statistics') != 'unknown' %}
+          {{ states.sensor.motion_pose_detected_ago_statistics.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_pose_detected_ago_max:
+      friendly_name: POSE max ago found
+      unit_of_measurement: 's'
+      value_template: >-
+        {% if states('sensor.motion_pose_detected_ago_statistics') != 'unknown' %}
+          {{ states.sensor.motion_pose_detected_ago_statistics.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_pose_detected_ago_stdev:
+      friendly_name: POSE StDev ago found
+      unit_of_measurement: 's'
+      value_template: >
+        {% if states('sensor.motion_pose_detected_ago_statistics') != 'unknown' %}
+          {{ states.sensor.motion_pose_detected_ago_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_pose_detected_ago_change:
+      friendly_name: POSE Change ago found
+      unit_of_measurement: 's'
+      value_template: >
+        {% if states('sensor.motion_pose_detected_ago_statistics') != 'unknown' %}
+          {{ states.sensor.motion_pose_detected_ago_statistics.attributes.change|float }}
+        {%- else -%}null{%- endif -%}
+    motion_pose_detected_ago_stdev_change:
+      friendly_name: POSE StDev change ago found
+      unit_of_measurement: 's'
+      value_template: >
+        {% if states.sensor.motion_pose_detected_ago_stdev_statistics|lower != 'none' %}
+          {{ states.sensor.motion_pose_detected_ago_stdev_statistics.attributes.change|float }}
+        {%- else -%}null{%- endif -%}
+
+# ago
+- platform: statistics
+  name: motion_pose_detected_ago_statistics
+  entity_id: sensor.motion_pose_detected_ago
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: statistics
+  name: motion_pose_detected_ago_stdev_statistics
+  entity_id: sensor.motion_pose_detected_ago_stdev
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+## counter
+- platform: template
+  sensors:
+    motion_pose_detected_counter_mean:
+      friendly_name: POSE Avg counter found
+      unit_of_measurement: count
+      value_template: >-
+        {% if states('sensor.motion_pose_detected_counter_statistics') != 'unknown' %}
+          {{ states.sensor.motion_pose_detected_counter_statistics.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_pose_detected_counter_min:
+      friendly_name: POSE Min counter found
+      unit_of_measurement: count
+      value_template: >-
+        {% if states('sensor.motion_pose_detected_counter_statistics') != 'unknown' %}
+          {{ states.sensor.motion_pose_detected_counter_statistics.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_pose_detected_counter_max:
+      friendly_name: POSE Max counter found
+      unit_of_measurement: count
+      value_template: >-
+        {% if states('sensor.motion_pose_detected_counter_statistics') != 'unknown' %}
+          {{ states.sensor.motion_pose_detected_counter_statistics.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_pose_detected_counter_stdev:
+      friendly_name: POSE StDev counter found
+      unit_of_measurement: count
+      value_template: >
+        {% if states('sensor.motion_pose_detected_counter_statistics') != 'unknown' %}
+          {{ states.sensor.motion_pose_detected_counter_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_pose_detected_counter_change:
+      friendly_name: POSE Change counter found
+      unit_of_measurement: count
+      value_template: >
+        {% if states('sensor.motion_pose_detected_counter_statistics') != 'unknown' %}
+          {{ states.sensor.motion_pose_detected_counter_statistics.attributes.change|float }}
+        {%- else -%}null{%- endif -%}
+
+# counter
+- platform: statistics
+  name: motion_pose_detected_counter_statistics
+  entity_id: sensor.motion_pose_detected_counter
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: statistics
+  name: motion_pose_detected_counter_stdev_statistics
+  entity_id: sensor.motion_pose_detected_counter_stdev
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+## percent
+- platform: template
+  sensors:
+    motion_pose_detected_percent_mean:
+      friendly_name: 'POSE detected % avg'
+      unit_of_measurement: '%'
+      value_template: >-
+        {% if states('sensor.motion_pose_detected_percent_statistics') != 'unknown' %}
+          {{ states.sensor.motion_pose_detected_percent_statistics.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_pose_detected_percent_min:
+      friendly_name: 'POSE detected % min'
+      unit_of_measurement: '%'
+      value_template: >-
+        {% if states('sensor.motion_pose_detected_percent_statistics') != 'unknown' %}
+          {{ states.sensor.motion_pose_detected_percent_statistics.attributes.min_value|float }}
+        {%- else -%}null{%- endif -%}
+    motion_pose_detected_percent_max:
+      friendly_name: 'POSE detected % max'
+      unit_of_measurement: '%'
+      value_template: >-
+        {% if states('sensor.motion_pose_detected_percent_statistics') != 'unknown' %}
+          {{ states.sensor.motion_pose_detected_percent_statistics.attributes.max_value|float }}
+        {%- else -%}null{%- endif -%}
+    motion_pose_detected_percent_stdev:
+      friendly_name: 'POSE detected % stdev'
+      unit_of_measurement: '%'
+      value_template: >
+        {% if states('sensor.motion_pose_detected_percent_statistics') != 'unknown' %}
+          {{ states.sensor.motion_pose_detected_percent_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_pose_detected_percent_change:
+      friendly_name: 'POSE detected % change'
+      unit_of_measurement: '%'
+      value_template: >
+        {% if states('sensor.motion_pose_detected_percent_statistics') != 'unknown' %}
+          {{ states.sensor.motion_pose_detected_percent_statistics.attributes.change|float }}
+        {%- else -%}null{%- endif -%}
+
+# percent
+- platform: statistics
+  name: motion_pose_detected_percent_statistics
+  entity_id: sensor.motion_pose_detected_percent
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: statistics
+  name: motion_pose_detected_percent_stdev_statistics
+  entity_id: sensor.motion_pose_detected_percent_stdev
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+## count
+- platform: template
+  sensors:
+    motion_pose_detected_count_mean:
+      friendly_name: POSE detected count avg
+      unit_of_measurement: '🚶'
+      value_template: >-
+        {% if states('sensor.motion_pose_detected_count_statistics') != 'unknown' %}
+          {{ states.sensor.motion_pose_detected_count_statistics.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_pose_detected_count_min:
+      friendly_name: POSE detected count min
+      unit_of_measurement: '🚶'
+      value_template: >-
+        {% if states('sensor.motion_pose_detected_count_statistics') != 'unknown' %}
+          {{ states.sensor.motion_pose_detected_count_statistics.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_pose_detected_count_max:
+      friendly_name: POSE detected count max
+      unit_of_measurement: '🚶'
+      value_template: >-
+        {% if states('sensor.motion_pose_detected_count_statistics') != 'unknown' %}
+          {{ states.sensor.motion_pose_detected_count_statistics.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_pose_detected_count_stdev:
+      friendly_name: POSE detected count stdev
+      unit_of_measurement: '🚶'
+      value_template: >
+        {% if states('sensor.motion_pose_detected_count_statistics') != 'unknown' %}
+          {{ states.sensor.motion_pose_detected_count_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_pose_detected_count_change:
+      friendly_name: POSE detected count change
+      unit_of_measurement: '🚶'
+      value_template: >
+        {% if states('sensor.motion_pose_detected_count_statistics') != 'unknown' %}
+          {{ states.sensor.motion_pose_detected_count_statistics.attributes.change|float }}
+        {%- else -%}null{%- endif -%}
+
+# count
+- platform: statistics
+  name: motion_pose_detected_count_statistics
+  entity_id: sensor.motion_pose_detected_count
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: statistics
+  name: motion_pose_detected_count_stdev_statistics
+  entity_id: sensor.motion_pose_detected_count_stdev
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+## pose_detected_live
+- platform: template
+  sensors:
+    motion_camera_pose_detected_live:
+      friendly_name: POSE detected camera live
+      value_template: >-
+        {% set camera = states('sensor.motion_pose_detected_camera') %}
+        {% if camera|lower != 'none' and camera|lower != 'unavailable' and camera|lower != 'unknown' and camera != 'null' and camera|length > 0 %}
+          {% set ep = state_attr('camera.motion_' + camera + '_live','entity_picture') %}
+          {% if ep|lower != 'none' and ep|lower != 'unknown' and ep|lower != 'unavailable' and ep|length > 0 %}
+            {% set bu = states('sensor.motion_base_url') %}
+            {% if bu|lower != 'none' and bu|lower != 'unknown' and bu|lower != 'unavailable' and bu|length > 0 %}
+              {% set p = bu + ep %}
+            {% endif %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined and p|lower != 'none' and p|lower != 'unavailable' and p|lower != 'unknown' and p|length > 0 %}
+          {{ p }}
+        {% else %}
+          {{ states('sensor.motion_nosignal_animated') }}
+        {% endif %}
