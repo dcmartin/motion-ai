@@ -3,7 +3,6 @@
 ###
 
 ## counter 
-
 - id: motion_face_detected_counter
   alias: motion_face_detected_counter
   initial_state: on
@@ -11,16 +10,21 @@
     platform: state
     entity_id: binary_sensor.motion_face_detected
   condition:
-    - condition: template
-      value_template: >-
-        {{ is_state('binary_sensor.motion_face_detected','on') }}
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+      - condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_face_detected','on') }}
   action:
     - service: counter.increment
       entity_id: counter.motion_face_detected_counter
 
-## update
-- id: motion_face_detected_camera_snapshot
-  alias: motion_face_detected_camera_snapshot
+## snapshot
+- id: motion_face_detected_snapshot
+  alias: motion_face_detected_snapshot
   initial_state: on
   trigger:
     platform: state
@@ -30,16 +34,24 @@
     conditions:
       - condition: template
         value_template: >-
+          {% set s = states('sensor.motion_face_detected_camera') %}
+          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'unknown' }}
+      - condition: template
+        value_template: >-
+          {% set ep = state_attr('camera.motion_' + states('sensor.motion_face_detected_camera') + '_event_end','entity_picture') %}
+          {{ ep is none or ep|lower == 'unavailable' or ep|lower == 'none' or ep|lower == 'unknown' }}
+      - condition: template
+        value_template: >-
           {{ is_state('input_boolean.motion_snapshot_save','on') }}
       - condition: template
         value_template: >-
           {% set s = states('camera.motion_event_face') %}
-          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'unknown' %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'unknown' %}
             {% set ep = state_attr('camera.motion_event_face','entity_picture') %}
-            {{ ep|lower != 'none' and ep|lower != 'unavailable' and ep|lower != 'none' and ep|lower != 'unknown' }}
+            {{ ep|lower != 'none' and ep|lower != 'unavailable' and ep|lower != 'null' and ep|lower != 'unknown' }}
           {% else %}false{% endif %}
   action:
-    # face_detected
+    # annotated
     - service: camera.snapshot
       data_template:
         entity_id: >-
