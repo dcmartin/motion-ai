@@ -44,7 +44,7 @@ machine()
 
 function motionai::get()
 {
-  local pull=$(1:-pull}
+  local pull=${1:-pull}
 
   echo 'Downloading yolo weights'; \
     bash ${0%/*}/get.weights.sh \
