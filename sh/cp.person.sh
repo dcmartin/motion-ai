@@ -9,12 +9,13 @@ else
   exit 1
 fi
 
-p='person'
+function copyit()
+{
+  local e="${*}"
+  local t
+  local ICON='account'
+  local UOM='👱'
 
-ICON='account'
-UOM='👱'
-find homeassistant/ -name "*detected_${p}*.yaml*" -print | while read; do
-  e="${REPLY}"
   echo "${e}"
   for t in animal vehicle entity; do 
     if [ "${t}" = 'animal' ]; then 
@@ -39,4 +40,10 @@ find homeassistant/ -name "*detected_${p}*.yaml*" -print | while read; do
       -e "s/${UOM}/${uom}/g" \
       "${e}" > "${g}"
   done
-done
+}
+
+
+p='person'
+
+find homeassistant/ -name "detected_${p}.yaml" -print | while read; do copyit "${REPLY}"; done
+find homeassistant/ -name "*.detected_${p}.yaml.tmpl" -print | while read; do copyit "${REPLY}"; done

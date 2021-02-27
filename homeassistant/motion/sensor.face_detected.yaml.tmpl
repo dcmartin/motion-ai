@@ -314,7 +314,7 @@
 - platform: template
   sensors:
     motion_${MOTION_CAMERA}_face_detected_status:
-      friendly_name: '${MOTION_CAMERA} FACE detected status'
+      friendly_name: '${MOTION_CAMERA} FACE'
       value_template: >-
         {% if states('binary_sensor.motion_${MOTION_CAMERA}_face_detected')|lower == 'on' %}
           {% set e = state_attr('sensor.motion_${MOTION_CAMERA}_event_face','event') %}
@@ -345,19 +345,6 @@
           {% else %}Pending{% endif %}
         {% endif %}
 
-## count_entity
-- platform: template
-  sensors:
-    motion_${MOTION_CAMERA}_face_detected_count_entity:
-      friendly_name: '${MOTION_CAMERA} FACE detected count entity'
-      value_template: >-
-        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_face_detected','on') or is_state('binary_sensor.motion_${MOTION_CAMERA}_face_detected_expired','off') %}
-          {% set s = state_attr('sensor.motion_${MOTION_CAMERA}_event_annotated','detected')|selectattr('entity','==',states('sensor.motion_${MOTION_CAMERA}_detect_entity'))|map(attribute='count')|sum %}
-          {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' %}
-            {{ s|int }}
-          {% else %}null{% endif %}
-        {% else %}null{% endif %}
-
 ## counter
 - platform: template
   sensors:
@@ -367,19 +354,40 @@
       value_template: >
         {{ states('counter.motion_${MOTION_CAMERA}_face_detected_counter')|int }}
 
+## event
+- platform: template
+  sensors:
+    motion_${MOTION_CAMERA}_face_detected_event:
+      friendly_name: '${MOTION_CAMERA} FACE detected event'
+      unit_of_measurement: 's'
+      value_template: >-
+        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_face_detected','on') or is_state('binary_sensor.motion_${MOTION_CAMERA}_face_detected_expired','off') %}
+          {% set event = states('sensor.motion_${MOTION_CAMERA}_face_event')|int %}
+          {% if event > 0 %}{{ event }}{% else %}null{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_${MOTION_CAMERA}_face_detected_event') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
 ## date
 - platform: template
   sensors:
     motion_${MOTION_CAMERA}_face_detected_date:
-      friendly_name: '${MOTION_CAMERA} FACE detected date'
       unit_of_measurement: 's'
       value_template: >-
-        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_face_detected','on') or is_state('binary_sensor.motion_${MOTION_CAMERA}_face_detected_expired','off') %}
-          {% set date = states('sensor.motion_${MOTION_CAMERA}_annotated_date')|int %}
-          {% if date > 0 %}{{ date }}{% else %}null{% endif %}
+        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_face_detected','on') %}
+          {% set e = state_attr('sensor.motion_${MOTION_CAMERA}_event_face','event') %}
+          {% if e is mapping %}
+            {% set s = e.end %}
+            {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
+              {{ s|int }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
         {% else %}
           {% set s = states('sensor.motion_${MOTION_CAMERA}_face_detected_date') %}
-          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
             {{ s }}
           {% else %}null{% endif %}
         {% endif %}
@@ -458,10 +466,21 @@
       friendly_name: '${MOTION_CAMERA} FACE detected count'
       unit_of_measurement: face
       value_template: >
-        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_face_detected','on') or is_state('binary_sensor.motion_${MOTION_CAMERA}_face_detected_expired','off') %}
-          {% set s = states('sensor.motion_${MOTION_CAMERA}_annotated_count') %}
-          {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' %}
-            {{ s|int }}
+        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_face_detected','on') %}
+          {% set s = state_attr('sensor.motion_${MOTION_CAMERA}_event_face','detected') %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' and s|lower != 'unavailable' and s is iterable and s|length > 0 %}
+            {% set t = states('sensor.motion_face_detected_threshold') %}
+            {% if t|lower != 'none' and t|lower != 'unknown' and t != 'null' and t|lower != 'unavailable' and t|int > 0 %}
+              {% set s = s|select("greaterthan",t) %}
+              {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' and s is iterable %}
+                {{ s|count }}
+              {% else %}null{% endif %}
+            {% else %}null{% endif %}
+          {% else %}null{% endif %}
+        {% elif is_state('binary_sensor.motion_${MOTION_CAMERA}_face_detected_expired','off') %}
+          {% set s = states('sensor.motion_${MOTION_CAMERA}_face_detected_count') %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' and s|lower != 'unavailable' %}
+            {{ s }}
           {% else %}null{% endif %}
         {% else %}null{% endif %}
 
@@ -511,8 +530,8 @@
       friendly_name: '${MOTION_CAMERA} FACE detected %'
       unit_of_measurement: '%'
       value_template: >-
-        {% if states('sensor.motion_${MOTION_CAMERA}_face_detected_counter')|int > 0 and states('sensor.motion_annotated_counter')|int > 0 %}
-          {% set value = states.sensor.motion_${MOTION_CAMERA}_face_detected_counter.state|int / states.sensor.motion_annotated_counter.state|int * 100.0 %}
+        {% if states('sensor.motion_${MOTION_CAMERA}_face_detected_counter')|int > 0 and states('sensor.motion_face_counter')|int > 0 %}
+          {% set value = states.sensor.motion_${MOTION_CAMERA}_face_detected_counter.state|int / states.sensor.motion_face_counter.state|int * 100.0 %}
           {{ "%.2f"|format(value|float) }}
         {%- else -%}null{%- endif -%}
 
