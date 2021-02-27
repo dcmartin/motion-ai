@@ -22,11 +22,11 @@ function copyit()
       uom='🐄'
       icon='cow'
     elif [ "${t}" = 'vehicle' ]; then
-      uom='🚗'
-      icon='car'
+      uom='🚚'
+      icon='truck'
     elif [ "${t}" = 'entity' ]; then
-      uom='👁'
-      icon='motion-sensor'
+      uom='👓'
+      icon='glasses'
     else 
       echo "ERROR: no such element: ${t}"
       exit 1
