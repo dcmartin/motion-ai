@@ -68,34 +68,52 @@ MOTION_DETECTED_ENTITY_NOTIFY ?= $(if $(wildcard MOTION_DETECTED_ENTITY_NOTIFY),
 MOTION_DETECTED_PERSON_NOTIFY ?= $(if $(wildcard MOTION_DETECTED_PERSON_NOTIFY),$(shell v=$$(cat MOTION_DETECTED_PERSON_NOTIFY) && echo "${TG}== MOTION_DETECTED_PERSON_NOTIFY: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "${DF}** MOTION_DETECTED_PERSON_NOTIFY${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_DETECTED_VEHICLE_NOTIFY ?= $(if $(wildcard MOTION_DETECTED_VEHICLE_NOTIFY),$(shell v=$$(cat MOTION_DETECTED_VEHICLE_NOTIFY) && echo "${TG}== MOTION_DETECTED_VEHICLE_NOTIFY: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "${DF}** MOTION_DETECTED_VEHICLE_NOTIFY${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_DETECTED_ANIMAL_NOTIFY ?= $(if $(wildcard MOTION_DETECTED_ANIMAL_NOTIFY),$(shell v=$$(cat MOTION_DETECTED_ANIMAL_NOTIFY) && echo "${TG}== MOTION_DETECTED_ANIMAL_NOTIFY: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "${DF}** MOTION_DETECTED_ANIMAL_NOTIFY${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_FACE_DETECTED ?= $(if $(wildcard MOTION_FACE_DETECTED),$(shell v=$$(cat MOTION_FACE_DETECTED) && echo "${TG}== MOTION_FACE_DETECTED: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='all' && echo "${DF}** MOTION_FACE_DETECTED${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_ALPR_DETECTED ?= $(if $(wildcard MOTION_ALPR_DETECTED),$(shell v=$$(cat MOTION_ALPR_DETECTED) && echo "${TG}== MOTION_ALPR_DETECTED: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='all' && echo "${DF}** MOTION_ALPR_DETECTED${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_POSE_DETECTED ?= $(if $(wildcard MOTION_POSE_DETECTED),$(shell v=$$(cat MOTION_POSE_DETECTED) && echo "${TG}== MOTION_POSE_DETECTED: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='all' && echo "${DF}** MOTION_POSE_DETECTED${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 
 MOTION_DETECTED_ENTITY_SPEAK ?= $(if $(wildcard MOTION_DETECTED_ENTITY_SPEAK),$(shell v=$$(cat MOTION_DETECTED_ENTITY_SPEAK) && echo "${TG}== MOTION_DETECTED_ENTITY_SPEAK: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${DF}** MOTION_DETECTED_ENTITY_SPEAK${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_DETECTED_PERSON_SPEAK ?= $(if $(wildcard MOTION_DETECTED_PERSON_SPEAK),$(shell v=$$(cat MOTION_DETECTED_PERSON_SPEAK) && echo "${TG}== MOTION_DETECTED_PERSON_SPEAK: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${DF}** MOTION_DETECTED_PERSON_SPEAK${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_DETECTED_VEHICLE_SPEAK ?= $(if $(wildcard MOTION_DETECTED_VEHICLE_SPEAK),$(shell v=$$(cat MOTION_DETECTED_VEHICLE_SPEAK) && echo "${TG}== MOTION_DETECTED_VEHICLE_SPEAK: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${DF}** MOTION_DETECTED_VEHICLE_SPEAK${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_DETECTED_ANIMAL_SPEAK ?= $(if $(wildcard MOTION_DETECTED_ANIMAL_SPEAK),$(shell v=$$(cat MOTION_DETECTED_ANIMAL_SPEAK) && echo "${TG}== MOTION_DETECTED_ANIMAL_SPEAK: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${DF}** MOTION_DETECTED_ANIMAL_SPEAK${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_FACE_DETECTED_SPEAK ?= $(if $(wildcard MOTION_FACE_DETECTED_SPEAK),$(shell v=$$(cat MOTION_FACE_DETECTED_SPEAK) && echo "${TG}== MOTION_FACE_DETECTED_SPEAK: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${DF}** MOTION_FACE_DETECTED_SPEAK${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_ALPR_DETECTED_SPEAK ?= $(if $(wildcard MOTION_ALPR_DETECTED_SPEAK),$(shell v=$$(cat MOTION_ALPR_DETECTED_SPEAK) && echo "${TG}== MOTION_ALPR_DETECTED_SPEAK: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${DF}** MOTION_ALPR_DETECTED_SPEAK${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_POSE_DETECTED_SPEAK ?= $(if $(wildcard MOTION_POSE_DETECTED_SPEAK),$(shell v=$$(cat MOTION_POSE_DETECTED_SPEAK) && echo "${TG}== MOTION_POSE_DETECTED_SPEAK: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${DF}** MOTION_POSE_DETECTED_SPEAK${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 
 MOTION_DETECTED_ENTITY_TUNE ?= $(if $(wildcard MOTION_DETECTED_ENTITY_TUNE),$(shell v=$$(cat MOTION_DETECTED_ENTITY_TUNE) && echo "${TG}== MOTION_DETECTED_ENTITY_TUNE: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "${DF}** MOTION_DETECTED_ENTITY_TUNE${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_DETECTED_PERSON_TUNE ?= $(if $(wildcard MOTION_DETECTED_PERSON_TUNE),$(shell v=$$(cat MOTION_DETECTED_PERSON_TUNE) && echo "${TG}== MOTION_DETECTED_PERSON_TUNE: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "${DF}** MOTION_DETECTED_PERSON_TUNE${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_DETECTED_VEHICLE_TUNE ?= $(if $(wildcard MOTION_DETECTED_VEHICLE_TUNE),$(shell v=$$(cat MOTION_DETECTED_VEHICLE_TUNE) && echo "${TG}== MOTION_DETECTED_VEHICLE_TUNE: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "${DF}** MOTION_DETECTED_VEHICLE_TUNE${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_DETECTED_ANIMAL_TUNE ?= $(if $(wildcard MOTION_DETECTED_ANIMAL_TUNE),$(shell v=$$(cat MOTION_DETECTED_ANIMAL_TUNE) && echo "${TG}== MOTION_DETECTED_ANIMAL_TUNE: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "${DF}** MOTION_DETECTED_ANIMAL_TUNE${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_FACE_DETECTED_TUNE ?= $(if $(wildcard MOTION_FACE_DETECTED_TUNE),$(shell v=$$(cat MOTION_FACE_DETECTED_TUNE) && echo "${TG}== MOTION_FACE_DETECTED_TUNE: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "${DF}** MOTION_FACE_DETECTED_TUNE${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_ALPR_DETECTED_TUNE ?= $(if $(wildcard MOTION_ALPR_DETECTED_TUNE),$(shell v=$$(cat MOTION_ALPR_DETECTED_TUNE) && echo "${TG}== MOTION_ALPR_DETECTED_TUNE: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "${DF}** MOTION_ALPR_DETECTED_TUNE${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_POSE_DETECTED_TUNE ?= $(if $(wildcard MOTION_POSE_DETECTED_TUNE),$(shell v=$$(cat MOTION_POSE_DETECTED_TUNE) && echo "${TG}== MOTION_POSE_DETECTED_TUNE: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "${DF}** MOTION_POSE_DETECTED_TUNE${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 
 MOTION_DETECTED_ENTITY_DEVIATION ?= $(if $(wildcard MOTION_DETECTED_ENTITY_DEVIATION),$(shell v=$$(cat MOTION_DETECTED_ENTITY_DEVIATION) && echo "${TG}== MOTION_DETECTED_ENTITY_DEVIATION: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='5.0' && echo "${DF}** MOTION_DETECTED_ENTITY_DEVIATION${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_DETECTED_PERSON_DEVIATION ?= $(if $(wildcard MOTION_DETECTED_PERSON_DEVIATION),$(shell v=$$(cat MOTION_DETECTED_PERSON_DEVIATION) && echo "${TG}== MOTION_DETECTED_PERSON_DEVIATION: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='5.0' && echo "${DF}** MOTION_DETECTED_PERSON_DEVIATION${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_DETECTED_VEHICLE_DEVIATION ?= $(if $(wildcard MOTION_DETECTED_VEHICLE_DEVIATION),$(shell v=$$(cat MOTION_DETECTED_VEHICLE_DEVIATION) && echo "${TG}== MOTION_DETECTED_VEHICLE_DEVIATION: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='5.0' && echo "${DF}** MOTION_DETECTED_VEHICLE_DEVIATION${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_DETECTED_ANIMAL_DEVIATION ?= $(if $(wildcard MOTION_DETECTED_ANIMAL_DEVIATION),$(shell v=$$(cat MOTION_DETECTED_ANIMAL_DEVIATION) && echo "${TG}== MOTION_DETECTED_ANIMAL_DEVIATION: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='5.0' && echo "${DF}** MOTION_DETECTED_ANIMAL_DEVIATION${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_FACE_DETECTED_DEVIATION ?= $(if $(wildcard MOTION_FACE_DETECTED_DEVIATION),$(shell v=$$(cat MOTION_FACE_DETECTED_DEVIATION) && echo "${TG}== MOTION_FACE_DETECTED_DEVIATION: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='5.0' && echo "${DF}** MOTION_FACE_DETECTED_DEVIATION${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_ALPR_DETECTED_DEVIATION ?= $(if $(wildcard MOTION_ALPR_DETECTED_DEVIATION),$(shell v=$$(cat MOTION_ALPR_DETECTED_DEVIATION) && echo "${TG}== MOTION_ALPR_DETECTED_DEVIATION: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='5.0' && echo "${DF}** MOTION_ALPR_DETECTED_DEVIATION${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_POSE_DETECTED_DEVIATION ?= $(if $(wildcard MOTION_POSE_DETECTED_DEVIATION),$(shell v=$$(cat MOTION_POSE_DETECTED_DEVIATION) && echo "${TG}== MOTION_POSE_DETECTED_DEVIATION: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='5.0' && echo "${DF}** MOTION_POSE_DETECTED_DEVIATION${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 
-# ago
-MOTION_EXPIRE_AFTER ?= $(if $(wildcard MOTION_EXPIRE_AFTER),$(shell v=$$(cat MOTION_EXPIRE_AFTER) && echo "${TG}== MOTION_EXPIRE_AFTER: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='60' && echo "${DF}** MOTION_EXPIRE_AFTER${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
-MOTION_FORCE_UPDATE ?= $(if $(wildcard MOTION_FORCE_UPDATE),$(shell v=$$(cat MOTION_FORCE_UPDATE) && echo "${TG}== MOTION_FORCE_UPDATE: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${DF}** MOTION_FORCE_UPDATE${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_DETECTED_ENTITY_AGO ?= $(if $(wildcard MOTION_DETECTED_ENTITY_AGO),$(shell v=$$(cat MOTION_DETECTED_ENTITY_AGO) && echo "${TG}== MOTION_DETECTED_ENTITY_AGO: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='30' && echo "${DF}** MOTION_DETECTED_ENTITY_AGO${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_DETECTED_PERSON_AGO ?= $(if $(wildcard MOTION_DETECTED_PERSON_AGO),$(shell v=$$(cat MOTION_DETECTED_PERSON_AGO) && echo "${TG}== MOTION_DETECTED_PERSON_AGO: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='30' && echo "${DF}** MOTION_DETECTED_PERSON_AGO${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_DETECTED_VEHICLE_AGO ?= $(if $(wildcard MOTION_DETECTED_VEHICLE_AGO),$(shell v=$$(cat MOTION_DETECTED_VEHICLE_AGO) && echo "${TG}== MOTION_DETECTED_VEHICLE_AGO: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='30' && echo "${DF}** MOTION_DETECTED_VEHICLE_AGO${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_DETECTED_ANIMAL_AGO ?= $(if $(wildcard MOTION_DETECTED_ANIMAL_AGO),$(shell v=$$(cat MOTION_DETECTED_ANIMAL_AGO) && echo "${TG}== MOTION_DETECTED_ANIMAL_AGO: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='30' && echo "${DF}** MOTION_DETECTED_ANIMAL_AGO${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_FACE_DETECTED_AGO ?= $(if $(wildcard MOTION_FACE_DETECTED_AGO),$(shell v=$$(cat MOTION_FACE_DETECTED_AGO) && echo "${TG}== MOTION_FACE_DETECTED_AGO: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='30' && echo "${DF}** MOTION_FACE_DETECTED_AGO${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_ALPR_DETECTED_AGO ?= $(if $(wildcard MOTION_ALPR_DETECTED_AGO),$(shell v=$$(cat MOTION_ALPR_DETECTED_AGO) && echo "${TG}== MOTION_ALPR_DETECTED_AGO: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='30' && echo "${DF}** MOTION_ALPR_DETECTED_AGO${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_POSE_DETECTED_AGO ?= $(if $(wildcard MOTION_POSE_DETECTED_AGO),$(shell v=$$(cat MOTION_POSE_DETECTED_AGO) && echo "${TG}== MOTION_POSE_DETECTED_AGO: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='30' && echo "${DF}** MOTION_POSE_DETECTED_AGO${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 
 MOTION_ANNOTATED_AGO ?= $(if $(wildcard MOTION_ANNOTATED_AGO),$(shell v=$$(cat MOTION_ANNOTATED_AGO) && echo "${TG}== MOTION_ANNOTATED_AGO: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='30' && echo "${DF}** MOTION_ANNOTATED_AGO${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_DETECTED_AGO ?= $(if $(wildcard MOTION_DETECTED_AGO),$(shell v=$$(cat MOTION_DETECTED_AGO) && echo "${TG}== MOTION_DETECTED_AGO: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='30' && echo "${DF}** MOTION_DETECTED_AGO${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_DETECTED_AGO ?= $(if $(wildcard MOTION_DETECTED_AGO),$(shell v=$$(cat MOTION_DETECTED_AGO) && echo "${TG}== MOTION_DETECTED_AGO: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='30' && echo "${DF}** MOTION_DETECTED_AGO${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_FACE_AGO ?= $(if $(wildcard MOTION_FACE_AGO),$(shell v=$$(cat MOTION_FACE_AGO) && echo "${TG}== MOTION_FACE_AGO: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='30' && echo "${DF}** MOTION_FACE_AGO${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_ALPR_AGO ?= $(if $(wildcard MOTION_ALPR_AGO),$(shell v=$$(cat MOTION_ALPR_AGO) && echo "${TG}== MOTION_ALPR_AGO: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='30' && echo "${DF}** MOTION_ALPR_AGO${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_POSE_AGO ?= $(if $(wildcard MOTION_POSE_AGO),$(shell v=$$(cat MOTION_POSE_AGO) && echo "${TG}== MOTION_POSE_AGO: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='30' && echo "${DF}** MOTION_POSE_AGO${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 
-MOTION_DETECTED_ENTITY_AGO ?= $(if $(wildcard MOTION_DETECTED_ENTITY_AGO),$(shell v=$$(cat MOTION_DETECTED_ENTITY_AGO) && echo "${TG}== MOTION_DETECTED_ENTITY_AGO: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='300' && echo "${DF}** MOTION_DETECTED_ENTITY_AGO${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
-MOTION_DETECTED_PERSON_AGO ?= $(if $(wildcard MOTION_DETECTED_PERSON_AGO),$(shell v=$$(cat MOTION_DETECTED_PERSON_AGO) && echo "${TG}== MOTION_DETECTED_PERSON_AGO: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='300' && echo "${DF}** MOTION_DETECTED_PERSON_AGO${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
-MOTION_DETECTED_VEHICLE_AGO ?= $(if $(wildcard MOTION_DETECTED_VEHICLE_AGO),$(shell v=$$(cat MOTION_DETECTED_VEHICLE_AGO) && echo "${TG}== MOTION_DETECTED_VEHICLE_AGO: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='30' && echo "${DF}** MOTION_DETECTED_VEHICLE_AGO${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
-MOTION_DETECTED_ANIMAL_AGO ?= $(if $(wildcard MOTION_DETECTED_ANIMAL_AGO),$(shell v=$$(cat MOTION_DETECTED_ANIMAL_AGO) && echo "${TG}== MOTION_DETECTED_ANIMAL_AGO: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='30' && echo "${DF}** MOTION_DETECTED_ANIMAL_AGO${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+# expire and update
+MOTION_EXPIRE_AFTER ?= $(if $(wildcard MOTION_EXPIRE_AFTER),$(shell v=$$(cat MOTION_EXPIRE_AFTER) && echo "${TG}== MOTION_EXPIRE_AFTER: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='60' && echo "${DF}** MOTION_EXPIRE_AFTER${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_FORCE_UPDATE ?= $(if $(wildcard MOTION_FORCE_UPDATE),$(shell v=$$(cat MOTION_FORCE_UPDATE) && echo "${TG}== MOTION_FORCE_UPDATE: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${DF}** MOTION_FORCE_UPDATE${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 
 # webcam
 NETCAM_USERNAME ?= $(if $(wildcard NETCAM_USERNAME),$(shell v=$$(cat NETCAM_USERNAME) && echo "${TG}== NETCAM_USERNAME: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="username" && echo "${DF}** NETCAM_USERNAME${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
@@ -167,6 +185,11 @@ $(ACTIONS): necessary
 	  LOGGER_MQTT="$(LOGGER_MQTT)" \
 	  MARIADB_HOST="$(MARIADB_HOST)" \
 	  MARIADB_PASSWORD="$(MARIADB_PASSWORD)" \
+	  MOTION_ALPR_DETECTED_AGO="$(MOTION_ALPR_DETECTED_AGO)" \
+	  MOTION_ALPR_DETECTED_DEVIATION="$(MOTION_ALPR_DETECTED_DEVIATION)" \
+	  MOTION_ALPR_DETECTED_NOTIFY="$(MOTION_ALPR_DETECTED_NOTIFY)" \
+	  MOTION_ALPR_DETECTED_SPEAK="$(MOTION_ALPR_DETECTED_SPEAK)" \
+	  MOTION_ALPR_DETECTED_TUNE="$(MOTION_ALPR_DETECTED_TUNE)" \
 	  MOTION_ANNOTATED_AGO="$(MOTION_ANNOTATED_AGO)" \
 	  MOTION_CAMERA_RESTART="$(MOTION_CAMERA_RESTART)" \
 	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
@@ -197,6 +220,11 @@ $(ACTIONS): necessary
 	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
 	  MOTION_DEVICE="$(MOTION_DEVICE)" \
 	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
+	  MOTION_FACE_DETECTED_AGO="$(MOTION_FACE_DETECTED_AGO)" \
+	  MOTION_FACE_DETECTED_DEVIATION="$(MOTION_FACE_DETECTED_DEVIATION)" \
+	  MOTION_FACE_DETECTED_NOTIFY="$(MOTION_FACE_DETECTED_NOTIFY)" \
+	  MOTION_FACE_DETECTED_SPEAK="$(MOTION_FACE_DETECTED_SPEAK)" \
+	  MOTION_FACE_DETECTED_TUNE="$(MOTION_FACE_DETECTED_TUNE)" \
 	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
 	  MOTION_GROUP="$(MOTION_GROUP)" \
 	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
@@ -205,6 +233,11 @@ $(ACTIONS): necessary
 	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
 	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
 	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
+	  MOTION_POSE_DETECTED_AGO="$(MOTION_POSE_DETECTED_AGO)" \
+	  MOTION_POSE_DETECTED_DEVIATION="$(MOTION_POSE_DETECTED_DEVIATION)" \
+	  MOTION_POSE_DETECTED_NOTIFY="$(MOTION_POSE_DETECTED_NOTIFY)" \
+	  MOTION_POSE_DETECTED_SPEAK="$(MOTION_POSE_DETECTED_SPEAK)" \
+	  MOTION_POSE_DETECTED_TUNE="$(MOTION_POSE_DETECTED_TUNE)" \
 	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
 	  MOTION_TWILIO_NAME="$(MOTION_TWILIO_NAME)" \
 	  MOTION_TWILIO_NUMBER="$(MOTION_TWILIO_NUMBER)" \
@@ -228,7 +261,6 @@ homeassistant/setup.json: setup.json.tmpl
 	@echo "${MC}Making: $@${NC}"
 	-@rm -f $@
 	@export \
-	  TIMESTAMP="$(TIMESTAMP)" \
 	  DOMAIN_NAME="$(DOMAIN_NAME)" \
 	  HOST_INTERFACE="$(HOST_INTERFACE)" \
 	  HOST_IPADDR="$(HOST_IPADDR)" \
@@ -253,6 +285,11 @@ homeassistant/setup.json: setup.json.tmpl
 	  LOGGER_MQTT="$(LOGGER_MQTT)" \
 	  MARIADB_HOST="$(MARIADB_HOST)" \
 	  MARIADB_PASSWORD="$(MARIADB_PASSWORD)" \
+	  MOTION_ALPR_DETECTED_AGO="$(MOTION_ALPR_DETECTED_AGO)" \
+	  MOTION_ALPR_DETECTED_DEVIATION="$(MOTION_ALPR_DETECTED_DEVIATION)" \
+	  MOTION_ALPR_DETECTED_NOTIFY="$(MOTION_ALPR_DETECTED_NOTIFY)" \
+	  MOTION_ALPR_DETECTED_SPEAK="$(MOTION_ALPR_DETECTED_SPEAK)" \
+	  MOTION_ALPR_DETECTED_TUNE="$(MOTION_ALPR_DETECTED_TUNE)" \
 	  MOTION_ANNOTATED_AGO="$(MOTION_ANNOTATED_AGO)" \
 	  MOTION_CAMERA_RESTART="$(MOTION_CAMERA_RESTART)" \
 	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
@@ -283,6 +320,11 @@ homeassistant/setup.json: setup.json.tmpl
 	  MOTION_DETECT_ENTITY="$(MOTION_DETECT_ENTITY)" \
 	  MOTION_DEVICE="$(MOTION_DEVICE)" \
 	  MOTION_EXPIRE_AFTER="$(MOTION_EXPIRE_AFTER)" \
+	  MOTION_FACE_DETECTED_AGO="$(MOTION_FACE_DETECTED_AGO)" \
+	  MOTION_FACE_DETECTED_DEVIATION="$(MOTION_FACE_DETECTED_DEVIATION)" \
+	  MOTION_FACE_DETECTED_NOTIFY="$(MOTION_FACE_DETECTED_NOTIFY)" \
+	  MOTION_FACE_DETECTED_SPEAK="$(MOTION_FACE_DETECTED_SPEAK)" \
+	  MOTION_FACE_DETECTED_TUNE="$(MOTION_FACE_DETECTED_TUNE)" \
 	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
 	  MOTION_GROUP="$(MOTION_GROUP)" \
 	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
@@ -291,6 +333,11 @@ homeassistant/setup.json: setup.json.tmpl
 	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
 	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
 	  MOTION_OVERVIEW_ZOOM="$(MOTION_OVERVIEW_ZOOM)" \
+	  MOTION_POSE_DETECTED_AGO="$(MOTION_POSE_DETECTED_AGO)" \
+	  MOTION_POSE_DETECTED_DEVIATION="$(MOTION_POSE_DETECTED_DEVIATION)" \
+	  MOTION_POSE_DETECTED_NOTIFY="$(MOTION_POSE_DETECTED_NOTIFY)" \
+	  MOTION_POSE_DETECTED_SPEAK="$(MOTION_POSE_DETECTED_SPEAK)" \
+	  MOTION_POSE_DETECTED_TUNE="$(MOTION_POSE_DETECTED_TUNE)" \
 	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
 	  MOTION_TWILIO_NAME="$(MOTION_TWILIO_NAME)" \
 	  MOTION_TWILIO_NUMBER="$(MOTION_TWILIO_NUMBER)" \
@@ -306,6 +353,7 @@ homeassistant/setup.json: setup.json.tmpl
 	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
 	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
 	  NETDATA_URL="$(NETDATA_URL)" \
+	  TIMESTAMP="$(TIMESTAMP)" \
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	&& cat $< | envsubst > $@
 
