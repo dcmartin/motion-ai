@@ -11,46 +11,31 @@
       icon_template: 'mdi:walk'
       value_template: >-
         {% if is_state('binary_sensor.motion_pose_detected','on') %}
-          {% set e = state_attr('sensor.motion_event_pose','event') %}
-          {% if e is mapping %}
-            {% set n = utcnow().timestamp()|int %}
-            {% set end = e.end|int %}
-            {% set event = e.event %}
-            {% set device = e.device %}
-            {% set camera = e.camera %}
-            {% set elapsed = e.elapsed|int %}
-            {% set what = state_attr('sensor.motion_event_pose','detected') %}
-            {% if what is none or what|lower == 'unknown' or what|length == 0 %}{% set what = 'nothing' %}{% endif %}
-            {% set count = state_attr('sensor.motion_event_pose','count')|int %}
-            {% set when = end|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
-            {% set delay = n - end %}
-            DETECTED: {{ count }} {{ what }};
-            from {{ device -}}/{{- camera -}}/{{- event -}};
-            at {{ when }};
-            delay: {{ delay }};
-            duration: {{ elapsed }};
-            counter: {{ states('counter.motion_pose_detected_counter') -}}/{{- states('sensor.motion_pose_detected_counter') -}}
-            at {{ when }};
-            delay: {{ delay }};
-            duration: {{ elapsed }};
-          {% else %}Pending{% endif %}
-        {% elif is_state('binary_sensor.motion_pose','on') %}
-          {% set e = state_attr('sensor.motion_event_pose','event') %}
-          {% if e is mapping %}
-            {% set count = state_attr('sensor.motion_event_pose','count') %}
-            {% set what = state_attr('sensor.motion_event_pose','detected') %}
-            {%- if count|int > 0 -%}
-              TOO LOW: {{ count }} {{ what }};
-              minimum: {{ states('input_number.motion_pose_detected_percent') }}
-            {%- else %}Pending{%- endif %}
-          {% else %}Pending{% endif %}
+          {% set end = states('sensor.motion_pose_detected_date') %}
+          {% set event = states('sensor.motion_pose_detected_event') %}
+          {% set device = states('sensor.motion_pose_detected_device') %}
+          {% set camera = states('sensor.motion_pose_detected_camera') %}
+          {% set elapsed = states('sensor.motion_pose_detected_elapsed') %}
+          {% set confidence = states('sensor.motion_pose_detected_confidence')|int %}
+          {% set n = utcnow().timestamp()|int %}
+          {% if n|int > 0 and end|int > 0 %}
+            {% set when = end|int|timestamp_custom("%I:%M:%S %p on %m/%d") -%}
+            {% set delay = n - end|int %}
+          {% else %}
+            {% set when = 'null' %}
+            {% set delay = 'null' %}
+          {% endif %}
+          {{ device -}}/{{- camera -}}/{{- event }} at {{ when -}};
+          β: {{ confidence }} ;
+          Δ: {{ delay -}}s;
+          δ: {{ elapsed -}}s
         {% else %}
-          {% set s = states('sensor.motion_pose_detected_status') %}
-          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
+          {% set s = states.sensor.motion_pose_detected_status.state %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
             {{ s }}
           {% else %}Pending{% endif %}
         {% endif %}
-        
+
 - platform: history_stats
   name: motion_pose_detected_ratio_today
   entity_id: binary_sensor.motion_pose_detected
@@ -104,10 +89,15 @@
       unit_of_measurement: '🚶'
       icon_template: 'mdi:walk'
       value_template: >
-        {% if is_state('binary_sensor.motion_pose_detected','on') or is_state('binary_sensor.motion_pose_detected_expired','off') %} 
+        {% if is_state('binary_sensor.motion_pose_detected','on') %} 
           {% set s = states('sensor.motion_pose_detected_count_loop') %}
-          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
             {{ s|int }}
+          {% else %}null{% endif %}
+        {% elif is_state('binary_sensor.motion_pose_detected_expired','off') %}
+          {% set s = states('sensor.motion_pose_detected_count') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {{ s }}
           {% else %}null{% endif %}
         {% else %}null{% endif %}
 
@@ -136,12 +126,12 @@
               {{ s|int }}
             {%- else -%}null{%- endif -%}
           {% else %}null{% endif %}
-        {% else %}
+        {% elif is_state('binary_sensor.motion_pose_detected_expired','off') %}
           {% set s = states('sensor.motion_pose_detected_elapsed') %}
-          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
             {{ s }}
           {% else %}null{% endif %}
-        {% endif %}
+        {% else %}null{% endif %}
 
 ## event
 - platform: template
@@ -155,15 +145,15 @@
           {% if e is mapping %}
             {% set s = e.event %}
             {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
-              {{ s }}
+              {{ s|int }}
             {%- else -%}null{%- endif -%}
-          {% else %}null{% endif %}
-        {% else %}
+          {%- else -%}null{%- endif -%}
+        {% elif is_state('binary_sensor.motion_detected_expired','off') %}
           {% set s = states('sensor.motion_pose_detected_event') %}
           {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
             {{ s }}
           {% else %}null{% endif %}
-        {% endif %}
+        {% else %}null{% endif %}
 
 ## device
 - platform: template
@@ -182,7 +172,7 @@
           {% else %}null{% endif %}
         {% else %}
           {% set s = states('sensor.motion_pose_detected_device') %}
-          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
             {{ s }}
           {% else %}null{% endif %}
         {% endif %}
@@ -204,7 +194,7 @@
           {% else %}null{% endif %}
         {% else %}
           {% set s = states('sensor.motion_pose_detected_camera') %}
-          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
             {{ s }}
           {% else %}null{% endif %}
         {% endif %}
@@ -225,12 +215,27 @@
           {%- else -%}null{%- endif -%}
         {% else %}
           {% set s = states('sensor.motion_pose_detected_date') %}
-          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
             {{ s }}
           {% else %}null{% endif %}
         {% endif %}
 
-## when - human readable
+- platform: template
+  sensors:
+    motion_pose_detected_where:
+      friendly_name: 🚶 at
+      icon_template: 'mdi:calendar-clock'
+      value_template: >-
+        {% set s = states('sensor.motion_pose_detected_camera')|int %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+          {{ s }}
+        {% else %}
+          {% set s = states('sensor.motion_pose_detected_where') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {{ s }}
+          {% else %}Pending{% endif %}
+        {% endif %}
+
 - platform: template
   sensors:
     motion_pose_detected_when:
@@ -240,7 +245,12 @@
         {% set s = states('sensor.motion_pose_detected_date')|int %}
         {% if s > 0 %}
           {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}
-        {% else %}Pending{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_pose_detected_when') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {{ s }}
+          {% else %}Pending{% endif %}
+        {% endif %}
 
 ## ago
 - platform: template
@@ -594,7 +604,7 @@
           {% else %}
             {{ z|int }}
           {% endif %}
-        {% else %}null{% endif %}
+        {% else %}{{ z|int }}{% endif %}
 
 ## confidence
 
