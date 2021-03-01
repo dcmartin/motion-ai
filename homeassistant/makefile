@@ -464,13 +464,12 @@ lovelace_dashboards.json: lovelace_dashboards.json.tmpl
 
 tidy: 
 	@echo "${MC}Making: $@${NC}"
-	-@sudo rm -f .storage/core.restore_state
 	@${MAKE} -C motion clean
 
 neat: tidy
 	@echo "${MC}Making: $@${NC}"
 	@rm -f $(WEBCAMS)
-	@rm -f lovelace.json lovelace_dashboards.json ${LOVELACE_DASHBOARDS}
+	-@sudo rm -f .storage/core.restore_state
 
 clean: stop logclean neat
 	@echo "${MC}Making: $@${NC}"
