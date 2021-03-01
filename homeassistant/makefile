@@ -173,7 +173,7 @@ LOVELACE_DASHBOARDS := $(shell for C in $(MOTION_DASHBOARDS); do echo lovelace.$
 
 default: all
 
-all: $(WEBCAMS) lovelace.json lovelace_dashboards.json ${LOVELACE_DASHBOARDS} $(MOTION_DIRS) $(PACKAGES) secrets.yaml cameras
+all: $(WEBCAMS) lovelace.json lovelace_dashboards.json ${LOVELACE_DASHBOARDS} $(MOTION_DIRS) $(PACKAGES) secrets.yaml images cameras
 
 WEBCAMS := motion/webcams.json
 
@@ -184,36 +184,44 @@ $(WEBCAMS):
 CAMERAS := $(shell jq -r '.[].name' $(WEBCAMS))
 CAMERA_DIRS := $(shell for C in $(CAMERAS); do echo www/images/motion/$${C}; done)
 
+images:
+	@echo "${MC}Making: $@${NC}"
+	@-sudo mkdir -p $@
+	@-sudo cp -n www/images/test-signal.jpg www/images/motion/detected.jpg
+	@-sudo cp -n www/images/test-signal.gif www/images/motion/detected_animated.gif
+	@-sudo cp -n www/images/test-signal.gif www/images/motion/detected_animated_mask.gif
+	@-for e in entity person vehicle animal; do \
+	  sudo cp -n www/images/test-signal.jpg www/images/motion/detected_$${e}.jpg; \
+	  sudo cp -n www/images/test-signal.gif www/images/motion/detected_$${e}_animated.gif; \
+	  sudo cp -n www/images/test-signal.gif www/images/motion/detected_$${e}_animated_mask.gif; \
+	done
+	@-for e in face alpr pose; do \
+	  sudo cp -n www/images/test-signal.jpg www/images/motion/$${e}_detected.jpg; \
+	  sudo cp -n www/images/test-signal.gif www/images/motion/$${e}_detected_animated.gif; \
+	done
+	@-for e in person_face vehicle_alpr; do \
+	  sudo cp -n www/images/test-signal.jpg www/images/motion/$${e}.jpg; \
+	  sudo cp -n www/images/test-signal.gif www/images/motion/$${e}.gif; \
+	done
+
 $(CAMERA_DIRS): $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
 	@-sudo mkdir -p $@
+	@-sudo cp -n www/images/test-signal.jpg $@/detected.jpg
+	@-sudo cp -n www/images/test-signal.gif $@/detected_animated.gif
+	@-sudo cp -n www/images/test-signal.gif $@/detected_animated_mask.gif
 	@-for e in entity person vehicle animal; do \
-	  sudo cp -n www/images/test-signal.gif $@/detected_animated.gif; \
-	  sudo cp -n www/images/test-signal.gif $@/detected_animated_mask.gif; \
-	  sudo cp -n www/images/test-signal.jpg $@/detected.jpg; \
 	  sudo cp -n www/images/test-signal.gif $@/detected_$${e}_animated.gif; \
 	  sudo cp -n www/images/test-signal.gif $@/detected_$${e}_animated_mask.gif; \
 	  sudo cp -n www/images/test-signal.jpg $@/detected_$${e}.jpg; \
-	  sudo cp -n www/images/test-signal.gif $@/../detected_$${e}_animated.gif; \
-	  sudo cp -n www/images/test-signal.gif $@/../detected_$${e}_animated_mask.gif; \
-	  sudo cp -n www/images/test-signal.jpg $@/../detected_$${e}.jpg; \
-	  sudo cp -n www/images/test-signal.gif $@/../detected_animated.gif; \
-	  sudo cp -n www/images/test-signal.gif $@/../detected_animated_mask.gif; \
-	  sudo cp -n www/images/test-signal.jpg $@/../detected.jpg; \
 	done
 	@-for e in face alpr pose; do \
-	  sudo cp -n www/images/test-signal.gif $@/$${e}_detected_animated.gif; \
-	  sudo cp -n www/images/test-signal.gif $@/$${e}_detected_animated_mask.gif; \
 	  sudo cp -n www/images/test-signal.jpg $@/$${e}_detected.jpg; \
-	  sudo cp -n www/images/test-signal.gif $@/../$${e}_detected_animated.gif; \
-	  sudo cp -n www/images/test-signal.gif $@/../$${e}_detected_animated_mask.gif; \
-	  sudo cp -n www/images/test-signal.jpg $@/../$${e}_detected.jpg; \
+	  sudo cp -n www/images/test-signal.gif $@/$${e}_detected_animated.gif; \
 	done
 	@-for e in person_face vehicle_alpr; do \
-	  sudo cp -n www/images/test-signal.gif $@/$${e}.gif; \
 	  sudo cp -n www/images/test-signal.jpg $@/$${e}.jpg; \
-	  sudo cp -n www/images/test-signal.gif $@/../$${e}.gif; \
-	  sudo cp -n www/images/test-signal.jpg $@/../$${e}.jpg; \
+	  sudo cp -n www/images/test-signal.gif $@/$${e}.gif; \
 	done
 
 cameras: $(CAMERA_DIRS)
@@ -495,7 +503,7 @@ logclean:
 	  && echo 'Attempting to remove log file (requires sudo): '"$${LOGPATH}" \
 	  && sudo LOGPATH=$${LOGPATH} /bin/rm -f $${LOGPATH}
 
-.PHONY: refresh neat tidy all default run stop logs restart clean realclean distclean $(PACKAGES) $(WEBCAMS) cameras lovelace.*.json $(MOTION_DIRS) secrets.yaml
+.PHONY: refresh neat tidy all default run stop logs restart clean realclean distclean $(PACKAGES) $(WEBCAMS) images cameras lovelace.*.json $(MOTION_DIRS) secrets.yaml
 
 ##
 ## COLORS
