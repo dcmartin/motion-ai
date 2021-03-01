@@ -198,10 +198,13 @@ images:
 	@-for e in face alpr pose; do \
 	  sudo cp -n www/images/test-signal.jpg www/images/motion/$${e}_detected.jpg; \
 	  sudo cp -n www/images/test-signal.gif www/images/motion/$${e}_detected_animated.gif; \
+	  sudo cp -n www/images/test-signal.gif www/images/motion/$${e}_detected_animated_mask.gif; \
 	done
-	@-for e in person_face vehicle_alpr; do \
+	@-for e in face person_face vehicle_alpr person_pose; do \
 	  sudo cp -n www/images/test-signal.jpg www/images/motion/$${e}.jpg; \
-	  sudo cp -n www/images/test-signal.gif www/images/motion/$${e}.gif; \
+	  sudo cp -n www/images/test-signal.jpg www/images/motion/$${e}_detected.jpg; \
+	  sudo cp -n www/images/test-signal.gif www/images/motion/$${e}_animated.gif; \
+	  sudo cp -n www/images/test-signal.gif www/images/motion/$${e}_animated_mask.gif; \
 	done
 
 $(CAMERA_DIRS): $(WEBCAMS)
@@ -218,10 +221,13 @@ $(CAMERA_DIRS): $(WEBCAMS)
 	@-for e in face alpr pose; do \
 	  sudo cp -n www/images/test-signal.jpg $@/$${e}_detected.jpg; \
 	  sudo cp -n www/images/test-signal.gif $@/$${e}_detected_animated.gif; \
+	  sudo cp -n www/images/test-signal.gif $@/$${e}_detected_animated_mask.gif; \
 	done
-	@-for e in person_face vehicle_alpr; do \
+	@-for e in person_face vehicle_alpr person_pose; do \
 	  sudo cp -n www/images/test-signal.jpg $@/$${e}.jpg; \
-	  sudo cp -n www/images/test-signal.gif $@/$${e}.gif; \
+	  sudo cp -n www/images/test-signal.jpg $@/$${e}_detected.jpg; \
+	  sudo cp -n www/images/test-signal.gif $@/$${e}_animated.gif; \
+	  sudo cp -n www/images/test-signal.gif $@/$${e}_animated_mask.gif; \
 	done
 
 cameras: $(CAMERA_DIRS)
@@ -476,11 +482,12 @@ tidy:
 
 neat: tidy
 	@echo "${MC}Making: $@${NC}"
-	@rm -f $(WEBCAMS)
+	-@sudo rm -fr www/images/motion/
 	-@sudo rm -f .storage/core.restore_state
 
 clean: stop logclean neat
 	@echo "${MC}Making: $@${NC}"
+	@rm -f $(WEBCAMS)
 	@rm -f secrets.yaml
 	-@rm -f .storage/lovelace*
 	-@sudo rm -f .storage/core.entity_registry
@@ -489,7 +496,6 @@ realclean: clean
 	-@sudo rm -f home-assistant_v2.*
 	-@sudo rm -f known_devices.yaml
 	-@sudo rm -f home-assistant.log
-	-@sudo rm -fr www/images/motion/
 	-@sudo rm -fr .storare/core.{config_entries,device_registry}
 
 distclean: realclean

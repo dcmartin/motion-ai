@@ -27,8 +27,7 @@ get_config "${url}" "${json}"
 config=$(jq -c '.config.cameras' "${json}" 2> /dev/null)
 
 if [ $(echo "${config:-null}" | jq '.|length') -gt 0 ]; then
-  echo "${config:-[]}" \
-  | jq '[.config?.cameras?[]|{name:.name,type:.type,top:.top,left:.left,icon:.icon,w3w:.w3w,mjpeg_url:.mjpeg_url,username:.username,password:.password}]|sort_by(.name)'
+  echo "${config}" | jq '[.[]|{name:.name,type:.type,top:.top,left:.left,icon:.icon,w3w:.w3w,mjpeg_url:.mjpeg_url,username:.username,password:.password}]|sort_by(.name)'
 else
   echo '[]'
 fi
