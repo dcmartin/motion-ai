@@ -7,7 +7,7 @@ THIS_HOSTIP := $(shell hostname -I | awk '{ print $$1 }')
 
 # logging
 LOGGER_DEFAULT ?= $(if $(wildcard LOGGER_DEFAULT),$(shell v=$$(cat LOGGER_DEFAULT) && echo "${TG}== LOGGER_DEFAULT: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="error" && echo "${DF}** LOGGER_DEFAULT${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
-LOGGER_MQTT ?= $(if $(wildcard LOGGER_MQTT),$(shell v=$$(cat LOGGER_MQTT) && echo "${TG}== LOGGER_MQTT: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="error" && echo "${DF}** LOGGER_MQTT${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+LOGGER_MQTT ?= $(if $(wildcard LOGGER_MQTT),$(shell v=$$(cat LOGGER_MQTT) && echo "${TG}== LOGGER_MQTT: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="fatal" && echo "${DF}** LOGGER_MQTT${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 LOGGER_AUTOMATION ?= $(if $(wildcard LOGGER_AUTOMATION),$(shell v=$$(cat LOGGER_AUTOMATION) && echo "${TG}== LOGGER_AUTOMATION: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="warn" && echo "${DF}** LOGGER_AUTOMATION${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 
 # domain
