@@ -19,7 +19,7 @@ MOTION='{"group":"'${MOTION_GROUP}'","client":"'${MOTION_CLIENT}'","camera":"'${
 
 # parameters
 SERVICE='{"label":"face4motion","id":"com.github.dcmartin.open-horizon.face4motion","version":"'${SERVICE_VERSION:-0.0.2}'","arch":"'${SERVICE_ARCH:-${BUILD_ARCH}}'","ports":{"service":'${SERVICE_PORT:-80}',"host":'${HOST_PORT:-4664}'}}'
-FACE='{"country":"'${FACE_COUNTRY:-us}'","pattern":"'${FACE_PATTERN:-all}'","scale":"'${FACE_SCALE:-none}'","threshold":'${FACE_THRESHOLD:-0.5}'}'
+FACE='{"country":"'${FACE_COUNTRY:-us}'","pattern":"'${FACE_PATTERN:-all}'","scale":"'${FACE_SCALE:-none}'","threshold":'${FACE_THRESHOLD:-0.25}'}'
 LOG='{"debug":'${DEBUG:-false}',"level":"'"${LOG_LEVEL:-info}"'","logto":"'"${LOGTO:-/dev/stderr}"'"}'
 
 # specify
