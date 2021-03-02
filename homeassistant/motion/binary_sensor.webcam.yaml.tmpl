@@ -340,16 +340,18 @@
   sensors:
     motion_${MOTION_CAMERA}_person_face:
       icon_template: 'mdi:account-check'
-      friendly_name: ${MOTION_CAMERA} Person w/ FACE
+      friendly_name: Person w/ FACE
       value_template: >-
         {% set mc = '${MOTION_CAMERA}_' %}
-        {% set pe = states('sensor.motion_' + mc + 'detected_person_event') %}
-        {% set fe = states('sensor.motion_' + mc + 'face_detected_event') %}
-        {{
-           pe|lower != 'null' and pe|lower != 'unavailable' and pe|lower != 'none' and pe|lower != 'unknown' and
-           fe|lower != 'null' and fe|lower != 'unavailable' and fe|lower != 'none' and fe|lower != 'unknown' and
-           pe == fe
-        }}
+        {% if is_state('binary_sensor.motion_' + mc + 'face_detected','on') and is_state('binary_sensor.motion_' + mc + 'detected_person','on') %}
+          {% set s = states('sensor.motion_' + mc + 'person_faces') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {% set s = s|from_json %}
+            {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s is iterable and s|length > 0 %}
+              {{ s|sum|int > 0 }}
+            {% else %}null{% endif %}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
 
 - platform: template
   sensors:
@@ -368,20 +370,23 @@
       icon_template: 'mdi:car-settings'
       friendly_name: ${MOTION_CAMERA} Vehicle w/ ALPR
       value_template: >-
-        {% set pe = states('sensor.motion_${MOTION_CAMERA}_detected_vehicle_event') %}
-        {% set fe = states('sensor.motion_${MOTION_CAMERA}_alpr_detected_event') %}
-        {{
-           pe|lower != 'null' and pe|lower != 'unavailable' and pe|lower != 'none' and pe|lower != 'unknown' and
-           fe|lower != 'null' and fe|lower != 'unavailable' and fe|lower != 'none' and fe|lower != 'unknown' and
-           pe == fe
-        }}
+        {% set mc = '${MOTION_CAMERA}_' %}
+        {% if is_state('binary_sensor.motion_' + mc + 'alpr_detected','on') and is_state('binary_sensor.motion_' + mc + 'detected_vehicle','on') %}
+          {% set s = states('sensor.motion_' + mc + 'vehicle_alprs') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {% set s = s|from_json %}
+            {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s is iterable and s|length > 0 %}
+              {{ s|sum|int > 0 }}
+            {% else %}null{% endif %}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
 
 - platform: template
   sensors:
     motion_${MOTION_CAMERA}_vehicle_alpr_expired:
       friendly_name: Vehicle w/ ALPR expired
       value_template: >-
-        {{ states('sensor.motion_${MOTION_CAMERA}_vehicle_alpr_ago')|int > states('input_number.motion_detected_person_ago')|int }}
+        {{ states('sensor.motion_${MOTION_CAMERA}_vehicle_alpr_ago')|int > states('input_number.motion_detected_vehicle_ago')|int }}
 
 ###
 ### NOTIFY
@@ -409,6 +414,9 @@
       icon_template: mdi:${MOTION_CAMERA_ICON}
       value_template: >-
         {{ is_state('input_boolean.motion_${MOTION_CAMERA}_detected_animal_notify','on') }}
+
+- platform: template
+  sensors:
     motion_${MOTION_CAMERA}_detected_person_speak:
       friendly_name: motion_${MOTION_CAMERA}_detected_person_speak
       icon_template: mdi:${MOTION_CAMERA_ICON}
@@ -424,6 +432,9 @@
       icon_template: mdi:${MOTION_CAMERA_ICON}
       value_template: >-
         {{ is_state('input_boolean.motion_${MOTION_CAMERA}_detected_animal_speak','on') }}
+
+- platform: template
+  sensors:
     motion_${MOTION_CAMERA}_detected_person_tune:
       friendly_name: motion_${MOTION_CAMERA}_detected_person_tune
       icon_template: mdi:${MOTION_CAMERA_ICON}
