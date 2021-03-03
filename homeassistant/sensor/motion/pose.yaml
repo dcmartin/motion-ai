@@ -1,13 +1,337 @@
 ###
-# homeassistant/sensor/motion/pose.yaml
+# sensor/motion/pose.yaml
 ###
+
 
 - platform: template
   sensors:
     motion_pose_ip:
-      friendly_name: POSE IP
+      friendly_name: 🚶 IP
       icon_template: 'mdi:wan'
       value_template: >-
         {% if states.input_text.motion_pose_ip is defined %}
           {{ states.input_text.motion_pose_ip.state }}
         {% else %}null{% endif %}
+
+## status
+- platform: template
+  sensors:
+    motion_pose_status:
+      friendly_name: '🚶 (pose?)'
+      icon_template: 'mdi:walk'
+      value_template: >-
+        {% if is_state('binary_sensor.motion_pose','on') %}
+          {% set e = state_attr('sensor.motion_event_pose','event') %}
+          {% if e is mapping %}
+            {% set n = utcnow().timestamp()|int %}
+            {% set end = e.end|int %}
+            {% set event = e.event %}
+            {% set device = e.device %}
+            {% set camera = e.camera %}
+            {% set elapsed = e.elapsed|int %}
+            {% set what = state_attr('sensor.motion_event_pose','detected') %}
+            {% if what is none or what|lower == 'unknown' or what|length == 0 %}{% set what = 'nothing' %}{% endif %}
+            {% set count = state_attr('sensor.motion_event_pose','count') %}
+            {% set when = end|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
+            {% set delay = n - end %}
+            🚶: {{ count }} {{ what }};
+            from {{ device -}}/{{- camera -}}/{{- event -}};
+            at {{ when }};
+            delay: {{ delay }};
+            duration: {{ elapsed }};
+            counter: {{ states('counter.motion_pose_counter') -}}/{{- states('sensor.motion_pose_counter') -}}
+          {% else %}Pending{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_pose_status') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}Pending{% endif %}
+        {% endif %}
+
+## count
+- platform: template
+  sensors:
+    motion_pose_count:
+      friendly_name: 🚶 count
+      unit_of_measurement: poses
+      value_template: >
+        {% if is_state('binary_sensor.motion_pose','on') or is_state('binary_sensor.motion_pose_expired','off') %}
+          {% set count = state_attr('sensor.motion_event_pose','count') %}
+          {% if count|lower != 'none' and count|lower != 'unknown' and count != 'null' %}
+            {{ count|int }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+
+## counter
+- platform: template
+  sensors:
+    motion_pose_counter:
+      friendly_name: 🚶 counter
+      unit_of_measurement: count
+      value_template: >
+        {{ states('counter.motion_pose_counter')|int }}
+
+- platform: template
+  sensors:
+    motion_pose_elapsed:
+      friendly_name: 🚶 elapsed
+      value_template: >-
+        {% if is_state('binary_sensor.motion_pose','on') %}
+          {% set e = state_attr('sensor.motion_event_pose','event') %}
+          {% if e is mapping %}
+            {% set s = e.elapsed %}
+            {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
+              {{ s|int }}
+            {%- else -%}null{%- endif -%}
+          {% else %}null{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_pose_elapsed') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+## event
+- platform: template
+  sensors:
+    # device
+    motion_pose_event:
+      friendly_name: 🚶 event
+      value_template: >-
+        {% if is_state('binary_sensor.motion_pose','on') %}
+          {% set e = state_attr('sensor.motion_event_pose','event') %}
+          {% if e is mapping %}
+            {% set s = e.event %}
+            {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
+              {{ s|int }}
+            {%- else -%}null{%- endif -%}
+          {% else %}null{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_pose_event') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+## device
+- platform: template
+  sensors:
+    motion_pose_device:
+      friendly_name: 🚶 device
+      value_template: >-
+        {% if is_state('binary_sensor.motion_pose','on') %}
+          {% set e = state_attr('sensor.motion_event_pose','event') %}
+          {% if e is mapping %}
+            {% set s = e.device %}
+            {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' %}
+              {{ s }}
+            {%- else -%}null{%- endif -%}
+          {% else %}null{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_pose_device') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+## camera
+- platform: template
+  sensors:
+    motion_pose_camera:
+      friendly_name: 🚶 camera
+      icon_template: 'mdi:camera'
+      value_template: >-
+        {% if is_state('binary_sensor.motion_pose','on') %}
+          {% set e = state_attr('sensor.motion_event_pose','event') %}
+          {% if e is mapping %}
+            {% set s = e.camera %}
+            {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' %}
+              {{ s }}
+            {%- else -%}null{%- endif -%}
+          {% else %}null{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_pose_camera') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+## date
+- platform: template
+  sensors:
+    motion_pose_date:
+      unit_of_measurement: 's'
+      value_template: >-
+        {% if is_state('binary_sensor.motion_pose','on') %}
+          {% set e = state_attr('sensor.motion_event_pose','event') %}
+          {% if e is mapping %}
+            {% set s = e.end %}
+            {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
+              {{ s|int }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        {% else %}
+          {% set s = states('sensor.motion_pose_date') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+## when
+- platform: template
+  sensors:
+    motion_pose_when:
+      friendly_name: 🚶 at
+      value_template: >-
+        {% set s = states('sensor.motion_pose_date')|int %}
+        {% if s > 0 %}
+          {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}
+        {% else %}Pending{% endif %}
+
+## ago
+- platform: template
+  sensors:
+    motion_pose_ago:
+      friendly_name: 🚶 ago
+      unit_of_measurement: 's'
+      value_template: >
+        {% set s = states('sensor.motion_pose_date')|int %}
+        {% if s > 0 %}
+          {% set s = utcnow().timestamp()|int - s %}
+          {% if s < 86400 %}{{ s }}{%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+
+## percent
+- platform: template
+  sensors:
+    motion_pose_percent:
+      icon_template: 'mdi:walk'
+      friendly_name: 🚶 processed
+      unit_of_measurement: '%'
+      value_template: >-
+        {% if states('sensor.motion_pose_counter')|int > 0 and states('sensor.motion_end_counter')|int > 0 %}
+          {% set value = states.sensor.motion_pose_counter.state|int / states.sensor.motion_end_counter.state|int * 100.0 %}
+          {{ "%.2f"|format(value|float) }}
+        {%- else -%}null{%- endif -%}
+
+- platform: statistics
+  name: motion_pose_percent_statistics
+  entity_id: sensor.motion_percent_delay
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: template
+  sensors:
+    motion_pose_percent_mean:
+      friendly_name: 🚶 percent mean
+      unit_of_measurement: '%'
+      value_template: >-
+        {% if states('sensor.motion_pose_percent_statistics') != 'unknown' %}
+          {{ states.sensor.motion_pose_percent_statistics.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_pose_percent_min:
+      friendly_name: 🚶 percent min
+      unit_of_measurement: '%'
+      value_template: >-
+        {% if states('sensor.motion_pose_percent_statistics') != 'unknown' %}
+          {{ states.sensor.motion_pose_percent_statistics.attributes.min_value|float }}
+        {%- else -%}null{%- endif -%}
+    motion_pose_percent_max:
+      friendly_name: 🚶 percent max
+      unit_of_measurement: '%'
+      value_template: >-
+        {% if states('sensor.motion_pose_percent_statistics') != 'unknown' %}
+          {{ states.sensor.motion_pose_percent_statistics.attributes.max_value|float }}
+        {%- else -%}null{%- endif -%}
+    motion_pose_percent_stdev:
+      friendly_name: 🚶 percent stdev
+      unit_of_measurement: '%'
+      value_template: >
+        {% if states('sensor.motion_pose_percent_statistics') != 'unknown' %}
+          {{ states.sensor.motion_pose_percent_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_pose_percent_change:
+      friendly_name: 🚶 percent change
+      unit_of_measurement: '%'
+      value_template: >
+        {% if states('sensor.motion_pose_percent_statistics') != 'unknown' %}
+          {{ states.sensor.motion_pose_percent_statistics.attributes.change|float }}
+        {%- else -%}null{%- endif -%}
+
+## delay
+
+- platform: template
+  sensors:
+    motion_pose_delay:
+      friendly_name: '🚶 delay'
+      icon_template: 'mdi:timer'
+      unit_of_measurement: 's'
+      value_template: >
+        {% if is_state('binary_sensor.motion_pose','on') %}
+          {% set e = state_attr('sensor.motion_event_pose','event') %}
+          {% if e|lower != 'none' and e|lower != 'unavailable' and e|lower != 'unknown' and e|lower != 'none' %}
+            {%- set t = e.timestamp -%}
+            {%- if t|lower != 'unavailable' and t|lower != 'none' and t|lower != 'unknown' and t|lower != 'null' -%}
+              {%- set s = e.timestamp.start -%}
+              {%- set p = e.timestamp.publish -%}
+              {%- if p|lower != 'unavailable' and p|lower != 'none' and p|lower != 'unknown' and p != null and
+                     s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'unknown' and s != null %}
+                {% set p = as_timestamp(p)|int %}
+                {% set s = as_timestamp(s)|int %}
+                {% set n = utcnow().timestamp()|int %}
+                {{ n - p }}
+              {% else %}null{% endif %}
+            {% else %}null{% endif %}
+          {% else %}null{% endif %}
+        {% elif is_state('binary_sensor.motion_pose_expired','off') %}
+          {% set s = states('sensor.motion_pose_delay') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+
+- platform: statistics
+  name: motion_pose_delay_statistics
+  entity_id: sensor.motion_pose_delay
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: template
+  sensors:
+    motion_pose_delay_mean:
+      friendly_name: 🚶 delay mean
+      unit_of_measurement: 's'
+      value_template: >-
+        {% if states('sensor.motion_pose_delay_statistics') != 'unknown' %}
+          {{ states.sensor.motion_pose_delay_statistics.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_pose_delay_min:
+      friendly_name: 🚶 delay min
+      unit_of_measurement: 's'
+      value_template: >-
+        {% if states('sensor.motion_pose_delay_statistics') != 'unknown' %}
+          {{ states.sensor.motion_pose_delay_statistics.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_pose_delay_max:
+      friendly_name: 🚶 delay max
+      unit_of_measurement: 's'
+      value_template: >-
+        {% if states('sensor.motion_pose_delay_statistics') != 'unknown' %}
+          {{ states.sensor.motion_pose_delay_statistics.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_pose_delay_stdev:
+      friendly_name: 🚶 delay stdev
+      unit_of_measurement: 's'
+      value_template: >
+        {% if states('sensor.motion_pose_delay_statistics') != 'unknown' %}
+          {{ states.sensor.motion_pose_delay_statistics.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_pose_delay_change:
+      friendly_name: 🚶 delay change
+      unit_of_measurement: 's'
+      value_template: >
+        {% if states('sensor.motion_pose_delay_statistics') != 'unknown' %}
+          {{ states.sensor.motion_pose_delay_statistics.attributes.change|float }}
+        {%- else -%}null{%- endif -%}

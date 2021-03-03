@@ -5,10 +5,11 @@
 SHELL := /bin/bash
 
 ## TOP-LEVEL
-DOMAIN_NAME ?= $(if $(DOMAIN_NAME),$(shell v=$(DOMAIN_NAME) && echo "-- INFO: DOMAIN_NAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(domainname -d) && v=$${v:-local}  && echo "++ WARN: DOMAIN_NAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
-MOTION_GROUP ?= $(if $(MOTION_GROUP),$(shell v=$(MOTION_GROUP) && echo "-- INFO: MOTION_GROUP: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(echo "motion") && echo "++ WARN: MOTION_GROUP unset; default: $${v}" > /dev/stderr && echo "$${v}"))
-MOTION_DEVICE ?= $(if $(MOTION_DEVICE),$(shell v=$(MOTION_DEVICE) && echo "-- INFO: MOTION_DEVICE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(echo "$${HOST_NAME:-$$(hostname)}" | sed 's/[\#+ \/]/_/g') && echo "++ WARN: MOTION_DEVICE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
-MOTION_CLIENT ?= $(if $(MOTION_CLIENT),$(shell v=$(MOTION_CLIENT) && echo "-- INFO: MOTION_CLIENT: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='+' && echo "++ WARN: MOTION_CLIENT unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+DOMAIN_NAME := $(if $(DOMAIN_NAME),$(shell v=$(DOMAIN_NAME) && echo "-- INFO: DOMAIN_NAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(hostname -d) && v=$${v:-local}  && echo "++ WARN: DOMAIN_NAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MOTION_GROUP := $(if $(MOTION_GROUP),$(shell v=$(MOTION_GROUP) && echo "-- INFO: MOTION_GROUP: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(echo "motion") && echo "++ WARN: MOTION_GROUP unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MOTION_DEVICE := $(if $(MOTION_DEVICE),$(shell v=$(MOTION_DEVICE) && echo "-- INFO: MOTION_DEVICE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(echo "$${HOST_NAME:-$$(hostname)}" | sed 's/[\#+ \/]/_/g') && echo "++ WARN: MOTION_DEVICE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MOTION_CLIENT := $(if $(MOTION_CLIENT),$(shell v=$(MOTION_CLIENT) && echo "-- INFO: MOTION_CLIENT: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='+' && echo "++ WARN: MOTION_CLIENT unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MOTION_ROUTER_NAME := $(if $(MOTION_ROUTER_NAME),$(shell v=$(MOTION_ROUTER_NAME) && echo "-- INFO: MOTION_ROUTER_NAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='unknown' && echo "++ WARN: MOTION_ROUTER_NAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
 ## MQTT
 MQTT_HOST ?= $(if $(MQTT_HOST),$(shell v=$(MQTT_HOST) && echo "-- INFO: MQTT_HOST: $${v}" > /dev/stderr && echo "$${v}"),$(shell v="mqtt.$(DOMAIN_NAME)" && echo "++ WARN: MQTT_HOST unset; default: $${v}" > /dev/stderr && echo "$${v}"))
@@ -29,44 +30,100 @@ WEBCAMS_JSON := webcams.json
 WEBCAMS := $(shell jq -r '.[].name' $(WEBCAMS_JSON))
 
 # WEBCAM components
+WEBCAM_AUTOMATION_ALPRS := $(shell for C in $(WEBCAMS); do echo automation/alpr_detected-$${C}.yaml; done)
+WEBCAM_AUTOMATION_ANIMALS := $(shell for C in $(WEBCAMS); do echo automation/detected_animal-$${C}.yaml; done)
+WEBCAM_AUTOMATION_ENTITYS := $(shell for C in $(WEBCAMS); do echo automation/detected_entity-$${C}.yaml; done)
+WEBCAM_AUTOMATION_FACES := $(shell for C in $(WEBCAMS); do echo automation/face_detected-$${C}.yaml; done)
+WEBCAM_AUTOMATION_PERSONFACES := $(shell for C in $(WEBCAMS); do echo automation/person_face-$${C}.yaml; done)
+WEBCAM_AUTOMATION_PERSONS := $(shell for C in $(WEBCAMS); do echo automation/detected_person-$${C}.yaml; done)
+WEBCAM_AUTOMATION_POSES := $(shell for C in $(WEBCAMS); do echo automation/pose_detected-$${C}.yaml; done)
 WEBCAM_AUTOMATIONS := $(shell for C in $(WEBCAMS); do echo automation/webcam-$${C}.yaml; done)
+WEBCAM_AUTOMATION_VEHICLEALPRS := $(shell for C in $(WEBCAMS); do echo automation/vehicle_alpr-$${C}.yaml; done)
+WEBCAM_AUTOMATION_VEHICLES := $(shell for C in $(WEBCAMS); do echo automation/detected_vehicle-$${C}.yaml; done)
 WEBCAM_BINARY_SENSORS := $(shell for C in $(WEBCAMS); do echo binary_sensor/webcam-$${C}.yaml; done)
 WEBCAM_CAMERAS := $(shell for C in $(WEBCAMS); do echo camera/webcam-$${C}.yaml; done)
 WEBCAM_COUNTERS := $(shell for C in $(WEBCAMS); do echo counter/webcam-$${C}.yaml; done)
 WEBCAM_DEVICE_TRACKERS := $(shell for C in $(WEBCAMS); do echo device_tracker/webcam-$${C}.yaml; done)
+WEBCAM_FACE_SENSORS := $(shell for C in $(WEBCAMS); do echo sensor/face_detected-$${C}.yaml; done)
 WEBCAM_GRAPHS := $(shell for C in $(WEBCAMS); do echo history_graph/webcam-$${C}.yaml; done)
 WEBCAM_GROUPS := $(shell for C in $(WEBCAMS); do echo group/webcam-$${C}.yaml; done)
-WEBCAM_SENSORS := $(shell for C in $(WEBCAMS); do echo sensor/webcam-$${C}.yaml; done)
-WEBCAM_INPUT_SELECTS := $(shell for C in $(WEBCAMS); do echo input_select/webcam-$${C}.yaml; done)
-WEBCAM_INPUT_BOOLEANS := $(shell for C in $(WEBCAMS); do echo input_boolean/webcam-$${C}.yaml; done)
-WEBCAM_SHELL_COMMANDS := $(shell for C in $(WEBCAMS); do echo shell_command/webcam-$${C}.yaml; done)
 WEBCAM_IMAGE_PROCESSINGS := $(shell for C in $(WEBCAMS); do echo image_processing/webcam-$${C}.yaml; done)
+WEBCAM_INPUT_BOOLEANS := $(shell for C in $(WEBCAMS); do echo input_boolean/webcam-$${C}.yaml; done)
+WEBCAM_INPUT_SELECTS := $(shell for C in $(WEBCAMS); do echo input_select/webcam-$${C}.yaml; done)
+WEBCAM_SENSOR_ALPRS := $(shell for C in $(WEBCAMS); do echo sensor/alpr_detected-$${C}.yaml; done)
+WEBCAM_SENSOR_ANIMALS := $(shell for C in $(WEBCAMS); do echo sensor/detected_animal-$${C}.yaml; done)
+WEBCAM_SENSOR_ENTITYS := $(shell for C in $(WEBCAMS); do echo sensor/detected_entity-$${C}.yaml; done)
+WEBCAM_SENSOR_FACES := $(shell for C in $(WEBCAMS); do echo sensor/face_detected-$${C}.yaml; done)
+WEBCAM_SENSOR_PERSONFACES := $(shell for C in $(WEBCAMS); do echo sensor/person_face-$${C}.yaml; done)
+WEBCAM_SENSOR_PERSONS := $(shell for C in $(WEBCAMS); do echo sensor/detected_person-$${C}.yaml; done)
+WEBCAM_SENSOR_POSES := $(shell for C in $(WEBCAMS); do echo sensor/pose_detected-$${C}.yaml; done)
+WEBCAM_SENSORS := $(shell for C in $(WEBCAMS); do echo sensor/webcam-$${C}.yaml; done)
+WEBCAM_SENSOR_VEHICLEALPRS := $(shell for C in $(WEBCAMS); do echo sensor/vehicle_alpr-$${C}.yaml; done)
+WEBCAM_SENSOR_VEHICLES := $(shell for C in $(WEBCAMS); do echo sensor/detected_vehicle-$${C}.yaml; done)
+WEBCAM_SHELL_COMMANDS := $(shell for C in $(WEBCAMS); do echo shell_command/webcam-$${C}.yaml; done)
 
 # WEBCAM templates
+WEBCAM_AUTOMATION_ALPR_TEMPLATE := automation.alpr_detected.yaml.tmpl
+WEBCAM_AUTOMATION_ANIMAL_TEMPLATE := automation.detected_animal.yaml.tmpl
+WEBCAM_AUTOMATION_ENTITY_TEMPLATE := automation.detected_entity.yaml.tmpl
+WEBCAM_AUTOMATION_FACE_TEMPLATE := automation.face_detected.yaml.tmpl
+WEBCAM_AUTOMATION_PERSONFACE_TEMPLATE := automation.person_face.yaml.tmpl
+WEBCAM_AUTOMATION_PERSON_TEMPLATE := automation.detected_person.yaml.tmpl
+WEBCAM_AUTOMATION_POSE_TEMPLATE := automation.pose_detected.yaml.tmpl
 WEBCAM_AUTOMATION_TEMPLATE := automation.webcam.yaml.tmpl
+WEBCAM_AUTOMATION_VEHICLEALPR_TEMPLATE := automation.vehicle_alpr.yaml.tmpl
+WEBCAM_AUTOMATION_VEHICLE_TEMPLATE := automation.detected_vehicle.yaml.tmpl
 WEBCAM_BINARY_SENSOR_TEMPLATE := binary_sensor.webcam.yaml.tmpl
 WEBCAM_CAMERA_TEMPLATE := camera.webcam.yaml.tmpl
 WEBCAM_COUNTER_TEMPLATE := counter.webcam.yaml.tmpl
 WEBCAM_DEVICE_TRACKER_TEMPLATE := device_tracker.webcam.yaml.tmpl
+WEBCAM_FACE_SENSOR_TEMPLATE := sensor.face_detected.yaml.tmpl
 WEBCAM_GRAPH_TEMPLATE := history_graph.webcam.yaml.tmpl
 WEBCAM_GROUP_TEMPLATE := group.webcam.yaml.tmpl
-WEBCAM_SENSOR_TEMPLATE := sensor.webcam.yaml.tmpl
-WEBCAM_INPUT_SELECT_TEMPLATE := input_select.webcam.yaml.tmpl
-WEBCAM_INPUT_BOOLEAN_TEMPLATE := input_boolean.webcam.yaml.tmpl
-WEBCAM_SHELL_COMMAND_TEMPLATE := shell_command.webcam.yaml.tmpl
 WEBCAM_IMAGE_PROCESSING_TEMPLATE := image_processing.webcam.yaml.tmpl
+WEBCAM_INPUT_BOOLEAN_TEMPLATE := input_boolean.webcam.yaml.tmpl
+WEBCAM_INPUT_SELECT_TEMPLATE := input_select.webcam.yaml.tmpl
+WEBCAM_SENSOR_ALPR_TEMPLATE := sensor.alpr_detected.yaml.tmpl
+WEBCAM_SENSOR_ANIMAL_TEMPLATE := sensor.detected_animal.yaml.tmpl
+WEBCAM_SENSOR_ENTITY_TEMPLATE := sensor.detected_entity.yaml.tmpl
+WEBCAM_SENSOR_FACE_TEMPLATE := sensor.face_detected.yaml.tmpl
+WEBCAM_SENSOR_PERSONFACE_TEMPLATE := sensor.person_face.yaml.tmpl
+WEBCAM_SENSOR_PERSON_TEMPLATE := sensor.detected_person.yaml.tmpl
+WEBCAM_SENSOR_POSE_TEMPLATE := sensor.pose_detected.yaml.tmpl
+WEBCAM_SENSOR_TEMPLATE := sensor.webcam.yaml.tmpl
+WEBCAM_SENSOR_VEHICLEALPR_TEMPLATE := sensor.vehicle_alpr.yaml.tmpl
+WEBCAM_SENSOR_VEHICLE_TEMPLATE := sensor.detected_vehicle.yaml.tmpl
+WEBCAM_SHELL_COMMAND_TEMPLATE := shell_command.webcam.yaml.tmpl
 
 # WEBCAM yaml
 WEBCAM_YAML := \
+	$(WEBCAM_AUTOMATION_ALPRS) \
+	$(WEBCAM_AUTOMATION_ANIMALS) \
+	$(WEBCAM_AUTOMATION_ENTITYS) \
+	$(WEBCAM_AUTOMATION_FACES) \
+	$(WEBCAM_AUTOMATION_PERSONFACES) \
+	$(WEBCAM_AUTOMATION_PERSONS) \
+	$(WEBCAM_AUTOMATION_POSES) \
 	$(WEBCAM_AUTOMATIONS) \
+	$(WEBCAM_AUTOMATION_VEHICLEALPRS) \
+	$(WEBCAM_AUTOMATION_VEHICLES) \
 	$(WEBCAM_BINARY_SENSORS) \
 	$(WEBCAM_CAMERAS) \
 	$(WEBCAM_COUNTERS) \
-	$(WEBCAM_SENSORS) \
-	$(WEBCAM_INPUT_SELECTS) \
+	$(WEBCAM_IMAGE_PROCESSINGS) \
 	$(WEBCAM_INPUT_BOOLEANS) \
-	$(WEBCAM_SHELL_COMMANDS) \
-	$(WEBCAM_IMAGE_PROCESSINGS)
+	$(WEBCAM_INPUT_SELECTS) \
+	$(WEBCAM_SENSOR_ALPRS) \
+	$(WEBCAM_SENSOR_ANIMALS) \
+	$(WEBCAM_SENSOR_ENTITYS) \
+	$(WEBCAM_SENSOR_FACES) \
+	$(WEBCAM_SENSOR_PERSONFACES) \
+	$(WEBCAM_SENSOR_PERSONS) \
+	$(WEBCAM_SENSOR_POSES) \
+	$(WEBCAM_SENSORS) \
+	$(WEBCAM_SENSOR_VEHICLEALPRS) \
+	$(WEBCAM_SENSOR_VEHICLES) \
+	$(WEBCAM_SHELL_COMMANDS)
 
 #	$(WEBCAM_GROUPS) \
 #	$(WEBCAM_GRAPHS) \
@@ -93,7 +150,6 @@ HIGHLOW_YAML := ${HIGHLOW_BINARY_SENSORS} # ${HIGHLOW_AUTOMATIONS}
 # TEMPLATES
 
 MOTION_YAML := \
-	input_text/config.yaml \
 	automation/storage.yaml \
 	automation/mqtt_attributes.yaml \
 	automation/internet_publish.yaml \
@@ -108,6 +164,7 @@ MOTION_YAML := \
 	sensor/device_start.yaml \
 	sensor/lost.yaml \
 	sensor/found.yaml \
+	sensor/router.yaml \
 	camera/event_image.yaml \
 	camera/event_end.yaml \
 	camera/event_animated.yaml \
@@ -155,6 +212,7 @@ sensor/%.yaml : sensor.%.yaml.tmpl
 	  MOTION_GROUP="$(MOTION_GROUP)" \
 	  MOTION_DEVICE="$(MOTION_DEVICE)" \
 	  MOTION_CLIENT="${MOTION_CLIENT}" \
+	  MOTION_ROUTER_NAME="${MOTION_ROUTER_NAME}" \
 	  && cat $< | envsubst > $@
 
 binary_sensor/%.yaml : binary_sensor.%.yaml.tmpl
@@ -260,6 +318,97 @@ $(WEBCAM_GROUPS): $(WEBCAM_GROUP_TEMPLATE) makefile ${WEBCAMS_JSON}
 	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
 	  cat $(WEBCAM_GROUP_TEMPLATE) | envsubst > $@
 
+
+$(WEBCAM_AUTOMATION_ENTITYS): $(WEBCAM_AUTOMATION_ENTITY_TEMPLATE) makefile ${WEBCAMS_JSON}
+	@export TARGET="$@"; \
+	  export MOTION_CAMERA=$${TARGET%%.*}; \
+	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
+	  export MOTION_GROUP="$(MOTION_GROUP)"; \
+	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
+	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
+	  cat $(WEBCAM_AUTOMATION_ENTITY_TEMPLATE) | envsubst > $@
+
+$(WEBCAM_AUTOMATION_PERSONS): $(WEBCAM_AUTOMATION_PERSON_TEMPLATE) makefile ${WEBCAMS_JSON}
+	@export TARGET="$@"; \
+	  export MOTION_CAMERA=$${TARGET%%.*}; \
+	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
+	  export MOTION_GROUP="$(MOTION_GROUP)"; \
+	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
+	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
+	  cat $(WEBCAM_AUTOMATION_PERSON_TEMPLATE) | envsubst > $@
+
+$(WEBCAM_AUTOMATION_VEHICLES): $(WEBCAM_AUTOMATION_VEHICLE_TEMPLATE) makefile ${WEBCAMS_JSON}
+	@export TARGET="$@"; \
+	  export MOTION_CAMERA=$${TARGET%%.*}; \
+	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
+	  export MOTION_GROUP="$(MOTION_GROUP)"; \
+	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
+	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
+	  cat $(WEBCAM_AUTOMATION_VEHICLE_TEMPLATE) | envsubst > $@
+
+$(WEBCAM_AUTOMATION_ANIMALS): $(WEBCAM_AUTOMATION_ANIMAL_TEMPLATE) makefile ${WEBCAMS_JSON}
+	@export TARGET="$@"; \
+	  export MOTION_CAMERA=$${TARGET%%.*}; \
+	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
+	  export MOTION_GROUP="$(MOTION_GROUP)"; \
+	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
+	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
+	  cat $(WEBCAM_AUTOMATION_ANIMAL_TEMPLATE) | envsubst > $@
+
+$(WEBCAM_AUTOMATION_PERSONFACES): $(WEBCAM_AUTOMATION_PERSONFACE_TEMPLATE) makefile ${WEBCAMS_JSON}
+	@export TARGET="$@"; \
+	  export MOTION_CAMERA=$${TARGET%%.*}; \
+	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
+	  export MOTION_GROUP="$(MOTION_GROUP)"; \
+	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
+	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
+	  cat $(WEBCAM_AUTOMATION_PERSONFACE_TEMPLATE) | envsubst > $@
+
+$(WEBCAM_AUTOMATION_VEHICLEALPRS): $(WEBCAM_AUTOMATION_VEHICLEALPR_TEMPLATE) makefile ${WEBCAMS_JSON}
+	@export TARGET="$@"; \
+	  export MOTION_CAMERA=$${TARGET%%.*}; \
+	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
+	  export MOTION_GROUP="$(MOTION_GROUP)"; \
+	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
+	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
+	  cat $(WEBCAM_AUTOMATION_VEHICLEALPR_TEMPLATE) | envsubst > $@
+
+$(WEBCAM_AUTOMATION_FACES): $(WEBCAM_AUTOMATION_FACE_TEMPLATE) makefile ${WEBCAMS_JSON}
+	@export TARGET="$@"; \
+	  export MOTION_CAMERA=$${TARGET%%.*}; \
+	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
+	  export MOTION_GROUP="$(MOTION_GROUP)"; \
+	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
+	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
+	  cat $(WEBCAM_AUTOMATION_FACE_TEMPLATE) | envsubst > $@
+
+$(WEBCAM_AUTOMATION_ALPRS): $(WEBCAM_AUTOMATION_ALPR_TEMPLATE) makefile ${WEBCAMS_JSON}
+	@export TARGET="$@"; \
+	  export MOTION_CAMERA=$${TARGET%%.*}; \
+	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
+	  export MOTION_GROUP="$(MOTION_GROUP)"; \
+	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
+	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
+	  cat $(WEBCAM_AUTOMATION_ALPR_TEMPLATE) | envsubst > $@
+
+$(WEBCAM_AUTOMATION_POSES): $(WEBCAM_AUTOMATION_POSE_TEMPLATE) makefile ${WEBCAMS_JSON}
+	@export TARGET="$@"; \
+	  export MOTION_CAMERA=$${TARGET%%.*}; \
+	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
+	  export MOTION_GROUP="$(MOTION_GROUP)"; \
+	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
+	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
+	  cat $(WEBCAM_AUTOMATION_POSE_TEMPLATE) | envsubst > $@
+
 $(WEBCAM_SENSORS): $(WEBCAM_SENSOR_TEMPLATE) makefile ${WEBCAMS_JSON}
 	@export TARGET="$@"; \
 	  export MOTION_CAMERA=$${TARGET%%.*}; \
@@ -269,6 +418,95 @@ $(WEBCAM_SENSORS): $(WEBCAM_SENSOR_TEMPLATE) makefile ${WEBCAMS_JSON}
 	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
 	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
 	  cat $(WEBCAM_SENSOR_TEMPLATE) | envsubst > $@
+
+$(WEBCAM_SENSOR_ENTITYS): $(WEBCAM_SENSOR_ENTITY_TEMPLATE) makefile ${WEBCAMS_JSON}
+	@export TARGET="$@"; \
+	  export MOTION_CAMERA=$${TARGET%%.*}; \
+	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
+	  export MOTION_GROUP="$(MOTION_GROUP)"; \
+	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
+	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
+	  cat $(WEBCAM_SENSOR_ENTITY_TEMPLATE) | envsubst > $@
+
+$(WEBCAM_SENSOR_PERSONS): $(WEBCAM_SENSOR_PERSON_TEMPLATE) makefile ${WEBCAMS_JSON}
+	@export TARGET="$@"; \
+	  export MOTION_CAMERA=$${TARGET%%.*}; \
+	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
+	  export MOTION_GROUP="$(MOTION_GROUP)"; \
+	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
+	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
+	  cat $(WEBCAM_SENSOR_PERSON_TEMPLATE) | envsubst > $@
+
+$(WEBCAM_SENSOR_VEHICLES): $(WEBCAM_SENSOR_VEHICLE_TEMPLATE) makefile ${WEBCAMS_JSON}
+	@export TARGET="$@"; \
+	  export MOTION_CAMERA=$${TARGET%%.*}; \
+	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
+	  export MOTION_GROUP="$(MOTION_GROUP)"; \
+	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
+	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
+	  cat $(WEBCAM_SENSOR_VEHICLE_TEMPLATE) | envsubst > $@
+
+$(WEBCAM_SENSOR_ANIMALS): $(WEBCAM_SENSOR_ANIMAL_TEMPLATE) makefile ${WEBCAMS_JSON}
+	@export TARGET="$@"; \
+	  export MOTION_CAMERA=$${TARGET%%.*}; \
+	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
+	  export MOTION_GROUP="$(MOTION_GROUP)"; \
+	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
+	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
+	  cat $(WEBCAM_SENSOR_ANIMAL_TEMPLATE) | envsubst > $@
+$(WEBCAM_SENSOR_PERSONFACES): $(WEBCAM_SENSOR_PERSONFACE_TEMPLATE) makefile ${WEBCAMS_JSON}
+	@export TARGET="$@"; \
+	  export MOTION_CAMERA=$${TARGET%%.*}; \
+	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
+	  export MOTION_GROUP="$(MOTION_GROUP)"; \
+	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
+	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
+	  cat $(WEBCAM_SENSOR_PERSONFACE_TEMPLATE) | envsubst > $@
+
+$(WEBCAM_SENSOR_VEHICLEALPRS): $(WEBCAM_SENSOR_VEHICLEALPR_TEMPLATE) makefile ${WEBCAMS_JSON}
+	@export TARGET="$@"; \
+	  export MOTION_CAMERA=$${TARGET%%.*}; \
+	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
+	  export MOTION_GROUP="$(MOTION_GROUP)"; \
+	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
+	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
+	  cat $(WEBCAM_SENSOR_VEHICLEALPR_TEMPLATE) | envsubst > $@
+
+$(WEBCAM_SENSOR_FACES): $(WEBCAM_SENSOR_FACE_TEMPLATE) makefile ${WEBCAMS_JSON}
+	@export TARGET="$@"; \
+	  export MOTION_CAMERA=$${TARGET%%.*}; \
+	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
+	  export MOTION_GROUP="$(MOTION_GROUP)"; \
+	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
+	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
+	  cat $(WEBCAM_SENSOR_FACE_TEMPLATE) | envsubst > $@
+
+$(WEBCAM_SENSOR_ALPRS): $(WEBCAM_SENSOR_ALPR_TEMPLATE) makefile ${WEBCAMS_JSON}
+	@export TARGET="$@"; \
+	  export MOTION_CAMERA=$${TARGET%%.*}; \
+	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
+	  export MOTION_GROUP="$(MOTION_GROUP)"; \
+	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
+	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
+	  cat $(WEBCAM_SENSOR_ALPR_TEMPLATE) | envsubst > $@
+
+$(WEBCAM_SENSOR_POSES): $(WEBCAM_SENSOR_POSE_TEMPLATE) makefile ${WEBCAMS_JSON}
+	@export TARGET="$@"; \
+	  export MOTION_CAMERA=$${TARGET%%.*}; \
+	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
+	  export MOTION_GROUP="$(MOTION_GROUP)"; \
+	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
+	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
+	  cat $(WEBCAM_SENSOR_POSE_TEMPLATE) | envsubst > $@
 
 $(WEBCAM_INPUT_BOOLEANS): $(WEBCAM_INPUT_BOOLEAN_TEMPLATE) makefile ${WEBCAMS_JSON}
 	@export TARGET="$@"; \

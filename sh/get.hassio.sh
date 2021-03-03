@@ -44,6 +44,8 @@ machine()
 
 function motionai::get()
 {
+  local pull=${1:-pull}
+
   echo 'Downloading yolo weights'; \
     bash ${0%/*}/get.weights.sh \
     || \
@@ -58,12 +60,51 @@ function motionai::get()
   chown -R ${SUDO_USER:-${USER}} homeassistant/
 
   for m in yolo face alpr; do \
-    echo "Pulling container for AI: ${m}"; \
-    bash ${0%/*}/${m}4motion.sh pull \
+    echo "Executing ${pull} on container for AI: ${m}"; \
+    bash ${0%/*}/${m}4motion.sh ${pull} \
     || \
-    echo "Unable to pull container image for AI: ${m}; use ${0%/*}/${m}4motion.sh" &> /dev/stderr
+    echo "Unable to ${pull} container for AI: ${m}; use ${0%/*}/${m}4motion.sh" &> /dev/stderr
   done
 }
+
+function docker_update()
+{
+  local CONFIG=${1}
+  local restart='false'
+  local nvcc='/usr/local/cuda/bin/nvcc'
+
+  # LOGGING
+  if [ ! -s "${CONFIG}" ]; then
+    echo '{"log-driver":"journald","storage-driver":"overlay2"}' > ${CONFIG}
+    restart='true'
+  elif [ $(jq -r '."log-driver"' ${CONFIG}) != 'journald' ] || [ $(jq -r '."storage-driver"' ${CONFIG}) != 'overlay2' ]; then
+    jq '."log-driver"="journald"|."storage-driver"="overlay2"' ${CONFIG} > ${CONFIG}.$$
+    mv -f ${CONFIG}.$$ ${CONFIG}
+    restart='true'
+  fi
+
+  # CUDA
+  if [ -e ${nvcc} ]; then 
+    local runtime='/usr/bin/nvidia-container-runtime'
+
+    if [ -e "${runtime}" ]; then
+      if [ $(jq -r '."default-runtime"?' ${CONFIG}) != 'nvidia' ] || [ $(jq -r '.experimental?' ${CONFIG}) != 'true' ]; then
+        jq '."default-runtime"="nvidia"|.runtimes+={"nvidia":{"path":"'${runtime}'","runtimeArgs":[]}}|.experimental=true' ${CONFIG} > ${CONFIG}.$$
+        mv -f ${CONFIG}.$$ ${CONFIG}
+        restart='true'
+      fi
+    else
+      echo "Did not find runtime: ${runtime}" &> /dev/stderr
+    fi
+  else
+    echo "Did not find nVidia CUDA: ${nvcc}" &> /dev/stderr
+  fi
+  if [ "${restart:-false}" = 'true' ]; then
+    echo "Restarting Docker" &> /dev/stderr
+    systemctl restart docker
+  fi
+}
+
 
 ###
 ### MAIN
@@ -101,29 +142,7 @@ if [ -z "$(command -v docker)" ]; then
     || echo 'Failed to install Docker' &> /dev/stderr
 fi
 
-CONFIG="/etc/docker/daemon.json"
-if [ -s ${CONFIG} ]; then
-  jq '."log-driver"="journald"|."storage-driver"="overlay2"' ${CONFIG} > ${CONFIG}.$$ \
-	  && mv -f ${CONFIG}.$$ ${CONFIG} \
-	  || echo "Failed to update ${CONFIG}" &> /dev/stderr
-else
-  echo '{"log-driver":"journald","storage-driver":"overlay2"}' > ${CONFIG}
-fi
-
-# update runtime if CUDA
-if [ -e /usr/local/cuda/bin/nvcc ]; then
-  jq '."default-runtime"="nvidia"' ${CONFIG} > ${CONFIG}.$$ \
-	  && mv -v ${CONFIG}.$$ ${CONFIG} \
-	  || echo "Failed to update ${CONFIG}" &> /dev/stderr
-  jq '.experimental=true' ${CONFIG} > ${CONFIG}.$$ \
-	  && mv -v ${CONFIG}.$$ ${CONFIG} \
-	  || echo "Failed to update ${CONFIG}" &> /dev/stderr
-  jq '.runtimes={"nvidia":{"path":"/usr/bin/nvidia-container-runtime","runtimeArgs":[]}}' ${CONFIG} > ${CONFIG}.$$ \
-	  && mv -v ${CONFIG}.$$ ${CONFIG} \
-	  || echo "Failed to update ${CONFIG}" &> /dev/stderr
-fi
-
-systemctl restart docker
+docker_update "/etc/docker/daemon.json"
 
 addgroup ${SUDO_USER:-${USER}} docker
 
@@ -191,7 +210,7 @@ echo "Installing using ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine)" \
 if [ "${0##*/}" == 'get.motion-ai.sh' ]; then
 
   # get container images and weights for AI(s)
-  motionai::get &
+  motionai::get 'run' &
 
   # wait for HA
   echo -n "Waiting on Home Assistant "

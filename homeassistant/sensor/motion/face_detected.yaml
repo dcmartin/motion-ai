@@ -7,61 +7,35 @@
 - platform: template
   sensors:
     motion_face_detected_status:
-      friendly_name: FACE detected
-      icon_template: 'mdi:face-outline'
+      friendly_name: '😐 (face)'
+      icon_template: 'mdi:emoticon-outline'
       value_template: >-
         {% if is_state('binary_sensor.motion_face_detected','on') %}
-          {% set e = state_attr('sensor.motion_event_face','event') %}
-          {% if e is mapping %}
-            {% set n = utcnow().timestamp()|int %}
-            {% set end = e.end|int %}
-            {% set event = e.event %}
-            {% set device = e.device %}
-            {% set camera = e.camera %}
-            {% set elapsed = e.elapsed|int %}
-            {% set what = state_attr('sensor.motion_event_face','detected') %}
-            {% if what is none or what|lower == 'unknown' or what|length == 0 %}{% set what = 'nothing' %}{% endif %}
-            {% set count = state_attr('sensor.motion_event_face','count')|int %}
-            {% set when = end|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
-            {% set delay = n - end %}
-            FACE DETECTED: {{ count }} {{ what }};
-            from {{ device -}}/{{- camera -}}/{{- event -}};
-            at {{ when }};
-            delay: {{ delay }};
-            duration: {{ elapsed }};
-            counter: {{ states('counter.motion_face_detected_counter') -}}/{{- states('sensor.motion_face_detected_counter') -}}
-          {% else %}Pending{% endif %}
-        {% elif is_state('binary_sensor.motion_face','on') %}
-          {% set e = state_attr('sensor.motion_event_face','event') %}
-          {% if e is mapping %}
-            {% set n = utcnow().timestamp()|int %}
-            {% set end = e.end|int %}
-            {% set event = e.event %}
-            {% set device = e.device %}
-            {% set camera = e.camera %}
-            {% set elapsed = e.elapsed|int %}
-            {% set what = state_attr('sensor.motion_event_face','detected') %}
-            {% set count = state_attr('sensor.motion_event_face','count') %}
-            {% set when = end|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
-            {% set delay = n - end %}
-            {%- if count|int > 0 -%}
-              FACE TOO LOW: {{ count }} {{ what }};
-              minimum: {{ states('input_number.motion_face_detected_percent') }};
-            {%- else %}
-              FACE NONE:
-            {%- endif %}
-            {{ device -}}/{{- camera -}}/{{- event -}};
-            at {{ when }};
-            delay: {{ delay }};
-            duration: {{ elapsed }};
-          {% else %}NONE{% endif %}
+          {% set end = states('sensor.motion_face_detected_date') %}
+          {% set event = states('sensor.motion_face_detected_event') %}
+          {% set device = states('sensor.motion_face_detected_device') %}
+          {% set camera = states('sensor.motion_face_detected_camera') %}
+          {% set elapsed = states('sensor.motion_face_detected_elapsed') %}
+          {% set confidence = states('sensor.motion_face_detected_confidence')|int %}
+          {% set n = utcnow().timestamp()|int %}
+          {% if n|int > 0 and end|int > 0 %}
+            {% set when = end|int|timestamp_custom("%I:%M:%S %p on %m/%d") -%}
+            {% set delay = n - end|int %}
+          {% else %}
+            {% set when = 'null' %}
+            {% set delay = 'null' %}
+          {% endif %}
+          {{ device -}}/{{- camera -}}/{{- event }} at {{ when -}};
+          β: {{ confidence }} ;
+          Δ: {{ delay -}}s;
+          δ: {{ elapsed -}}s
         {% else %}
-          {% set s = states('sensor.motion_face_detected_status') %}
-          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != 'null' %}
+          {% set s = states.sensor.motion_face_detected_status.state %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
             {{ s }}
           {% else %}Pending{% endif %}
         {% endif %}
-        
+
 - platform: history_stats
   name: motion_face_detected_ratio_today
   entity_id: binary_sensor.motion_face_detected
@@ -69,15 +43,6 @@
   type: ratio
   start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
   end: '{{ now() }}'
-
-- platform: template
-  sensors:
-    motion_face_detected_threshold:
-      unit_of_measurement: '%' 
-      friendly_name: FACE threshold
-      icon_template: 'mdi:percent'
-      value_template: >-
-        {{ states('input_number.motion_face_detected_percent')|int }}
 
 - platform: template
   sensors:
@@ -96,7 +61,7 @@
 - platform: template
   sensors:
     motion_face_detected_today:
-      friendly_name: FACE today detected entity
+      friendly_name: 😐 today detected entity
       value_template: >-
         {% set s = states('sensor.motion_face_detected_count_today') %}
         {% if s|lower != 'unknown' and s|int > 0  %}
@@ -107,7 +72,7 @@
 - platform: template
   sensors:
     motion_face_detected_count_loop:
-      unit_of_measurement: faces
+      unit_of_measurement: '😐'
       value_template: >
         {% set detected = state_attr('sensor.motion_event_face','detected') %}
         {% if detected|lower != 'none' and detected|lower != 'unavailable' and detected|lower != 'unknown' and detected != 'null' %}
@@ -120,13 +85,19 @@
 - platform: template
   sensors:
     motion_face_detected_count:
-      friendly_name: FACE detected count
-      unit_of_measurement: faces
+      friendly_name: 😐 count
+      unit_of_measurement: '😐'
+      icon_template: 'mdi:emoticon-outline'
       value_template: >
-        {% if is_state('binary_sensor.motion_face_detected','on') or is_state('binary_sensor.motion_face_detected_expired','off') %} 
+        {% if is_state('binary_sensor.motion_face_detected','on') %}
           {% set s = states('sensor.motion_face_detected_count_loop') %}
-          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'unknown' and s != 'null' %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
             {{ s|int }}
+          {% else %}null{% endif %}
+        {% elif is_state('binary_sensor.motion_face_detected_expired','off') %}
+          {% set s = states('sensor.motion_face_detected_count') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {{ s }}
           {% else %}null{% endif %}
         {% else %}null{% endif %}
 
@@ -134,7 +105,7 @@
 - platform: template
   sensors:
     motion_face_detected_counter:
-      friendly_name: FACE detected counter
+      friendly_name: 😐 counter
       unit_of_measurement: count
       value_template: >
         {% set value = states('counter.motion_face_detected_counter') %}
@@ -145,7 +116,7 @@
 - platform: template
   sensors:
     motion_face_detected_elapsed:
-      friendly_name: FACE detected elapsed
+      friendly_name: 😐 elapsed
       value_template: >-
         {% if is_state('binary_sensor.motion_face_detected','on') %}
           {% set e = state_attr('sensor.motion_event_face','event') %}
@@ -155,40 +126,40 @@
               {{ s|int }}
             {%- else -%}null{%- endif -%}
           {% else %}null{% endif %}
-        {% else %}
+        {% elif is_state('binary_sensor.motion_face_detected_expired','off') %}
           {% set s = states('sensor.motion_face_detected_elapsed') %}
-          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
             {{ s }}
           {% else %}null{% endif %}
-        {% endif %}
+        {% else %}null{% endif %}
 
 ## event
 - platform: template
   sensors:
     # device
     motion_face_detected_event:
-      friendly_name: FACE detected event
+      friendly_name: 😐 event
       value_template: >-
         {% if is_state('binary_sensor.motion_face_detected','on') %}
           {% set e = state_attr('sensor.motion_event_face','event') %}
           {% if e is mapping %}
             {% set s = e.event %}
             {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
-              {{ s }}
+              {{ s|int }}
             {%- else -%}null{%- endif -%}
-          {% else %}null{% endif %}
-        {% else %}
+          {%- else -%}null{%- endif -%}
+        {% elif is_state('binary_sensor.motion_detected_expired','off') %}
           {% set s = states('sensor.motion_face_detected_event') %}
           {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
             {{ s }}
           {% else %}null{% endif %}
-        {% endif %}
+        {% else %}null{% endif %}
 
 ## device
 - platform: template
   sensors:
     motion_face_detected_device:
-      friendly_name: FACE detected device
+      friendly_name: 😐 device
       icon_template: 'mdi:raspberry-pi'
       value_template: >-
         {% if is_state('binary_sensor.motion_face_detected','on') %}
@@ -201,7 +172,7 @@
           {% else %}null{% endif %}
         {% else %}
           {% set s = states('sensor.motion_face_detected_device') %}
-          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
             {{ s }}
           {% else %}null{% endif %}
         {% endif %}
@@ -210,7 +181,7 @@
 - platform: template
   sensors:
     motion_face_detected_camera:
-      friendly_name: FACE detected camera
+      friendly_name: 😐 camera
       icon_template: 'mdi:camera'
       value_template: >-
         {% if is_state('binary_sensor.motion_face_detected','on') %}
@@ -223,7 +194,7 @@
           {% else %}null{% endif %}
         {% else %}
           {% set s = states('sensor.motion_face_detected_camera') %}
-          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
             {{ s }}
           {% else %}null{% endif %}
         {% endif %}
@@ -244,28 +215,48 @@
           {%- else -%}null{%- endif -%}
         {% else %}
           {% set s = states('sensor.motion_face_detected_date') %}
-          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
             {{ s }}
           {% else %}null{% endif %}
         {% endif %}
 
-## when - human readable
+- platform: template
+  sensors:
+    motion_face_detected_where:
+      friendly_name: 😐 at
+      icon_template: 'mdi:calendar-clock'
+      value_template: >-
+        {% set s = states('sensor.motion_face_detected_camera')|int %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+          {{ s }}
+        {% else %}
+          {% set s = states('sensor.motion_face_detected_where') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {{ s }}
+          {% else %}Pending{% endif %}
+        {% endif %}
+
 - platform: template
   sensors:
     motion_face_detected_when:
-      friendly_name: FACE detected at
+      friendly_name: 😐 at
       icon_template: 'mdi:calendar-clock'
       value_template: >-
         {% set s = states('sensor.motion_face_detected_date')|int %}
         {% if s > 0 %}
           {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}
-        {% else %}Pending{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_face_detected_when') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {{ s }}
+          {% else %}Pending{% endif %}
+        {% endif %}
 
 ## ago
 - platform: template
   sensors:
     motion_face_detected_ago:
-      friendly_name: FACE detected ago
+      friendly_name: 😐 ago
       icon_template: 'mdi:camera-timer'
       unit_of_measurement: 's'
       value_template: >
@@ -280,9 +271,9 @@
 - platform: template
   sensors:
     motion_face_detected_list:
-      friendly_name: FACE detected list
+      friendly_name: 😐 list
       value_template: >-
-        {% if is_state('binary_sensor.motion_face_detected','on') %} 
+        {% if is_state('binary_sensor.motion_face_detected','on') %}
           {% set detected = state_attr('sensor.motion_event_face','detected') %}
           {% if detected|lower != 'none' and detected|lower != 'unknown' and detected|length > 0 %}
             {{ detected|list }}
@@ -294,7 +285,7 @@
   sensors:
     motion_face_detected_percent:
       icon_template: 'mdi:percent'
-      friendly_name: FACE detected percent
+      friendly_name: 😐 percent
       unit_of_measurement: '%'
       value_template: >-
         {% if states.counter.motion_face_detected_counter|lower != 'none'
@@ -313,45 +304,45 @@
 - platform: template
   sensors:
     motion_face_detected_ago_mean:
-      friendly_name: FACE avg ago found
+      friendly_name: 😐 avg ago found
       unit_of_measurement: 's'
       value_template: >-
-        {% if states('sensor.motion_face_detected_ago_statistics') != 'unknown' %}
+        {% if states('sensor.motion_face_detected_ago_statistics')|lower != 'unknown' %}
           {{ states.sensor.motion_face_detected_ago_statistics.state|float }}
         {%- else -%}null{%- endif -%}
-    motion_face_detected_ago_min_value:
-      friendly_name: FACE min ago found
+    motion_face_detected_ago_min:
+      friendly_name: 😐 min ago found
       unit_of_measurement: 's'
       value_template: >-
-        {% if states('sensor.motion_face_detected_ago_statistics') != 'unknown' %}
+        {% if states('sensor.motion_face_detected_ago_statistics')|lower != 'unknown' %}
           {{ states.sensor.motion_face_detected_ago_statistics.attributes.min_value|int }}
         {%- else -%}null{%- endif -%}
-    motion_face_detected_ago_max_value:
-      friendly_name: FACE max ago found
+    motion_face_detected_ago_max:
+      friendly_name: 😐 max ago found
       unit_of_measurement: 's'
       value_template: >-
-        {% if states('sensor.motion_face_detected_ago_statistics') != 'unknown' %}
+        {% if states('sensor.motion_face_detected_ago_statistics')|lower != 'unknown' %}
           {{ states.sensor.motion_face_detected_ago_statistics.attributes.max_value|int }}
         {%- else -%}null{%- endif -%}
     motion_face_detected_ago_stdev:
-      friendly_name: FACE StDev ago found
+      friendly_name: 😐 StDev ago found
       unit_of_measurement: 's'
       value_template: >
-        {% if states('sensor.motion_face_detected_ago_statistics') != 'unknown' %}
+        {% if states('sensor.motion_face_detected_ago_statistics')|lower != 'unknown' %}
           {{ states.sensor.motion_face_detected_ago_statistics.attributes.standard_deviation|float }}
         {%- else -%}null{%- endif -%}
     motion_face_detected_ago_change:
-      friendly_name: FACE Change ago found
+      friendly_name: 😐 Change ago found
       unit_of_measurement: 's'
       value_template: >
-        {% if states('sensor.motion_face_detected_ago_statistics') != 'unknown' %}
+        {% if states('sensor.motion_face_detected_ago_statistics')|lower != 'unknown' %}
           {{ states.sensor.motion_face_detected_ago_statistics.attributes.change|float }}
         {%- else -%}null{%- endif -%}
     motion_face_detected_ago_stdev_change:
-      friendly_name: FACE StDev change ago found
+      friendly_name: 😐 StDev change ago found
       unit_of_measurement: 's'
       value_template: >
-        {% if states.sensor.motion_face_detected_ago_stdev_statistics|lower != 'none' %}
+        {% if states.sensor.motion_face_detected_ago_stdev_statistics|lower != 'unknown' %}
           {{ states.sensor.motion_face_detected_ago_stdev_statistics.attributes.change|float }}
         {%- else -%}null{%- endif -%}
 
@@ -374,38 +365,38 @@
 - platform: template
   sensors:
     motion_face_detected_counter_mean:
-      friendly_name: FACE Avg counter found
+      friendly_name: 😐 Avg counter found
       unit_of_measurement: count
       value_template: >-
-        {% if states('sensor.motion_face_detected_counter_statistics') != 'unknown' %}
+        {% if states('sensor.motion_face_detected_counter_statistics')|lower != 'unknown' %}
           {{ states.sensor.motion_face_detected_counter_statistics.state|float }}
         {%- else -%}null{%- endif -%}
-    motion_face_detected_counter_min_value:
-      friendly_name: FACE Min counter found
+    motion_face_detected_counter_min:
+      friendly_name: 😐 Min counter found
       unit_of_measurement: count
       value_template: >-
-        {% if states('sensor.motion_face_detected_counter_statistics') != 'unknown' %}
+        {% if states('sensor.motion_face_detected_counter_statistics')|lower != 'unknown' %}
           {{ states.sensor.motion_face_detected_counter_statistics.attributes.min_value|int }}
         {%- else -%}null{%- endif -%}
-    motion_face_detected_counter_max_value:
-      friendly_name: FACE Max counter found
+    motion_face_detected_counter_max:
+      friendly_name: 😐 Max counter found
       unit_of_measurement: count
       value_template: >-
-        {% if states('sensor.motion_face_detected_counter_statistics') != 'unknown' %}
+        {% if states('sensor.motion_face_detected_counter_statistics')|lower != 'unknown' %}
           {{ states.sensor.motion_face_detected_counter_statistics.attributes.max_value|int }}
         {%- else -%}null{%- endif -%}
     motion_face_detected_counter_stdev:
-      friendly_name: FACE StDev counter found
+      friendly_name: 😐 StDev counter found
       unit_of_measurement: count
       value_template: >
-        {% if states('sensor.motion_face_detected_counter_statistics') != 'unknown' %}
+        {% if states('sensor.motion_face_detected_counter_statistics')|lower != 'unknown' %}
           {{ states.sensor.motion_face_detected_counter_statistics.attributes.standard_deviation|float }}
         {%- else -%}null{%- endif -%}
     motion_face_detected_counter_change:
-      friendly_name: FACE Change counter found
+      friendly_name: 😐 Change counter found
       unit_of_measurement: count
       value_template: >
-        {% if states('sensor.motion_face_detected_counter_statistics') != 'unknown' %}
+        {% if states('sensor.motion_face_detected_counter_statistics')|lower != 'unknown' %}
           {{ states.sensor.motion_face_detected_counter_statistics.attributes.change|float }}
         {%- else -%}null{%- endif -%}
 
@@ -428,38 +419,38 @@
 - platform: template
   sensors:
     motion_face_detected_percent_mean:
-      friendly_name: 'FACE detected % avg'
+      friendly_name: '😐 % avg'
       unit_of_measurement: '%'
       value_template: >-
-        {% if states('sensor.motion_face_detected_percent_statistics') != 'unknown' %}
+        {% if states('sensor.motion_face_detected_percent_statistics')|lower != 'unknown' %}
           {{ states.sensor.motion_face_detected_percent_statistics.state|float }}
         {%- else -%}null{%- endif -%}
-    motion_face_detected_percent_min_value:
-      friendly_name: 'FACE detected % min'
+    motion_face_detected_percent_min:
+      friendly_name: '😐 % min'
       unit_of_measurement: '%'
       value_template: >-
-        {% if states('sensor.motion_face_detected_percent_statistics') != 'unknown' %}
+        {% if states('sensor.motion_face_detected_percent_statistics')|lower != 'unknown' %}
           {{ states.sensor.motion_face_detected_percent_statistics.attributes.min_value|float }}
         {%- else -%}null{%- endif -%}
-    motion_face_detected_percent_max_value:
-      friendly_name: 'FACE detected % max'
+    motion_face_detected_percent_max:
+      friendly_name: '😐 % max'
       unit_of_measurement: '%'
       value_template: >-
-        {% if states('sensor.motion_face_detected_percent_statistics') != 'unknown' %}
+        {% if states('sensor.motion_face_detected_percent_statistics')|lower != 'unknown' %}
           {{ states.sensor.motion_face_detected_percent_statistics.attributes.max_value|float }}
         {%- else -%}null{%- endif -%}
     motion_face_detected_percent_stdev:
-      friendly_name: 'FACE detected % stdev'
+      friendly_name: '😐 % stdev'
       unit_of_measurement: '%'
       value_template: >
-        {% if states('sensor.motion_face_detected_percent_statistics') != 'unknown' %}
+        {% if states('sensor.motion_face_detected_percent_statistics')|lower != 'unknown' %}
           {{ states.sensor.motion_face_detected_percent_statistics.attributes.standard_deviation|float }}
         {%- else -%}null{%- endif -%}
     motion_face_detected_percent_change:
-      friendly_name: 'FACE detected % change'
+      friendly_name: '😐 % change'
       unit_of_measurement: '%'
       value_template: >
-        {% if states('sensor.motion_face_detected_percent_statistics') != 'unknown' %}
+        {% if states('sensor.motion_face_detected_percent_statistics')|lower != 'unknown' %}
           {{ states.sensor.motion_face_detected_percent_statistics.attributes.change|float }}
         {%- else -%}null{%- endif -%}
 
@@ -482,38 +473,38 @@
 - platform: template
   sensors:
     motion_face_detected_count_mean:
-      friendly_name: FACE detected count avg
-      unit_of_measurement: faces
+      friendly_name: 😐 count avg
+      unit_of_measurement: '😐'
       value_template: >-
-        {% if states('sensor.motion_face_detected_count_statistics') != 'unknown' %}
+        {% if states('sensor.motion_face_detected_count_statistics')|lower != 'unknown' %}
           {{ states.sensor.motion_face_detected_count_statistics.state|float }}
         {%- else -%}null{%- endif -%}
-    motion_face_detected_count_min_value:
-      friendly_name: FACE detected count min
-      unit_of_measurement: faces
+    motion_face_detected_count_min:
+      friendly_name: 😐 count min
+      unit_of_measurement: '😐'
       value_template: >-
-        {% if states('sensor.motion_face_detected_count_statistics') != 'unknown' %}
+        {% if states('sensor.motion_face_detected_count_statistics')|lower != 'unknown' %}
           {{ states.sensor.motion_face_detected_count_statistics.attributes.min_value|int }}
         {%- else -%}null{%- endif -%}
-    motion_face_detected_count_max_value:
-      friendly_name: FACE detected count max
-      unit_of_measurement: faces
+    motion_face_detected_count_max:
+      friendly_name: 😐 count max
+      unit_of_measurement: '😐'
       value_template: >-
-        {% if states('sensor.motion_face_detected_count_statistics') != 'unknown' %}
+        {% if states('sensor.motion_face_detected_count_statistics')|lower != 'unknown' %}
           {{ states.sensor.motion_face_detected_count_statistics.attributes.max_value|int }}
         {%- else -%}null{%- endif -%}
     motion_face_detected_count_stdev:
-      friendly_name: FACE detected count stdev
-      unit_of_measurement: faces
+      friendly_name: 😐 count stdev
+      unit_of_measurement: '😐'
       value_template: >
-        {% if states('sensor.motion_face_detected_count_statistics') != 'unknown' %}
+        {% if states('sensor.motion_face_detected_count_statistics')|lower != 'unknown' %}
           {{ states.sensor.motion_face_detected_count_statistics.attributes.standard_deviation|float }}
         {%- else -%}null{%- endif -%}
     motion_face_detected_count_change:
-      friendly_name: FACE detected count change
-      unit_of_measurement: faces
+      friendly_name: 😐 count change
+      unit_of_measurement: '😐'
       value_template: >
-        {% if states('sensor.motion_face_detected_count_statistics') != 'unknown' %}
+        {% if states('sensor.motion_face_detected_count_statistics')|lower != 'unknown' %}
           {{ states.sensor.motion_face_detected_count_statistics.attributes.change|float }}
         {%- else -%}null{%- endif -%}
 
@@ -536,7 +527,7 @@
 - platform: template
   sensors:
     motion_camera_face_detected_live:
-      friendly_name: FACE detected camera live
+      friendly_name: 😐 camera live
       value_template: >-
         {% set camera = states('sensor.motion_face_detected_camera') %}
         {% if camera|lower != 'none' and camera|lower != 'unavailable' and camera|lower != 'unknown' and camera != 'null' and camera|length > 0 %}
@@ -553,3 +544,228 @@
         {% else %}
           {{ states('sensor.motion_nosignal_animated') }}
         {% endif %}
+
+## threshold
+
+- platform: template
+  sensors:
+    motion_face_detected_threshold:
+      friendly_name: '😐 threshold (β)'
+      unit_of_measurement: 'β'
+      icon_template: 'mdi:beta'
+      value_template: >-
+        {% set s = states('input_boolean.motion_face_detected_tune') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'unavailable' %}
+          {% if is_state('input_boolean.motion_face_detected_tune','off') %}
+            {% set s = states('input_number.motion_face_detected_percent') %}
+          {% else %}
+            {% set s = states('sensor.motion_face_detected_threshold_tune') %}
+          {% endif %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'unavailable' %}
+            {{ s|int }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_face_detected_threshold_deviation:
+      friendly_name: '😐 β deviation'
+      unit_of_measurement: 'βσ'
+      icon_template: 'mdi:sigma-lower'
+      value_template: >-
+        {% set p = states('input_number.motion_face_detected_percent_deviation') %}
+        {% if p|lower != 'none' and p|lower != 'unknown' and p|lower != 'null' and p|lower != 'unavailable' %}
+          {{ p|float }}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_face_detected_threshold_tune:
+      friendly_name: '😐 auto-threshold'
+      unit_of_measurement: 'β'
+      icon_template: 'mdi:account'
+      value_template: >-
+        {% set x = states('sensor.motion_face_detected_confidence_max') %}
+        {% set m = states('sensor.motion_face_detected_confidence_mean') %}
+        {% set d = states('sensor.motion_face_detected_confidence_stdev') %}
+        {% set c = states('sensor.motion_face_detected_confidence_count') %}
+        {% set p = states('sensor.motion_face_detected_threshold_deviation') %}
+        {% set z = states('input_number.motion_face_detected_percent') %}
+        {% if x|lower != 'none' and x|lower != 'unknown' and x|lower != 'unavailable' and x|lower != 'null'
+            and m|lower != 'none' and m|lower != 'unknown' and m|lower != 'unavailable' and m|lower != 'null'
+            and c|lower != 'none' and c|lower != 'unknown' and c|lower != 'unavailable' and c|lower != 'null'
+            and d|lower != 'none' and d|lower != 'unknown' and d|lower != 'unavailable' and d|lower != 'null'
+            and p|lower != 'none' and p|lower != 'unknown' and p|lower != 'unavailable' and p|lower != 'null'
+            and z|lower != 'none' and z|lower != 'unknown' and z|lower != 'unavailable' and z|lower != 'null' 
+            and c|int > 5 %}
+          {% set n = m|float + 2 * d|float %}
+          {% if n > x|float %}{% set n = x|float %}{% endif %}
+          {% set n = n - p|float * d|float %}
+          {# set n = x|float - p|float * d|float #}
+          {% if n > z|float %}
+            {{ n|int }}
+          {% else %}
+            {{ z|int }}
+          {% endif %}
+        {% else %}{{ z|int }}{% endif %}
+
+## confidence
+
+- platform: template
+  sensors:
+    motion_face_detected_confidence:
+      friendly_name: '😐 confidence (β)'
+      icon_template: 'mdi:account'
+      unit_of_measurement: 'β'
+      value_template: >
+        {% if is_state('binary_sensor.motion_face','on') %}
+          {% set s = state_attr('sensor.motion_event_face','count') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int > 0 %}
+            {% set s = state_attr('sensor.motion_event_face','detected') %}
+            {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s is iterable and s|length > 0 %}
+              {% set p = s|max|int %}
+            {% endif %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {%- elif is_state('binary_sensor.motion_face_detected_expired','off') -%}
+          {% set s = states.sensor.motion_face_detected_confidence.state %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+    motion_face_detected_confidence_confirmed:
+      friendly_name: '😐✅ (β)'
+      icon_template: 'mdi:account'
+      unit_of_measurement: 'β'
+      value_template: >
+        {% if is_state('binary_sensor.motion_face_detected','on') %}
+          {% set s = states('sensor.motion_face_detected_confidence') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {% set p = s|int %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% else %}
+          {% set s = states.sensor.motion_face_detected_confidence_confirmed.state %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+- platform: statistics
+  name: motion_face_detected_confidence_confirmed_statistics
+  entity_id: sensor.motion_face_detected_confidence_confirmed
+  sampling_size: 1000
+  max_age:
+    hours: 72
+
+- platform: template
+  sensors:
+    motion_face_detected_confidence_confirmed_count:
+      friendly_name: '😐✅ β Σ'
+      unit_of_measurement: '😐'
+      icon_template: 'mdi:account'
+      value_template: >-
+        {% if states('sensor.motion_face_detected_confidence_confirmed_statistics')|lower != 'unknown' %}
+          {{ state_attr('sensor.motion_face_detected_confidence_confirmed_statistics','count')|int }}
+        {%- else -%}null{%- endif -%}
+    motion_face_detected_confidence_confirmed_mean:
+      friendly_name: '😐✅ β μ'
+      icon_template: 'mdi:account'
+      unit_of_measurement: 'β'
+      value_template: >-
+        {% if states('sensor.motion_face_detected_confidence_confirmed_statistics')|lower != 'unknown' %}
+          {{ states('sensor.motion_face_detected_confidence_confirmed_statistics')|float }}
+        {%- else -%}null{%- endif -%}
+    motion_face_detected_confidence_confirmed_min:
+      friendly_name: '😐✅ β min'
+      unit_of_measurement: 'β'
+      icon_template: 'mdi:account'
+      value_template: >-
+        {% if states('sensor.motion_face_detected_confidence_confirmed_statistics')|lower != 'unknown' %}
+          {{ state_attr('sensor.motion_face_detected_confidence_confirmed_statistics','min_value')|int }}
+        {%- else -%}null{%- endif -%}
+    motion_face_detected_confidence_confirmed_max:
+      friendly_name: '😐✅ β max'
+      unit_of_measurement: 'β'
+      icon_template: 'mdi:account'
+      value_template: >-
+        {% if states('sensor.motion_face_detected_confidence_confirmed_statistics')|lower != 'unknown' %}
+          {{ state_attr('sensor.motion_face_detected_confidence_confirmed_statistics','max_value')|int }}
+        {%- else -%}null{%- endif -%}
+    motion_face_detected_confidence_confirmed_stdev:
+      friendly_name: '😐✅ β σ'
+      unit_of_measurement: 'β'
+      icon_template: 'mdi:account'
+      value_template: >
+        {% if states('sensor.motion_face_detected_confidence_confirmed_statistics')|lower != 'unknown' %}
+          {{ state_attr('sensor.motion_face_detected_confidence_confirmed_statistics','standard_deviation')|float }}
+        {%- else -%}null{%- endif -%}
+
+- platform: statistics
+  name: motion_face_detected_confidence_statistics
+  entity_id: sensor.motion_face_detected_confidence
+  sampling_size: 1000
+  max_age:
+    hours: 72
+
+- platform: template
+  sensors:
+    motion_face_detected_confidence_count:
+      friendly_name: '😐 β Σ'
+      icon_template: 'mdi:counter'
+      unit_of_measurement: '😐'
+      value_template: >-
+        {% if states('sensor.motion_face_detected_confidence_statistics')|lower != 'unknown' %}
+          {{ state_attr('sensor.motion_face_detected_confidence_statistics','count')|int }}
+        {%- else -%}null{%- endif -%}
+    motion_face_detected_confidence_mean:
+      friendly_name: '😐 β μ'
+      icon_template: 'mdi:account'
+      unit_of_measurement: 'β'
+      value_template: >-
+        {% if states('sensor.motion_face_detected_confidence_statistics')|lower != 'unknown' %}
+          {{ states('sensor.motion_face_detected_confidence_statistics')|float }}
+        {%- else -%}null{%- endif -%}
+    motion_face_detected_confidence_min:
+      friendly_name: '😐 β min'
+      unit_of_measurement: 'β'
+      icon_template: 'mdi:account'
+      value_template: >-
+        {% if states('sensor.motion_face_detected_confidence_statistics')|lower != 'unknown' %}
+          {{ state_attr('sensor.motion_face_detected_confidence_statistics','min_value')|int }}
+        {%- else -%}null{%- endif -%}
+    motion_face_detected_confidence_max:
+      friendly_name: '😐 β max'
+      unit_of_measurement: 'β'
+      icon_template: 'mdi:account'
+      value_template: >-
+        {% if states('sensor.motion_face_detected_confidence_statistics')|lower != 'unknown' %}
+          {{ state_attr('sensor.motion_face_detected_confidence_statistics','max_value')|int }}
+        {%- else -%}null{%- endif -%}
+    motion_face_detected_confidence_stdev:
+      friendly_name: '😐 β σ'
+      unit_of_measurement: 'β'
+      icon_template: 'mdi:account'
+      value_template: >
+        {% if states('sensor.motion_face_detected_confidence_statistics')|lower != 'unknown' %}
+          {{ state_attr('sensor.motion_face_detected_confidence_statistics','standard_deviation')|float }}
+        {%- else -%}null{%- endif -%}
+    motion_face_detected_confidence_change:
+      friendly_name: '😐 β Δ'
+      unit_of_measurement: 'β'
+      icon_template: 'mdi:account'
+      value_template: >
+        {% if states('sensor.motion_face_detected_confidence_statistics')|lower != 'unknown' %}
+          {{ state_attr('sensor.motion_face_detected_confidence_statistics','change')|float }}
+        {%- else -%}null{%- endif -%}
+
+- platform: statistics
+  name: motion_face_detected_confidence_stdev_statistics
+  entity_id: sensor.motion_face_detected_confidence_stdev
+  sampling_size: 1000
+  max_age:
+    hours: 72

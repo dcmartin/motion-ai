@@ -1,0 +1,128 @@
+###
+# homeassistant/automation/motion/vehicle_alpr_notify.yaml
+###
+
+## notify
+
+- id: motion_vehicle_alpr_notify
+  alias: motion_vehicle_alpr_notify
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_vehicle_alpr
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.motion_vehicle_alpr','on') }}
+      - condition: template
+        value_template: >
+          {{ is_state('input_boolean.motion_vehicle_alpr_notify','on') }}
+      - condition: template
+        value_template: >
+          {{ states('sensor.motion_detected_vehicle_count')|int > 0 }}
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >-
+          Detected {{ states('sensor.motion_detected_vehicle_count') }} vehicle-alpr(s)
+          from {{ states('sensor.motion_vehicle_alpr_camera') }}
+        notification_id: >
+          {%- set c = states('sensor.motion_vehicle_alpr_camera') -%}
+          {%- set e = states('sensor.motion_' + c + '_vehicle_alpr_event') -%}
+          motion_vehicle_alpr-{{- c -}}-{{- e -}}
+        message: >-
+          {%- set c = states('sensor.motion_vehicle_alpr_camera') -%}
+          {%- set d = states('sensor.motion_vehicle_alpr_device') -%}
+          {%- set e = states('sensor.motion_' + c + '_vehicle_alpr_event') -%}
+          {%- set r = states('sensor.motion_vehicle_alpr_results') -%}
+          {%- if r|lower != 'none' and r|lower != 'unknown' and r|lower != 'unavailable' and r|lower != 'null' -%}
+            {%- set u = '&results=' + r|urlencode -%}
+            {%- set r = r|replace("'",'"')|from_json -%}
+          {%- else -%}
+            {%- set u = '' -%}
+            {%- set r = null -%}
+          {%- endif -%}
+          {{- '[![]('
+             + '/local/images/motion/'
+             + c
+             + '/vehicle_alpr'
+             + '.jpg?e='
+             + e
+             + ')]('
+             + '/local/images/motion/'
+             + c
+             + '/vehicle_alpr_animated'
+             + '.gif?e='
+             + e
+             + ')' }}
+          Detected {{ states('sensor.motion_detected_vehicle_count') }} vehicle-alpr(s)
+          for {{ states('sensor.motion_vehicle_alpr_elapsed') }} seconds
+          at {{ states('sensor.motion_vehicle_alpr_when') }}
+          {% if r is iterable and r|length > 0 -%}
+            {%- set i = 'vehicle' -%}
+            {{- '[![](https://img.shields.io/badge/' + i + '-yes-green.svg)]('
+              + states('sensor.motion_vehicle_alpr_api')
+              + '/cgi-bin/predict.yes?entity=' + i
+              + '&camera=' + c
+              + '&event=' + e
+              + u
+              + ')' -}}
+            {{- '[![](https://img.shields.io/badge/' + i + '-no-red.svg)]('
+              + states('sensor.motion_vehicle_alpr_api')
+              + '/cgi-bin/predict.no?entity=' + i
+              + '&camera=' + c
+              + '&event=' + e
+              + u
+              + ')' -}}
+          {%- endif %}
+
+- id: motion_vehicle_alpr_notify_smartphone
+  alias: motion_vehicle_alpr_notify_smartphone
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_vehicle_alpr
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.motion_vehicle_alpr','on') }}
+      - condition: template
+        value_template: >
+          {{ is_state('input_boolean.motion_vehicle_alpr_notify','on') }}
+      - condition: template
+        value_template: >
+          {{ states('sensor.motion_detected_vehicle_count')|int > 0 }}
+      - condition: template
+        value_template: >
+          {% set s = states('input_select.motion_smartphone_name') %}
+          {{ s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'all' }}
+      - condition: template
+        value_template: >
+          {% set s = state_attr('input_select.motion_smartphone_name','options') %}
+          {{ s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|length > 0 }}
+  action:
+    - service_template: >-
+        {%- set s = states('input_select.motion_smartphone_name') -%}
+        {%- if s == 'all' -%}{%- set s = 'MOTION_NOTIFY_SMARTPHONE_ALL' -%}{%- endif -%}
+        {{- 'notify.mobile_app_' + s -}}
+      data_template:
+        title: >-
+          Detected {{ states('sensor.motion_detected_vehicle_count') }} vehicle(s)
+          from {{ states('sensor.motion_vehicle_alpr_camera') }}
+        message: >-
+          Detected {{ states('sensor.motion_detected_vehicle_count') }} vehicle(s)
+          for {{ states('sensor.motion_vehicle_alpr_elapsed') }} seconds
+          at {{ states('sensor.motion_vehicle_alpr_when') }}
+        apns_headers:
+          apns-collapse-id: >-
+            motion_vehicle_alpr_{{- states('sensor.motion_vehicle_alpr_camera') -}}_{{- states('sensor.motion_vehicle_alpr_event') -}}

@@ -14,10 +14,75 @@
 
 - platform: template
   sensors:
+    motion_person_list:
+      value_template: >-
+        [{%- for state in states.person -%}
+          {%- if loop.first -%}{%- else -%},{%- endif -%}
+          {%- set s = state.entity_id|replace ('person.','') -%}
+          "{{- s -}}"
+        {%- endfor -%}]
+
+- platform: template
+  sensors:
+    motion_person_agos:
+      value_template: >-
+        [{%- for state in states.person -%}
+          {%- if loop.first -%}{%- else -%},{%- endif -%}
+          {%- set s = state.entity_id|replace ('person.','') -%}
+          {{- (utcnow().timestamp() - as_timestamp(states.person[s].last_updated))|int -}}
+        {%- endfor -%}]
+
+- platform: template
+  sensors:
+    motion_persons:
+      friendly_name: 'Persons (👱)'
+      icon_template: 'mdi:card-account-details'
+      value_template: >-
+        {% set s = states('sensor.motion_person_list') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+          {% set s = s|from_json %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s is iterable and s|count > 0 %}
+            {%- for r in s -%}
+              {%- if loop.first -%}{%- else -%},{%- endif -%}
+              {{- r -}}
+            {%- endfor -%}
+          {% else %}None{% endif %}
+        {% else %}Pending{% endif %}
+
+- platform: template
+  sensors:
+    motion_persons_ago:
+      friendly_name: '👱 ago'
+      icon_template: 'mdi:av-timer'
+      unit_of_measurement: 's'
+      value_template: >-
+        {% set s = states('sensor.motion_person_agos') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+          {% set s = s|from_json %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s is iterable and s|count > 0 %}
+            {%- for r in s -%}
+              {%- if loop.first -%}{%- else -%},{%- endif -%}
+              {{- r -}}
+            {%- endfor -%}
+          {% else %}None{% endif %}
+        {% else %}Pending{% endif %}
+
+- platform: template
+  sensors:
+    motion_person_ids:
+      value_template: >-
+        [{%- for state in states.person -%}
+          {%- if loop.first -%}{%- else -%},{%- endif -%}
+          {%- set s = state.entity_id|replace ('person.','') -%}
+          {{- states.person[s].attributes.id -}}
+        {%- endfor -%}]
+
+- platform: template
+  sensors:
     motion_person_count:
       friendly_name: Person count
       icon_template: 'mdi:counter'
-      unit_of_measurement: '📱'
+      unit_of_measurement: '👱'
       value_template: >-
         {{ states('sensor.motion_person_online_array')|from_json|length }}
 
@@ -26,7 +91,7 @@
     motion_person_count_online:
       friendly_name: Person on-line count
       icon_template: 'mdi:counter'
-      unit_of_measurement: '📱'
+      unit_of_measurement: '👱'
       value_template: >-
         {{ states('sensor.motion_person_online_array')|from_json|sum }}
 
@@ -35,7 +100,7 @@
     motion_person_count_offline:
       friendly_name: Person off-line count
       icon_template: 'mdi:counter'
-      unit_of_measurement: '📱'
+      unit_of_measurement: '👱'
       value_template: >-
         {{ states('sensor.motion_person_count')|int - states('sensor.motion_person_count_online')|int  }}
 
@@ -58,7 +123,7 @@
       friendly_name: Person on-line status 
       icon_template: 'mdi:account'
       value_template: >-
-        {{ states('sensor.motion_person_count_online') -}}/{{- states('sensor.motion_person_count') }}📱;
+        {{ states('sensor.motion_person_count_online') -}}/{{- states('sensor.motion_person_count') }}👱;
         {{ states('sensor.motion_person_online_percent') -}}%
 
 # percent statistics
@@ -80,7 +145,7 @@
         {% if states('sensor.motion_person_online_percent_statistics') != 'unknown' %}
           {{ states.sensor.motion_person_online_percent_statistics.state|float }}
         {%- else -%}null{%- endif -%}
-    motion_person_online_percent_min_value:
+    motion_person_online_percent_min:
       friendly_name: Person confidence min
       unit_of_measurement: '%'
       icon_template: 'mdi:account'
@@ -88,7 +153,7 @@
         {% if states('sensor.motion_person_online_percent_statistics') != 'unknown' %}
           {{ states.sensor.motion_person_online_percent_statistics.attributes.min_value|int }}
         {%- else -%}null{%- endif -%}
-    motion_person_online_percent_max_value:
+    motion_person_online_percent_max:
       friendly_name: Person confidence max
       unit_of_measurement: '%'
       icon_template: 'mdi:account'
