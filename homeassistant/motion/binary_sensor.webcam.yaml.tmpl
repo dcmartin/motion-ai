@@ -269,28 +269,6 @@
         {{ states('sensor.motion_${MOTION_CAMERA}_face_ago')|int > states('input_number.motion_face_ago')|int }}
 
 ###
-## face_detected
-###
-
-- platform: template
-  sensors:
-    motion_${MOTION_CAMERA}_face_detected:
-      friendly_name: ${MOTION_CAMERA} FACE detected
-      icon_template: 'mdi:emoticon-outline'
-      value_template: >-
-        {% set count = state_attr('sensor.motion_${MOTION_CAMERA}_event_face','count') %}
-        {% set percents = state_attr('sensor.motion_${MOTION_CAMERA}_event_face','detected') %}
-        {% if count|lower != 'none' and percents|lower != 'none' and count != 'null' and percents|length > 0 %}
-          {{ count|int > 0 and percents|max|int >= states('input_number.motion_face_detected_percent')|int }}
-        {% else %}false{% endif %}
-
-- platform: template
-  sensors:
-    motion_${MOTION_CAMERA}_face_detected_expired:
-      value_template: >-
-        {{ states('sensor.motion_${MOTION_CAMERA}_face_detected_ago')|int > states('input_number.motion_face_detected_ago')|int }}
-
-###
 ## alpr
 ###
 
@@ -311,6 +289,31 @@
         {{ states('sensor.motion_${MOTION_CAMERA}_alpr_ago')|int > states('input_number.motion_alpr_ago')|int }}
 
 ###
+## face_detected
+###
+
+- platform: template
+  sensors:
+    motion_${MOTION_CAMERA}_face_detected:
+      friendly_name: ${MOTION_CAMERA} FACE detected
+      icon_template: 'mdi:emoticon-outline'
+      value_template: >-
+        {% set mc = '${MOTION_CAMERA}_' %}
+        {% set s = state_attr('sensor.motion_' + mc + 'event_face','count') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int > 0 %}
+          {% set s = state_attr('sensor.motion_' + mc + 'event_face','detected') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s is iterable and s|length > 0 %}
+            {{ s|max|int >= states('input_number.motion_face_detected_percent')|int }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_${MOTION_CAMERA}_face_detected_expired:
+      value_template: >-
+        {{ states('sensor.motion_${MOTION_CAMERA}_face_detected_ago')|int > states('input_number.motion_face_detected_ago')|int }}
+
+###
 ## alpr_detected
 ###
 
@@ -320,11 +323,14 @@
       friendly_name: Detected alpr ${MOTION_CAMERA}
       icon_template: 'mdi:license'
       value_template: >-
-        {% set count = state_attr('sensor.motion_${MOTION_CAMERA}_event_alpr','count') %}
-        {% set percents = state_attr('sensor.motion_${MOTION_CAMERA}_event_alpr','detected') %}
-        {% if count|lower != 'none' and percents|lower != 'none' and count != 'null' and percents|length > 0 %}
-          {{ count|int > 0 and percents|max|int >= states('input_number.motion_alpr_detected_percent')|int }}
-        {% else %}false{% endif %}
+        {% set mc = '${MOTION_CAMERA}_' %}
+        {% set c = state_attr('sensor.motion_' + mc + 'event_alpr','count') %}
+        {% if c|lower != 'none' and c|lower != 'unavailable' and c|lower != 'unknown' and c|lower != 'null' and c|int > 0 %}
+          {% set p = state_attr('sensor.motion_' + mc + 'event_alpr','detected') %}
+          {% if p|lower != 'none' and p|lower != 'unavailable' and p|lower != 'unknown' and p|lower != 'null' %}
+            {{ p|max|int >= states('input_number.motion_alpr_detected_percent')|int }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
 
 - platform: template
   sensors:
@@ -343,11 +349,9 @@
       friendly_name: Person w/ FACE
       value_template: >-
         {% set mc = '${MOTION_CAMERA}_' %}
-        {% set d1 = states('binary_sensor.motion_' + mc + 'face_detected') %}
-        {% set d2 = states('binary_sensor.motion_' + mc + 'detected_person') %}
-        {% if d1|lower != 'none' and d1|lower != 'unavailable' and d1|lower != 'unknown' and d1|lower != 'null' and d2|lower != 'none' and d2|lower != 'unavailable' and d2|lower != 'unknown' and d2|lower != 'null' and d1|lower == 'true' and d2|lower == 'true' %}
+        {% if is_state('binary_sensor.motion_' + mc + 'face_detected','on') and is_state('binary_sensor.motion_' + mc + 'detected_person','on') %}
           {% set s = states('sensor.motion_' + mc + 'person_faces') %}
-          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|length > 0 %}
             {% set s = s|from_json %}
             {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s is iterable %}
               {% if s|length > 0 %}
@@ -375,13 +379,9 @@
       friendly_name: ${MOTION_CAMERA} Vehicle w/ ALPR
       value_template: >-
         {% set mc = '${MOTION_CAMERA}_' %}
-        {% set d1 = states('binary_sensor.motion_' + mc + 'alpr_detected') %}
-        {% set d2 = states('binary_sensor.motion_' + mc + 'detected_vehicle') %}
-        {% if d1|lower != 'none' and d1|lower != 'unavailable' and d1|lower != 'unknown' and d1|lower != 'null' 
-          and d2|lower != 'none' and d2|lower != 'unavailable' and d2|lower != 'unknown' and d2|lower != 'null' 
-          and d1|lower == 'true' and d2|lower == 'true' %}
+        {% if is_state('binary_sensor.motion_' + mc + 'alpr_detected','on') and is_state('binary_sensor.motion_' + mc + 'detected_vehicle','on') %}
           {% set s = states('sensor.motion_' + mc + 'vehicle_alprs') %}
-          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|length > 0 %}
             {% set s = s|from_json %}
             {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s is iterable %}
               {% if s|length > 0 %}
