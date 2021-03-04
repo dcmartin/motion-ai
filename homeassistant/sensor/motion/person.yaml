@@ -36,7 +36,7 @@
   sensors:
     motion_persons:
       friendly_name: 'Persons (👱)'
-      icon_template: 'mdi:card-account-details'
+      icon_template: 'mdi:folder-account'
       value_template: >-
         {% set s = states('sensor.motion_person_list') %}
         {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
@@ -69,9 +69,11 @@
 
 - platform: template
   sensors:
-    motion_user:
+    motion_person:
+      friendly_name: 'Person (👱)'
+      icon_template: 'mdi:csrd-account-details'
       value_template: >-
-        {%- set s = states('input_text.motion_user') -%}
+        {%- set s = states('input_text.motion_person') -%}
         {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
           {{ s }}
         {% else %}
@@ -83,35 +85,39 @@
             {%- else -%}null{%- endif -%}
           {%- else -%}null{%- endif -%}
         {%- endif -%}
-    motion_person_device_tracker_list:
+    motion_person_ago:
+      friendly_name: '👱 ago'
+      icon_template: 'mdi:av-timer'
+      unit_of_measurement: 's'
       value_template: >-
-        {%- set s = states('sensor.motion_device_tracker_list') -%}
-        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s is iterable -%}
-          {%- set u = states('sensor.motion_user') -%}
-          {%- if u|lower != 'none' and u|lower != 'unknown' and u|lower != 'unavailable' and u|lower != 'null' -%}
-            [{%- for i in s|from_json if u in i -%}
-              {%- if loop.first -%}{%- else -%},{%- endif -%}
-              "{{- i -}}"
-            {%- else -%}null{%- endfor -%}]
-          {%- else -%}null{%- endif -%}
-        {%- else -%}null{%- endif -%}
+        {%- for state in states.person if state.entity_id|replace('person.','') == states('sensor.motion_person')|string -%}
+          {%- if loop.first -%}{%- else -%},{%- endif -%}
+          {%- set s = state.entity_id|replace ('person.','') -%}
+          {{- (utcnow().timestamp() - as_timestamp(states.person[s].last_updated))|int -}}
+        {%- endfor -%}
     motion_person_device:
-      friendly_name: '👱 device (📱)'
+      friendly_name: 'Device (📱)'
+      icon_template: 'mdi:card-account-phone'
       value_template: >-
         {%- set s = states('input_text.motion_person_device') -%}
         {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
           {{ s }}
         {% else %}
-          {%- set s = states('sensor.motion_person_device_tracker_list') -%}
+          {%- set s = states('input_select.motion_person_device') -%}
           {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-            {%- set s = s|from_json -%}
-            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s is iterable and s|length > 0 -%}
-              {{- s|first -}}
+            {{ s }}
+          {% else %}
+            {%- set s = states('sensor.motion_device_tracker_list') -%}
+            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+              {%- set s = s|from_json -%}
+              {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s is iterable and s|length > 0 -%}
+                {{- s|first -}}
+              {%- else -%}null{%- endif -%}
             {%- else -%}null{%- endif -%}
-          {%- else -%}null{%- endif -%}
+          {%- endif -%}
         {%- endif -%}
     motion_person_device_activity:
-      friendly_name: '📱 activity'
+      friendly_name: '👱 activity'
       icon_template: >-
         {%- set s = states('sensor.motion_person_device') -%}
         {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
@@ -153,7 +159,7 @@
           {{ states('sensor.' + states('sensor.motion_person_device') + '_connection_type') }}
         {%- else -%}null{%- endif -%}
     motion_person_device_geocoded_location:
-      friendly_name: '🗺 location'
+      friendly_name: '📱 location'
       icon_template: 'mdi:map-marker'
       value_template: >-
         {%- set s = states('sensor.motion_person_device') -%}
@@ -192,15 +198,7 @@
         {%- set s = states('sensor.motion_person_device') -%}
         {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
           {{- states('device_tracker.' + s) -}}
-        {%- else -%}null{%- endif -%}
-    motion_person_device_source_type:
-      friendly_name: '🗺 type'
-      icon_template: 'mdi:map'
-      value_template: >-
-        {%- set s = states('sensor.motion_person_device') -%}
-        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-          {{- state_attr('device_tracker.' + s,'source_type') -}}
-        {%- else -%}null{%- endif -%}
+        {%- else -%}Pending{%- endif -%}
     motion_person_device_battery_level:
       friendly_name: '🔋 level'
       icon_template: 'mdi:battery'
@@ -208,6 +206,29 @@
         {%- set s = states('sensor.motion_person_device') -%}
         {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
           {{- state_attr('device_tracker.' + s,'battery_level') -}}
+        {%- else -%}null{%- endif -%}
+    motion_person_device_location:
+      friendly_name: '📱 location (🗺)'
+      icon_template: 'mdi:map'
+      value_template: >-
+        {%- set s = states('sensor.motion_person_device') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {{- state_attr('device_tracker.' + s,'source_type')|upper -}};
+          [{{ '%0.4f' | format(state_attr('device_tracker.' + s,'latitude')|float) -}},
+          {{- '%0.4f' | format(state_attr('device_tracker.' + s,'longitude')|float) -}}]
+          {{- '±' -}}
+          {{- state_attr('device_tracker.' + s,'gps_accuracy') -}}m;
+          at {{ state_attr('device_tracker.' + s,'altitude')|int -}}
+          {{- '±' -}}
+          {{- state_attr('device_tracker.' + s,'vertical_accuracy') -}}m
+        {%- else -%}Pending{%- endif -%}
+    motion_person_device_source_type:
+      friendly_name: '🗺 source'
+      icon_template: 'mdi:map'
+      value_template: >-
+        {%- set s = states('sensor.motion_person_device') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {{- state_attr('device_tracker.' + s,'source_type') -}}
         {%- else -%}null{%- endif -%}
     motion_person_device_latitude:
       friendly_name: '🗺 latitude'
