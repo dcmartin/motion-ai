@@ -1,0 +1,34 @@
+###
+# homeassistant/automation/motion/device_tracker.yaml
+###
+
+- id: motion_person_device
+  alias: motion_person_device
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_device_tracker_count
+    - platform: time_pattern
+      minutes: /5
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ states('sensor.motion_device_tracker_count')|int > 0 }}
+      - condition: template
+        value_template: >-
+          {{ states('input_select.motion_person_device')|lower == 'none' }}
+  action:
+    - service: python_script.input_select_set_options
+      data_template:
+        entity_id: input_select.motion_person_device
+        default: all
+        options: >-
+          {%- for state in states.device_tracker -%}
+            {%- set d = state.entity_id|replace('device_tracker.','') -%}
+            {%- set e = 'sensor.' + d -%}
+            {%- for s in states.sensor if d in s.entity_id and e+'_activity' in s.entity_id and as_timestamp(s.last_updated)|int > 0 -%}
+              {{- s.entity_id|replace('sensor.','')|replace('_activity','') -}},
+            {%- endfor -%}
+          {%- endfor -%}none
