@@ -589,6 +589,7 @@ tidy:
 
 clean: tidy
 	-rm -f motion-addon.json
+	-rm -f webcams.json
 	-rm -f group/webcams.yaml
 
 realclean: clean
