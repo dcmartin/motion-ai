@@ -132,10 +132,9 @@ fi
 
 # test network
 
-if [ $(curl -m 10 -fsSL "http://www.google.com" -o /dev/null)
-alive=$(curl -fsqL -w '%{http_code}' --connect-timeout 2 --retry-connrefused --retry 10 --retry-max-time 2 --max-time 15 "http://www.google.com/" -o /dev/null 2> /dev/null || true)
+alive=$(curl -fsqL -w '%{http_code}' --connect-timeout 2 --retry-connrefused --retry 10 --retry-max-time 2 --max-time 15 "https://version.home-assistant.io/stable.json" -o /dev/null 2> /dev/null || true)
 if [ "${alive:-}" != '200' ]; then
-  echo 'Unable to contact http://www.google.com; is your DNS configured properly?' &> /dev/stderr
+  echo 'Unable to contact "https://version.home-assistant.io/stable.json"; is your DNS configured properly?' &> /dev/stderr
   exit 1
 fi
 
