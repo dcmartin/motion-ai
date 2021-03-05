@@ -236,7 +236,7 @@ if [ "${0##*/}" == 'get.motion-ai.sh' ]; then
       echo "Version of Home Assistant is ${info}"
     fi
   else
-    echo 'Problem installing Home Assistant; check with "ha core info" command; run: "${0%/*}/hassio-install.sh -d $(pwd -P) $(machine)"' &> /dev/stderr
+    echo 'Problem installing Home Assistant; check with "ha core info" command; re-install with:' "${0%/*}/hassio-install.sh -d $(pwd -P) $(machine)" &> /dev/stderr
     exit 1
   fi
 
