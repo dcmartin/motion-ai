@@ -356,7 +356,32 @@ homeassistant/setup.json: setup.json.tmpl
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	&& cat $< | envsubst > $@
 
-.PHONY: ${MEDIA} necessary all default run stop logs restart tidy clean realclean distclean $(PACKAGES) homeassistant/motion/webcams.json homeassistant/setup.json
+.PHONY: ${MEDIA} necessary all default run stop logs restart tidy clean realclean distclean $(PACKAGES) homeassistant/motion/webcams.json homeassistant/setup.json allclean
+
+allclean: distclean
+	@echo "${MC}Making: $@${NC}"
+	@-sudo rm -fr MOTIONCAM_* NETCAM_* MOTION_*
+	@-sudo rm -fr \
+	  addons \
+	  addons.json \
+	  apparmor \
+	  audio \
+	  audio.json \
+	  backup \
+	  cli.json \
+	  config.json \
+	  dns \
+	  dns.json \
+	  get.docker.sh \
+	  homeassistant.json \
+	  ingress.json \
+	  media \
+	  multicast.json \
+	  observer.json \
+	  share \
+	  ssl \
+	  tmp \
+	  updater.json
 
 ##
 ## COLORS
