@@ -96,8 +96,6 @@ function docker_update()
     else
       echo "Did not find runtime: ${runtime}" &> /dev/stderr
     fi
-  else
-    echo "Did not find nVidia CUDA: ${nvcc}" &> /dev/stderr
   fi
   if [ "${restart:-false}" = 'true' ]; then
     echo "Restarting Docker" &> /dev/stderr
