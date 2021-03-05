@@ -182,7 +182,6 @@ $(WEBCAMS):
 	@-./motion/sh/mkwebcams.sh > $@
 
 CAMERAS := $(shell jq -r '.[].name' $(WEBCAMS))
-CAMERA_DIRS := $(shell for C in $(CAMERAS); do echo www/images/motion/$${C}; done)
 
 images:
 	@echo "${MC}Making: $@${NC}"
@@ -207,7 +206,7 @@ images:
 	  sudo cp -n www/images/test-signal.gif www/images/motion/$${e}_animated_mask.gif; \
 	done
 
-$(CAMERA_DIRS): $(WEBCAMS)
+www/images/motion/$(CAMERAS): $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
 	@-sudo mkdir -p $@
 	@-sudo cp -n www/images/test-signal.jpg $@/detected.jpg
