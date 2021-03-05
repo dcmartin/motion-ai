@@ -130,6 +130,15 @@ if [ -z "$(command -v jq)" ]; then
   exit 1
 fi
 
+# test network
+
+if [ $(curl -m 10 -fsSL "http://www.google.com" -o /dev/null)
+alive=$(curl -fsqL -w '%{http_code}' --connect-timeout 2 --retry-connrefused --retry 10 --retry-max-time 2 --max-time 15 "http://www.google.com/" -o /dev/null 2> /dev/null || true)
+if [ "${alive:-}" != '200' ]; then
+  echo 'Unable to contact http://www.google.com; is your DNS configured properly?' &> /dev/stderr
+  exit 1
+fi
+
 ## DOCKER
 
 if [ -z "$(command -v docker)" ]; then
@@ -219,7 +228,7 @@ if [ "${0##*/}" == 'get.motion-ai.sh' ]; then
     if [ ! -z "${info:-}" ] && [ "${info}" != 'landingpage' ]; then break; fi
     if [ ${t:-0} -gt 30 ]; then break; fi
     echo -n "."
-    sleep 60
+    sleep 10
   done
 
   if [ ${t:-0} -ge 0 ]; then
@@ -228,7 +237,7 @@ if [ "${0##*/}" == 'get.motion-ai.sh' ]; then
       echo "Version of Home Assistant is ${info}"
     fi
   else
-    echo 'Problem installing Home Assistant; check with "ha core info" command' &> /dev/stderr
+    echo 'Problem installing Home Assistant; check with "ha core info" command; run: "${0%/*}/hassio-install.sh -d $(pwd -P) $(machine)"' &> /dev/stderr
     exit 1
   fi
 
