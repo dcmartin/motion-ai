@@ -234,7 +234,7 @@ cameras: $(CAMERA_DIRS)
 
 $(MOTION_DIRS):
 	@-mkdir -p $@
-	@-sudo chown -R ${USER} $@
+	@-if [ ! -z "${USER:-}" ]; then sudo chown -R ${USER} $@; fi
 
 $(PACKAGES): makefile
 	@echo "${MC}Making: $@${NC}"
