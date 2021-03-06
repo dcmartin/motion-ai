@@ -360,7 +360,7 @@ homeassistant/setup.json: setup.json.tmpl
 
 allclean: distclean
 	@echo "${MC}Making: $@${NC}"
-	@-sudo rm -fr MOTIONCAM_* NETCAM_* MOTION_*
+	@-sudo rm -fr MOTIONCAM_* NETCAM_* MOTION_* LOGGER_* MQTT_* YOLO_* LOG_LEVEL DEBUG
 	@-sudo rm -fr *.sh.json
 	@-sudo rm -fr \
 	  addons \
