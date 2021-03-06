@@ -27,7 +27,7 @@ MOTION_COUCHDB_PASSWORD := $(MOTION_COUCHDB_PASSWORD:-password)
 ##
 
 WEBCAMS_JSON := webcams.json
-WEBCAMS := $(shell jq -r '.[].name' $(WEBCAMS_JSON))
+WEBCAMS := $(shell jq -r '.[].name' $(WEBCAMS_JSON) | sort | uniq)
 
 # WEBCAM components
 WEBCAM_IMAGE_PROCESSINGS := $(shell for C in $(WEBCAMS); do echo image_processing/webcam-$${C}.yaml; done)
@@ -228,7 +228,7 @@ WEBCAM_SENSOR_DETECTORS: $(WEBCAM_SENSOR_DETECTOR_TEMPLATES) ${WEBCAMS_JSON}
 	    export MOTION_GROUP="$(MOTION_GROUP)"; \
 	    export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	    export MOTION_CLIENT="$(MOTION_CLIENT)"; \
-	    export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
+	    export MOTION_CAMERA_ICON=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.icon?" $(WEBCAMS_JSON)); \
 	    cat $${tmpl} | envsubst > $${v}; \
 	  done; \
 	done
@@ -246,7 +246,7 @@ WEBCAM_AUTOMATION_DETECTORS: $(WEBCAM_AUTOMATION_DETECTOR_TEMPLATES) ${WEBCAMS_J
 	    export MOTION_GROUP="$(MOTION_GROUP)"; \
 	    export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	    export MOTION_CLIENT="$(MOTION_CLIENT)"; \
-	    export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
+	    export MOTION_CAMERA_ICON=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.icon?" $(WEBCAMS_JSON)); \
 	    cat $${tmpl} | envsubst > $${v}; \
 	  done; \
 	done
@@ -260,12 +260,12 @@ WEBCAM_CAMERAS: $(WEBCAM_CAMERA_TEMPLATE) ${WEBCAMS_JSON}
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
 	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
-	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
-	  export MOTION_CAMERA_MJPEG=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.mjpeg_url" $(WEBCAMS_JSON)); \
-	  export MOTION_CAMERA_STILL=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.still_image_url" $(WEBCAMS_JSON)); \
-	  VAL=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.username" $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_ICON=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.icon?" $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_MJPEG=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.mjpeg_url?" $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_STILL=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.still_image_url?" $(WEBCAMS_JSON)); \
+	  VAL=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.username?" $(WEBCAMS_JSON)); \
 	  export MOTION_CAMERA_USERNAME="$${VAL}"; \
-	  VAL=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.password" $(WEBCAMS_JSON)); \
+	  VAL=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.password?" $(WEBCAMS_JSON)); \
 	  export MOTION_CAMERA_PASSWORD="$${VAL}"; \
 	  cat $(WEBCAM_CAMERA_TEMPLATE) | envsubst > $${i}; \
 	done
@@ -279,6 +279,7 @@ WEBCAM_AUTOMATIONS: $(WEBCAM_AUTOMATION_TEMPLATE) ${WEBCAMS_JSON}
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
 	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
+	  export MOTION_CAMERA_ICON=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.icon?" $(WEBCAMS_JSON)); \
 	  cat $(WEBCAM_AUTOMATION_TEMPLATE) | envsubst > $${i}; \
 	done
 
@@ -291,7 +292,7 @@ WEBCAM_BINARY_SENSORS: $(WEBCAM_BINARY_SENSOR_TEMPLATE) ${WEBCAMS_JSON}
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
 	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
-	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_ICON=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.icon?" $(WEBCAMS_JSON)); \
 	  cat $(WEBCAM_BINARY_SENSOR_TEMPLATE) | envsubst > $${i}; \
 	done
 
@@ -304,7 +305,7 @@ WEBCAM_COUNTERS: $(WEBCAM_COUNTER_TEMPLATE) ${WEBCAMS_JSON}
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
 	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
-	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_ICON=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.icon?" $(WEBCAMS_JSON)); \
 	  cat $(WEBCAM_COUNTER_TEMPLATE) | envsubst > $${i}; \
 	done
 
@@ -317,7 +318,7 @@ WEBCAM_DEVICE_TRACKERS: $(WEBCAM_DEVICE_TRACKER_TEMPLATE) ${WEBCAMS_JSON}
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
 	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
-	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_ICON=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.icon?" $(WEBCAMS_JSON)); \
 	  cat $(WEBCAM_DEVICE_TRACKER_TEMPLATE) | envsubst > $${i}; \
 	done
 
@@ -330,7 +331,7 @@ WEBCAM_SENSORS: $(WEBCAM_SENSOR_TEMPLATE) ${WEBCAMS_JSON}
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
 	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
-	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_ICON=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.icon?" $(WEBCAMS_JSON)); \
 	  cat $(WEBCAM_SENSOR_TEMPLATE) | envsubst > $${i}; \
 	done
 
@@ -343,7 +344,7 @@ WEBCAM_INPUT_BOOLEANS: $(WEBCAM_INPUT_BOOLEAN_TEMPLATE) ${WEBCAMS_JSON}
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
 	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
-	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_ICON=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.icon?" $(WEBCAMS_JSON)); \
 	  cat $(WEBCAM_INPUT_BOOLEAN_TEMPLATE) | envsubst > $${i}; \
 	done
 
@@ -356,7 +357,7 @@ WEBCAM_INPUT_SELECTS: $(WEBCAM_INPUT_SELECT_TEMPLATE) ${WEBCAMS_JSON}
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
 	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
-	  export MOTION_CAMERA_ICON=$$(jq -r ".[]|select(.name==\"$${MOTION_CAMERA}\")|.icon" $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_ICON=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.icon?" $(WEBCAMS_JSON)); \
 	  cat $(WEBCAM_INPUT_SELECT_TEMPLATE) | envsubst > $${i}; \
 	done
 
@@ -369,6 +370,7 @@ WEBCAM_SHELL_COMMANDS: $(WEBCAM_SHELL_COMMAND_TEMPLATE) ${WEBCAMS_JSON}
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
 	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
+	  export MOTION_CAMERA_ICON=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.icon?" $(WEBCAMS_JSON)); \
 	  cat $(WEBCAM_SHELL_COMMAND_TEMPLATE) | envsubst > $${i}; \
 	done
 
@@ -381,6 +383,7 @@ WEBCAM_IMAGE_PROCESSINGS: $(WEBCAM_IMAGE_PROCESSING_TEMPLATE) ${WEBCAMS_JSON}
 	  export MOTION_GROUP="$(MOTION_GROUP)"; \
 	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
+	  export MOTION_CAMERA_ICON=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.icon?" $(WEBCAMS_JSON)); \
 	  cat $(WEBCAM_IMAGE_PROCESSING_TEMPLATE) | envsubst > $${i}; \
 	done
 
