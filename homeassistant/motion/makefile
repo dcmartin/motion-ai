@@ -40,7 +40,6 @@ WEBCAM_SHELL_COMMANDS := $(shell for C in $(WEBCAMS); do echo shell_command/webc
 WEBCAM_BINARY_SENSOR_TEMPLATE := binary_sensor.webcam.yaml.tmpl
 WEBCAM_CAMERA_TEMPLATE := camera.webcam.yaml.tmpl
 WEBCAM_COUNTER_TEMPLATE := counter.webcam.yaml.tmpl
-WEBCAM_DEVICE_TRACKER_TEMPLATE := device_tracker.webcam.yaml.tmpl
 WEBCAM_GRAPH_TEMPLATE := history_graph.webcam.yaml.tmpl
 WEBCAM_GROUP_TEMPLATE := group.webcam.yaml.tmpl
 WEBCAM_IMAGE_PROCESSING_TEMPLATE := image_processing.webcam.yaml.tmpl
@@ -75,7 +74,6 @@ WEBCAM_AUTOMATION_TEMPLATE := automation.webcam.yaml.tmpl
 WEBCAM_BINARY_SENSOR_TEMPLATE := binary_sensor.webcam.yaml.tmpl
 WEBCAM_CAMERA_TEMPLATE := camera.webcam.yaml.tmpl
 WEBCAM_COUNTER_TEMPLATE := counter.webcam.yaml.tmpl
-WEBCAM_DEVICE_TRACKER_TEMPLATE := device_tracker.webcam.yaml.tmpl
 WEBCAM_FACE_SENSOR_TEMPLATE := sensor.face_detected.yaml.tmpl
 WEBCAM_IMAGE_PROCESSING_TEMPLATE := image_processing.webcam.yaml.tmpl
 WEBCAM_INPUT_BOOLEAN_TEMPLATE := input_boolean.webcam.yaml.tmpl
@@ -143,7 +141,6 @@ webcams: \
 	WEBCAM_BINARY_SENSORS \
 	WEBCAM_CAMERAS \
 	WEBCAM_COUNTERS \
-	WEBCAM_DEVICE_TRACKERS \
 	WEBCAM_IMAGE_PROCESSINGS \
 	WEBCAM_INPUT_BOOLEANS \
 	WEBCAM_INPUT_SELECTS \
@@ -307,19 +304,6 @@ WEBCAM_COUNTERS: $(WEBCAM_COUNTER_TEMPLATE) ${WEBCAMS_JSON}
 	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
 	  export MOTION_CAMERA_ICON=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.icon?" $(WEBCAMS_JSON)); \
 	  cat $(WEBCAM_COUNTER_TEMPLATE) | envsubst > $${i}; \
-	done
-
-WEBCAM_DEVICE_TRACKERS: $(WEBCAM_DEVICE_TRACKER_TEMPLATE) ${WEBCAMS_JSON}
-	@echo "Making $@"
-	@for i in $(shell for C in $(WEBCAMS); do echo "device_tracker/webcam-$${C}.yaml"; done); do \
-	  export TARGET="$${i}"; \
-	  export MOTION_CAMERA=$${TARGET%%.*}; \
-	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
-	  export MOTION_GROUP="$(MOTION_GROUP)"; \
-	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
-	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
-	  export MOTION_CAMERA_ICON=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.icon?" $(WEBCAMS_JSON)); \
-	  cat $(WEBCAM_DEVICE_TRACKER_TEMPLATE) | envsubst > $${i}; \
 	done
 
 WEBCAM_SENSORS: $(WEBCAM_SENSOR_TEMPLATE) ${WEBCAMS_JSON}
