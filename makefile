@@ -68,9 +68,9 @@ MOTION_DETECTED_ENTITY_NOTIFY ?= $(if $(wildcard MOTION_DETECTED_ENTITY_NOTIFY),
 MOTION_DETECTED_PERSON_NOTIFY ?= $(if $(wildcard MOTION_DETECTED_PERSON_NOTIFY),$(shell v=$$(cat MOTION_DETECTED_PERSON_NOTIFY) && echo "${TG}== MOTION_DETECTED_PERSON_NOTIFY: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "${DF}** MOTION_DETECTED_PERSON_NOTIFY${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_DETECTED_VEHICLE_NOTIFY ?= $(if $(wildcard MOTION_DETECTED_VEHICLE_NOTIFY),$(shell v=$$(cat MOTION_DETECTED_VEHICLE_NOTIFY) && echo "${TG}== MOTION_DETECTED_VEHICLE_NOTIFY: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "${DF}** MOTION_DETECTED_VEHICLE_NOTIFY${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_DETECTED_ANIMAL_NOTIFY ?= $(if $(wildcard MOTION_DETECTED_ANIMAL_NOTIFY),$(shell v=$$(cat MOTION_DETECTED_ANIMAL_NOTIFY) && echo "${TG}== MOTION_DETECTED_ANIMAL_NOTIFY: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "${DF}** MOTION_DETECTED_ANIMAL_NOTIFY${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
-MOTION_FACE_DETECTED ?= $(if $(wildcard MOTION_FACE_DETECTED),$(shell v=$$(cat MOTION_FACE_DETECTED) && echo "${TG}== MOTION_FACE_DETECTED: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='all' && echo "${DF}** MOTION_FACE_DETECTED${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
-MOTION_ALPR_DETECTED ?= $(if $(wildcard MOTION_ALPR_DETECTED),$(shell v=$$(cat MOTION_ALPR_DETECTED) && echo "${TG}== MOTION_ALPR_DETECTED: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='all' && echo "${DF}** MOTION_ALPR_DETECTED${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
-MOTION_POSE_DETECTED ?= $(if $(wildcard MOTION_POSE_DETECTED),$(shell v=$$(cat MOTION_POSE_DETECTED) && echo "${TG}== MOTION_POSE_DETECTED: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='all' && echo "${DF}** MOTION_POSE_DETECTED${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_FACE_DETECTED_NOTIFY ?= $(if $(wildcard MOTION_FACE_DETECTED_NOTIFY),$(shell v=$$(cat MOTION_FACE_DETECTED_NOTIFY) && echo "${TG}== MOTION_FACE_DETECTED_NOTIFY: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${DF}** MOTION_FACE_DETECTED_NOTIFY${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_ALPR_DETECTED ?= $(if $(wildcard MOTION_ALPR_DETECTED),$(shell v=$$(cat MOTION_ALPR_DETECTED) && echo "${TG}== MOTION_ALPR_DETECTED: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${DF}** MOTION_ALPR_DETECTED${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_POSE_DETECTED ?= $(if $(wildcard MOTION_POSE_DETECTED),$(shell v=$$(cat MOTION_POSE_DETECTED) && echo "${TG}== MOTION_POSE_DETECTED: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${DF}** MOTION_POSE_DETECTED${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 
 MOTION_DETECTED_ENTITY_SPEAK ?= $(if $(wildcard MOTION_DETECTED_ENTITY_SPEAK),$(shell v=$$(cat MOTION_DETECTED_ENTITY_SPEAK) && echo "${TG}== MOTION_DETECTED_ENTITY_SPEAK: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${DF}** MOTION_DETECTED_ENTITY_SPEAK${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_DETECTED_PERSON_SPEAK ?= $(if $(wildcard MOTION_DETECTED_PERSON_SPEAK),$(shell v=$$(cat MOTION_DETECTED_PERSON_SPEAK) && echo "${TG}== MOTION_DETECTED_PERSON_SPEAK: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${DF}** MOTION_DETECTED_PERSON_SPEAK${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
@@ -361,6 +361,7 @@ homeassistant/setup.json: setup.json.tmpl
 allclean: distclean
 	@echo "${MC}Making: $@${NC}"
 	@-sudo rm -fr MOTIONCAM_* NETCAM_* MOTION_*
+	@-sudo rm -fr *.sh.json
 	@-sudo rm -fr \
 	  addons \
 	  addons.json \
@@ -370,6 +371,7 @@ allclean: distclean
 	  backup \
 	  cli.json \
 	  config.json \
+	  discovery.json \
 	  dns \
 	  dns.json \
 	  get.docker.sh \
@@ -378,10 +380,12 @@ allclean: distclean
 	  media \
 	  multicast.json \
 	  observer.json \
+	  services.json \
 	  share \
 	  ssl \
 	  tmp \
-	  updater.json
+	  updater.json \
+	  install.log
 
 ##
 ## COLORS
