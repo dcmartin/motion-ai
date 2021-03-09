@@ -46,4 +46,5 @@ function copyit()
 p='person'
 
 find homeassistant/ -name "detected_${p}.yaml" -print | while read; do copyit "${REPLY}"; done
+find homeassistant/ -name "detected_${p}_*.yaml" -print | while read; do copyit "${REPLY}"; done
 find homeassistant/ -name "*.detected_${p}.yaml.tmpl" -print | while read; do copyit "${REPLY}"; done
