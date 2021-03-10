@@ -176,7 +176,11 @@ LOVELACE_DASHBOARDS := $(shell for C in $(MOTION_DASHBOARDS); do echo lovelace.$
 
 default: all
 
-all: $(WEBCAMS) lovelace.json lovelace_dashboards.json ${LOVELACE_DASHBOARDS} $(MOTION_DIRS) $(PACKAGES) secrets.yaml images cameras
+all: chown $(WEBCAMS) lovelace.json lovelace_dashboards.json ${LOVELACE_DASHBOARDS} $(MOTION_DIRS) $(PACKAGES) secrets.yaml images cameras
+
+chown:
+	@echo "${MC}Making: $@${NC}"
+	@-if [ ! -z "$${USER:-}" ]; then sudo chown -R $${USER} $$(pwd -P); fi
 
 WEBCAMS := motion/webcams.json
 
@@ -512,7 +516,7 @@ logclean:
 	  && echo 'Attempting to remove log file (requires sudo): '"$${LOGPATH}" \
 	  && sudo LOGPATH=$${LOGPATH} /bin/rm -f $${LOGPATH}
 
-.PHONY: refresh neat tidy all default run stop logs restart clean realclean distclean $(PACKAGES) $(WEBCAMS) images cameras lovelace*.json $(MOTION_DIRS) secrets.yaml
+.PHONY: chown refresh neat tidy all default run stop logs restart clean realclean distclean $(PACKAGES) $(WEBCAMS) images cameras lovelace*.json $(MOTION_DIRS) secrets.yaml
 
 ##
 ## COLORS
