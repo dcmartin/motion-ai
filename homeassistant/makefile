@@ -5,6 +5,8 @@
 TIMESTAMP ?= $(shell date -u '%FT%TZ')
 THIS_HOSTIP ?= $(shell hostname -i | awk '{ print $$1 }')
 
+MOTION_REPOSITORY ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_REPOSITORY' setup.json) && echo "${TS}++ MOTION_REPOSITORY: $${v}${NC}" > /dev/stderr && echo "$${v}"), $(if $(wildcard MOTION_REPOSITORY),$(shell v=$$(cat MOTION_REPOSITORY) && echo "${TG}== MOTION_REPOSITORY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='https://github.com/motion-ai/motion-ai.git' && echo "${TB}** MOTION_REPOSITORY unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+
 # logging
 LOGGER_DEFAULT ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.LOGGER_DEFAULT' setup.json) && echo "${TS}++ LOGGER_DEFAULT: $${v}${NC}" > /dev/stderr && echo "$${v}"), $(if $(wildcard LOGGER_DEFAULT),$(shell v=$$(cat LOGGER_DEFAULT) && echo "${TG}== LOGGER_DEFAULT: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="warn" && echo "${TB}** LOGGER_DEFAULT unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 
@@ -359,6 +361,7 @@ secrets.yaml: secrets.yaml.tmpl
           MOTION_POSE_DETECTED_NOTIFY="$(MOTION_POSE_DETECTED_NOTIFY)" \
           MOTION_POSE_DETECTED_SPEAK="$(MOTION_POSE_DETECTED_SPEAK)" \
           MOTION_POSE_DETECTED_TUNE="$(MOTION_POSE_DETECTED_TUNE)" \
+	  MOTION_REPOSITORY="$(MOTION_REPOSITORY)" \
 	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
           MOTION_TWILIO_NAME="$(MOTION_TWILIO_NAME)" \
           MOTION_TWILIO_NUMBER="$(MOTION_TWILIO_NUMBER)" \

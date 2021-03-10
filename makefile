@@ -5,6 +5,9 @@
 TIMESTAMP := $(shell date -u +'%FT%TZ')
 THIS_HOSTIP := $(shell hostname -I | awk '{ print $$1 }')
 
+# repository
+MOTION_REPOSITORY ?= $(if $(wildcard MOTION_REPOSITORY),$(shell v=$$(cat MOTION_REPOSITORY) && echo "${TG}== MOTION_REPOSITORY: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='http://github.com/motion-ai/motion-ai.git' && echo "${DF}** MOTION_REPOSITORY${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+	#
 # logging
 LOGGER_DEFAULT ?= $(if $(wildcard LOGGER_DEFAULT),$(shell v=$$(cat LOGGER_DEFAULT) && echo "${TG}== LOGGER_DEFAULT: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="error" && echo "${DF}** LOGGER_DEFAULT${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 LOGGER_MQTT ?= $(if $(wildcard LOGGER_MQTT),$(shell v=$$(cat LOGGER_MQTT) && echo "${TG}== LOGGER_MQTT: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="fatal" && echo "${DF}** LOGGER_MQTT${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
@@ -241,6 +244,7 @@ $(ACTIONS): necessary
 	  MOTION_POSE_DETECTED_NOTIFY="$(MOTION_POSE_DETECTED_NOTIFY)" \
 	  MOTION_POSE_DETECTED_SPEAK="$(MOTION_POSE_DETECTED_SPEAK)" \
 	  MOTION_POSE_DETECTED_TUNE="$(MOTION_POSE_DETECTED_TUNE)" \
+	  MOTION_REPOSITORY="$(MOTION_REPOSITORY)" \
 	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
 	  MOTION_TWILIO_NAME="$(MOTION_TWILIO_NAME)" \
 	  MOTION_TWILIO_NUMBER="$(MOTION_TWILIO_NUMBER)" \
@@ -341,6 +345,7 @@ homeassistant/setup.json: setup.json.tmpl
 	  MOTION_POSE_DETECTED_NOTIFY="$(MOTION_POSE_DETECTED_NOTIFY)" \
 	  MOTION_POSE_DETECTED_SPEAK="$(MOTION_POSE_DETECTED_SPEAK)" \
 	  MOTION_POSE_DETECTED_TUNE="$(MOTION_POSE_DETECTED_TUNE)" \
+	  MOTION_REPOSITORY="$(MOTION_REPOSITORY)" \
 	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
 	  MOTION_TWILIO_NAME="$(MOTION_TWILIO_NAME)" \
 	  MOTION_TWILIO_NUMBER="$(MOTION_TWILIO_NUMBER)" \
