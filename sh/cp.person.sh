@@ -51,3 +51,5 @@ find homeassistant/ -name "*.detected_${p}.yaml.tmpl" -print | while read; do co
 
 sed -e 's/PERSON/VEHICLE/g' -e 's/mdi:account/mdi:truck/' -e 's/cyan/gold/g' -e 's/person/vehicle/g' -e 's/Person/Vehicle/g' -e 's/👱/🚚/g' homeassistant/lovelace.person.json.tmpl > homeassistant/lovelace.vehicle.json.tmpl
 sed -e 's/PERSON/ANIMAL/g' -e 's/mdi:account/mdi:cow/' -e 's/cyan/chartreuse/g' -e 's/person/animal/g' -e 's/Person/Animal/g' -e 's/👱/🐄/g' homeassistant/lovelace.person.json.tmpl > homeassistant/lovelace.animal.json.tmpl
+
+sed -e 's/face/alpr/g' -e 's/FACE/ALPR/g' -e 's/PERSON/VEHICLE/g' -e 's/mdi:account/mdi:car/' -e 's/cyan/gold/g' -e 's/person/vehicle/g' -e 's/Person/Vehicle/g' -e 's/🙆/🚙/g' homeassistant/sensor/motion/person_face.yaml > homeassistant/sensor/motion/vehicle_alpr.yaml
