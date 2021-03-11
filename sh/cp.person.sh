@@ -46,4 +46,8 @@ function copyit()
 p='person'
 
 find homeassistant/ -name "detected_${p}.yaml" -print | while read; do copyit "${REPLY}"; done
+find homeassistant/ -name "detected_${p}_*.yaml" -print | while read; do copyit "${REPLY}"; done
 find homeassistant/ -name "*.detected_${p}.yaml.tmpl" -print | while read; do copyit "${REPLY}"; done
+
+sed -e 's/PERSON/VEHICLE/g' -e 's/mdi:account/mdi:truck/' -e 's/cyan/gold/g' -e 's/person/vehicle/g' -e 's/Person/Vehicle/g' -e 's/👱/🚚/g' homeassistant/lovelace.person.json.tmpl > homeassistant/lovelace.vehicle.json.tmpl
+sed -e 's/PERSON/ANIMAL/g' -e 's/mdi:account/mdi:cow/' -e 's/cyan/chartreuse/g' -e 's/person/animal/g' -e 's/Person/Animal/g' -e 's/👱/🐄/g' homeassistant/lovelace.person.json.tmpl > homeassistant/lovelace.animal.json.tmpl

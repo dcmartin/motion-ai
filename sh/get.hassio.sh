@@ -96,8 +96,6 @@ function docker_update()
     else
       echo "Did not find runtime: ${runtime}" &> /dev/stderr
     fi
-  else
-    echo "Did not find nVidia CUDA: ${nvcc}" &> /dev/stderr
   fi
   if [ "${restart:-false}" = 'true' ]; then
     echo "Restarting Docker" &> /dev/stderr
@@ -129,6 +127,14 @@ fi
 
 if [ -z "$(command -v jq)" ]; then
   echo 'Install jq; sudo apt install -qq -y jq' &> /dev/stderr
+  exit 1
+fi
+
+# test network
+
+alive=$(curl -fsqL -w '%{http_code}' --connect-timeout 2 --retry-connrefused --retry 10 --retry-max-time 2 --max-time 15 "https://version.home-assistant.io/stable.json" -o /dev/null 2> /dev/null || true)
+if [ "${alive:-}" != '200' ]; then
+  echo 'Unable to contact "https://version.home-assistant.io/stable.json"; is your DNS configured properly?' &> /dev/stderr
   exit 1
 fi
 
@@ -221,7 +227,7 @@ if [ "${0##*/}" == 'get.motion-ai.sh' ]; then
     if [ ! -z "${info:-}" ] && [ "${info}" != 'landingpage' ]; then break; fi
     if [ ${t:-0} -gt 30 ]; then break; fi
     echo -n "."
-    sleep 60
+    sleep 10
   done
 
   if [ ${t:-0} -ge 0 ]; then
@@ -230,7 +236,7 @@ if [ "${0##*/}" == 'get.motion-ai.sh' ]; then
       echo "Version of Home Assistant is ${info}"
     fi
   else
-    echo 'Problem installing Home Assistant; check with "ha core info" command' &> /dev/stderr
+    echo 'Problem installing Home Assistant; check with "ha core info" command; re-install with:' "${0%/*}/hassio-install.sh -d $(pwd -P) $(machine)" &> /dev/stderr
     exit 1
   fi
 

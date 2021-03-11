@@ -1,0 +1,47 @@
+###
+# homeassistant/automation/motion/camera_restart.yaml
+###
+
+- id: motion_reload
+  alias: motion_reload
+  mode: single
+  initial_state: off
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_reload
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+      - condition: template
+        value_template: >
+         {{ is_state('binary_sensor.motion_reload','on') }}
+      - condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_reloading','off') }}
+      - condition: template
+        value_template: >-
+          {% set s = states('sensor.motion_reload_command') %}
+          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null }}
+  action:   
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_reloading
+        state: 'on'
+    - service: shell_command.motion_reload
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_reloading
+        state: 'off'
+    - delay:
+        seconds: 5
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_reloaded
+        state: 'on'
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_reload
+        state: 'off'

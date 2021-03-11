@@ -5,6 +5,8 @@
 TIMESTAMP ?= $(shell date -u '%FT%TZ')
 THIS_HOSTIP ?= $(shell hostname -i | awk '{ print $$1 }')
 
+MOTION_REPOSITORY ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_REPOSITORY' setup.json) && echo "${TS}++ MOTION_REPOSITORY: $${v}${NC}" > /dev/stderr && echo "$${v}"), $(if $(wildcard MOTION_REPOSITORY),$(shell v=$$(cat MOTION_REPOSITORY) && echo "${TG}== MOTION_REPOSITORY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='https://github.com/motion-ai/motion-ai.git' && echo "${TB}** MOTION_REPOSITORY unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+
 # logging
 LOGGER_DEFAULT ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.LOGGER_DEFAULT' setup.json) && echo "${TS}++ LOGGER_DEFAULT: $${v}${NC}" > /dev/stderr && echo "$${v}"), $(if $(wildcard LOGGER_DEFAULT),$(shell v=$$(cat LOGGER_DEFAULT) && echo "${TG}== LOGGER_DEFAULT: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="warn" && echo "${TB}** LOGGER_DEFAULT unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 
@@ -34,7 +36,7 @@ HOST_LONGITUDE ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.HOST_LONGITUD
 MOTION_GROUP ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_GROUP' setup.json) && echo "${TS}++ MOTION_GROUP: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_GROUP),$(shell v=$$(cat MOTION_GROUP) && echo "${TG}== MOTION_GROUP: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='motion' && echo "${TB}** MOTION_GROUP unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 MOTION_DEVICE ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_DEVICE' setup.json) && echo "${TS}++ MOTION_DEVICE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_DEVICE),$(shell v=$$(cat MOTION_DEVICE) && echo "${TG}== MOTION_DEVICE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v=$$(echo $(HOST_NAME) | sed -e "s/-//g" -e "s/ /_/g") && echo "${TB}** MOTION_DEVICE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 MOTION_CLIENT ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_CLIENT' setup.json) && echo "${TS}++ MOTION_CLIENT: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_CLIENT),$(shell v=$$(cat MOTION_CLIENT) && echo "${TG}== MOTION_CLIENT: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='$(MOTION_DEVICE)' && echo "${TB}** MOTION_CLIENT unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
-MOTION_USER ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_USER' setup.json) && echo "${TS}++ MOTION_USER: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_USER),$(shell v=$$(cat MOTION_USER) && echo "${TG}== MOTION_USER: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v=$(shell whoami) && echo "${TB}** MOTION_USER unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+MOTION_USER ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_USER' setup.json) && echo "${TS}++ MOTION_USER: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_USER),$(shell v=$$(cat MOTION_USER) && echo "${TG}== MOTION_USER: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='none' && echo "${TB}** MOTION_USER unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 
 MOTION_ROUTER_NAME ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_ROUTER_NAME' setup.json) && echo "${TS}++ MOTION_ROUTER_NAME: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_ROUTER_NAME),$(shell v=$$(cat MOTION_ROUTER_NAME) && echo "${TG}== MOTION_ROUTER_NAME: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='mikrotik_router' && echo "${TB}** MOTION_ROUTER_NAME unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}")))
 
@@ -56,7 +58,7 @@ INFLUXDB_PASSWORD ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.INFLUXDB_P
 
 IPERF_HOST ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.IPERF_HOST' setup.json) && echo "${TS}++ IPERF_HOST: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard IPERF_HOST),$(shell v=$$(cat IPERF_HOST) && echo "${TG}== IPERF_HOST: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="$(IPERF_HOST)" && echo "${TB}** IPERF_HOST unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 
-MOTION_DETECT_ENTITY ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_DETECT_ENTITY' setup.json) && echo "${TS}++ MOTION_DETECT_ENTITY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_DETECT_ENTITY),$(shell v=$$(cat MOTION_DETECT_ENTITY) && echo "${TG}== MOTION_DETECT_ENTITY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="all" && echo "${TB}** MOTION_DETECT_ENTITY unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+MOTION_DETECT_ENTITY ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_DETECT_ENTITY' setup.json) && echo "${TS}++ MOTION_DETECT_ENTITY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_DETECT_ENTITY),$(shell v=$$(cat MOTION_DETECT_ENTITY) && echo "${TG}== MOTION_DETECT_ENTITY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="none" && echo "${TB}** MOTION_DETECT_ENTITY unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 MOTION_EXPIRE_AFTER ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_EXPIRE_AFTER' setup.json) && echo "${TS}++ MOTION_EXPIRE_AFTER: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_EXPIRE_AFTER),$(shell v=$$(cat MOTION_EXPIRE_AFTER) && echo "${TG}== MOTION_EXPIRE_AFTER: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="5" && echo "${TB}** MOTION_EXPIRE_AFTER unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 MOTION_FORCE_UPDATE ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_FORCE_UPDATE' setup.json) && echo "${TS}++ MOTION_FORCE_UPDATE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_FORCE_UPDATE),$(shell v=$$(cat MOTION_FORCE_UPDATE) && echo "${TG}== MOTION_FORCE_UPDATE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="false" && echo "${TB}** MOTION_FORCE_UPDATE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 MOTION_MEDIA_SAVE ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_MEDIA_SAVE' setup.json) && echo "${TS}++ MOTION_MEDIA_SAVE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_MEDIA_SAVE),$(shell v=$$(cat MOTION_MEDIA_SAVE) && echo "${TG}== MOTION_MEDIA_SAVE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="true" && echo "${TB}** MOTION_MEDIA_SAVE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
@@ -76,7 +78,8 @@ MOTION_OVERVIEW_MODE ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_
 MOTION_OVERVIEW_ZOOM ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_OVERVIEW_ZOOM' setup.json) && echo "${TS}++ MOTION_OVERVIEW_ZOOM: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_OVERVIEW_ZOOM),$(shell v=$$(cat MOTION_OVERVIEW_ZOOM) && echo "${TG}== MOTION_OVERVIEW_ZOOM: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="20" && echo "${TB}** MOTION_OVERVIEW_ZOOM unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 MOTION_OVERVIEW_IMAGE ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_OVERVIEW_IMAGE' setup.json) && echo "${TS}++ MOTION_OVERVIEW_IMAGE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_OVERVIEW_IMAGE),$(shell v=$$(cat MOTION_OVERVIEW_IMAGE) && echo "${TG}== MOTION_OVERVIEW_IMAGE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="overview.jpg" && echo "${TB}** MOTION_OVERVIEW_IMAGE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 
-MOTION_DETECTED_ENTITY ?= $(if $(wildcard MOTION_DETECTED_ENTITY),$(shell v=$$(cat MOTION_DETECTED_ENTITY) && echo "${TG}== MOTION_DETECTED_ENTITY: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='all' && echo "${DF}** MOTION_DETECTED_ENTITY${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_DETECTED_ENTITY ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_DETECTED_ENTITY' setup.json) && echo "${TS}++ MOTION_DETECTED_ENTITY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_DETECTED_ENTITY),$(shell v=$$(cat MOTION_DETECTED_ENTITY) && echo "${TG}== MOTION_DETECTED_ENTITY: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='none' && echo "${TB}** MOTION_DETECTED_ENTITY unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}")))
+
 MOTION_DETECTED_ENTITY_NOTIFY ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_DETECTED_ENTITY_NOTIFY' setup.json) && echo "${TS}++ MOTION_DETECTED_ENTITY_NOTIFY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_DETECTED_ENTITY_NOTIFY),$(shell v=$$(cat MOTION_DETECTED_ENTITY_NOTIFY) && echo "${TG}== MOTION_DETECTED_ENTITY_NOTIFY: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "${TB}** MOTION_DETECTED_ENTITY_NOTIFY unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}")))
 MOTION_DETECTED_PERSON_NOTIFY ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_DETECTED_PERSON_NOTIFY' setup.json) && echo "${TS}++ MOTION_DETECTED_PERSON_NOTIFY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_DETECTED_PERSON_NOTIFY),$(shell v=$$(cat MOTION_DETECTED_PERSON_NOTIFY) && echo "${TG}== MOTION_DETECTED_PERSON_NOTIFY: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "${TB}** MOTION_DETECTED_PERSON_NOTIFY unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}")))
 MOTION_DETECTED_VEHICLE_NOTIFY ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_DETECTED_VEHICLE_NOTIFY' setup.json) && echo "${TS}++ MOTION_DETECTED_VEHICLE_NOTIFY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_DETECTED_VEHICLE_NOTIFY),$(shell v=$$(cat MOTION_DETECTED_VEHICLE_NOTIFY) && echo "${TG}== MOTION_DETECTED_VEHICLE_NOTIFY: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "${TB}** MOTION_DETECTED_VEHICLE_NOTIFY unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}")))
@@ -173,7 +176,11 @@ LOVELACE_DASHBOARDS := $(shell for C in $(MOTION_DASHBOARDS); do echo lovelace.$
 
 default: all
 
-all: $(WEBCAMS) lovelace.json lovelace_dashboards.json ${LOVELACE_DASHBOARDS} $(MOTION_DIRS) $(PACKAGES) secrets.yaml images cameras
+all: chown $(WEBCAMS) lovelace.json lovelace_dashboards.json ${LOVELACE_DASHBOARDS} $(MOTION_DIRS) $(PACKAGES) secrets.yaml images cameras
+
+chown:
+	@echo "${MC}Making: $@${NC}"
+	@-if [ ! -z "$${USER:-}" ]; then sudo chown -R $${USER} $$(pwd -P); fi
 
 WEBCAMS := motion/webcams.json
 
@@ -182,59 +189,58 @@ $(WEBCAMS):
 	@-./motion/sh/mkwebcams.sh > $@
 
 CAMERAS := $(shell jq -r '.[].name' $(WEBCAMS))
-CAMERA_DIRS := $(shell for C in $(CAMERAS); do echo www/images/motion/$${C}; done)
 
 images:
 	@echo "${MC}Making: $@${NC}"
 	@-sudo mkdir -p $@
-	@-sudo cp -n www/images/test-signal.jpg www/images/motion/detected.jpg
-	@-sudo cp -n www/images/test-signal.gif www/images/motion/detected_animated.gif
-	@-sudo cp -n www/images/test-signal.gif www/images/motion/detected_animated_mask.gif
-	@-for e in entity person vehicle animal; do \
-	  sudo cp -n www/images/test-signal.jpg www/images/motion/detected_$${e}.jpg; \
-	  sudo cp -n www/images/test-signal.gif www/images/motion/detected_$${e}_animated.gif; \
-	  sudo cp -n www/images/test-signal.gif www/images/motion/detected_$${e}_animated_mask.gif; \
-	done
-	@-for e in face alpr pose; do \
-	  sudo cp -n www/images/test-signal.jpg www/images/motion/$${e}_detected.jpg; \
-	  sudo cp -n www/images/test-signal.gif www/images/motion/$${e}_detected_animated.gif; \
-	  sudo cp -n www/images/test-signal.gif www/images/motion/$${e}_detected_animated_mask.gif; \
-	done
-	@-for e in face person_face vehicle_alpr person_pose; do \
-	  sudo cp -n www/images/test-signal.jpg www/images/motion/$${e}.jpg; \
-	  sudo cp -n www/images/test-signal.jpg www/images/motion/$${e}_detected.jpg; \
-	  sudo cp -n www/images/test-signal.gif www/images/motion/$${e}_animated.gif; \
-	  sudo cp -n www/images/test-signal.gif www/images/motion/$${e}_animated_mask.gif; \
-	done
+#	@-sudo cp -n www/images/test-signal.jpg www/images/motion/detected.jpg
+#	@-sudo cp -n www/images/test-signal.gif www/images/motion/detected_animated.gif
+#	@-sudo cp -n www/images/test-signal.gif www/images/motion/detected_animated_mask.gif
+#	@-for e in entity person vehicle animal; do \
+#	  sudo cp -n www/images/test-signal.jpg www/images/motion/detected_$${e}.jpg; \
+#	  sudo cp -n www/images/test-signal.gif www/images/motion/detected_$${e}_animated.gif; \
+#	  sudo cp -n www/images/test-signal.gif www/images/motion/detected_$${e}_animated_mask.gif; \
+#	done
+#	@-for e in face alpr pose; do \
+#	  sudo cp -n www/images/test-signal.jpg www/images/motion/$${e}_detected.jpg; \
+#	  sudo cp -n www/images/test-signal.gif www/images/motion/$${e}_detected_animated.gif; \
+#	  sudo cp -n www/images/test-signal.gif www/images/motion/$${e}_detected_animated_mask.gif; \
+#	done
+#	@-for e in face person_face vehicle_alpr person_pose; do \
+#	  sudo cp -n www/images/test-signal.jpg www/images/motion/$${e}.jpg; \
+#	  sudo cp -n www/images/test-signal.jpg www/images/motion/$${e}_detected.jpg; \
+#	  sudo cp -n www/images/test-signal.gif www/images/motion/$${e}_animated.gif; \
+#	  sudo cp -n www/images/test-signal.gif www/images/motion/$${e}_animated_mask.gif; \
+#	done
 
-$(CAMERA_DIRS): $(WEBCAMS)
+www/images/motion/$(CAMERAS): $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
 	@-sudo mkdir -p $@
-	@-sudo cp -n www/images/test-signal.jpg $@/detected.jpg
-	@-sudo cp -n www/images/test-signal.gif $@/detected_animated.gif
-	@-sudo cp -n www/images/test-signal.gif $@/detected_animated_mask.gif
-	@-for e in entity person vehicle animal; do \
-	  sudo cp -n www/images/test-signal.gif $@/detected_$${e}_animated.gif; \
-	  sudo cp -n www/images/test-signal.gif $@/detected_$${e}_animated_mask.gif; \
-	  sudo cp -n www/images/test-signal.jpg $@/detected_$${e}.jpg; \
-	done
-	@-for e in face alpr pose; do \
-	  sudo cp -n www/images/test-signal.jpg $@/$${e}_detected.jpg; \
-	  sudo cp -n www/images/test-signal.gif $@/$${e}_detected_animated.gif; \
-	  sudo cp -n www/images/test-signal.gif $@/$${e}_detected_animated_mask.gif; \
-	done
-	@-for e in person_face vehicle_alpr person_pose; do \
-	  sudo cp -n www/images/test-signal.jpg $@/$${e}.jpg; \
-	  sudo cp -n www/images/test-signal.jpg $@/$${e}_detected.jpg; \
-	  sudo cp -n www/images/test-signal.gif $@/$${e}_animated.gif; \
-	  sudo cp -n www/images/test-signal.gif $@/$${e}_animated_mask.gif; \
-	done
+#	@-sudo cp -n www/images/test-signal.jpg $@/detected.jpg
+#	@-sudo cp -n www/images/test-signal.gif $@/detected_animated.gif
+#	@-sudo cp -n www/images/test-signal.gif $@/detected_animated_mask.gif
+#	@-for e in entity person vehicle animal; do \
+#	  sudo cp -n www/images/test-signal.gif $@/detected_$${e}_animated.gif; \
+#	  sudo cp -n www/images/test-signal.gif $@/detected_$${e}_animated_mask.gif; \
+#	  sudo cp -n www/images/test-signal.jpg $@/detected_$${e}.jpg; \
+#	done
+#	@-for e in face alpr pose; do \
+#	  sudo cp -n www/images/test-signal.jpg $@/$${e}_detected.jpg; \
+#	  sudo cp -n www/images/test-signal.gif $@/$${e}_detected_animated.gif; \
+#	  sudo cp -n www/images/test-signal.gif $@/$${e}_detected_animated_mask.gif; \
+#	done
+#	@-for e in person_face vehicle_alpr person_pose; do \
+#	  sudo cp -n www/images/test-signal.jpg $@/$${e}.jpg; \
+#	  sudo cp -n www/images/test-signal.jpg $@/$${e}_detected.jpg; \
+#	  sudo cp -n www/images/test-signal.gif $@/$${e}_animated.gif; \
+#	  sudo cp -n www/images/test-signal.gif $@/$${e}_animated_mask.gif; \
+#	done
 
 cameras: $(CAMERA_DIRS)
 
 $(MOTION_DIRS):
 	@-mkdir -p $@
-	@-sudo chown -R ${USER} $@
+	@-if [ ! -z "${USER:-}" ]; then sudo chown -R ${USER} $@; fi
 
 $(PACKAGES): makefile
 	@echo "${MC}Making: $@${NC}"
@@ -359,6 +365,7 @@ secrets.yaml: secrets.yaml.tmpl
           MOTION_POSE_DETECTED_NOTIFY="$(MOTION_POSE_DETECTED_NOTIFY)" \
           MOTION_POSE_DETECTED_SPEAK="$(MOTION_POSE_DETECTED_SPEAK)" \
           MOTION_POSE_DETECTED_TUNE="$(MOTION_POSE_DETECTED_TUNE)" \
+	  MOTION_REPOSITORY="$(MOTION_REPOSITORY)" \
 	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
           MOTION_TWILIO_NAME="$(MOTION_TWILIO_NAME)" \
           MOTION_TWILIO_NUMBER="$(MOTION_TWILIO_NUMBER)" \
@@ -509,7 +516,7 @@ logclean:
 	  && echo 'Attempting to remove log file (requires sudo): '"$${LOGPATH}" \
 	  && sudo LOGPATH=$${LOGPATH} /bin/rm -f $${LOGPATH}
 
-.PHONY: refresh neat tidy all default run stop logs restart clean realclean distclean $(PACKAGES) $(WEBCAMS) images cameras lovelace*.json $(MOTION_DIRS) secrets.yaml
+.PHONY: chown refresh neat tidy all default run stop logs restart clean realclean distclean $(PACKAGES) $(WEBCAMS) images cameras lovelace*.json $(MOTION_DIRS) secrets.yaml
 
 ##
 ## COLORS

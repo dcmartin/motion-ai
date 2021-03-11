@@ -1,0 +1,77 @@
+###
+## homeassistant/sensor/motion/addon_camera_restart.yaml
+###
+
+- platform: template
+  sensors:
+    motion_addon_camera_restart:
+      value_template: >-
+        {%- set s = state_attr('sensor.motion_addon_status','status') -%}
+        {% if s|lower !='none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+         {%- for i in s.daemons|sum(attribute="cameras",start=[])|selectattr("status","equalto",false)|map(attribute="camera")|list if i != null -%}
+            {%- if not loop.first -%},{%- endif -%}
+            {%- for w in states.switch if 'switch.camera_' + i == w.entity_id -%}
+              {{- w.entity_id -}}
+            {%- else -%}null
+            {%- endfor -%}
+          {%- else -%}null
+          {% endfor -%}
+        {%- else -%}null{%- endif -%}
+    motion_addon_camera_restart_count:
+      value_template: >-
+        {%- set s = states('sensor.motion_addon_camera_restart') -%}
+        {% if s|lower !='none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+          {{- s.split(',')|list|count -}}
+        {%- else -%}null{%- endif -%}
+    motion_addon_camera_restart_available:
+      value_template: >-
+        {%- set s = state_attr('sensor.motion_addon_status','status') -%}
+        {% if s|lower !='none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+         {%- for i in s.daemons|sum(attribute="cameras",start=[])|selectattr("status","equalto",false)|map(attribute="camera")|list if i != null -%}
+            {%- if not loop.first -%},{%- endif -%}
+            {%- for w in states.switch if 'switch.camera_' + i == w.entity_id and states(w.entity_id)|lower != 'unavailable' -%}
+              {{- w.entity_id -}}
+            {%- else -%}null
+            {%- endfor -%}
+          {%- else -%}null
+          {% endfor -%}
+        {%- else -%}null{%- endif -%}
+    motion_addon_camera_restart_available_count:
+      value_template: >-
+        {%- set s = states('sensor.motion_addon_camera_restart') -%}
+        {% if s|lower !='none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+          {{- s.split(',')|list|count -}}
+        {%- else -%}null{%- endif -%}
+    motion_addon_camera_restart_unavailable_count:
+      value_template: >-
+        {%- set s = states('sensor.motion_addon_camera_restart_count') -%}
+        {%- set a = states('sensor.motion_addon_camera_restart_available_count') -%}
+        {% if s|lower !='none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null'
+           and a|lower !='none' and a|lower != 'unavailable' and a|lower != 'unknown' and a|lower != 'null' %}
+          {{- s|int - a|int -}}
+        {%- else -%}null{%- endif -%}
+    motion_addon_camera_restart_unavailable:
+      friendly_name: 'Unavailable camera/switch(s)'
+      icon_template: >-
+        {%- if is_state('input_boolean.motion_addon_camera_restart','on') -%}
+          {%- if states('sensor.motion_addon_camera_restart_unavailable_count')|int > 0 -%}
+             {{- 'mdi:connection' -}}
+          {%- else -%}{{- 'mdi:power-plug' -}}{%- endif -%}
+        {%- else -%}{{- 'mdi:power-plug-off' -}}{%- endif -%}
+      value_template: >-
+        {%- set s = states('sensor.motion_addon_camera_restart') -%}
+        {% if s|lower !='none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+          {%- set s = s.split(',')|list -%}
+          {% if s|lower !='none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s is iterable and s|length > 0 %}
+            {%- set a = states('sensor.motion_addon_camera_restart_available') -%}
+            {% if a|lower !='none' and a|lower != 'unavailable' and a|lower != 'unknown' and a|lower != 'null' %}
+              {%- set a = a.split(',')|list -%}
+              {% if a|lower !='none' and a|lower != 'unavailable' and a|lower != 'unknown' and a|lower != 'null' and a is iterable and a|length > 0 %}
+                {% for i in s if i not in a %}
+                  {%- if not loop.first -%},{%- endif -%}
+                  {{- state_attr(i,'friendly_name') -}}
+                {%- else -%}no{% endfor %}
+              {%- else -%}none{%- endif -%}
+            {%- else -%}none{%- endif -%}
+          {%- else -%}off{%- endif -%}
+        {%- else -%}off{%- endif -%}

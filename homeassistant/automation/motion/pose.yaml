@@ -3,7 +3,6 @@
 ###
 
 ## counter 
-
 - id: motion_pose_counter
   alias: motion_pose_counter
   initial_state: on
@@ -17,10 +16,10 @@
   action:
     - service: counter.increment
       entity_id: counter.motion_pose_counter
-
-## update
-- id: motion_pose_camera_snapshot
-  alias: motion_pose_camera_snapshot
+ 
+## snapshot
+- id: motion_pose_snapshot
+  alias: motion_pose_snapshot
   initial_state: off
   trigger:
     platform: state
@@ -30,29 +29,34 @@
     conditions:
       - condition: template
         value_template: >-
-          {{ is_state('input_boolean.motion_snapshot_save','on') }}
+          {% set s = states('sensor.motion_pose_camera') %}
+          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'unknown' }}
+      - condition: template
+        value_template: >-
+          {% set s = states('sensor.motion_pose_count') %}
+          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'unknown' and s|int > 0 }}
+      - condition: template
+        value_template: >-
+          {% set ep = state_attr('camera.motion_' + states('sensor.motion_pose_camera') + '_event_pose','entity_picture') %}
+          {{ ep is none or ep|lower == 'unavailable' or ep|lower == 'none' or ep|lower == 'unknown' }}
       - condition: template
         value_template: >-
           {% set s = states('camera.motion_event_pose') %}
-          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'unknown' %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'unknown' %}
             {% set ep = state_attr('camera.motion_event_pose','entity_picture') %}
-            {{ ep|lower != 'none' and ep|lower != 'unavailable' and ep|lower != 'none' and ep|lower != 'unknown' }}
+            {{ ep|lower != 'none' and ep|lower != 'unavailable' and ep|lower != 'null' and ep|lower != 'unknown' }}
           {% else %}false{% endif %}
   action:
     # pose
     - service: camera.snapshot
       data_template:
         entity_id: >-
-          {% if states('sensor.motion_pose_count')|int > 0 %}
-            {{ 'camera.motion_event_pose' }}
-          {% else %}
-            {{ 'camera.motion_nosignal' }}
-          {% endif %}
+          {{ 'camera.motion_event_pose' }}
         filename: >-
-          {{ '/config/www/images/motion/pose.jpg' }}
+          {{ '/config/www/images/motion/' + states('sensor.motion_pose_camera') + '/pose.jpg' }}
     - service: local_file.update_file_path
       data_template:
         entity_id: >-
           {{ 'camera.motion_pose' }}
         file_path: >-
-          {{ '/config/www/images/motion/pose.jpg' }}
+          {{ '/config/www/images/motion/' + states('sensor.motion_pose_camera') + '/pose.jpg' }}

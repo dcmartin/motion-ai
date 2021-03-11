@@ -5,6 +5,9 @@
 TIMESTAMP := $(shell date -u +'%FT%TZ')
 THIS_HOSTIP := $(shell hostname -I | awk '{ print $$1 }')
 
+# repository
+MOTION_REPOSITORY ?= $(if $(wildcard MOTION_REPOSITORY),$(shell v=$$(cat MOTION_REPOSITORY) && echo "${TG}== MOTION_REPOSITORY: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='http://github.com/motion-ai/motion-ai.git' && echo "${DF}** MOTION_REPOSITORY${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+	#
 # logging
 LOGGER_DEFAULT ?= $(if $(wildcard LOGGER_DEFAULT),$(shell v=$$(cat LOGGER_DEFAULT) && echo "${TG}== LOGGER_DEFAULT: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="error" && echo "${DF}** LOGGER_DEFAULT${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 LOGGER_MQTT ?= $(if $(wildcard LOGGER_MQTT),$(shell v=$$(cat LOGGER_MQTT) && echo "${TG}== LOGGER_MQTT: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="fatal" && echo "${DF}** LOGGER_MQTT${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
@@ -43,8 +46,8 @@ IPERF_HOST ?= $(if $(wildcard IPERF_HOST),$(shell v=$$(cat IPERF_HOST) && echo "
 MOTION_GROUP ?= $(if $(wildcard MOTION_GROUP),$(shell v=$$(cat MOTION_GROUP) && echo "${TG}== MOTION_GROUP: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='motion' && echo "${DF}** MOTION_GROUP${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_DEVICE ?= $(if $(wildcard MOTION_DEVICE),$(shell v=$$(cat MOTION_DEVICE) && echo "${TG}== MOTION_DEVICE: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v=$$(echo $(HOST_NAME) | sed -e "s/-//g" -e "s/ /_/g") && echo "${DF}** MOTION_DEVICE${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_CLIENT ?= $(if $(wildcard MOTION_CLIENT),$(shell v=$$(cat MOTION_CLIENT) && echo "${TG}== MOTION_CLIENT: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='$(MOTION_DEVICE)' && echo "${DF}** MOTION_CLIENT${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
-MOTION_USER ?= $(if $(wildcard MOTION_USER),$(shell v=$$(cat MOTION_USER) && echo "${TG}== MOTION_USER: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v=$(shell whoami) && echo "${DF}** MOTION_USER${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
-MOTION_DETECT_ENTITY ?= $(if $(wildcard MOTION_DETECT_ENTITY),$(shell v=$$(cat MOTION_DETECT_ENTITY) && echo "${TG}== MOTION_DETECT_ENTITY: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='all' && echo "${DF}** MOTION_DETECT_ENTITY${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_USER ?= $(if $(wildcard MOTION_USER),$(shell v=$$(cat MOTION_USER) && echo "${TG}== MOTION_USER: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='none' && echo "${DF}** MOTION_USER${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_DETECT_ENTITY ?= $(if $(wildcard MOTION_DETECT_ENTITY),$(shell v=$$(cat MOTION_DETECT_ENTITY) && echo "${TG}== MOTION_DETECT_ENTITY: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='none' && echo "${DF}** MOTION_DETECT_ENTITY${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_MEDIA_SAVE ?= $(if $(wildcard MOTION_MEDIA_SAVE),$(shell v=$$(cat MOTION_MEDIA_SAVE) && echo "${TG}== MOTION_MEDIA_SAVE: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "${DF}** MOTION_MEDIA_SAVE${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_MEDIA_MASK ?= $(if $(wildcard MOTION_MEDIA_MASK),$(shell v=$$(cat MOTION_MEDIA_MASK) && echo "${TG}== MOTION_MEDIA_MASK: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${DF}** MOTION_MEDIA_MASK${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 
@@ -68,9 +71,13 @@ MOTION_DETECTED_ENTITY_NOTIFY ?= $(if $(wildcard MOTION_DETECTED_ENTITY_NOTIFY),
 MOTION_DETECTED_PERSON_NOTIFY ?= $(if $(wildcard MOTION_DETECTED_PERSON_NOTIFY),$(shell v=$$(cat MOTION_DETECTED_PERSON_NOTIFY) && echo "${TG}== MOTION_DETECTED_PERSON_NOTIFY: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "${DF}** MOTION_DETECTED_PERSON_NOTIFY${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_DETECTED_VEHICLE_NOTIFY ?= $(if $(wildcard MOTION_DETECTED_VEHICLE_NOTIFY),$(shell v=$$(cat MOTION_DETECTED_VEHICLE_NOTIFY) && echo "${TG}== MOTION_DETECTED_VEHICLE_NOTIFY: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "${DF}** MOTION_DETECTED_VEHICLE_NOTIFY${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_DETECTED_ANIMAL_NOTIFY ?= $(if $(wildcard MOTION_DETECTED_ANIMAL_NOTIFY),$(shell v=$$(cat MOTION_DETECTED_ANIMAL_NOTIFY) && echo "${TG}== MOTION_DETECTED_ANIMAL_NOTIFY: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='true' && echo "${DF}** MOTION_DETECTED_ANIMAL_NOTIFY${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
-MOTION_FACE_DETECTED ?= $(if $(wildcard MOTION_FACE_DETECTED),$(shell v=$$(cat MOTION_FACE_DETECTED) && echo "${TG}== MOTION_FACE_DETECTED: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='all' && echo "${DF}** MOTION_FACE_DETECTED${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
-MOTION_ALPR_DETECTED ?= $(if $(wildcard MOTION_ALPR_DETECTED),$(shell v=$$(cat MOTION_ALPR_DETECTED) && echo "${TG}== MOTION_ALPR_DETECTED: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='all' && echo "${DF}** MOTION_ALPR_DETECTED${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
-MOTION_POSE_DETECTED ?= $(if $(wildcard MOTION_POSE_DETECTED),$(shell v=$$(cat MOTION_POSE_DETECTED) && echo "${TG}== MOTION_POSE_DETECTED: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='all' && echo "${DF}** MOTION_POSE_DETECTED${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+
+MOTION_FACE_DETECTED_NOTIFY ?= $(if $(wildcard MOTION_FACE_DETECTED_NOTIFY),$(shell v=$$(cat MOTION_FACE_DETECTED_NOTIFY) && echo "${TG}== MOTION_FACE_DETECTED_NOTIFY: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${DF}** MOTION_FACE_DETECTED_NOTIFY${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_ALPR_DETECTED_NOTIFY ?= $(if $(wildcard MOTION_ALPR_DETECTED_NOTIFY),$(shell v=$$(cat MOTION_ALPR_DETECTED_NOTIFY) && echo "${TG}== MOTION_ALPR_DETECTED_NOTIFY: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${DF}** MOTION_ALPR_DETECTED_NOTIFY${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_POSE_DETECTED_NOTIFY ?= $(if $(wildcard MOTION_POSE_DETECTED_NOTIFY),$(shell v=$$(cat MOTION_POSE_DETECTED_NOTIFY) && echo "${TG}== MOTION_POSE_DETECTED_NOTIFY: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${DF}** MOTION_POSE_DETECTED_NOTIFY${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+
+MOTION_ALPR_DETECTED ?= $(if $(wildcard MOTION_ALPR_DETECTED),$(shell v=$$(cat MOTION_ALPR_DETECTED) && echo "${TG}== MOTION_ALPR_DETECTED: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${DF}** MOTION_ALPR_DETECTED${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_POSE_DETECTED ?= $(if $(wildcard MOTION_POSE_DETECTED),$(shell v=$$(cat MOTION_POSE_DETECTED) && echo "${TG}== MOTION_POSE_DETECTED: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${DF}** MOTION_POSE_DETECTED${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 
 MOTION_DETECTED_ENTITY_SPEAK ?= $(if $(wildcard MOTION_DETECTED_ENTITY_SPEAK),$(shell v=$$(cat MOTION_DETECTED_ENTITY_SPEAK) && echo "${TG}== MOTION_DETECTED_ENTITY_SPEAK: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${DF}** MOTION_DETECTED_ENTITY_SPEAK${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_DETECTED_PERSON_SPEAK ?= $(if $(wildcard MOTION_DETECTED_PERSON_SPEAK),$(shell v=$$(cat MOTION_DETECTED_PERSON_SPEAK) && echo "${TG}== MOTION_DETECTED_PERSON_SPEAK: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${DF}** MOTION_DETECTED_PERSON_SPEAK${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
@@ -237,6 +244,7 @@ $(ACTIONS): necessary
 	  MOTION_POSE_DETECTED_NOTIFY="$(MOTION_POSE_DETECTED_NOTIFY)" \
 	  MOTION_POSE_DETECTED_SPEAK="$(MOTION_POSE_DETECTED_SPEAK)" \
 	  MOTION_POSE_DETECTED_TUNE="$(MOTION_POSE_DETECTED_TUNE)" \
+	  MOTION_REPOSITORY="$(MOTION_REPOSITORY)" \
 	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
 	  MOTION_TWILIO_NAME="$(MOTION_TWILIO_NAME)" \
 	  MOTION_TWILIO_NUMBER="$(MOTION_TWILIO_NUMBER)" \
@@ -337,6 +345,7 @@ homeassistant/setup.json: setup.json.tmpl
 	  MOTION_POSE_DETECTED_NOTIFY="$(MOTION_POSE_DETECTED_NOTIFY)" \
 	  MOTION_POSE_DETECTED_SPEAK="$(MOTION_POSE_DETECTED_SPEAK)" \
 	  MOTION_POSE_DETECTED_TUNE="$(MOTION_POSE_DETECTED_TUNE)" \
+	  MOTION_REPOSITORY="$(MOTION_REPOSITORY)" \
 	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
 	  MOTION_TWILIO_NAME="$(MOTION_TWILIO_NAME)" \
 	  MOTION_TWILIO_NUMBER="$(MOTION_TWILIO_NUMBER)" \
@@ -356,7 +365,36 @@ homeassistant/setup.json: setup.json.tmpl
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	&& cat $< | envsubst > $@
 
-.PHONY: ${MEDIA} necessary all default run stop logs restart tidy clean realclean distclean $(PACKAGES) homeassistant/motion/webcams.json homeassistant/setup.json
+.PHONY: ${MEDIA} necessary all default run stop logs restart tidy clean realclean distclean $(PACKAGES) homeassistant/motion/webcams.json homeassistant/setup.json allclean
+
+allclean: distclean
+	@echo "${MC}Making: $@${NC}"
+	@-sudo rm -fr MOTIONCAM_* NETCAM_* MOTION_* LOGGER_* MQTT_* YOLO_* LOG_LEVEL DEBUG
+	@-sudo rm -fr *.sh.json
+	@-sudo rm -fr \
+	  addons \
+	  addons.json \
+	  apparmor \
+	  audio \
+	  audio.json \
+	  backup \
+	  cli.json \
+	  config.json \
+	  discovery.json \
+	  dns \
+	  dns.json \
+	  get.docker.sh \
+	  homeassistant.json \
+	  ingress.json \
+	  media \
+	  multicast.json \
+	  observer.json \
+	  services.json \
+	  share \
+	  ssl \
+	  tmp \
+	  updater.json \
+	  install.log
 
 ##
 ## COLORS
