@@ -275,16 +275,16 @@ git merge upstream/master
 
 Language|files|blank|comment|code
 :-------|-------:|-------:|-------:|-------:
-YAML|308|1709|1636|27069
-JSON|1198|1|0|3399
-Bourne Shell|48|511|279|2540
-Markdown|10|310|0|1139
+YAML|366|2437|1932|37667
+JSON|12|0|0|5570
+Python|94|996|494|4447
 Jupyter Notebook|1|0|1020|927
-make|3|135|81|866
-Python|6|51|36|299
-HTML|1|19|1|89
+make|2|126|95|750
+Bourne Shell|4|25|24|116
+Markdown|1|9|0|29
+JavaScript|1|0|0|7
 --------|--------|--------|--------|--------
-SUM:|1575|2736|3053|36328
+SUM:|481|3593|3565|49513
 
 <img src="http://clustrmaps.com/map_v2.png?cl=ffffff&w=a&t=n&d=8TDxxKn9npMT6_70gwlS3FcPjhdcBm5j4LskwHzTO5U" width="1">
 
