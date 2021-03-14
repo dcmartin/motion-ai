@@ -41,7 +41,7 @@ The following two (2) sets of commands will install `motion-ai` on the following
 + Ubuntu18.04 or Debian10 VM (`amd64`); 2GB, 2vCPU recommended
 + nVidia Jetson Nano (`arm64`); 4GB required
 
-The initial configuration presumes a locally attached camera on `/dev/video0`.  Reboot the system after completion; for example:
+Run the following commands to update the system, install pre-requisites, and then clone and install.  Reboot the system after completion; for example:
 
 ```
 sudo apt update -qq -y
@@ -52,7 +52,7 @@ sudo ./sh/get.motion-ai.sh
 sudo reboot
 ```
 
-When the system reboots install the official MQTT broker (aka `core-mosquitto`) and Motion Classic (aka `motion-video0`) _add-ons_ using the Home Assistant Add-on Store (n.b. Motion Classic add-on may be accessed by adding the repository [http://github.com/dcmartin/hassio-addons](http://github.com/dcmartin/hassio-addons) to the Add-On Store.
+When the system reboots install the official MQTT broker (aka `core-mosquitto`) and Motion Classic (aka `motion-video0`) _add-ons_ using the Home Assistant Add-on Store (n.b. Motion Classic add-on may be accessed by adding the repository [http://github.com/motion-ai/addons](http://github.com/motion-ai/addons) to the Add-On Store.
 
 Select, install, configure and start each add-on (see below).  When both add-ons are running, return to the command-line and start the AI's.  After the MQTT and Motion Classic addons have started, run the `make restart` command to synchroize the Home Assistant configuration with the Motion Classic add-on, for example:
 
