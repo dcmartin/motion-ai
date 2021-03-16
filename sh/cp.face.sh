@@ -22,8 +22,8 @@ function copyit()
       uom='🚘'
       icon='license'
     elif [ "${t}" = 'pose' ]; then
-      uom='🚶'
-      icon='walk'
+      uom='🧍'
+      icon='human'
     else 
       echo "ERROR: no such element: ${t}"
       exit 1
