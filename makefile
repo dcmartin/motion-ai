@@ -61,6 +61,8 @@ MOTION_TWILIO_NUMBER ?= $(if $(wildcard MOTION_TWILIO_NUMBER),$(shell v=$$(cat M
 MOTION_TWILIO_SID ?= $(if $(wildcard MOTION_TWILIO_SID),$(shell v=$$(cat MOTION_TWILIO_SID) && echo "${TG}== MOTION_TWILIO_SID: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='none' && echo "${DF}** MOTION_TWILIO_SID${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_TWILIO_TOKEN ?= $(if $(wildcard MOTION_TWILIO_TOKEN),$(shell v=$$(cat MOTION_TWILIO_TOKEN) && echo "${TG}== MOTION_TWILIO_TOKEN: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='none' && echo "${DF}** MOTION_TWILIO_TOKEN${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 
+MOTION_W3W_APIKEY ?= $(if $(wildcard MOTION_W3W_APIKEY),$(shell v=$$(cat MOTION_W3W_APIKEY) && echo "${TG}== MOTION_W3W_APIKEY: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='none' && echo "${DF}** MOTION_W3W_APIKEY${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+
 MOTION_OVERVIEW_APIKEY ?= $(if $(wildcard MOTION_OVERVIEW_APIKEY),$(shell v=$$(cat MOTION_OVERVIEW_APIKEY) && echo "${TG}== MOTION_OVERVIEW_APIKEY: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='none' && echo "${DF}** MOTION_OVERVIEW_APIKEY${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_OVERVIEW_MODE ?= $(if $(wildcard MOTION_OVERVIEW_MODE),$(shell v=$$(cat MOTION_OVERVIEW_MODE) && echo "${TG}== MOTION_OVERVIEW_MODE: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='local' && echo "${DF}** MOTION_OVERVIEW_MODE${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_OVERVIEW_ZOOM ?= $(if $(wildcard MOTION_OVERVIEW_ZOOM),$(shell v=$$(cat MOTION_OVERVIEW_ZOOM) && echo "${TG}== MOTION_OVERVIEW_ZOOM: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='20' && echo "${DF}** MOTION_OVERVIEW_ZOOM${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
@@ -235,6 +237,7 @@ $(ACTIONS): necessary
 	  MOTION_GROUP="$(MOTION_GROUP)" \
 	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
 	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
+	  MOTION_W3W_APIKEY="$(MOTION_W3W_APIKEY)" \
 	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
 	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
 	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
@@ -336,6 +339,7 @@ homeassistant/setup.json: setup.json.tmpl
 	  MOTION_GROUP="$(MOTION_GROUP)" \
 	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
 	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
+	  MOTION_W3W_APIKEY="$(MOTION_W3W_APIKEY)" \
 	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
 	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
 	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
