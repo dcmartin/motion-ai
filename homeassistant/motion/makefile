@@ -103,6 +103,8 @@ MOTION_YAML := \
 	automation/internet_publish.yaml \
 	automation/intranet_publish.yaml \
 	automation/camera_notify.yaml \
+	automation/device_start.yaml \
+	binary_sensor/device_start.yaml \
 	sensor/event_start.yaml \
 	sensor/event_image.yaml \
 	sensor/event_end.yaml \
