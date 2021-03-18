@@ -30,23 +30,15 @@ WEBCAMS_JSON := webcams.json
 WEBCAMS := $(shell jq -r '.[].name' $(WEBCAMS_JSON) | sort | uniq)
 
 # WEBCAM components
+WEBCAM_AUTOMATIONS := $(shell for C in $(WEBCAMS); do echo automation/webcam-$${C}.yaml; done)
+WEBCAM_BINARY_SENSORS := $(shell for C in $(WEBCAMS); do echo binary_sensor/webcam-$${C}.yaml; done)
+WEBCAM_COUNTERS := $(shell for C in $(WEBCAMS); do echo counter/webcam-$${C}.yaml; done)
+WEBCAM_CAMERAS := $(shell for C in $(WEBCAMS); do echo camera/webcam-$${C}.yaml; done)
 WEBCAM_IMAGE_PROCESSINGS := $(shell for C in $(WEBCAMS); do echo image_processing/webcam-$${C}.yaml; done)
 WEBCAM_INPUT_BOOLEANS := $(shell for C in $(WEBCAMS); do echo input_boolean/webcam-$${C}.yaml; done)
 WEBCAM_INPUT_SELECTS := $(shell for C in $(WEBCAMS); do echo input_select/webcam-$${C}.yaml; done)
 WEBCAM_SENSORS := $(shell for C in $(WEBCAMS); do echo sensor/webcam-$${C}.yaml; done)
 WEBCAM_SHELL_COMMANDS := $(shell for C in $(WEBCAMS); do echo shell_command/webcam-$${C}.yaml; done)
-
-# WEBCAM templates
-WEBCAM_BINARY_SENSOR_TEMPLATE := binary_sensor.webcam.yaml.tmpl
-WEBCAM_CAMERA_TEMPLATE := camera.webcam.yaml.tmpl
-WEBCAM_COUNTER_TEMPLATE := counter.webcam.yaml.tmpl
-WEBCAM_GRAPH_TEMPLATE := history_graph.webcam.yaml.tmpl
-WEBCAM_GROUP_TEMPLATE := group.webcam.yaml.tmpl
-WEBCAM_IMAGE_PROCESSING_TEMPLATE := image_processing.webcam.yaml.tmpl
-WEBCAM_INPUT_BOOLEAN_TEMPLATE := input_boolean.webcam.yaml.tmpl
-WEBCAM_INPUT_SELECT_TEMPLATE := input_select.webcam.yaml.tmpl
-WEBCAM_SENSOR_TEMPLATE := sensor.webcam.yaml.tmpl
-WEBCAM_SHELL_COMMAND_TEMPLATE := shell_command.webcam.yaml.tmpl
 
 ##
 ## HIGHLOW
@@ -226,6 +218,8 @@ WEBCAM_SENSOR_DETECTORS: $(WEBCAM_SENSOR_DETECTOR_TEMPLATES) ${WEBCAMS_JSON}
 	    export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	    export MOTION_CLIENT="$(MOTION_CLIENT)"; \
 	    export MOTION_CAMERA_ICON=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.icon?" $(WEBCAMS_JSON)); \
+	    export MOTION_CAMERA_LATITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.latitude?' $(WEBCAMS_JSON)); \
+	    export MOTION_CAMERA_LONGITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.longitude?' $(WEBCAMS_JSON)); \
 	    cat $${tmpl} | envsubst > $${v}; \
 	  done; \
 	done
@@ -244,13 +238,15 @@ WEBCAM_AUTOMATION_DETECTORS: $(WEBCAM_AUTOMATION_DETECTOR_TEMPLATES) ${WEBCAMS_J
 	    export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	    export MOTION_CLIENT="$(MOTION_CLIENT)"; \
 	    export MOTION_CAMERA_ICON=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.icon?" $(WEBCAMS_JSON)); \
+	    export MOTION_CAMERA_LATITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.latitude?' $(WEBCAMS_JSON)); \
+	    export MOTION_CAMERA_LONGITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.longitude?' $(WEBCAMS_JSON)); \
 	    cat $${tmpl} | envsubst > $${v}; \
 	  done; \
 	done
 
 WEBCAM_CAMERAS: $(WEBCAM_CAMERA_TEMPLATE) ${WEBCAMS_JSON}
 	@echo "Making $@"
-	@for i in $(shell for C in $(WEBCAMS); do echo "camera/webcam-$${C}.yaml"; done); do \
+	@for i in $(WEBCAM_CAMERAS); do \
 	  export TARGET="$${i}"; \
 	  export MOTION_CAMERA="$${TARGET%%.*}"; \
 	  export MOTION_CAMERA="$${MOTION_CAMERA##*-}"; \
@@ -258,6 +254,8 @@ WEBCAM_CAMERAS: $(WEBCAM_CAMERA_TEMPLATE) ${WEBCAMS_JSON}
 	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
 	  export MOTION_CAMERA_ICON=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.icon?" $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_LATITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.latitude?' $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_LONGITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.longitude?' $(WEBCAMS_JSON)); \
 	  export MOTION_CAMERA_MJPEG=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.mjpeg_url?" $(WEBCAMS_JSON)); \
 	  export MOTION_CAMERA_STILL=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.still_image_url?" $(WEBCAMS_JSON)); \
 	  VAL=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.username?" $(WEBCAMS_JSON)); \
@@ -269,7 +267,7 @@ WEBCAM_CAMERAS: $(WEBCAM_CAMERA_TEMPLATE) ${WEBCAMS_JSON}
 
 WEBCAM_AUTOMATIONS: $(WEBCAM_AUTOMATION_TEMPLATE) ${WEBCAMS_JSON}
 	@echo "Making $@"
-	@for i in $(shell for C in $(WEBCAMS); do echo "automation/webcam-$${C}.yaml"; done); do \
+	@for i in $(WEBCAM_AUTOMATIONS); do \
 	  export TARGET="$${i}"; \
 	  export MOTION_CAMERA="$${TARGET%%.*}"; \
 	  export MOTION_CAMERA="$${MOTION_CAMERA##*-}"; \
@@ -277,12 +275,14 @@ WEBCAM_AUTOMATIONS: $(WEBCAM_AUTOMATION_TEMPLATE) ${WEBCAMS_JSON}
 	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
 	  export MOTION_CAMERA_ICON=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.icon?" $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_LATITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.latitude?' $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_LONGITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.longitude?' $(WEBCAMS_JSON)); \
 	  cat $(WEBCAM_AUTOMATION_TEMPLATE) | envsubst > $${i}; \
 	done
 
 WEBCAM_BINARY_SENSORS: $(WEBCAM_BINARY_SENSOR_TEMPLATE) ${WEBCAMS_JSON}
 	@echo "Making $@"
-	@for i in $(shell for C in $(WEBCAMS); do echo "binary_sensor/webcam-$${C}.yaml"; done); do \
+	@for i in $(WEBCAM_BINARY_SENSORS); do \
 	  export TARGET="$${i}"; \
 	  export MOTION_CAMERA="$${TARGET%%.*}"; \
 	  export MOTION_CAMERA="$${MOTION_CAMERA##*-}"; \
@@ -290,12 +290,14 @@ WEBCAM_BINARY_SENSORS: $(WEBCAM_BINARY_SENSOR_TEMPLATE) ${WEBCAMS_JSON}
 	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
 	  export MOTION_CAMERA_ICON=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.icon?" $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_LATITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.latitude?' $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_LONGITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.longitude?' $(WEBCAMS_JSON)); \
 	  cat $(WEBCAM_BINARY_SENSOR_TEMPLATE) | envsubst > $${i}; \
 	done
 
 WEBCAM_COUNTERS: $(WEBCAM_COUNTER_TEMPLATE) ${WEBCAMS_JSON}
 	@echo "Making $@"
-	@for i in $(shell for C in $(WEBCAMS); do echo "counter/webcam-$${C}.yaml"; done); do \
+	@for i in $(WEBCAM_COUNTERS); do \
 	  export TARGET="$${i}"; \
 	  export MOTION_CAMERA=$${TARGET%%.*}; \
 	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
@@ -303,12 +305,15 @@ WEBCAM_COUNTERS: $(WEBCAM_COUNTER_TEMPLATE) ${WEBCAMS_JSON}
 	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
 	  export MOTION_CAMERA_ICON=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.icon?" $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_LATITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.latitude?' $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_LONGITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.longitude?' $(WEBCAMS_JSON)); \
 	  cat $(WEBCAM_COUNTER_TEMPLATE) | envsubst > $${i}; \
 	done
 
+
 WEBCAM_SENSORS: $(WEBCAM_SENSOR_TEMPLATE) ${WEBCAMS_JSON}
 	@echo "Making $@"
-	@for i in $(shell for C in $(WEBCAMS); do echo "sensor/webcam-$${C}.yaml"; done); do \
+	@for i in $(WEBCAM_SENSORS); do \
 	  export TARGET="$${i}"; \
 	  export MOTION_CAMERA=$${TARGET%%.*}; \
 	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
@@ -316,12 +321,14 @@ WEBCAM_SENSORS: $(WEBCAM_SENSOR_TEMPLATE) ${WEBCAMS_JSON}
 	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
 	  export MOTION_CAMERA_ICON=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.icon?" $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_LATITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.latitude?' $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_LONGITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.longitude?' $(WEBCAMS_JSON)); \
 	  cat $(WEBCAM_SENSOR_TEMPLATE) | envsubst > $${i}; \
 	done
 
 WEBCAM_INPUT_BOOLEANS: $(WEBCAM_INPUT_BOOLEAN_TEMPLATE) ${WEBCAMS_JSON}
 	@echo "Making $@"
-	@for i in $(shell for C in $(WEBCAMS); do echo "input_boolean/webcam-$${C}.yaml"; done); do \
+	@for i in $(WEBCAM_INPUT_BOOLEANS); do \
 	  export TARGET="$${i}"; \
 	  export MOTION_CAMERA=$${TARGET%%.*}; \
 	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
@@ -329,12 +336,14 @@ WEBCAM_INPUT_BOOLEANS: $(WEBCAM_INPUT_BOOLEAN_TEMPLATE) ${WEBCAMS_JSON}
 	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
 	  export MOTION_CAMERA_ICON=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.icon?" $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_LATITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.latitude?' $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_LONGITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.longitude?' $(WEBCAMS_JSON)); \
 	  cat $(WEBCAM_INPUT_BOOLEAN_TEMPLATE) | envsubst > $${i}; \
 	done
 
 WEBCAM_INPUT_SELECTS: $(WEBCAM_INPUT_SELECT_TEMPLATE) ${WEBCAMS_JSON}
 	@echo "Making $@"
-	@for i in $(shell for C in $(WEBCAMS); do echo "input_select/webcam-$${C}.yaml"; done); do \
+	@for i in $(WEBCAM_INPUT_SELECTS); do \
 	  export TARGET="$${i}"; \
 	  export MOTION_CAMERA=$${TARGET%%.*}; \
 	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
@@ -342,12 +351,14 @@ WEBCAM_INPUT_SELECTS: $(WEBCAM_INPUT_SELECT_TEMPLATE) ${WEBCAMS_JSON}
 	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
 	  export MOTION_CAMERA_ICON=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.icon?" $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_LATITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.latitude?' $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_LONGITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.longitude?' $(WEBCAMS_JSON)); \
 	  cat $(WEBCAM_INPUT_SELECT_TEMPLATE) | envsubst > $${i}; \
 	done
 
 WEBCAM_SHELL_COMMANDS: $(WEBCAM_SHELL_COMMAND_TEMPLATE) ${WEBCAMS_JSON}
 	@echo "Making $@"
-	@for i in $(shell for C in $(WEBCAMS); do echo "shell_command/webcam-$${C}.yaml"; done); do \
+	@for i in $(WEBCAM_SHELL_COMMANDS); do \
 	  export TARGET="$${i}"; \
 	  export MOTION_CAMERA=$${TARGET%%.*}; \
 	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
@@ -355,12 +366,14 @@ WEBCAM_SHELL_COMMANDS: $(WEBCAM_SHELL_COMMAND_TEMPLATE) ${WEBCAMS_JSON}
 	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
 	  export MOTION_CAMERA_ICON=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.icon?" $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_LATITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.latitude?' $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_LONGITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.longitude?' $(WEBCAMS_JSON)); \
 	  cat $(WEBCAM_SHELL_COMMAND_TEMPLATE) | envsubst > $${i}; \
 	done
 
 WEBCAM_IMAGE_PROCESSINGS: $(WEBCAM_IMAGE_PROCESSING_TEMPLATE) ${WEBCAMS_JSON}
 	@echo "Making $@"
-	@for i in $(shell for C in $(WEBCAMS); do echo "image_processing/webcam-$${C}.yaml"; done); do \
+	@for i in $(WEBCAM_IMAGE_PROCESSINGS); do \
 	  export TARGET="$${i}"; \
 	  export MOTION_CAMERA=$${TARGET%%.*}; \
 	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
@@ -368,6 +381,8 @@ WEBCAM_IMAGE_PROCESSINGS: $(WEBCAM_IMAGE_PROCESSING_TEMPLATE) ${WEBCAMS_JSON}
 	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
 	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
 	  export MOTION_CAMERA_ICON=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.icon?" $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_LATITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.latitude?' $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_LONGITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.longitude?' $(WEBCAMS_JSON)); \
 	  cat $(WEBCAM_IMAGE_PROCESSING_TEMPLATE) | envsubst > $${i}; \
 	done
 

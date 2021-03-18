@@ -73,6 +73,8 @@ MOTION_TWILIO_NUMBER ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_
 MOTION_TWILIO_SID ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_TWILIO_SID' setup.json) && echo "${TS}++ MOTION_TWILIO_SID: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_TWILIO_SID),$(shell v=$$(cat MOTION_TWILIO_SID) && echo "${TG}== MOTION_TWILIO_SID: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='none' && echo "${TB}** MOTION_TWILIO_SID unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}")))
 MOTION_TWILIO_TOKEN ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_TWILIO_TOKEN' setup.json) && echo "${TS}++ MOTION_TWILIO_TOKEN: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_TWILIO_TOKEN),$(shell v=$$(cat MOTION_TWILIO_TOKEN) && echo "${TG}== MOTION_TWILIO_TOKEN: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='none' && echo "${TB}** MOTION_TWILIO_TOKEN unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}")))
 
+MOTION_W3W_APIKEY ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_W3W_APIKEY' setup.json) && echo "${TS}++ MOTION_W3W_APIKEY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_W3W_APIKEY),$(shell v=$$(cat MOTION_W3W_APIKEY) && echo "${TG}== MOTION_W3W_APIKEY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="none" && echo "${TB}** MOTION_W3W_APIKEY unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+
 MOTION_OVERVIEW_APIKEY ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_OVERVIEW_APIKEY' setup.json) && echo "${TS}++ MOTION_OVERVIEW_APIKEY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_OVERVIEW_APIKEY),$(shell v=$$(cat MOTION_OVERVIEW_APIKEY) && echo "${TG}== MOTION_OVERVIEW_APIKEY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="none" && echo "${TB}** MOTION_OVERVIEW_APIKEY unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 MOTION_OVERVIEW_MODE ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_OVERVIEW_MODE' setup.json) && echo "${TS}++ MOTION_OVERVIEW_MODE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_OVERVIEW_MODE),$(shell v=$$(cat MOTION_OVERVIEW_MODE) && echo "${TG}== MOTION_OVERVIEW_MODE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="local" && echo "${TB}** MOTION_OVERVIEW_MODE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 MOTION_OVERVIEW_ZOOM ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_OVERVIEW_ZOOM' setup.json) && echo "${TS}++ MOTION_OVERVIEW_ZOOM: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_OVERVIEW_ZOOM),$(shell v=$$(cat MOTION_OVERVIEW_ZOOM) && echo "${TG}== MOTION_OVERVIEW_ZOOM: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="20" && echo "${TB}** MOTION_OVERVIEW_ZOOM unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
@@ -186,7 +188,7 @@ WEBCAMS := motion/webcams.json
 
 $(WEBCAMS):
 	@echo "${MC}Making: $@${NC}"
-	@-./motion/sh/mkwebcams.sh > $@
+	@-export MOTION_W3W_APIKEY="$(MOTION_W3W_APIKEY)" && ./motion/sh/mkwebcams.sh > $@
 
 CAMERAS := $(shell jq -r '.[].name' $(WEBCAMS))
 
@@ -356,6 +358,7 @@ secrets.yaml: secrets.yaml.tmpl
 	  MOTION_GROUP="$(MOTION_GROUP)" \
 	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
 	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
+	  MOTION_W3W_APIKEY="$(MOTION_W3W_APIKEY)" \
 	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
 	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
 	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \

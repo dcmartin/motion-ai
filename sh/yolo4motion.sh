@@ -21,6 +21,8 @@ if [ "${is_default:-false}" = 'true' ]; then
       CUDA=$(echo "${CUDA}" | awk '{ print $2 }')
       if [ ! -z "${CUDA:-}" ]; then 
         BUILD_ARCH="${BUILD_ARCH}-${CUDA}"
+	NVIDIA_DRIVER_CAPABILITIES='compute,utility,video'
+	NVIDIA_VISIBLE_DEVICES='all'
       else
         echo "No CUDA" &> /dev/stderr
       fi
@@ -136,6 +138,8 @@ CID=$(docker run -d \
   --mount type=tmpfs,destination=/tmpfs,tmpfs-size=81920000,tmpfs-mode=1777 \
   --publish=${EXT_PORT}:${INT_PORT} \
   --restart=unless-stopped \
+  -e NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES:-} \
+  -e NVIDIA_DRIVER_CAPABILITIES=${NVIDIA_DRIVER_CAPABILITIES:-} \
   -e SERVICE_LABEL=${LABEL} \
   -e SERVICE_VERSION=${TAG} \
   -e SERVICE_PORT=${INT_PORT} \
