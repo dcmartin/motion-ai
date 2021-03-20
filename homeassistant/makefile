@@ -178,7 +178,7 @@ LOVELACE_DASHBOARDS := $(shell for C in $(MOTION_DASHBOARDS); do echo lovelace.$
 
 default: all
 
-all: chown $(WEBCAMS) lovelace.json lovelace_dashboards.json ${LOVELACE_DASHBOARDS} $(MOTION_DIRS) $(PACKAGES) secrets.yaml images cameras
+all: chown $(WEBCAMS) lovelace.json lovelace_dashboards.json lovelace_resources.json ${LOVELACE_DASHBOARDS} $(MOTION_DIRS) $(PACKAGES) secrets.yaml images cameras
 
 chown:
 	@echo "${MC}Making: $@${NC}"
@@ -487,6 +487,18 @@ lovelace_dashboards.json: lovelace_dashboards.json.tmpl
 	@rm -f .storage/lovelace_dashboards
 	-@mkdir -p .storage/
 	@ln -s ../$@ .storage/lovelace_dashboards
+
+lovelace_resources.json: lovelace_resources.json.tmpl
+	@echo "${MC}Making: $@${NC}"
+	@export \
+	  HOST_NAME="$(HOST_NAME)" \
+	  MOTION_USER="$(MOTION_USER)" \
+	&& cat $< \
+	  | envsubst \
+	 > $@
+	@rm -f .storage/lovelace_resources
+	-@mkdir -p .storage/
+	@ln -s ../$@ .storage/lovelace_resources
 
 ## clean and clean and clean ..
 
