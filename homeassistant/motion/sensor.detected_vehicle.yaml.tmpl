@@ -40,25 +40,24 @@
         {% else %}
           {{- '/local/images/no-signal.gif' -}}
         {% endif %}
-    motion_${MOTION_CAMERA}_camera_detected_vehicle_status:
-      unique_id: motion_${MOTION_CAMERA}_camera_detected_vehicle_status
-      friendly_name: '${MOTION_CAMERA} vehicle'
-      attribute_templates:
-        latitude: ${MOTION_CAMERA_LATITUDE}
-        longitude: ${MOTION_CAMERA_LONGITUDE}
-        radius: 0
-        entity_picture: >-
-          {{- states('sensor.motion_${MOTION_CAMERA}_camera_detected_vehicle_picture') -}}
-      icon_template: 'mdi:${MOTION_CAMERA_ICON}'
+    motion_${MOTION_CAMERA}_camera_detected_vehicle_rank:
+      friendly_name: '${MOTION_CAMERA} 🚚 ≋'
+      unit_of_measurement: '≋'
+      icon_template: 'mdi:chevron-triple-up'
       value_template: >-
-        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_status_camera','on') %}
-          {{ states('sensor.motion_${MOTION_CAMERA}_camera_detected_vehicle_level') }}
-        {% else %}
-          {{ 'lost' }}
-        {% endif %}
+        {% set mc = '${MOTION_CAMERA}_' %}
+        {% set n = states('sensor.motion_detected_vehicle_ago_min') -%}
+        {% if n|float > 0.0 %}
+          {% set d = states('sensor.motion_' + mc + 'detected_vehicle_ago') -%}
+          {%- if d|float > 0.0 -%}
+            {{- "%.2f"|format(n|float / d|float * 100.0) -}}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
     motion_${MOTION_CAMERA}_camera_detected_vehicle_level:
+      friendly_name: '${MOTION_CAMERA} 🚚 level'
+      icon_template: 'mdi:filter-variant'
       value_template: >-
-        {% set mc = '${MOTION_CAMERA}' %}
+        {% set mc = '${MOTION_CAMERA}_' %}
         {% set s = states('sensor.motion_detected_vehicle_ago_stdev') -%}
         {% set m = states('sensor.motion_detected_vehicle_ago_mean') -%}
         {% set n = states('sensor.motion_detected_vehicle_ago_min') -%}
@@ -69,11 +68,7 @@
           {% set rate_vh = rate_u + rate_s %}
           {% set rate_l = rate_u - rate_s/2 %}
           {% set rate_h = rate_u + rate_s/2 %}
-          {% set d = states('sensor.motion_' + mc + '_detected_vehicle_ago') -%}
-          {% set v = 0.0 %}
-          {%- if d|int > 0 -%}
-            {%- set v = (n|float / d|float * 100.0) -%}
-          {%- endif -%}
+          {% set v = states('sensor.motion_' + mc + 'camera_detected_vehicle_rank') %}
           {%- if v|float >= rate_vh %}{{- 'veryhigh' -}}
             {% elif v|float >= rate_h %}{{- 'high' -}}
             {% elif v|float <= 0.0 %}{{- 'none' -}}
@@ -82,6 +77,21 @@
             {% else %}{{- 'nominal' -}}
           {% endif %}
         {% else %}{{- 'null' -}}{% endif %}
+    motion_${MOTION_CAMERA}_camera_detected_vehicle_status:
+      unique_id: motion_${MOTION_CAMERA}_camera_detected_vehicle_status
+      friendly_name: '${MOTION_CAMERA}'
+      unit_of_measurement: '≋'
+      attribute_templates:
+        latitude: ${MOTION_CAMERA_LATITUDE}
+        longitude: ${MOTION_CAMERA_LONGITUDE}
+        radius: 0
+        entity_picture: >-
+          {{- states('sensor.motion_${MOTION_CAMERA}_camera_detected_vehicle_picture') -}}
+      icon_template: 'mdi:${MOTION_CAMERA_ICON}'
+      value_template: >-
+        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_status_camera','on') %}
+          {{ states('sensor.motion_${MOTION_CAMERA}_camera_detected_vehicle_rank') }}
+        {% else %}null{% endif %}
 
 ###
 ## vehicle

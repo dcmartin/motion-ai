@@ -397,6 +397,7 @@ lovelace.json: lovelace.json.tmpl $(WEBCAMS)
          | jq '(.data.config.views[]|select(.path=="map").cards[]?.cards[]?.cards[]?|select(.type=="map").entities)+='"$$(jq '[.[]|{"entity":("sensor.motion_"+.name+"_camera_detected_person_status")}]' $(WEBCAMS))" \
          | jq '(.data.config.views[]|select(.path=="map").cards[]?.cards[]?.cards[]?|select(.title=="Person ago (μ)").entities)+='"$$(jq '[.[]|{"entity":("sensor.motion_"+.name+"_detected_person_ago_mean")}]' $(WEBCAMS))" \
          | jq '(.data.config.views[]|select(.path=="map").cards[]?.cards[]?.cards[]?|select(.title=="Person count (μ)").entities)+='"$$(jq '[.[]|{"entity":("sensor.motion_"+.name+"_detected_person_count_mean")}]' $(WEBCAMS))" \
+         | jq '(.data.config.views[]|select(.path=="map").cards[]?.cards[]?.cards[]?|select(.title=="Rank").entities)+='"$$(jq '[.[]|{"entity":("sensor.motion_"+.name+"_camera_detected_person_rank")}]' $(WEBCAMS))" \
 	 > $@
 	@rm -f .storage/lovelace
 	-@mkdir -p .storage/
