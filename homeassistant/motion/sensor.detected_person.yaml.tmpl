@@ -7,6 +7,83 @@
 ###
 
 ###
+## status
+###
+
+- platform: template
+  sensors:
+    motion_${MOTION_CAMERA}_camera_detected_person_picture:
+      value_template: >-
+        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_status_camera','on') %}
+          {% set s = states('sensor.motion_${MOTION_CAMERA}_camera_detected_person_level') %}
+          {% if s|lower != 'unavailable' %}
+            {% if s|lower == 'none' %}
+              {{- '/local/images/none-signal.png?v=1' -}}
+            {% elif s|lower == 'verylow' %}
+              {{- '/local/images/verylow-signal.png?v=1' -}}
+            {% elif s|lower == 'veryhigh' %}
+              {{- '/local/images/veryhigh-signal.png?v=1' -}}
+            {% elif s|lower == 'low' %}
+              {{- '/local/images/low-signal.png?v=1' -}}
+            {% elif s|lower == 'high' %}
+              {{- '/local/images/high-signal.png?v=1' -}}
+            {% elif s|lower == 'null' %}
+              {{- '/local/images/null-signal.png?v=1' -}}
+            {% elif s|lower == 'nominal' %}
+              {{- '/local/images/nominal-signal.png?v=1' -}}
+            {% else %}
+              {{- '/local/images/unknown-signal.png?v=1' -}}
+            {% endif %}
+          {% else %}
+            {{- '/local/images/noise-signal.gif' -}}
+          {% endif %}
+        {% else %}
+          {{- '/local/images/no-signal.gif' -}}
+        {% endif %}
+    motion_${MOTION_CAMERA}_camera_detected_person_status:
+      unique_id: motion_${MOTION_CAMERA}_camera_detected_person_status
+      friendly_name: '${MOTION_CAMERA} person'
+      attribute_templates:
+        latitude: ${MOTION_CAMERA_LATITUDE}
+        longitude: ${MOTION_CAMERA_LONGITUDE}
+        radius: 0
+        entity_picture: >-
+          {{- states('sensor.motion_${MOTION_CAMERA}_camera_detected_person_picture') -}}
+      icon_template: 'mdi:${MOTION_CAMERA_ICON}'
+      value_template: >-
+        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_status_camera','on') %}
+          {{ states('sensor.motion_${MOTION_CAMERA}_camera_detected_person_level') }}
+        {% else %}
+          {{ 'lost' }}
+        {% endif %}
+    motion_${MOTION_CAMERA}_camera_detected_person_level:
+      value_template: >-
+        {% set mc = '${MOTION_CAMERA}' %}
+        {% set s = states('sensor.motion_detected_person_ago_stdev') -%}
+        {% set m = states('sensor.motion_detected_person_ago_mean') -%}
+        {% set n = states('sensor.motion_detected_person_ago_min') -%}
+        {% if s|float > 0.0 and m|float > 0.0 and n|float > 0.0 %}
+          {% set rate_u = n|float / m|float * 100.0 %}
+          {% set rate_s = n|float / s|float * 100.0 %}
+          {% set rate_vl = rate_u - rate_s %}
+          {% set rate_vh = rate_u + rate_s %}
+          {% set rate_l = rate_u - rate_s/2 %}
+          {% set rate_h = rate_u + rate_s/2 %}
+          {% set d = states('sensor.motion_' + mc + '_detected_person_ago') -%}
+          {% set v = 0.0 %}
+          {%- if d|int > 0 -%}
+            {%- set v = (n|float / d|float * 100.0) -%}
+          {%- endif -%}
+          {%- if v|float >= rate_vh %}{{- 'veryhigh' -}}
+            {% elif v|float >= rate_h %}{{- 'high' -}}
+            {% elif v|float <= 0.0 %}{{- 'none' -}}
+            {% elif v|float <= rate_vl %}{{- 'verylow' -}}
+            {% elif v|float <= rate_l %}{{- 'low' -}}
+            {% else %}{{- 'nominal' -}}
+          {% endif %}
+        {% else %}{{- 'null' -}}{% endif %}
+
+###
 ## person
 ###
 
@@ -265,9 +342,6 @@
                  and states('sensor.motion_${MOTION_CAMERA}_detected_person_counter_today')|lower != 'null'
                  and states('sensor.motion_${MOTION_CAMERA}_detected_person_counter_today')|int <= 0 -%}
             Nothing today
-          {%- elif (states('sensor.motion_${MOTION_CAMERA}_detected_person_ago')|int / 3600)|int > 0 -%}
-            {%- set h = (states('sensor.motion_${MOTION_CAMERA}_detected_person_ago')|int / 3600)|int -%}
-            None: {{ h -}}h
           {%- elif is_state('binary_sensor.motion_${MOTION_CAMERA}_detected_person_ago_high_persistent','on') -%}
             Low
           {%- elif is_state('binary_sensor.motion_${MOTION_CAMERA}_detected_person_ago_high','on') -%}
