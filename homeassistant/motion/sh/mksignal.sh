@@ -15,7 +15,7 @@ function png.dots()
 {
   local file=${1:-}
   local size=${2:-256x256}
-  local out=${file%*.png}_dots.png
+  local out=${file%*.png}-signal.png
 
   if [ ! -z "${file:-}" ]; then
     convert ${file} \( -size 2x2 xc:black -size 1x1 xc:white -gravity northwest -composite -write mpr:tile +delete -size "${size}" tile:mpr:tile \) -alpha off -compose copy_opacity -composite ${out} && echo "${out}"
