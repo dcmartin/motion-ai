@@ -40,25 +40,26 @@
         {% else %}
           {{- '/local/images/no-signal.gif' -}}
         {% endif %}
-    motion_${MOTION_CAMERA}_camera_detected_entity_status:
-      unique_id: motion_${MOTION_CAMERA}_camera_detected_entity_status
-      friendly_name: '${MOTION_CAMERA} entity'
-      attribute_templates:
-        latitude: ${MOTION_CAMERA_LATITUDE}
-        longitude: ${MOTION_CAMERA_LONGITUDE}
-        radius: 0
-        entity_picture: >-
-          {{- states('sensor.motion_${MOTION_CAMERA}_camera_detected_entity_picture') -}}
-      icon_template: 'mdi:${MOTION_CAMERA_ICON}'
+    motion_${MOTION_CAMERA}_camera_detected_entity_rank:
+      unique_id: motion_${MOTION_CAMERA}_camera_detected_entity_rank
+      friendly_name: '${MOTION_CAMERA} 👓 ≋'
+      unit_of_measurement: '≋'
+      icon_template: 'mdi:chevron-triple-up'
       value_template: >-
-        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_status_camera','on') %}
-          {{ states('sensor.motion_${MOTION_CAMERA}_camera_detected_entity_level') }}
-        {% else %}
-          {{ 'lost' }}
-        {% endif %}
+        {% set mc = '${MOTION_CAMERA}_' %}
+        {% set n = states('sensor.motion_detected_entity_ago_min') -%}
+        {% if n|float > 0.0 %}
+          {% set d = states('sensor.motion_' + mc + 'detected_entity_ago') -%}
+          {%- if d|float > 0.0 -%}
+            {{- "%.2f"|format(n|float / d|float * 100.0) -}}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
     motion_${MOTION_CAMERA}_camera_detected_entity_level:
+      unique_id: motion_${MOTION_CAMERA}_camera_detected_entity_level
+      friendly_name: '${MOTION_CAMERA} 👓 level'
+      icon_template: 'mdi:filter-variant'
       value_template: >-
-        {% set mc = '${MOTION_CAMERA}' %}
+        {% set mc = '${MOTION_CAMERA}_' %}
         {% set s = states('sensor.motion_detected_entity_ago_stdev') -%}
         {% set m = states('sensor.motion_detected_entity_ago_mean') -%}
         {% set n = states('sensor.motion_detected_entity_ago_min') -%}
@@ -69,11 +70,7 @@
           {% set rate_vh = rate_u + rate_s %}
           {% set rate_l = rate_u - rate_s/2 %}
           {% set rate_h = rate_u + rate_s/2 %}
-          {% set d = states('sensor.motion_' + mc + '_detected_entity_ago') -%}
-          {% set v = 0.0 %}
-          {%- if d|int > 0 -%}
-            {%- set v = (n|float / d|float * 100.0) -%}
-          {%- endif -%}
+          {% set v = states('sensor.motion_' + mc + 'camera_detected_entity_rank') %}
           {%- if v|float >= rate_vh %}{{- 'veryhigh' -}}
             {% elif v|float >= rate_h %}{{- 'high' -}}
             {% elif v|float <= 0.0 %}{{- 'none' -}}
@@ -82,6 +79,165 @@
             {% else %}{{- 'nominal' -}}
           {% endif %}
         {% else %}{{- 'null' -}}{% endif %}
+    motion_${MOTION_CAMERA}_camera_detected_entity_status:
+      unique_id: motion_${MOTION_CAMERA}_camera_detected_entity_status
+      friendly_name: '${MOTION_CAMERA}'
+      unit_of_measurement: '≋'
+      attribute_templates:
+        latitude: ${MOTION_CAMERA_LATITUDE}
+        longitude: ${MOTION_CAMERA_LONGITUDE}
+        radius: 0
+        entity_picture: >-
+          {{- states('sensor.motion_${MOTION_CAMERA}_camera_detected_entity_picture') -}}
+      icon_template: 'mdi:${MOTION_CAMERA_ICON}'
+      value_template: >-
+        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_status_camera','on') %}
+          {{ states('sensor.motion_${MOTION_CAMERA}_camera_detected_entity_rank') }}
+        {% else %}null{% endif %}
+
+- platform: history_stats
+  name: motion_${MOTION_CAMERA}_camera_detected_entity_level_none_ratio_stats_1d
+  entity_id: sensor.motion_${MOTION_CAMERA}_camera_detected_entity_level
+  state: 'none'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_${MOTION_CAMERA}_camera_detected_entity_level_none_ratio_stats_1w
+  entity_id: sensor.motion_${MOTION_CAMERA}_camera_detected_entity_level
+  state: 'none'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_entity_weeks_timestamp')|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_${MOTION_CAMERA}_camera_detected_entity_level_nominal_ratio_stats_1d
+  entity_id: sensor.motion_${MOTION_CAMERA}_camera_detected_entity_level
+  state: 'nominal'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_${MOTION_CAMERA}_camera_detected_entity_level_nominal_ratio_stats_1w
+  entity_id: sensor.motion_${MOTION_CAMERA}_camera_detected_entity_level
+  state: 'nominal'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_entity_weeks_timestamp')|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_${MOTION_CAMERA}_camera_detected_entity_level_unknown_ratio_stats_1d
+  entity_id: sensor.motion_${MOTION_CAMERA}_camera_detected_entity_level
+  state: 'unknown'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_${MOTION_CAMERA}_camera_detected_entity_level_unknown_ratio_stats_1w
+  entity_id: sensor.motion_${MOTION_CAMERA}_camera_detected_entity_level
+  state: 'unknown'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_entity_weeks_timestamp')|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_${MOTION_CAMERA}_camera_detected_entity_level_null_ratio_stats_1d
+  entity_id: sensor.motion_${MOTION_CAMERA}_camera_detected_entity_level
+  state: 'null'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_${MOTION_CAMERA}_camera_detected_entity_level_null_ratio_stats_1w
+  entity_id: sensor.motion_${MOTION_CAMERA}_camera_detected_entity_level
+  state: 'null'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_entity_weeks_timestamp')|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_${MOTION_CAMERA}_camera_detected_entity_level_verylow_ratio_stats_1d
+  entity_id: sensor.motion_${MOTION_CAMERA}_camera_detected_entity_level
+  state: 'verylow'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_${MOTION_CAMERA}_camera_detected_entity_level_verylow_ratio_stats_1w
+  entity_id: sensor.motion_${MOTION_CAMERA}_camera_detected_entity_level
+  state: 'verylow'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_entity_weeks_timestamp')|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_${MOTION_CAMERA}_camera_detected_entity_level_low_ratio_stats_1d
+  entity_id: sensor.motion_${MOTION_CAMERA}_camera_detected_entity_level
+  state: 'low'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_${MOTION_CAMERA}_camera_detected_entity_level_low_ratio_stats_1w
+  entity_id: sensor.motion_${MOTION_CAMERA}_camera_detected_entity_level
+  state: 'low'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_entity_weeks_timestamp')|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_${MOTION_CAMERA}_camera_detected_entity_level_veryhigh_ratio_stats_1d
+  entity_id: sensor.motion_${MOTION_CAMERA}_camera_detected_entity_level
+  state: 'veryhigh'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_${MOTION_CAMERA}_camera_detected_entity_level_veryhigh_ratio_stats_1w
+  entity_id: sensor.motion_${MOTION_CAMERA}_camera_detected_entity_level
+  state: 'veryhigh'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_entity_weeks_timestamp')|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_${MOTION_CAMERA}_camera_detected_entity_level_high_ratio_stats_1d
+  entity_id: sensor.motion_${MOTION_CAMERA}_camera_detected_entity_level
+  state: 'high'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_${MOTION_CAMERA}_camera_detected_entity_level_high_ratio_stats_1w
+  entity_id: sensor.motion_${MOTION_CAMERA}_camera_detected_entity_level
+  state: 'high'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_entity_weeks_timestamp')|int }}
+  end: '{{ now() }}'
 
 ###
 ## entity

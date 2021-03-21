@@ -178,7 +178,7 @@ LOVELACE_DASHBOARDS := $(shell for C in $(MOTION_DASHBOARDS); do echo lovelace.$
 
 default: all
 
-all: chown $(WEBCAMS) lovelace.json lovelace_dashboards.json ${LOVELACE_DASHBOARDS} $(MOTION_DIRS) $(PACKAGES) secrets.yaml images cameras
+all: chown $(WEBCAMS) lovelace.json lovelace_dashboards.json lovelace_resources.json ${LOVELACE_DASHBOARDS} $(MOTION_DIRS) $(PACKAGES) secrets.yaml images cameras
 
 chown:
 	@echo "${MC}Making: $@${NC}"
@@ -395,8 +395,6 @@ lovelace.json: lovelace.json.tmpl $(WEBCAMS)
 	  | envsubst \
          | jq '(.data.config.views[]|select(.path=="home").cards[].cards[].cards[]?|select(.camera_image=="camera.motion_overview").elements)+='"$$(jq '[.[]|{"type":"icon","entity":("sensor.motion_"+.name+"_detected_person_ago"),"icon": ("mdi:"+.icon),"style":{"color":"red","left":(.left|tostring+"%"),"top":(.top|tostring+"%"),"height":"5%","width": "5%"}}]' $(WEBCAMS))" \
          | jq '(.data.config.views[]|select(.path=="map").cards[]?.cards[]?.cards[]?|select(.type=="map").entities)+='"$$(jq '[.[]|{"entity":("sensor.motion_"+.name+"_camera_detected_person_status")}]' $(WEBCAMS))" \
-         | jq '(.data.config.views[]|select(.path=="map").cards[]?.cards[]?.cards[]?|select(.title=="Person ago (μ)").entities)+='"$$(jq '[.[]|{"entity":("sensor.motion_"+.name+"_detected_person_ago_mean")}]' $(WEBCAMS))" \
-         | jq '(.data.config.views[]|select(.path=="map").cards[]?.cards[]?.cards[]?|select(.title=="Person count (μ)").entities)+='"$$(jq '[.[]|{"entity":("sensor.motion_"+.name+"_detected_person_count_mean")}]' $(WEBCAMS))" \
 	 > $@
 	@rm -f .storage/lovelace
 	-@mkdir -p .storage/
@@ -429,6 +427,9 @@ lovelace.person.json: lovelace.person.json.tmpl $(WEBCAMS)
 	  | jq '(.data.config.views[]|select(.path=="vehicle").cards[]|select(.title=="Vehicle ago mean (⧖μ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_vehicle_ago_mean")]' $(WEBCAMS))" \
 	  | jq '(.data.config.views[]|select(.path=="animal").cards[]|select(.title=="Animal count mean (Σμ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_animal_count_mean")]' $(WEBCAMS))" \
 	  | jq '(.data.config.views[]|select(.path=="animal").cards[]|select(.title=="Animal ago mean (⧖μ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_animal_ago_mean")]' $(WEBCAMS))" \
+         | jq '(.data.config.views[]|select(.path=="map").cards[]?.cards[]?.cards[]?|select(.type=="map").entities)+='"$$(jq '[.[]|{"entity":("sensor.motion_"+.name+"_camera_detected_person_status")}]' $(WEBCAMS))" \
+         | jq '(.data.config.views[]|select(.path=="map").cards[]?.cards[]?.cards[]?|select(.title=="Level").entities)+='"$$(jq '[.[]|{"entity":("sensor.motion_"+.name+"_camera_detected_person_level")}]' $(WEBCAMS))" \
+         | jq '(.data.config.views[]|select(.path=="map").cards[]?.cards[]?.cards[]?|select(.title=="Rank").entities)+='"$$(jq '[.[]|{"entity":("sensor.motion_"+.name+"_camera_detected_person_rank")}]' $(WEBCAMS))" \
 	 > $@
 	@rm -f .storage/lovelace.lovelace_person
 	-@mkdir -p .storage/
@@ -443,6 +444,9 @@ lovelace.vehicle.json: lovelace.vehicle.json.tmpl $(WEBCAMS)
 	  | envsubst \
 	  | jq '(.data.config.views[]|select(.path=="vehicle").cards[]|select(.title=="Vehicle count mean (Σμ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_vehicle_count_mean")]' $(WEBCAMS))" \
 	  | jq '(.data.config.views[]|select(.path=="vehicle").cards[]|select(.title=="Vehicle ago mean (⧖μ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_vehicle_ago_mean")]' $(WEBCAMS))" \
+         | jq '(.data.config.views[]|select(.path=="map").cards[]?.cards[]?.cards[]?|select(.type=="map").entities)+='"$$(jq '[.[]|{"entity":("sensor.motion_"+.name+"_camera_detected_vehicle_status")}]' $(WEBCAMS))" \
+         | jq '(.data.config.views[]|select(.path=="map").cards[]?.cards[]?.cards[]?|select(.title=="Level").entities)+='"$$(jq '[.[]|{"entity":("sensor.motion_"+.name+"_camera_detected_vehicle_level")}]' $(WEBCAMS))" \
+         | jq '(.data.config.views[]|select(.path=="map").cards[]?.cards[]?.cards[]?|select(.title=="Rank").entities)+='"$$(jq '[.[]|{"entity":("sensor.motion_"+.name+"_camera_detected_vehicle_rank")}]' $(WEBCAMS))" \
 	 > $@
 	@rm -f .storage/lovelace.lovelace_vehicle
 	-@mkdir -p .storage/
@@ -457,6 +461,9 @@ lovelace.animal.json: lovelace.animal.json.tmpl $(WEBCAMS)
 	  | envsubst \
 	  | jq '(.data.config.views[]|select(.path=="animal").cards[]|select(.title=="Animal count mean (Σμ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_animal_count_mean")]' $(WEBCAMS))" \
 	  | jq '(.data.config.views[]|select(.path=="animal").cards[]|select(.title=="Animal ago mean (⧖μ) (24h)").entities)+='"$$(jq '[.[]|("sensor.motion_"+.name+"_detected_animal_ago_mean")]' $(WEBCAMS))" \
+         | jq '(.data.config.views[]|select(.path=="map").cards[]?.cards[]?.cards[]?|select(.type=="map").entities)+='"$$(jq '[.[]|{"entity":("sensor.motion_"+.name+"_camera_detected_animal_status")}]' $(WEBCAMS))" \
+         | jq '(.data.config.views[]|select(.path=="map").cards[]?.cards[]?.cards[]?|select(.title=="Level").entities)+='"$$(jq '[.[]|{"entity":("sensor.motion_"+.name+"_camera_detected_animal_level")}]' $(WEBCAMS))" \
+         | jq '(.data.config.views[]|select(.path=="map").cards[]?.cards[]?.cards[]?|select(.title=="Rank").entities)+='"$$(jq '[.[]|{"entity":("sensor.motion_"+.name+"_camera_detected_animal_rank")}]' $(WEBCAMS))" \
 	 > $@
 	@rm -f .storage/lovelace.lovelace_animal
 	-@mkdir -p .storage/
@@ -486,6 +493,18 @@ lovelace_dashboards.json: lovelace_dashboards.json.tmpl
 	@rm -f .storage/lovelace_dashboards
 	-@mkdir -p .storage/
 	@ln -s ../$@ .storage/lovelace_dashboards
+
+lovelace_resources.json: lovelace_resources.json.tmpl
+	@echo "${MC}Making: $@${NC}"
+	@export \
+	  HOST_NAME="$(HOST_NAME)" \
+	  MOTION_USER="$(MOTION_USER)" \
+	&& cat $< \
+	  | envsubst \
+	 > $@
+	@rm -f .storage/lovelace_resources
+	-@mkdir -p .storage/
+	@ln -s ../$@ .storage/lovelace_resources
 
 ## clean and clean and clean ..
 
