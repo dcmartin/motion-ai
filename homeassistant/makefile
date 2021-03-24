@@ -506,6 +506,14 @@ lovelace_resources.json: lovelace_resources.json.tmpl
 	-@mkdir -p .storage/
 	@ln -s ../$@ .storage/lovelace_resources
 
+MAGIC_AREAS_RELEASE := 2.0.4
+MAGIC_AREAS := custom_components/magic_areas
+
+$(MAGIC_AREAS):
+	-rm -fr $(MAGIC_AREAS)
+	-mkdir -p $(MAGIC_AREAS) 
+	curl -sSL https://github.com/jseidl/hass-magic_areas/archive/refs/tags/v$(MAGIC_AREAS_RELEASE).tar.gz | tar xzf - --strip-components=3 -C $(MAGIC_AREAS)
+
 ## clean and clean and clean ..
 
 tidy: 
@@ -534,6 +542,7 @@ distclean: realclean
 	-@sudo rm -fr .storage
 	-@sudo rm -fr .uuid .HA_VERSION .cloud deps tts .storage
 	-@sudo rm -fr "../media/Motion-Ã👁"
+	-@sudo rm -fr $(MAGIC_AREAS)
 
 logclean:
 	-@sudo journalctl --vacuum-time 1
