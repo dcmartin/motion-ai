@@ -132,7 +132,7 @@ fi
 
 # test network
 
-alive=$(curl -fsqL -w '%{http_code}' --connect-timeout 2 --retry-connrefused --retry 10 --retry-max-time 2 --max-time 15 "https://version.home-assistant.io/stable.json" -o /dev/null 2> /dev/null || true)
+alive=$(curl -fsqL -w '%{http_code}' --connect-timeout 20 --retry-connrefused --retry 10 --retry-max-time 40 --max-time 60 "https://version.home-assistant.io/stable.json" -o /dev/null 2> /dev/null || true)
 if [ "${alive:-}" != '200' ]; then
   echo 'Unable to contact "https://version.home-assistant.io/stable.json"; is your DNS configured properly?' &> /dev/stderr
   exit 1
