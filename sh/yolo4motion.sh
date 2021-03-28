@@ -5,7 +5,7 @@ if [ -z "$(command -v docker)" ]; then echo "Install docker; exiting" &> /dev/st
 
 ## calculated
 if [ -z "${BUILD_ARCH:-}" ]; then
-  BUILD_ARCH=$(uname -m | sed -e 's/aarch64.*/arm64/' -e 's/x86_64.*/amd64/' -e 's/armv.*/arm/')
+  BUILD_ARCH=$(uname -m | sed -e 's/aarch64.*/aarch64/' -e 's/x86_64.*/amd64/' -e 's/armv.*/arm/')
 
   ## NVIDIA specialization
   info=$(docker info --format '{{ json . }}')
