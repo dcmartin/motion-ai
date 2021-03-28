@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # calculated
-BUILD_ARCH=$(uname -m | sed -e 's/aarch64.*/arm64/' -e 's/x86_64.*/amd64/' -e 's/armv.*/arm/')
+BUILD_ARCH=$(uname -m | sed -e 's/aarch64.*/aarch64/' -e 's/x86_64.*/amd64/' -e 's/armv.*/arm/')
 
 # requires docker
 if [ -z "$(command -v docker)" ]; then echo "Install docker; exiting" &> /dev/stderr; exit 1; fi

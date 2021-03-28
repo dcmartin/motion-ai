@@ -137,3 +137,152 @@
           {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
             {{- s -}},none
           {%- else -%}none{%- endif -%}
+
+- id: motion_person_location_device
+  alias: motion_person_location_device
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_person_location
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {% set s = states('sensor.motion_person_location') %}
+          {{- s|lower == 'home' -}}
+  action:
+    - service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_person_location_estimated
+        state: >-
+          {{ states('sensor.motion_person_device_ago') }}
+        user_id: >-
+          {{ state_attr('person.' + states('sensor.motion_person'),'user_id') }}
+        source: >-
+          {{ state_attr('person.' + states('sensor.motion_person'),'source') }}
+        gps_accuracy: >-
+          {{ state_attr('person.' + states('sensor.motion_person'),'gps_accuracy') }}
+        latitude: >-
+          {{ state_attr('person.' + states('sensor.motion_person'),'latitude') }}
+        longitude: >-
+          {{ state_attr('person.' + states('sensor.motion_person'),'longitude') }}
+
+- id: motion_person_location_camera_home
+  alias: motion_person_location_camera_home
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_detected_person_camera
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {% set s = states('sensor.motion_detected_person_camera') %}
+          {{- s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -}}
+      - condition: template
+        value_template: >-
+          {% set s = states('sensor.motion_detected_person_camera') %}
+          {% set s = states('sensor.motion_' + s + '_camera_detected_person_status') %}
+          {{- s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -}}
+      - condition: template
+        value_template: >-
+          {% set s = states('sensor.motion_person_location') %}
+          {{- s|lower == 'home' -}}
+  action:
+    - service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_person_location_estimated
+        state: >-
+          {% set s = states('sensor.motion_detected_person_camera') %}
+          {{ states('sensor.motion_' + s + '_detected_person_ago') }}
+        source: >-
+          {% set s = states('sensor.motion_detected_person_camera') %}
+          {{ s }}
+        gps_accuracy: >-
+          {{- '3' -}}
+        latitude: >-
+          {% set s = states('sensor.motion_detected_person_camera') %}
+          {{ state_attr('sensor.motion_' + s + '_camera_detected_person_status','latitude') }}
+        longitude: >-
+          {% set s = states('sensor.motion_detected_person_camera') %}
+          {{ state_attr('sensor.motion_' + s + '_camera_detected_person_status','longitude') }}
+
+- id: motion_person_location_camera_away
+  alias: motion_person_location_camera_away
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_detected_person_camera
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {% set s = states('sensor.motion_detected_person_camera') %}
+          {{- s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -}}
+      - condition: template
+        value_template: >-
+          {% set s = states('sensor.motion_detected_person_camera') %}
+          {% set s = states('sensor.motion_' + s + '_camera_detected_person_status') %}
+          {{- s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -}}
+      - condition: template
+        value_template: >-
+          {% set s = states('sensor.motion_person_location') %}
+          {{- s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'home' -}}
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >-
+          ALERT: {{ states('sensor.motion_detected_person_count') }} person(s)
+          from {{ states('sensor.motion_detected_person_camera') }}
+        notification_id: >
+          motion_detected_person_away-{{- states('sensor.motion_detected_person_camera') -}}
+        message: >-
+          {%- set c = states('sensor.motion_detected_person_camera') -%}
+          {%- set d = states('sensor.motion_detected_person_device') -%}
+          {%- set r = states('sensor.motion_detected_person_list') -%}
+          {%- if r|lower != 'none' and r|lower != 'unknown' and r|lower != 'unavailable' and r|lower != 'null' -%}
+            {%- set u = '&results=' + r|urlencode -%}
+            {%- set r = r|replace("'",'"')|from_json -%}
+          {%- else -%}
+            {%- set u = '' -%}
+            {%- set r = null -%}
+          {%- endif -%}
+          {%- set e = states('sensor.motion_' + states('sensor.motion_detected_person_camera') + '_detected_person_event') -%}
+          {{- '[![]('
+             + '/local/images/motion/'
+             + c
+             + '/detected_person'
+             + '.jpg?e='
+             + e
+             + ')]('
+             + '/local/images/motion/'
+             + c
+             + '/detected_person_animated'
+             + '.gif?e='
+             + e
+             + ')' }}
+          AWAY: Detected {{ states('sensor.motion_detected_person_count') }} person(s)
+          for {{ states('sensor.motion_detected_person_elapsed') }} seconds
+          at {{ states('sensor.motion_detected_person_when') }}
+          {% if r is iterable and r|length > 0 -%}
+            {% for i in r|map(attribute="e")|unique|list -%}
+            {{- '[![](https://img.shields.io/badge/' + i + '-dismiss-green.svg)]('
+              + states('sensor.motion_detected_person_api')
+              + '/cgi-bin/alert.yes?entity=' + i
+              + '&camera=' + c
+              + '&event=' + e
+              + u
+              + ')' -}}
+            {{- '[![](https://img.shields.io/badge/' + i + '-alert-red.svg)]('
+              + states('sensor.motion_detected_person_api')
+              + '/cgi-bin/alert.no?entity=' + i
+              + '&camera=' + c
+              + '&event=' + e
+              + u
+              + ')' -}}
+            {%- endfor -%}
+          {%- endif %}
+
