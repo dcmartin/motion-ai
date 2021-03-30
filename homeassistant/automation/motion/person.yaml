@@ -220,15 +220,42 @@
           {% set s = states('sensor.motion_detected_person_where') %}
           {{ state_attr('sensor.motion_' + s + '_camera_detected_person_status','longitude') }}
 
-- id: motion_person_location_camera_away
-  alias: motion_person_location_camera_away
+- id: motion_smartphone_alert_notify
+  alias: motion_smartphone_alert_notify
+  initial_state: on
+  trigger:
+    - platform: event
+      event_type: ios.notification_action_fired
+      event_data:
+        actionName: 'motion_smartphone_alert_notify'
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >-
+          ALERT NOTIFY
+        notification_id: >-
+          motion_smartphone_alert_notify
+        message: >-
+          TO: {{ trigger.event.data -}}
+
+- id: motion_smartphone_person_alert_when_away
+  alias: motion_smartphone_person_alert_when_away
   initial_state: on
   trigger:
     - platform: state
-      entity_id: sensor.motion_detected_person_camera
+      entity_id: counter.motion_detected_person_counter
   condition:
     condition: and
     conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.motion_detected_person','on') }}
+      - condition: template
+        value_template: >
+          {{ states('sensor.motion_detected_person_count')|int > 0 }}
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.motion_person_home','off') }}
       - condition: template
         value_template: >-
           {% set s = states('sensor.motion_detected_person_camera') %}
@@ -238,10 +265,6 @@
           {% set s = states('sensor.motion_detected_person_camera') %}
           {% set s = states('sensor.motion_' + s + '_camera_detected_person_status') %}
           {{- s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -}}
-      - condition: template
-        value_template: >-
-          {% set s = states('sensor.motion_person_location') %}
-          {{- s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'home' -}}
   action:
     - service: persistent_notification.create
       data_template:
@@ -249,7 +272,7 @@
           ALERT: {{ states('sensor.motion_detected_person_count') }} person(s)
           from {{ states('sensor.motion_detected_person_camera') }}
         notification_id: >
-          motion_detected_person_away-{{- states('sensor.motion_detected_person_camera') -}}
+          motion_person_alert_when_away-{{- states('sensor.motion_detected_person_camera') -}}
         message: >-
           {%- set c = states('sensor.motion_detected_person_camera') -%}
           {%- set d = states('sensor.motion_detected_person_device') -%}
@@ -275,12 +298,12 @@
              + '.gif?e='
              + e
              + ')' }}
-          AWAY: Detected {{ states('sensor.motion_detected_person_count') }} person(s)
+          Detected {{ states('sensor.motion_detected_person_count') }} person(s)
           for {{ states('sensor.motion_detected_person_elapsed') }} seconds
           at {{ states('sensor.motion_detected_person_when') }}
           {% if r is iterable and r|length > 0 -%}
             {% for i in r|map(attribute="e")|unique|list -%}
-            {{- '[![](https://img.shields.io/badge/' + i + '-dismiss-green.svg)]('
+            {{- '[![](https://img.shields.io/badge/' + i + '-okay-green.svg)]('
               + states('sensor.motion_detected_person_api')
               + '/cgi-bin/alert.yes?entity=' + i
               + '&camera=' + c
@@ -296,4 +319,49 @@
               + ')' -}}
             {%- endfor -%}
           {%- endif %}
-
+    - condition: and
+      conditions:
+        - condition: template
+          value_template: >
+            {{ is_state('input_boolean.motion_notify_smartphone','on') }}
+        - condition: template
+          value_template: >
+            {%- set s = states('sensor.motion_person_device') -%}
+            {{ s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|length > 0 }}
+    - service_template: >-
+        {%- set s = states('sensor.motion_person_device') -%}
+        {{- 'notify.mobile_app_' + s -}}
+      data_template:
+        title: >-
+          ALERT: {{ states('sensor.motion_detected_person_count') }} person(s)
+          from {{ states('sensor.motion_detected_person_camera') }}
+        message: >-
+          Detected {{ states('sensor.motion_detected_person_count') }} person(s)
+          for {{ states('sensor.motion_detected_person_elapsed') }} seconds
+          at {{ states('sensor.motion_detected_person_when') }}
+        data:
+          push:
+            category: 'alert'
+            sound:
+              name: default
+              critical: 1
+              volume: 1.0
+          action_data:
+            device: >-
+              {{ states('sensor.motion_detected_person_device') }}
+            camera: >-
+              {{ states('sensor.motion_detected_person_camera') }}
+            event: >-
+              {{- states('sensor.motion_' + states('sensor.motion_detected_person_camera') + '_detected_person_event') -}}
+          attachment:
+            hide-thumbnal: false
+            content-type: gif
+            url: >-
+              {%- set c = states('sensor.motion_detected_person_camera') -%}
+              {%- set e = states('sensor.motion_' + c + '_detected_person_event') -%}
+              {{- states('sensor.motion_base_url')
+                 + '/local/images/motion/'
+                 + c
+                 + '/detected_person_animated'
+                 + '.gif?e='
+                 + e -}}
