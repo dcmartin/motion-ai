@@ -38,6 +38,8 @@ MOTION_DEVICE ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_DEVICE'
 MOTION_CLIENT ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_CLIENT' setup.json) && echo "${TS}++ MOTION_CLIENT: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_CLIENT),$(shell v=$$(cat MOTION_CLIENT) && echo "${TG}== MOTION_CLIENT: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='$(MOTION_DEVICE)' && echo "${TB}** MOTION_CLIENT unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 MOTION_USER ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_USER' setup.json) && echo "${TS}++ MOTION_USER: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_USER),$(shell v=$$(cat MOTION_USER) && echo "${TG}== MOTION_USER: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='none' && echo "${TB}** MOTION_USER unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 
+MOTION_NOTIFY_SMARTPHONE ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_NOTIFY_SMARTPHONE' setup.json) && echo "${TS}++ MOTION_NOTIFY_SMARTPHONE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_NOTIFY_SMARTPHONE),$(shell v=$$(cat MOTION_NOTIFY_SMARTPHONE) && echo "${TG}== MOTION_NOTIFY_SMARTPHONE: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${TB}** MOTION_NOTIFY_SMARTPHONE unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}")))
+
 MOTION_ROUTER_NAME ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_ROUTER_NAME' setup.json) && echo "${TS}++ MOTION_ROUTER_NAME: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_ROUTER_NAME),$(shell v=$$(cat MOTION_ROUTER_NAME) && echo "${TG}== MOTION_ROUTER_NAME: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='mikrotik_router' && echo "${TB}** MOTION_ROUTER_NAME unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}")))
 
 # MQTT
@@ -308,6 +310,7 @@ secrets.yaml: secrets.yaml.tmpl
           MOTION_FACE_DETECTED_TUNE="$(MOTION_FACE_DETECTED_TUNE)" \
 	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
 	  MOTION_GROUP="$(MOTION_GROUP)" \
+	  MOTION_NOTIFY_SMARTPHONE="$(MOTION_NOTIFY_SMARTPHONE)" \
 	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
 	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
 	  MOTION_W3W_APIKEY="$(MOTION_W3W_APIKEY)" \
