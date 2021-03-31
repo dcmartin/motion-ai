@@ -18,7 +18,7 @@ if [ -z "${MOTION_CAMERA:-}" ] && [ -s MOTION_CAMERA ]; then MOTION_CAMERA=$(cat
 MOTION='{"group":"'${MOTION_GROUP}'","client":"'${MOTION_CLIENT}'","camera":"'${MOTION_CAMERA}'"}'
 
 # parameters
-SERVICE='{"label":"alpr4motion","id":"com.github.dcmartin.open-horizon.alpr4motion","version":"'${SERVICE_VERSION:-0.0.2}'","arch":"'${SERVICE_ARCH:-${BUILD_ARCH}}'","ports":{"service":'${SERVICE_PORT:-80}',"host":'${HOST_PORT:-4663}'}}'
+SERVICE='{"label":"alpr4motion","id":"com.github.dcmartin.open-horizon.alpr4motion","version":"'${SERVICE_VERSION:-0.0.5}'","arch":"'${SERVICE_ARCH:-${BUILD_ARCH}}'","ports":{"service":'${SERVICE_PORT:-80}',"host":'${HOST_PORT:-4663}'}}'
 ALPR='{"country":"'${ALPR_COUNTRY:-us}'","pattern":"'${ALPR_PATTERN:-all}'","scale":"'${ALPR_SCALE:-none}'","topn":'${ALPR_TOPN:-10}'}'
 LOG='{"debug":'${DEBUG:-false}',"level":"'"${LOG_LEVEL:-info}"'","logto":"'"${LOGTO:-/dev/stderr}"'"}'
 
