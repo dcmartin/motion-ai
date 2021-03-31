@@ -220,8 +220,20 @@
           {% set s = states('sensor.motion_detected_person_where') %}
           {{ state_attr('sensor.motion_' + s + '_camera_detected_person_status','longitude') }}
 
-- id: motion_smartphone_alert_notify
-  alias: motion_smartphone_alert_notify
+# {
+#     "event_type": "string",
+#     "data": {},
+#     "origin": "(LOCAL|)",
+#     "time_fired": "2020-09-23T12:12:10.223091+00:00",
+#     "context": {
+#         "id": "019d5966fd9611ea973c0b2e05cd396a",
+#         "parent_id": null,
+#         "user_id": null
+#     }
+# }
+
+- id: motion_smartphone_person_alert_notify
+  alias: motion_smartphone_person_alert_notify
   initial_state: on
   trigger:
     - platform: event
@@ -236,7 +248,35 @@
         notification_id: >-
           motion_smartphone_alert_notify
         message: >-
-          TO: {{ trigger.event.data -}}
+          {%- set e = trigger.event -%}
+          {%- set o = e.origin -%}
+          {%- set d = e.data.device -%}
+          {%- set c = e.data.camera -%}
+          {%- set e = e.data.event -%}
+          NOTIFY: origin: {{ o -}}; device: {{ d -}}; camera: {{ c -}}; event: {{ e }}
+
+- id: motion_smartphone_person_alert_dismiss
+  alias: motion_smartphone_person_alert_dismiss
+  initial_state: on
+  trigger:
+    - platform: event
+      event_type: ios.notification_action_fired
+      event_data:
+        actionName: 'motion_smartphone_alert_dismiss'
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >-
+          ALERT DISMISS 
+        notification_id: >-
+          motion_smartphone_alert_dismiss
+        message: >-
+          {%- set e = trigger.event -%}
+          {%- set o = e.origin -%}
+          {%- set d = e.data.device -%}
+          {%- set c = e.data.camera -%}
+          {%- set e = e.data.event -%}
+          DISMISS: origin: {{ o -}}; device: {{ d -}}; camera: {{ c -}}; event: {{ e }}
 
 - id: motion_smartphone_person_alert_when_away
   alias: motion_smartphone_person_alert_when_away
@@ -341,7 +381,7 @@
           at {{ states('sensor.motion_detected_person_when') }}
         data:
           push:
-            category: 'alert'
+            category: 'motion_smartphone_alert'
             sound:
               name: default
               critical: 1
