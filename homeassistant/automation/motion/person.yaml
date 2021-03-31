@@ -232,32 +232,64 @@
 #     }
 # }
 
-- id: motion_smartphone_person_alert_notify
-  alias: motion_smartphone_person_alert_notify
+# {
+#   "sourceDeviceName": "Robbie's iPhone 7 Plus",
+#   "sourceDeviceID": "robbies_iphone_7_plus",
+#   "actionName": "SOUND_ALARM",
+#   "sourceDevicePushId": "ab9f02fe-6ac6-47b8-adeb-5dd87b489156",
+#   "textInput": "",
+#   "action_data": {}
+# }
+
+- id: motion_smartphone_alert
+  alias: motion_smartphone_alert
   initial_state: on
   trigger:
     - platform: event
       event_type: ios.notification_action_fired
-      event_data:
-        actionName: motion_smartphone_alert_notify
+#      event_data:
+#        categoryName: motion_smartphone_alert
   action:
     - service: persistent_notification.create
       data_template:
         title: >-
-          ALERT NOTIFY
+          {%- set s = trigger.event -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}}
+           {{- s.categoryName -}}
         notification_id: >-
-          motion_smartphone_alert_notify
+          {%- set s = trigger.event -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}}
+           {{- s.actionName -}}
         message: >-
-          {%- set e = trigger.event -%}
-          {%- set o = e.origin -%}
-          {%- set d = e.data.device -%}
-          {%- set c = e.data.camera -%}
-          {%- set e = e.data.event -%}
-          NOTIFY: origin: {{ o -}}; device: {{ d -}}; camera: {{ c -}}; event: {{ e }}
+          {%- set s = trigger.event -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}}
+            EVENT: {{- s -}}
+            {%- set s = s|from_json -%}
+            {%- if s is mapping -%}}
+              {%- set ad = s.action_data -%}
+              {%- set an = s.action_name -%}
+              {%- set did = s.sourceDeviceID -%}
+              {%- set ti = s.textInput -%}
+              {%- if ad|lower != 'none' and ad|lower != 'unknown' and ad|lower != 'unavailable' and ad|lower != 'null' -%}}
+                {%- set d = ad.device -%}
+                {%- set c = ad.camera -%}
+                {%- set e = ad.event -%}
+                DATA: device: {{ d -}}; camera: {{ c -}}; event: {{ e }}
+              {%- elif an|lower != 'none' and an|lower != 'unknown' and an|lower != 'unavailable' and an|lower != 'null' -%}}
+                NAME: {{- an -}}
+              {%- else -%}}
+                {{- 'NOTIFY: no action_data and no action_name' -}}
+              {%- endif -%}}
+            {%- else -%}}
+              {{- 'Not JSON' -}}
+            {%- endif -%}}
+          {%- else -%}}
+            {{- 'NOTIFY' -}}
+          {%- endif -%}}
 
 - id: motion_smartphone_person_alert_dismiss
   alias: motion_smartphone_person_alert_dismiss
-  initial_state: on
+  initial_state: off
   trigger:
     - platform: event
       event_type: ios.notification_action_fired
