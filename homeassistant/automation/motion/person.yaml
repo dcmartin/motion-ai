@@ -241,80 +241,51 @@
 #   "action_data": {}
 # }
 
-- id: motion_smartphone_alert
-  alias: motion_smartphone_alert
+- id: motion_smartphone_alert_notify
+  alias: motion_smartphone_alert_notify
   initial_state: on
   trigger:
     - platform: event
       event_type: ios.notification_action_fired
-#      event_data:
-#        categoryName: motion_smartphone_alert
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.event.data.categoryName|lower == 'motion_smartphone_alert' }}
+      - condition: template
+        value_template: >
+          {{ trigger.event.data.actionName|lower == 'motion_smartphone_alert_notify' }}
   action:
     - service: persistent_notification.create
       data_template:
         title: >-
-          {%- set s = trigger.event -%}
-          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}}
-            {{- s.categoryName -}}
-          {%- else -%}}
-            {{- 'No categoryName' -}}
-          {%- endif -%}}
+          {{- 'ALERT NOTIFY' -}}
         notification_id: >-
-          {%- set s = trigger.event -%}
-          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}}
-            {{- s.actionName -}}
-          {%- else -%}}
-            {{- 'No actionName' -}}
-          {%- endif -%}}
+          {{- 'motion_smartphone_alert_notify_' + trigger.event.data.sourceDeviceID -}}
         message: >-
-          {%- set s = trigger.event -%}
-          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}}
-            EVENT: {{- s -}}
-            {%- set s = s|from_json -%}
-            {%- if s is mapping -%}}
-              {%- set ad = s.action_data -%}
-              {%- set an = s.action_name -%}
-              {%- set did = s.sourceDeviceID -%}
-              {%- set ti = s.textInput -%}
-              {%- if ad|lower != 'none' and ad|lower != 'unknown' and ad|lower != 'unavailable' and ad|lower != 'null' -%}}
-                {%- set d = ad.device -%}
-                {%- set c = ad.camera -%}
-                {%- set e = ad.event -%}
-                DATA: device: {{ d -}}; camera: {{ c -}}; event: {{ e }}
-              {%- elif an|lower != 'none' and an|lower != 'unknown' and an|lower != 'unavailable' and an|lower != 'null' -%}}
-                NAME: {{- an -}}
-              {%- else -%}}
-                {{- 'NOTIFY: no action_data and no action_name' -}}
-              {%- endif -%}}
-            {%- else -%}}
-              {{- 'Not JSON' -}}
-            {%- endif -%}}
-          {%- else -%}}
-            {{- 'NOTIFY' -}}
-          {%- endif -%}}
-
-- id: motion_smartphone_person_alert_dismiss
-  alias: motion_smartphone_person_alert_dismiss
-  initial_state: off
-  trigger:
-    - platform: event
-      event_type: ios.notification_action_fired
-      event_data:
-        actionName: motion_smartphone_alert_dismiss
-  action:
-    - service: persistent_notification.create
-      data_template:
-        title: >-
-          ALERT DISMISS 
-        notification_id: >-
-          motion_smartphone_alert_dismiss
-        message: >-
-          {%- set e = trigger.event -%}
-          {%- set o = e.origin -%}
-          {%- set d = e.data.device -%}
-          {%- set c = e.data.camera -%}
-          {%- set e = e.data.event -%}
-          DISMISS: origin: {{ o -}}; device: {{ d -}}; camera: {{ c -}}; event: {{ e }}
+          {%- set ted = trigger.event.data -%}
+          {%- set sdn = ted.sourceDeviceName -%}
+          {%- set ti = ted.textInput -%}
+          {%- set ad = ted.action_data -%}
+          {%- set d = ad.device -%}
+          {%- set c = ad.camera -%}
+          {%- set e = ad.event -%}
+          {%- set i = ad.image -%}
+          {{- '![](' + i + ')' }}
+          Alert notification from {{ sdn -}}: {{ ti -}} at {{ d -}}/{{- c }}
+          {{- '[![](https://img.shields.io/badge/' + i + '-NOTIFY-red.svg)]('
+            + states('sensor.motion_detected_person_api')
+            + '/cgi-bin/alert.yes?entity=' + i
+            + '&camera=' + c
+            + '&event=' + e
+            + ')' -}}
+          {{- '[![](https://img.shields.io/badge/' + i + '-DISMISS-green.svg)]('
+            + states('sensor.motion_detected_person_api')
+            + '/cgi-bin/alert.no?entity=' + i
+            + '&camera=' + c
+            + '&event=' + e
+            + ')' -}}
 
 - id: motion_smartphone_person_alert_when_away
   alias: motion_smartphone_person_alert_when_away
@@ -354,14 +325,6 @@
         message: >-
           {%- set c = states('sensor.motion_detected_person_camera') -%}
           {%- set d = states('sensor.motion_detected_person_device') -%}
-          {%- set r = states('sensor.motion_detected_person_list') -%}
-          {%- if r|lower != 'none' and r|lower != 'unknown' and r|lower != 'unavailable' and r|lower != 'null' -%}
-            {%- set u = '&results=' + r|urlencode -%}
-            {%- set r = r|replace("'",'"')|from_json -%}
-          {%- else -%}
-            {%- set u = '' -%}
-            {%- set r = null -%}
-          {%- endif -%}
           {%- set e = states('sensor.motion_' + states('sensor.motion_detected_person_camera') + '_detected_person_event') -%}
           {{- '[![]('
              + '/local/images/motion/'
@@ -379,24 +342,18 @@
           Detected {{ states('sensor.motion_detected_person_count') }} person(s)
           for {{ states('sensor.motion_detected_person_elapsed') }} seconds
           at {{ states('sensor.motion_detected_person_when') }}
-          {% if r is iterable and r|length > 0 -%}
-            {% for i in r|map(attribute="e")|unique|list -%}
-            {{- '[![](https://img.shields.io/badge/' + i + '-okay-green.svg)]('
-              + states('sensor.motion_detected_person_api')
-              + '/cgi-bin/alert.yes?entity=' + i
-              + '&camera=' + c
-              + '&event=' + e
-              + u
-              + ')' -}}
-            {{- '[![](https://img.shields.io/badge/' + i + '-alert-red.svg)]('
-              + states('sensor.motion_detected_person_api')
-              + '/cgi-bin/alert.no?entity=' + i
-              + '&camera=' + c
-              + '&event=' + e
-              + u
-              + ')' -}}
-            {%- endfor -%}
-          {%- endif %}
+          {{- '[![](https://img.shields.io/badge/' + i + '-NOTIFY-red.svg)]('
+            + states('sensor.motion_detected_person_api')
+            + '/cgi-bin/alert.yes?entity=' + i
+            + '&camera=' + c
+            + '&event=' + e
+            + ')' -}}
+          {{- '[![](https://img.shields.io/badge/' + i + '-DISMISS-green.svg)]('
+            + states('sensor.motion_detected_person_api')
+            + '/cgi-bin/alert.no?entity=' + i
+            + '&camera=' + c
+            + '&event=' + e
+            + ')' -}}
     - condition: and
       conditions:
         - condition: template
@@ -431,6 +388,14 @@
               {{ states('sensor.motion_detected_person_camera') }}
             event: >-
               {{- states('sensor.motion_' + states('sensor.motion_detected_person_camera') + '_detected_person_event') -}}
+            image: >-
+              {%- set c = states('sensor.motion_detected_person_camera') -%}
+              {%- set e = states('sensor.motion_' + c + '_detected_person_event') -%}
+              {{- '/local/images/motion/'
+                 + c
+                 + '/detected_person_animated'
+                 + '.gif?e='
+                 + e -}}
           attachment:
             hide-thumbnal: false
             content-type: gif
