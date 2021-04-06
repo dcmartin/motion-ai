@@ -29,6 +29,13 @@ An open-source software solution for situational awareness from a network of vid
 ![Supports arm Architecture][arm-shield]
 ![Supports amd64 Architecture][amd64-shield]
 
+![JetPack 4.5.1](https://img.shields.io/badge/jetpack-4.5.1-red)
+![Ubuntu 18.04](https://img.shields.io/badge/ubuntu-18.04-red)
+![Rasbian Buster](https://img.shields.io/badge/rasbian-buster-red)
+![](https://img.shields.io/badge/cuda-10.2-red)
+![](https://img.shields.io/badge/cuda-11.2-red)
+
+
 ## Example
 <img src="docs/samples/example-motion-detection.gif" width=756>
 
