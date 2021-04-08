@@ -25,19 +25,15 @@
         {%- else -%}null{%- endif %}
     motion_addon_camera_restart_available:
       value_template: >-
-        {% set s = state_attr('sensor.motion_addon_status','status') -%}
+        {% set s = states('sensor.motion_addon_camera_restart') -%}
         {% if s|lower !='none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
-         {%- for i in s.daemons|sum(attribute="cameras",start=[])|selectattr("status","equalto",false)|map(attribute="camera")|list if i != null -%}
-            {%- if not loop.first -%},{%- endif -%}
-            {%- for w in states.switch 
-              if 'switch.camera_' + i == w.entity_id 
-                and states(w.entity_id)|lower != 'unavailable' 
-                and state_attr(w.entity_id,'friendly_name')|lower != 'none' -%}
-              {{- w.entity_id -}}
-            {%- else -%}null
-            {%- endfor -%}
-          {%- else -%}null
-          {% endfor -%}
+          {%- set s = s.split(',')|list|reject('equalto','null')|list -%}
+          {%- if s|lower !='none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s is iterable and s|length > 0 -%}
+            {%- for i in s if states(i)|lower != 'unavailable' and states(i)|lower != 'unknown' -%}
+              {%- if not loop.first -%},{%- endif -%}
+              {{ i }}
+            {%- else -%}null{% endfor %}
+          {%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif %}
     motion_addon_camera_restart_available_count:
       value_template: >-
@@ -52,6 +48,7 @@
           {{- s.split(',')|list|reject('equalto','null')|list|count -}}
         {%- else -%}null{%- endif %}
     motion_addon_camera_restart_unavailable:
+      unique_id: motion_addon_camera_restart_unavailable
       friendly_name: 'Unavailable 📷'
       icon_template: >-
         {%- if is_state('input_boolean.motion_addon_camera_restart','on') -%}
@@ -63,16 +60,10 @@
         {% set s = states('sensor.motion_addon_camera_restart') -%}
         {% if s|lower !='none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
           {%- set s = s.split(',')|list|reject('equalto','null')|list -%}
-          {% if s|lower !='none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s is iterable and s|length > 0 %}
-            {%- set a = states('sensor.motion_addon_camera_restart_available') -%}
-            {% if a|lower !='none' and a|lower != 'unavailable' and a|lower != 'unknown' and a|lower != 'null' %}
-              {%- set a = a.split(',')|list|reject('equalto','null')|list -%}
-              {% if a|lower !='none' and a|lower != 'unavailable' and a|lower != 'unknown' and a|lower != 'null' and a is iterable and a|length > 0 %}
-                {% for i in s if i not in a %}
-                  {%- if not loop.first -%},{%- endif -%}
-                  {{ i|replace('switch.camera_','') }}
-                {%- else -%}null{% endfor %}
-              {%- else -%}null{%- endif -%}
-            {%- else -%}null{%- endif -%}
+          {%- if s|lower !='none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s is iterable and s|length > 0 -%}
+            {%- for i in s if states(i)|lower == 'unavailable' or states(i)|lower == 'unknown' -%}
+              {%- if not loop.first -%},{%- endif -%}
+              {{ i|replace('switch.camera_','') }}
+            {%- else -%}null{% endfor %}
           {%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif %}
