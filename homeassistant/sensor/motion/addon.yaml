@@ -473,46 +473,26 @@
         {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
           {{ s.host }}
         {% else %}null{% endif %}
-    motion_addon_status_camera_status_array:
-      friendly_name: Add-on status array
-      value_template: >-
-        {% set s = state_attr('sensor.motion_addon_status','status') %}
-        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
-          [{%- for daemon in s.daemons if daemon != null -%}
-            {%- if loop.first -%}{%- else -%},{%- endif -%}
-            {%- for state in daemon.cameras if state != null -%}
-              {%- if loop.first -%}{%- else -%},{%- endif -%}
-              {%- set s = state.status|lower -%}
-              {%- if s == 'true' -%}1{%- else -%}0{%- endif -%}
-            {% else %}0
-            {%- endfor -%}
-          {% else %}0
-          {%- endfor -%}]
-        {% else %}null{% endif %}
     motion_addon_status_camera_count:
       unique_id: motion_addon_status_camera_count
       friendly_name: 'Add-on camera status count'
       icon_template: 'mdi:camera-outline'
       unit_of_measurement: '📷'
       value_template: >-
-        {% set s = states('sensor.motion_addon_status_camera_status_array') %}
-        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null and s|from_json is iterable %}
-          {% set t = s|from_json|sum %}
-          {% set l = s|from_json|length %}
-          {% if t > 0 or l > 1 %}
-            {{ l }}
-          {% else %}0{% endif %}
-        {% else %}null{% endif %}
+        {%- set s = state_attr('sensor.motion_addon_status','status') -%}
+        {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null -%}
+          {{ s.daemons|sum(attribute="cameras",start=[])|map(attribute="camera")|list|length }}
+        {%- else -%}null{%- endif -%}
     motion_addon_status_camera_online_count:
       unique_id: motion_addon_status_camera_online_count
       friendly_name: 'Add-on direct on-line'
       icon_template: 'mdi:camera'
       unit_of_measurement: '📷'
       value_template: >-
-        {% set s = states('sensor.motion_addon_status_camera_status_array') %}
-        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null and s|from_json is iterable %}
-          {{ s|from_json|sum }}
-        {% else %}null{% endif %}
+        {%- set s = state_attr('sensor.motion_addon_status','status') -%}
+        {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null -%}
+          {{ s.daemons|sum(attribute="cameras",start=[])|selectattr("status","equalto",true)|map(attribute="camera")|list }}
+        {%- else -%}null{%- endif -%}
     motion_addon_status_camera_offline:
       unique_id: motion_addon_status_camera_offline
       friendly_name: Add-on off-line camera(s)
@@ -520,7 +500,7 @@
       value_template: >-
         {%- set s = state_attr('sensor.motion_addon_status','status') -%}
         {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null -%}
-          {{ s.daemons|sum(attribute="cameras",start=[])|selectattr("status","equalto",false)|map(attribute="camera")|list|replace('\'','"') }}
+          {{ s.daemons|sum(attribute="cameras",start=[])|selectattr("status","equalto",false)|map(attribute="camera")|list }}
         {%- else -%}null{%- endif -%}
     motion_addon_status_camera_offline_count:
       unique_id: motion_addon_status_camera_offline_count
@@ -528,7 +508,10 @@
       icon_template: 'mdi:camera-off'
       unit_of_measurement: '📷'
       value_template: >-
-        {{ states('sensor.motion_addon_status_camera_count')|int - states('sensor.motion_addon_status_camera_online_count')|int  }}
+        {%- set s = state_attr('sensor.motion_addon_status','status') -%}
+        {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null -%}
+          {{ s.daemons|sum(attribute="cameras",start=[])|selectattr("status","equalto",false)|map(attribute="camera")|list|length }}
+        {%- else -%}null{%- endif -%}
     motion_addon_status_camera_offline_percent:
       unique_id: motion_addon_status_camera_offline_percent
       friendly_name: 'Add-on direct off-line %'
