@@ -120,7 +120,11 @@
         {% set results = state_attr('sensor.motion_' + mc + '_event_annotated','results') %}
         {% if results|lower != 'none' and results|lower != 'unavailable' and results|lower != 'unknown' and results|lower != 'null' and results|length > 0 %}
           {% set entity = states('input_select.motion_' + mc + '_detect_entity') %}
-          {% if entity != 'all' %}
+          {% if entity == 'all' %}
+            {% set l = results|map(attribute='confidence')|list %}
+          {% elif entity == 'none' %}
+            {# never detect #}
+          {% else %}
             {% set options = state_attr('input_select.motion_detect_' + entity,'options') %}
             {% if options is not iterable or options|length == 0 %}
               {% set options = state_attr('input_select.motion_' + mc + '_detect_entity','options') %}
@@ -128,12 +132,14 @@
             {% if options|lower != 'none' and options|lower != 'unknown' and options|length > 0 %}
               {% set l = results|selectattr('entity','in',options)|map(attribute='confidence')|list %}
             {% endif %}
-          {% else %}
-            {% set l = results|map(attribute='confidence')|list %}
+          {% endif %}
+          {% set t = states('sensor.motion_detected_' + entity + '_threshold') %}
+          {% if t|lower == 'none' or t|lower == 'unknown' or t|lower == 'unavailable' or not t|int is number %}
+            {% set t = states('sensor.motion_detected_entity_threshold') %}
           {% endif %}
           {% if l is defined and l is iterable and l|length > 0 %}
             {% set p = l|list|max|int %}
-            {{ p >= states('sensor.motion_detected_entity_threshold')|int }}
+            {{ p >= t|int }}
           {% else %}false{% endif %}
         {% else %}false{% endif %}
 
