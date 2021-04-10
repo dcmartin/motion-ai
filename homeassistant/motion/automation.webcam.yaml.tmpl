@@ -691,55 +691,6 @@
           ${MOTION_CAMERA} camera was {{ trigger.from_state.state }};
           lost at {{ now().timestamp()|int|timestamp_custom("%a %b %d @ %I:%M %p %Z") | default(null) }}
 
-###
-# notify detected
-###
-
-- id: motion_${MOTION_CAMERA}_detected_notify
-  alias: motion_${MOTION_CAMERA}_detected_notify
-  initial_state: 'on'
-  trigger:
-    - platform: state
-      entity_id: binary_sensor.motion_${MOTION_CAMERA}_detected
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >
-          {{ trigger.to_state.state != trigger.from_state.state }}
-      - condition: template
-        value_template: >
-          {{ is_state('binary_sensor.motion_${MOTION_CAMERA}_detected','on') }}
-      - condition: template
-        value_template: >
-          {{ is_state('input_boolean.motion_${MOTION_CAMERA}_detected_notify','on') }}
-      - condition: template
-        value_template: >
-          {{ states('sensor.motion_${MOTION_CAMERA}_detected_count')|int > 0 }}
-  action:
-    - service: persistent_notification.create
-      data_template:
-        title: >-
-          Detected {{ states('sensor.motion_${MOTION_CAMERA}_detected_count') }} entity(s)
-          from {{ states('sensor.motion_${MOTION_CAMERA}_detected_camera') }}
-        notification_id: >-
-          {{ 'motion_detected-${MOTION_CAMERA}' }}
-        message: >-
-          {{ '[![]('
-             + states('sensor.motion_base_url')
-             + '/local/images/motion/${MOTION_CAMERA}/detected'
-             + '.jpg?e='
-             + states('sensor.motion_${MOTION_CAMERA}_detected_event')
-             + ')]('
-             + states('sensor.motion_base_url')
-             + '/local/images/motion/${MOTION_CAMERA}/detected_animated'
-             + '.gif?e='
-             + states('sensor.motion_${MOTION_CAMERA}_detected_event')
-             + ')' }}
-          Camera ${MOTION_CAMERA} detected {{ states('sensor.motion_${MOTION_CAMERA}_detected_count') -}}:
-          {{ states('sensor.motion_${MOTION_CAMERA}_detected_list') -}};
-          for {{ states('sensor.motion_${MOTION_CAMERA}_detected_elapsed') }} seconds
-          at {{ states('sensor.motion_${MOTION_CAMERA}_detected_when') }}
 
 ##
 # complete
@@ -763,3 +714,172 @@
   action:
     - service: counter.increment
       entity_id: counter.motion_${MOTION_CAMERA}_complete_counter
+
+###
+# notify detected entity
+###
+
+- id: motion_${MOTION_CAMERA}_detect_entity_notify
+  alias: motion_${MOTION_CAMERA}_detect_entity_notify
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_${MOTION_CAMERA}_detected_entity_when
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.motion_${MOTION_CAMERA}_detected_entity','on') }}
+      - condition: template
+        value_template: >
+          {{ is_state('input_boolean.motion_${MOTION_CAMERA}_detect_entity_notify','on') }}
+  action:
+    - service: persistent_notification.create
+      data_template:
+        title: >-
+          ${MOTION_CAMERA}: detected {{ states('input_select.motion_${MOTION_CAMERA}_detect_entity') -}}(s)
+        notification_id: >-
+          {{ 'motion_detected_entity-${MOTION_CAMERA}' }}
+        message: >-
+          {{ '[![]('
+             + states('sensor.motion_base_url')
+             + '/local/images/motion/${MOTION_CAMERA}/detected_entity'
+             + '.jpg?e='
+             + states('sensor.motion_${MOTION_CAMERA}_detected_entity_event')
+             + ')]('
+             + states('sensor.motion_base_url')
+             + '/local/images/motion/${MOTION_CAMERA}/detected_entity_animated'
+             + '.gif?e='
+             + states('sensor.motion_${MOTION_CAMERA}_detected_entity_event')
+             + ')' }}
+          Camera ${MOTION_CAMERA} detected
+          {{ states('input_select.motion_${MOTION_CAMERA}_detect_entity') -}}(s)
+          for {{ states('sensor.motion_${MOTION_CAMERA}_detected_entity_elapsed') }} seconds
+          at {{ states('sensor.motion_${MOTION_CAMERA}_detected_entity_when') }}
+
+##
+# speak
+##
+
+- id: motion_${MOTION_CAMERA}_detect_entity_speak
+  alias: motion_${MOTION_CAMERA}_detect_entity_speak
+  initial_state: on
+  description: 'Speak when entity detected'
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_${MOTION_CAMERA}_detected_entity_when
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.motion_${MOTION_CAMERA}_detected_entity','on') }}
+      - condition: template
+        value_template: >
+          {{ is_state('input_boolean.motion_${MOTION_CAMERA}_detect_entity_notify','on') }}
+      - condition: template
+        value_template: >
+          {{ is_state('input_boolean.motion_${MOTION_CAMERA}_detect_entity_speak','on') -}}
+      - condition: template
+        value_template: >
+          {%- set s = states('sensor.motion_media_player_selected') -%}
+          {{- s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' }}
+  action:
+    - service: tts.cloud_say
+      data_template:
+        entity_id: >-
+          {{ states('sensor.motion_media_player_selected') }}
+        language: en-US
+        options:
+          gender: female
+        message: >-
+          Camera ${MOTION_CAMERA} detected
+          {{ states('input_select.motion_${MOTION_CAMERA}_detect_entity') -}}(s)
+          at {{ states('sensor.motion_${MOTION_CAMERA}_detected_entity_when') }}
+
+##
+# alert
+##
+
+- id: motion_${MOTION_CAMERA}_detect_entity_alert
+  alias: motion_${MOTION_CAMERA}_detect_entity_alert
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_${MOTION_CAMERA}_detected_entity_when
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.motion_${MOTION_CAMERA}_detected_entity','on') }}
+      - condition: template
+        value_template: >
+          {{ is_state('input_boolean.motion_${MOTION_CAMERA}_detect_entity_notify','on') }}
+      - condition: template
+        value_template: >
+          {{ is_state('input_boolean.motion_${MOTION_CAMERA}_detect_entity_alert','on') -}}
+      - condition: template
+        value_template: >
+          {%- set s = states('sensor.motion_person_device') -%}
+          {{ s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|length > 0 }}
+  action:
+    - service_template: >-
+        {%- set s = states('sensor.motion_person_device') -%}
+        {{- 'notify.mobile_app_' + s -}}
+      data_template:
+        title: >-
+          ${MOTION_CAMERA}: detected {{ states('input_select.motion_${MOTION_CAMERA}_detect_entity') -}}(s)
+        message: >-
+          {{ states('sensor.motion_${MOTION_CAMERA}_detected_entity_ago') -}}s ago:
+          {{ states('sensor.motion_${MOTION_CAMERA}_detected_entity_when') }};
+          for {{ states('sensor.motion_${MOTION_CAMERA}_detected_entity_elapsed') -}}s
+        data:
+          push:
+            category: 'motion_smartphone_alert'
+            sound:
+              name: default
+              critical: 1
+              volume: 1.0
+            url:
+              _: >-
+                {{- '/lovelace-experimental/${MOTION_CAMERA}' -}}
+          action_data:
+            device: >-
+              {{ states('sensor.motion_${MOTION_CAMERA}_detected_entity_device') }}
+            camera: >-
+              {{ '${MOTION_CAMERA}' }}
+            event: >-
+              {{- states('sensor.motion_${MOTION_CAMERA}_detected_entity_event') -}}
+            entity: >-
+              {{ states('input_select.motion_${MOTION_CAMERA}_detect_entity') }}
+            image: >-
+              {%- set c = '${MOTION_CAMERA}' -%}
+              {%- set e = states('sensor.motion_' + c + '_detected_entity_event') -%}
+              {{- '/local/images/motion/'
+                 + c
+                 + '/detected_entity_animated'
+                 + '.gif?e='
+                 + e -}}
+          attachment:
+            hide-thumbnal: false
+            content-type: gif
+            url: >-
+              {%- set c = '${MOTION_CAMERA}' -%}
+              {%- set e = states('sensor.motion_' + c + '_detected_entity_event') -%}
+              {{- states('sensor.motion_base_url')
+                 + '/local/images/motion/'
+                 + c
+                 + '/detected_entity_animated'
+                 + '.gif?e='
+                 + e -}}

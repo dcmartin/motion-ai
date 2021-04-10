@@ -109,28 +109,37 @@
 ## entity
 ###
 
-
 ## detected entity
 - platform: template
   sensors:
     motion_${MOTION_CAMERA}_detected_entity:
-      friendly_name: '${MOTION_CAMERA} 🚶 detected'
+      friendly_name: '${MOTION_CAMERA} entity detected'
       icon_template: 'mdi:check'
       value_template: >-
-        {% set results = state_attr('sensor.motion_${MOTION_CAMERA}_event_annotated','results') %}
+        {% set mc = '${MOTION_CAMERA}' %}
+        {% set results = state_attr('sensor.motion_' + mc + '_event_annotated','results') %}
         {% if results|lower != 'none' and results|lower != 'unavailable' and results|lower != 'unknown' and results|lower != 'null' and results|length > 0 %}
-          {% set option = states('input_select.motion_${MOTION_CAMERA}_detect_entity') %}
-          {% if option|lower == 'all' or option|lower == 'entity' %}
-            {% set options = state_attr('input_select.motion_${MOTION_CAMERA}_detect_entity','options') %}
+          {% set entity = states('input_select.motion_' + mc + '_detect_entity') %}
+          {% if entity == 'all' %}
+            {% set l = results|map(attribute='confidence')|list %}
+          {% elif entity == 'none' %}
+            {# never detect #}
+          {% else %}
+            {% set options = state_attr('input_select.motion_detect_' + entity,'options') %}
+            {% if options is not iterable or options|length == 0 %}
+              {% set options = state_attr('input_select.motion_' + mc + '_detect_entity','options') %}
+            {% endif %}
             {% if options|lower != 'none' and options|lower != 'unknown' and options|length > 0 %}
               {% set l = results|selectattr('entity','in',options)|map(attribute='confidence')|list %}
             {% endif %}
-          {% else %}
-            {% set l = results|selectattr('entity','==',option)|map(attribute='confidence')|list %}
+          {% endif %}
+          {% set t = states('sensor.motion_detected_' + entity + '_threshold') %}
+          {% if t|lower == 'none' or t|lower == 'unknown' or t|lower == 'unavailable' or not t|int is number %}
+            {% set t = states('sensor.motion_detected_entity_threshold') %}
           {% endif %}
           {% if l is defined and l is iterable and l|length > 0 %}
             {% set p = l|list|max|int %}
-            {{ p >= states('sensor.motion_detected_entity_threshold')|int }}
+            {{ p >= t|int }}
           {% else %}false{% endif %}
         {% else %}false{% endif %}
 
