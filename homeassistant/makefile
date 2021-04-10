@@ -477,7 +477,7 @@ tidy:
 
 neat: tidy
 	@echo "${MC}Making: $@${NC}"
-	-@sudo rm -fr www/images/motion/
+	-@sudo rm -fr www/images/motion/*
 	-@sudo rm -f .storage/core.restore_state
 
 clean: stop logclean neat
