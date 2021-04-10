@@ -18,6 +18,26 @@
 
 - platform: template
   sensors:
+    motion_detected_animal_confirmed:
+      friendly_name: 'Detected 🐄✅'
+      icon_template: 'mdi:cow'
+      value_template: >-
+        {% set results = state_attr('sensor.motion_event_annotated','results') %}
+        {% if results|lower != 'none' and results|lower != 'unavailable' and results|lower != 'unknown' and results|lower != 'null' and results|length > 0 %}
+          {% set option = states('input_select.motion_detect_animal') %}
+          {% if option|lower == 'all' or option|lower == 'animal' %}
+            {% set options = state_attr('input_select.motion_detect_animal','options') %}
+            {% if options|lower != 'none' and options|lower != 'unknown' and options|length > 0 %}
+              {% set l = results|selectattr('entity','in',options)|map(attribute='confidence')|list %}
+            {% endif %}
+          {% else %}
+            {% set l = results|selectattr('entity','==',option)|map(attribute='confidence')|list %}
+          {% endif %}
+          {% if l is defined and l is iterable and l|length > 0 %}
+            {% set p = l|list|max|int %}
+            {{ p >= states('sensor.motion_detected_animal_threshold_confirmed')|int }}
+          {% else %}false{% endif %}
+        {% else %}false{% endif %}
     motion_detected_animal:
       friendly_name: '🐄 detected'
       icon_template: 'mdi:cow'
