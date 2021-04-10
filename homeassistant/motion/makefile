@@ -40,6 +40,17 @@ WEBCAM_INPUT_SELECTS := $(shell for C in $(WEBCAMS); do echo input_select/webcam
 WEBCAM_SENSORS := $(shell for C in $(WEBCAMS); do echo sensor/webcam-$${C}.yaml; done)
 WEBCAM_SHELL_COMMANDS := $(shell for C in $(WEBCAMS); do echo shell_command/webcam-$${C}.yaml; done)
 
+WEBCAM_YAML := \
+  $(WEBCAM_AUTOMATIONS)  \
+  $(WEBCAM_BINARY_SENSORS)  \
+  $(WEBCAM_COUNTERS)  \
+  $(WEBCAM_CAMERAS)  \
+  $(WEBCAM_IMAGE_PROCESSINGS)  \
+  $(WEBCAM_INPUT_BOOLEANS)  \
+  $(WEBCAM_INPUT_SELECTS)  \
+  $(WEBCAM_SENSORS)  \
+  $(WEBCAM_SHELL_COMMANDS)
+
 ##
 ## HIGHLOW
 ##
@@ -425,9 +436,9 @@ history_graph/webcams.yaml: ${WEBCAMS_JSON} makefile ./sh/mkwebcam-history_graph
 ## clean and clean and clean ..
 
 tidy:
-	-@rm -f $(WEBCAM_YAML) */webcam-*
-	-@rm -f $(HIGHLOW_YAML) */highlow-*
-	-@rm -f $(MOTION_YAML)
+	-rm -f $(WEBCAM_YAML) */*-*.yaml
+	-rm -f $(HIGHLOW_YAML) */highlow-*
+	-rm -f $(MOTION_YAML)
 
 clean: tidy
 	-rm -f motion-addon.json
