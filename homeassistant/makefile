@@ -477,7 +477,7 @@ tidy:
 
 neat: tidy
 	@echo "${MC}Making: $@${NC}"
-	-@sudo rm -fr www/images/motion/
+	-@sudo rm -fr www/images/motion/*
 	-@sudo rm -f .storage/core.restore_state
 
 clean: stop logclean neat
@@ -486,6 +486,7 @@ clean: stop logclean neat
 	@rm -f secrets.yaml
 	-@rm -f .storage/lovelace*
 	-@sudo rm -f .storage/core.entity_registry
+	-@sudo rm -f .storage/core.restore_state
 
 realclean: clean 
 	-@sudo rm -f home-assistant_v2.*
