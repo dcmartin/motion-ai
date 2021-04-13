@@ -891,9 +891,6 @@
 - id: motion_${MOTION_CAMERA}_detect_entity_alert_all
   alias: motion_${MOTION_CAMERA}_detect_entity_alert_all
   initial_state: on
-  mode: queued
-  max: 10
-  max_exceeded: debug
   trigger:
     - platform: state
       entity_id: sensor.motion_${MOTION_CAMERA}_detected_entity_when
@@ -927,22 +924,22 @@
         while:
           - condition: template
             value_template: >-
-              {% set s = state_attr('senor.motion_smartphone_name','options') %}
-              {% set n = s[repeat.index] %}
-              {{ n|lower != 'none' and n|lower != 'unavailable' and n|lower != 'unknown' and n|lower != 'null' }}
+              {% set s = state_attr('input_select.motion_smartphone_name','options')[repeat.index - 1] %}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
         sequence:
           - alias: "set_state: motion_smartphone_notify"
             service: python_script.set_state
             data_template:
               entity_id: sensor.motion_smartphone_notify
               state: >-
-                {{ state_attr('senor.motion_smartphone_name','options')[repeat.index] }}
+                {{ state_attr('input_select.motion_smartphone_name','options')[repeat.index] }}
           - alias: "trigger: motion_${MOTION_CAMERA}_detect_entity_alert_one"
             service: automation.trigger
             entity_id: automation.motion_${MOTION_CAMERA}_detect_entity_alert_one
           - alias: "wait until complete"
             wait_template: >-
-              {{ state_attr('automation.motion_${MOTION_CAMERA}_detect_entity_alert_one','current')|int = 0 }}
+              {% set s = state_attr('automation.motion_${MOTION_CAMERA}_detect_entity_alert_one','current') %}
+              {{ s is number and s|int == 0 }}
 
 - id: motion_${MOTION_CAMERA}_detect_entity_alert_one
   alias: motion_${MOTION_CAMERA}_detect_entity_alert_one
@@ -955,7 +952,7 @@
         - condition: template
           value_template: >
             {%- set s = states('sensor.motion_smartphone_notify') -%}
-            {{ s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' s|lower != 'all' }}
+            {{ s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'all' and s|length > 0 }}
     - alias: 'send smartphone notification ${MOTION_CAMERA}'
       service_template: >-
         {%- set s = states('sensor.motion_smartphone_notify') -%}
