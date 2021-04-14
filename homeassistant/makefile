@@ -5,6 +5,8 @@
 TIMESTAMP ?= $(shell date -u '%FT%TZ')
 THIS_HOSTIP ?= $(shell hostname -i | awk '{ print $$1 }')
 
+UPTIMEROBOT_RSSURL ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.UPTIMEROBOT_RSSURL' setup.json) && echo "${TS}++ UPTIMEROBOT_RSSURL: $${v}${NC}" > /dev/stderr && echo "$${v}"), $(if $(wildcard UPTIMEROBOT_RSSURL),$(shell v=$$(cat UPTIMEROBOT_RSSURL) && echo "${TG}== UPTIMEROBOT_RSSURL: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='https://rss.uptimerobot.com/status' && echo "${TB}** UPTIMEROBOT_RSSURL unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+
 MOTION_REPOSITORY ?= $(if $(wildcard setup.json),$(shell v=$$(jq -r '.MOTION_REPOSITORY' setup.json) && echo "${TS}++ MOTION_REPOSITORY: $${v}${NC}" > /dev/stderr && echo "$${v}"), $(if $(wildcard MOTION_REPOSITORY),$(shell v=$$(cat MOTION_REPOSITORY) && echo "${TG}== MOTION_REPOSITORY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='https://github.com/motion-ai/motion-ai.git' && echo "${TB}** MOTION_REPOSITORY unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 
 # logging
@@ -339,6 +341,7 @@ secrets.yaml: secrets.yaml.tmpl
 	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
 	  NETDATA_URL="$(NETDATA_URL)" \
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
+	  UPTIMEROBOT_RSSURL="$(UPTIMEROBOT_RSSURL)" \
 	&& cat $< | envsubst > $@
 
 lovelace.json: lovelace.json.tmpl $(WEBCAMS)
