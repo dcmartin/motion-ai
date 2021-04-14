@@ -269,6 +269,7 @@ $(ACTIONS): necessary
 	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
 	  NETDATA_URL="$(NETDATA_URL)" \
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
+	  UPTIMEROBOT_RSSURL="$(UPTIMEROBOT_RSSURL)" \
 	&& make -C homeassistant $@
 
 
@@ -373,6 +374,7 @@ homeassistant/setup.json: setup.json.tmpl
 	  NETDATA_URL="$(NETDATA_URL)" \
 	  TIMESTAMP="$(TIMESTAMP)" \
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
+	  UPTIMEROBOT_RSSURL="$(UPTIMEROBOT_RSSURL)" \
 	&& cat $< | envsubst > $@
 
 .PHONY: ${MEDIA} necessary all default run stop logs restart tidy clean realclean distclean $(PACKAGES) homeassistant/motion/webcams.json homeassistant/setup.json allclean
