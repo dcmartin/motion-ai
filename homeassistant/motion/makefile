@@ -436,14 +436,14 @@ history_graph/webcams.yaml: ${WEBCAMS_JSON} makefile ./sh/mkwebcam-history_graph
 ## clean and clean and clean ..
 
 tidy:
-	-rm -f $(WEBCAM_YAML) */*-*.yaml
-	-rm -f $(HIGHLOW_YAML) */highlow-*
-	-rm -f $(MOTION_YAML)
+	-@rm -f $(WEBCAM_YAML) */*-*.yaml
+	-@rm -f $(HIGHLOW_YAML) */highlow-*
+	-@rm -f $(MOTION_YAML)
 
 clean: tidy
-	-rm -f motion-addon.json
-	-rm -f webcams.json
-	-rm -f group/webcams.yaml
+	-@rm -f motion-addon.json
+	-@rm -f webcams.json
+	-@rm -f group/webcams.yaml
 
 realclean: clean
 
