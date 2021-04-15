@@ -3,6 +3,7 @@
 import asyncio
 import re
 import feedparser
+import logging
 import voluptuous as vol
 from datetime import timedelta
 from dateutil import parser
@@ -38,6 +39,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     }
 )
 
+_LOGGER = logging.getLogger(__name__)
 
 @asyncio.coroutine
 def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
@@ -79,8 +81,10 @@ class FeedParserSensor(SensorEntity):
         parsedFeed = feedparser.parse(self._feed)
 
         if not parsedFeed:
+            _LOGGER.warn("Feed %s not parsed; URL: %s", self._name, self._feed)
             return False
         else:
+            _LOGGER.debug("Updating feed: %s; URL: %s", self._name, self._feed)
             self._state = (
                 self._show_topn
                 if len(parsedFeed.entries) > self._show_topn
