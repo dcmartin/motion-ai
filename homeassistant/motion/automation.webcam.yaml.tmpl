@@ -751,27 +751,41 @@
         notification_id: >-
           {{ 'motion_detected_entity-${MOTION_CAMERA}' }}
         message: >-
+          {%- set mc = '${MOTION_CAMERA}' -%}
           {{ '[![]('
              + states('sensor.motion_base_url')
-             + '/local/images/motion/${MOTION_CAMERA}/detected_entity'
+             + '/local/images/motion/' + mc + '/detected_entity'
              + '.jpg?e='
-             + states('sensor.motion_${MOTION_CAMERA}_detected_entity_event')
+             + states('sensor.motion_' + mc + '_detected_entity_event')
              + ')]('
              + states('sensor.motion_base_url')
-             + '/local/images/motion/${MOTION_CAMERA}/detected_entity_animated'
+             + '/local/images/motion/' + mc + '/detected_entity_animated'
              + '.gif?e='
-             + states('sensor.motion_${MOTION_CAMERA}_detected_entity_event')
+             + states('sensor.motion_' + mc + '_detected_entity_event')
              + ')' }}
-          Camera ${MOTION_CAMERA} detected
-          {% set s = states('input_select.motion_${MOTION_CAMERA}_detect_entity') %}
-          {% if s|lower != 'all' %}
-            {{ s -}}(s);
-          {% else %}
-            {% set s = states('sensor.motion_${MOTION_CAMERA}_detected_list') %}
-            {{ s -}};
-          {% endif %}
-          for {{ states('sensor.motion_${MOTION_CAMERA}_detected_entity_elapsed') }} seconds
-          at {{ states('sensor.motion_${MOTION_CAMERA}_detected_entity_when') }}
+          {{ 'Camera ' + mc + ' detected: ' -}}
+          {%- set s = states('input_select.motion_' + mc + '_detect_entity') -%}
+          {%- if s|lower != 'all' -%}
+            {{ s -}}(s)
+          {%- else -%}
+            {%- set s = states('sensor.motion_' + mc + '_detected_list') -%}
+            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+              {%- set s = s|replace('\'','"')|from_json -%}
+              {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s is iterable -%}
+                {%- for e in  s -%}
+                  {%- if not loop.first -%},{%- endif -%}
+                  {{- e -}}
+                {%- endfor -%}
+              {%- else -%}
+                {{ 'unknown' -}}
+              {%- endif -%}
+            {%- else -%}
+              {{ 'none' -}}
+            {%- endif -%}
+          {%- endif -%};
+          {{ states('sensor.motion_' + mc + '_detected_entity_ago') -}}s ago;
+          for {{ states('sensor.motion_' + mc + '_detected_entity_elapsed') -}}s;
+          at {{ states('sensor.motion_' + mc + '_detected_entity_when') }}
 
 ##
 # speak
@@ -853,16 +867,30 @@
         title: >-
           NOTIFY: ${MOTION_CAMERA}: detected entity(s)
         message: >-
-          Detected
-          {% set s = states('input_select.motion_${MOTION_CAMERA}_detect_entity') %}
-          {% if s|lower != 'all' %}
-            {{ s -}}(s);
-          {% else %}
-            {{ states('sensor.motion_${MOTION_CAMERA}_detected_list') -}};
-          {% endif %}
-          {{ states('sensor.motion_${MOTION_CAMERA}_detected_entity_when') }};
-          {{ states('sensor.motion_${MOTION_CAMERA}_detected_entity_ago') -}}s ago;
-          for {{ states('sensor.motion_${MOTION_CAMERA}_detected_entity_elapsed') -}}s
+          {%- set mc = '${MOTION_CAMERA}' -%}
+          {{ 'Camera ' + mc + ' detected: ' -}}
+          {%- set s = states('input_select.motion_' + mc + '_detect_entity') -%}
+          {%- if s|lower != 'all' -%}
+            {{ s -}}(s)
+          {%- else -%}
+            {%- set s = states('sensor.motion_' + mc + '_detected_list') -%}
+            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+              {%- set s = s|replace('\'','"')|from_json -%}
+              {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s is iterable -%}
+                {%- for e in  s -%}
+                  {%- if not loop.first -%},{%- endif -%}
+                  {{- e -}}
+                {%- endfor -%}
+              {%- else -%}
+                {{ 'unknown' -}}
+              {%- endif -%}
+            {%- else -%}
+              {{ 'none' -}}
+            {%- endif -%}
+          {%- endif -%};
+          {{ states('sensor.motion_' + mc + '_detected_entity_ago') -}}s ago;
+          for {{ states('sensor.motion_' + mc + '_detected_entity_elapsed') }}s;
+          at {{ states('sensor.motion_' + mc + '_detected_entity_when') }}
         data:
           push:
             category: 'motion_smartphone_alert'
@@ -902,6 +930,52 @@
                  + '/detected_entity_animated'
                  + '.gif?e='
                  + e -}}
+
+##
+# alert selected
+##
+
+- id: motion_${MOTION_CAMERA}_detect_entity_alert_selected
+  alias: motion_${MOTION_CAMERA}_detect_entity_alert_selected
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_${MOTION_CAMERA}_detected_entity
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.motion_${MOTION_CAMERA}_detected_entity','on') }}
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+      - condition: template
+        value_template: >
+          {{ is_state('input_boolean.motion_${MOTION_CAMERA}_detect_entity_notify','on') }}
+      - condition: template
+        value_template: >
+          {{ is_state('input_boolean.motion_${MOTION_CAMERA}_detect_entity_alert','on') -}}
+      - condition: template
+        value_template: >
+          {{- not is_state('input_select.motion_smartphone_name','all')
+              and not is_state('input_select.motion_smartphone_name','none') -}}
+      - condition: template
+        value_template: >
+          {{- is_state('input_boolean.motion_notify_smartphone','on') -}}
+      - condition: template
+        value_template: >
+          {{- is_state('binary_sensor.motion_person_configure','on') -}}
+  action:
+    - alias: "set_state: motion_${MOTION_CAMERA}_smartphone_notify"
+      service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_${MOTION_CAMERA}_smartphone_notify
+        state: >-
+          {{ states('input_select.motion_smartphone_name') }}
+    - alias: "trigger: motion_${MOTION_CAMERA}_detect_entity_alert_one"
+      service: automation.trigger
+      entity_id: automation.motion_${MOTION_CAMERA}_detect_entity_alert_one
 
 ##
 # alert all
@@ -951,7 +1025,7 @@
             data_template:
               entity_id: sensor.motion_${MOTION_CAMERA}_smartphone_notify
               state: >-
-                {{ state_attr('input_select.motion_smartphone_name','options')[repeat.index] }}
+                {{ state_attr('input_select.motion_smartphone_name','options')[repeat.index - 1] }}
           - alias: "trigger: motion_${MOTION_CAMERA}_detect_entity_alert_one"
             service: automation.trigger
             entity_id: automation.motion_${MOTION_CAMERA}_detect_entity_alert_one
@@ -959,6 +1033,10 @@
             wait_template: >-
               {% set s = state_attr('automation.motion_${MOTION_CAMERA}_detect_entity_alert_one','current') %}
               {{ s is number and s|int == 0 }}
+
+##
+# alert one
+##
 
 - id: motion_${MOTION_CAMERA}_detect_entity_alert_one
   alias: motion_${MOTION_CAMERA}_detect_entity_alert_one
@@ -978,17 +1056,32 @@
         {{- 'notify.mobile_app_' + s -}}
       data_template:
         title: >-
-          ALERT: ${MOTION_CAMERA}: detected
-           {% set s = states('input_select.motion_${MOTION_CAMERA}_detect_entity') -%}
-           {% if s|lower == 'all' %}
-             {{ states('sensor.motion_${MOTION_CAMERA}_detected_list') }}
-           {% else %}
-             {{ s -}}(s)
-           {% endif %}
+          ALERT: ${MOTION_CAMERA}: detected entity(s)
         message: >-
-          {{ states('sensor.motion_${MOTION_CAMERA}_detected_entity_when') }};
-          {{ states('sensor.motion_${MOTION_CAMERA}_detected_entity_ago') -}}s ago;
-          for {{ states('sensor.motion_${MOTION_CAMERA}_detected_entity_elapsed') -}}s
+          {%- set mc = '${MOTION_CAMERA}' -%}
+          {{ 'Camera ' + mc + ' detected: ' -}}
+          {%- set s = states('input_select.motion_' + mc + '_detect_entity') -%}
+          {%- if s|lower != 'all' -%}
+            {{ s -}}(s)
+          {%- else -%}
+            {%- set s = states('sensor.motion_' + mc + '_detected_list') -%}
+            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+              {%- set s = s|replace('\'','"')|from_json -%}
+              {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s is iterable -%}
+                {%- for e in  s -%}
+                  {%- if not loop.first -%},{%- endif -%}
+                  {{- e -}}
+                {%- endfor -%}
+              {%- else -%}
+                {{ 'unknown' -}}
+              {%- endif -%}
+            {%- else -%}
+              {{ 'none' -}}
+            {%- endif -%}
+          {%- endif -%};
+          {{ states('sensor.motion_' + mc + '_detected_entity_ago') -}}s ago;
+          for {{ states('sensor.motion_' + mc + '_detected_entity_elapsed') }}s;
+          at {{ states('sensor.motion_' + mc + '_detected_entity_when') }}
         data:
           push:
             category: 'motion_smartphone_alert'
