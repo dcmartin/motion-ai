@@ -79,7 +79,7 @@ A more detailed interface is provided to administrators _only_, and includes bot
 <img src="docs/administrators.png" width="75%">
 
 # Add-on's
-Install the [MQTT](https://github.com/home-assistant/hassio-addons/blob/master/mosquitto/README.md) and [Motion Classic](https://github.com/dcmartin/hassio-addons/blob/master/motion-video0/README.md) _add-ons_ from the **Add-On Store** and configure and start; add the repository [https://github.com/dcmartin/hassio-addons](https://github.com/dcmartin/hassio-addons) to the Add-On Store to install Motion Classic.
+Install the [MQTT](https://github.com/home-assistant/hassio-addons/blob/master/mosquitto/README.md) and [Motion Classic](https://github.com/motion-ai/addons/blob/master/motion-video0/README.md) _add-ons_ from the **Add-On Store** and configure and start; add the repository [https://github.com/motion-ai/addons](https://github.com/motion-ai/addons) to the Add-On Store to install Motion Classic.
 
 The Motion Classic configuration includes many options, most which typically do not need to be changed. The `group` is provided to segment a network of devices (e.g. _indoor_ vs. _outdoor_); the `device` determines the MQTT identifier for publishing; the `client` determines the MQTT identifier for subscribing; `timezone` should be local to installation.
 
@@ -160,16 +160,15 @@ The `motion-ai` solution is composed of two primary components:
 
 Home Assistant _add-ons_:
 
-+ [`motion`](https://github.com/dcmartin/hassio-addons/blob/master/motion-video0/README.md) - _add-on_ for Home Assistant - captures images and video of motion (n.b. [motion-project.github.io](http://motion-project.github.io))
++ [`motion`](https://github.com/motion-ai/addons/blob/master/motion-video0/README.md) - _add-on_ for Home Assistant - captures images and video of motion (n.b. [motion-project.github.io](http://motion-project.github.io))
 + [`MQTT`](https://github.com/home-assistant/hassio-addons/blob/master/mosquitto/README.md) - messaging broker 
 + [`FTP`](https://github.com/hassio-addons/addon-ftp/blob/master/README.md) - optional, only required for `ftpd` type cameras
 
 Open Horizon AI _services_:
 
-+ `yolo4motion` - [object detection and classification](https://pjreddie.com/darknet/yolo/) 
-+ `face4motion` - [face detection](http://github.com/dcmartin/openface) 
-+ `alpr4motion` - [license plate detection and classification](http://github.com/dcmartin/openface) 
-+ `pose4motion` - [ human pose estimation](http://github.com/dcmartin/openpose)
++ `yolo4motion` - [object detection and classification](https://github.com/dcmartin/open-horizon/tree/master/services/yolo4motion) 
++ `face4motion` - [face detection](https://github.com/dcmartin/open-horizon/tree/master/services/face4motion) 
++ `alpr4motion` - [license plate detection and classification](https://github.com/dcmartin/open-horizon/tree/master/services/alpr4motion) 
 
 Data may be saved locally and processed to produce historical graphs as well as exported for analysis using other tools (e.g. time-series database _InfluxDB_ and analysis front-end _Grafana_).  Data may also be processed using _Jupyter_ notebooks.
 
