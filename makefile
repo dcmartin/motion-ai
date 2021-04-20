@@ -159,7 +159,7 @@ INTRANET_SCAN_INTERVAL ?= $(if $(wildcard INTRANET_SCAN_INTERVAL),$(shell v=$$(c
 ### TARGETS
 ###
 
-MEDIA := media/Motion-Ã👁/ homeassistant/www/images/motion/
+MEDIA := media/Motion-Ã👁/
 
 ACTIONS := all run stop logs restart refresh tidy neat clean realclean distclean
 
