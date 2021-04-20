@@ -839,7 +839,7 @@
   initial_state: on
   trigger:
     - platform: state
-      entity_id: counter.motion_${MOTION_CAMERA}_detected_entity
+      entity_id: binary_sensor.motion_${MOTION_CAMERA}_detected_entity
   condition:
     condition: and
     conditions:
@@ -848,93 +848,30 @@
           {{ trigger.to_state.state != trigger.from_state.state }}
       - condition: template
         value_template: >
-          {{ is_state('binary_sensor.motion_${MOTION_CAMERA}_detected_entity','on') }}
+          {%- set mc = '${MOTION_CAMERA}' -%}
+          {{ is_state('binary_sensor.motion_' + mc + '_detected_entity','on') }}
       - condition: template
         value_template: >
-          {{ is_state('input_boolean.motion_${MOTION_CAMERA}_detect_entity_notify','on') }}
+          {%- set mc = '${MOTION_CAMERA}' -%}
+          {{ is_state('input_boolean.motion_' + mc + '_detect_entity_notify','on') }}
       - condition: template
         value_template: >
-          {{ is_state('input_boolean.motion_${MOTION_CAMERA}_detect_entity_alert','on') -}}
+          {%- set mc = '${MOTION_CAMERA}' -%}
+          {{ is_state('input_boolean.motion_' + mc + '_detect_entity_alert','on') -}}
       - condition: template
         value_template: >
           {%- set s = states('sensor.motion_person_device') -%}
           {{ s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|length > 0 }}
   action:
-    - service_template: >-
-        {%- set s = states('sensor.motion_person_device') -%}
-        {{- 'notify.mobile_app_' + s -}}
+    - alias: "set_state: motion_${MOTION_CAMERA}_smartphone_notify"
+      service: python_script.set_state
       data_template:
-        title: >-
-          NOTIFY: ${MOTION_CAMERA}: detected entity(s)
-        message: >-
-          {%- set mc = '${MOTION_CAMERA}' -%}
-          {{ 'Camera ' + mc + ' detected: ' -}}
-          {%- set s = states('input_select.motion_' + mc + '_detect_entity') -%}
-          {%- if s|lower != 'all' -%}
-            {{ s -}}(s)
-          {%- else -%}
-            {%- set s = states('sensor.motion_' + mc + '_detected_list') -%}
-            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-              {%- set s = s|replace('\'','"')|from_json -%}
-              {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s is iterable -%}
-                {%- for e in  s -%}
-                  {%- if not loop.first -%},{%- endif -%}
-                  {{- e -}}
-                {%- endfor -%}
-              {%- else -%}
-                {{ 'unknown' -}}
-              {%- endif -%}
-            {%- else -%}
-              {{ 'none' -}}
-            {%- endif -%}
-          {%- endif -%};
-          {{ states('sensor.motion_' + mc + '_detected_entity_ago') -}}s ago;
-          for {{ states('sensor.motion_' + mc + '_detected_entity_elapsed') }}s;
-          at {{ states('sensor.motion_' + mc + '_detected_entity_when') }}
-        data:
-          push:
-            category: 'motion_smartphone_alert'
-            sound:
-              name: default
-              volume: 1.0
-              critical: >-
-                {%- if is_state('binary_sensor.motion_${MOTION_CAMERA}_detected_entity_alert_critical','on') -%}
-                  {{- '1' -}}
-                {%- else -%}
-                  {{- '0' -}}
-                {%- endif -%}
-            url:
-              _: >-
-                {{- '/lovelace-experimental/${MOTION_CAMERA}' -}}
-          action_data:
-            device: >-
-              {{ states('sensor.motion_${MOTION_CAMERA}_detected_entity_device') }}
-            camera: >-
-              {{ '${MOTION_CAMERA}' }}
-            event: >-
-              {{- states('sensor.motion_${MOTION_CAMERA}_detected_entity_event') -}}
-            entity: >-
-              {{ states('input_select.motion_${MOTION_CAMERA}_detect_entity') }}
-            image: >-
-              {%- set c = '${MOTION_CAMERA}' -%}
-              {%- set e = states('sensor.motion_' + c + '_detected_entity_event') -%}
-              {{- '/local/images/motion/'
-                 + c
-                 + '/detected_entity_animated'
-                 + '.gif?e='
-                 + e -}}
-          attachment:
-            hide-thumbnal: false
-            content-type: gif
-            url: >-
-              {%- set c = '${MOTION_CAMERA}' -%}
-              {%- set e = states('sensor.motion_' + c + '_detected_entity_event') -%}
-              {{- states('sensor.motion_base_url')
-                 + '/local/images/motion/'
-                 + c
-                 + '/detected_entity_animated'
-                 + '.gif?e='
-                 + e -}}
+        entity_id: sensor.motion_${MOTION_CAMERA}_smartphone_notify
+        state: >-
+          {{- states('sensor.motion_person_device') -}}
+    - alias: "trigger: motion_${MOTION_CAMERA}_detect_entity_alert_one"
+      service: automation.trigger
+      entity_id: automation.motion_${MOTION_CAMERA}_detect_entity_alert_one
 
 ##
 # alert selected
@@ -945,7 +882,7 @@
   initial_state: on
   trigger:
     - platform: state
-      entity_id: counter.motion_${MOTION_CAMERA}_detected_entity
+      entity_id: binary_sensor.motion_${MOTION_CAMERA}_detected_entity
   condition:
     condition: and
     conditions:
@@ -991,7 +928,7 @@
   initial_state: on
   trigger:
     - platform: state
-      entity_id: counter.motion_${MOTION_CAMERA}_detected_entity
+      entity_id: binary_sensor.motion_${MOTION_CAMERA}_detected_entity
   condition:
     condition: and
     conditions:
@@ -1093,10 +1030,11 @@
             sound:
               name: default
               critical: >-
-                {%- if is_state('binary_sensor.motion_${MOTION_CAMERA}_detected_entity_alert_critical','on') -%}
+                {%- set mc = '${MOTION_CAMERA}' -%}
+                {%- if is_state('binary_sensor.motion_' + mc + '_detected_entity_alert_critical','on') -%}
                   {{- '1' -}}
                 {%- else -%}
-                  {{- '0' -}}
+                  {{- null -}}
                 {%- endif -%}
               volume: 1.0
             url:
