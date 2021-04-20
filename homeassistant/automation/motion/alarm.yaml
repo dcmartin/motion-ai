@@ -212,7 +212,10 @@
           {% set d = as_timestamp(states.sensor.motion_detected_person_counter_today.last_updated)|int - as_timestamp(now().replace(hour=0).replace(minute=0).replace(second=0))|int %}
           {{ d }}
 
+##
 # notify when sensor.motion_schedule_wake_detected is unset after wake_end
+##
+
 - id: motion_schedule_wake_undetected_notify
   alias: motion_schedule_wake_undetected_notify
   mode: single
@@ -225,6 +228,9 @@
     conditions:
       - condition: template
         value_template: >-
+          {{ is_state('input_boolean.motion_schedule_wake_undetected','on') }}
+      - condition: template
+        value_template: >-
           {% set s = states('sensor.motion_schedule_wake_detected') %}
           {{ s == null or s|int < 1 }}
       - condition: template
@@ -235,9 +241,7 @@
     - service: persistent_notification.create
       data_template:
         title: >-
-          {{ 
-            'WAKE UNDETECTED: ' + now().timestamp()|int|timestamp_custom("%a %b %d %I:%M:%S %p")
-          }}
+          {{ 'WAKE UNDETECTED: ' + now().timestamp()|int|timestamp_custom("%a %b %d %I:%M:%S %p") }}
         notification_id: >-
           wakeup_notify
         message: >-
@@ -253,7 +257,7 @@
           {% set e = '%02d'|format((min/3600)|int)|string + ':' + '%02d'|format((min%60)|int)|string %}
           {% set l = '%02d'|format((max/3600)|int)|string + ':' + '%02d'|format((max%60)|int)|string %}
           {{ 
-            'NO PERSON DETECTED during ' 
+            'NO PERSON DETECTED; interval: ' 
             + states('sensor.motion_alarm_wake_interval')|string
             + '; normal: ' + m + ' +/- ' + d
             + '; early: ' +  e
@@ -280,6 +284,9 @@
         value_template: >-
           {% set s = states('sensor.motion_schedule_wake_detected') %}
           {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null and s|int > 0 }}
+      - condition: template
+        value_template: >-
+          {{ is_state('input_boolean.motion_schedule_wake_detected','on') }}
   action:
     - service: persistent_notification.create
       data_template:
@@ -293,3 +300,160 @@
             + '; Average: ' 
             + states('sensor.motion_schedule_wake_detected_mean_time')|string
           }}
+
+##
+# alert selected
+##
+
+- id: motion_schedule_wake_undetected_alert_selected
+  alias: motion_schedule_wake_undetected_alert_selected
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_schedule_wake_undetected
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.motion_schedule_wake_undetected','on') }}
+      - condition: template
+        value_template: >
+          {{ is_state('input_boolean.motion_schedule_wake_undetected','on') }}
+      - condition: template
+        value_template: >
+          {{- is_state('input_boolean.motion_notify_smartphone','on') -}}
+      - condition: template
+        value_template: >
+          {{- not is_state('input_select.motion_smartphone_name','all') and not is_state('input_select.motion_smartphone_name','none') -}}
+      - condition: template
+        value_template: >
+          {{- is_state('binary_sensor.motion_person_configure','on') -}}
+  action:
+    - alias: "set_state: motion_schedule_wake_undetected_alert_smartphone"
+      service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_schedule_wake_undetected_alert_smartphone
+        state: >-
+          {{ states('input_select.motion_smartphone_name') }}
+    - alias: "trigger: motion_schedule_wake_undetected_alert_one"
+      service: automation.trigger
+      entity_id: automation.motion_schedule_wake_undetected_alert_one
+
+##
+# alert all
+##
+
+- id: motion_schedule_wake_undetected_alert_all
+  alias: motion_schedule_wake_undetected_alert_all
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: counter.motion_detected_entity
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.motion_schedule_wake_undetected','on') }}
+      - condition: template
+        value_template: >
+          {{ is_state('input_boolean.motion_schedule_wake_undetected','on') }}
+      - condition: template
+        value_template: >
+          {{- is_state('input_boolean.motion_notify_smartphone','on') -}}
+      - condition: template
+        value_template: >
+          {{- is_state('input_select.motion_smartphone_name','all') -}}
+      - condition: template
+        value_template: >
+          {{- is_state('binary_sensor.motion_person_configure','on') -}}
+  action:
+    - alias: "motion_schedule_wake_undetected_alert_all repetition"
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = state_attr('input_select.motion_smartphone_name','options')[repeat.index - 1] %}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - alias: "set_state: motion_schedule_wake_undetected_alert_smartphone"
+            service: python_script.set_state
+            data_template:
+              entity_id: sensor.motion_schedule_wake_undetected_alert_smartphone
+              state: >-
+                {{ state_attr('input_select.motion_smartphone_name','options')[repeat.index - 1] }}
+          - alias: "trigger: motion_schedule_wake_undetected_alert_one"
+            service: automation.trigger
+            entity_id: automation.motion_schedule_wake_undetected_alert_one
+          - alias: "wait until complete"
+            wait_template: >-
+              {% set s = state_attr('automation.motion_schedule_wake_undetected_alert_one','current') %}
+              {{ s is number and s|int == 0 }}
+
+##
+# alert one
+##
+
+- id: motion_schedule_wake_undetected_alert_one
+  alias: motion_schedule_wake_undetected_alert_one
+  initial_state: on
+  trigger: []
+  condition: []
+  action:
+    - condition: and
+      conditions:
+        - condition: template
+          value_template: >
+            {%- set s = states('sensor.motion_schedule_wake_undetected_alert_smartphone') -%}
+            {{ s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'all' and s|length > 0 }}
+    - alias: 'schedule_wake_undetected_alert_one service'
+      service_template: >-
+        {%- set s = states('sensor.motion_schedule_wake_undetected_alert_smartphone') -%}
+        {{- 'notify.mobile_app_' + s -}}
+      data_template:
+        title: >-
+          {{ 'WAKE UNDETECTED: ' + now().timestamp()|int|timestamp_custom("%a %b %d %I:%M:%S %p") }}
+        message: >-
+          {% set stdev = state_attr('sensor.motion_schedule_wake_detected_statistics','standard_deviation')|float %}
+          {% set min = state_attr('sensor.motion_schedule_wake_detected_statistics','min_value')|float %}
+          {% set max = state_attr('sensor.motion_schedule_wake_detected_statistics','max_value')|float %}
+          {% set mean = state_attr('sensor.motion_schedule_wake_detected_statistics','mean')|float %}
+          {% set median = state_attr('sensor.motion_schedule_wake_detected_statistics','median')|float %}
+          {% set count = state_attr('sensor.motion_schedule_wake_detected_statistics','count')|int %}
+          {% set c = ((now().timestamp() - as_timestamp(state_attr('sensor.motion_schedule_wake_detected_statistics','min_age')))/86400)|int|string + 'd' %}
+          {% set m = '%02d'|format((mean/3600)|int)|string + ':' + '%02d'|format((mean%60)|int)|string %}
+          {% set d = (stdev/3600)|int|string + 'h' + (stdev%60)|int|string + 'm' %}
+          {% set e = '%02d'|format((min/3600)|int)|string + ':' + '%02d'|format((min%60)|int)|string %}
+          {% set l = '%02d'|format((max/3600)|int)|string + ':' + '%02d'|format((max%60)|int)|string %}
+          {{
+            'NO PERSON DETECTED; interval: '
+            + states('sensor.motion_alarm_wake_interval')|string
+            + '; normal: ' + m + ' +/- ' + d
+            + '; early: ' +  e
+            + '; late: ' +  l
+            + '; last: ' + c
+          }}
+        data:
+          push:
+            category: 'motion_smartphone_alert'
+            sound:
+              name: default
+              critical: 1
+              volume: 1.0
+            url:
+              _: >-
+                {{- '/lovelace/map' -}}
+          action_data:
+            interval: >-
+              {{ states('sensor.motion_alarm_wake_interval')|string }}
+            when: >-
+              {{ utcnow().timestamp()|int }}
+            image: >-
+              {{- '/local/images/icon.png?e=1' -}}
