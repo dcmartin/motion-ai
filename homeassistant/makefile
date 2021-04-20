@@ -174,7 +174,8 @@ MOTION_DIRS := \
 	input_text/motion \
 	notify/motion \
 	sensor/motion \
-	shell_command/motion
+	shell_command/motion \
+	www/images/motion
 
 # dashboards
 MOTION_DASHBOARDS := developer experimental person animal vehicle
