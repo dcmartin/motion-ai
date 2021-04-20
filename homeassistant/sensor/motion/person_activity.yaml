@@ -190,49 +190,9 @@
     {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_person_weeks_timestamp')|int }}
   end: '{{ now() }}'
 
-#    home
-#    not_home
-
-- platform: template
-  sensors:
-    motion_person_home_ratio_1d:
-      friendly_name: 'Home (1d)'
-      icon_template: 'mdi:home-variant'
-      unit_of_measurement: '🏠%'
-      value_template: >
-        {%- set s = states('sensor.motion_person_home_ratio_history_stats_1d') -%}
-        {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
-          {{- s|float -}}
-        {%- else -%}null{%- endif -%}
-    motion_person_away_ratio_1d:
-      friendly_name: 'Away (1d)'
-      icon_template: 'mdi:home-variant-outline'
-      unit_of_measurement: '🏠%'
-      value_template: >
-        {%- set s = states('sensor.motion_person_away_ratio_history_stats_1d') -%}
-        {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
-          {{- s|float -}}
-        {%- else -%}null{%- endif -%}
-    motion_person_home_ratio_1w:
-      friendly_name: 'Home (1w)'
-      icon_template: 'mdi:home-variant'
-      unit_of_measurement: '🏠%'
-      value_template: >
-        {%- set s = states('sensor.motion_person_home_ratio_history_stats_1w') -%}
-        {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
-          {{- s|float -}}
-        {%- else -%}null{%- endif -%}
-    motion_person_away_ratio_1w:
-      friendly_name: 'Away (1w)'
-      icon_template: 'mdi:home-variant-outline'
-      unit_of_measurement: '🏠%'
-      value_template: >
-        {%- set s = states('sensor.motion_person_away_ratio_history_stats_1w') -%}
-        {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
-          {{- s|float -}}
-        {%- else -%}null{%- endif -%}
-
-## today
+##
+# home ratio
+##
 
 - platform: history_stats
   name: motion_person_home_ratio_history_stats_1d
@@ -243,16 +203,6 @@
   end: '{{ now() }}'
 
 - platform: history_stats
-  name: motion_person_away_ratio_history_stats_1d
-  entity_id: binary_sensor.motion_person_home
-  state: 'off'
-  type: ratio
-  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
-  end: '{{ now() }}'
-
-## weeks
-
-- platform: history_stats
   name: motion_person_home_ratio_history_stats_1w
   entity_id: binary_sensor.motion_person_home
   state: 'on'
@@ -261,15 +211,168 @@
     {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_person_weeks_timestamp')|int }}
   end: '{{ now() }}'
 
+- platform: statistics
+  name: motion_person_home_ratio_statistics_1w
+  entity_id: sensor.motion_person_home_ratio_history_stats_1d
+  sampling_size: 500
+  max_age:
+    hours: 168
+
+- platform: template
+  sensors:
+    motion_person_home_ratio_1d:
+      friendly_name: 'Home ratio (1d)'
+      icon_template: 'mdi:home-variant'
+      unit_of_measurement: '🏠%'
+      value_template: >
+        {%- set s = states('sensor.motion_person_home_ratio_history_stats_1d') -%}
+        {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+          {{- s|float -}}
+        {%- else -%}null{%- endif -%}
+    motion_person_home_ratio_1w:
+      friendly_name: 'Home ratio (1w)'
+      icon_template: 'mdi:home-variant'
+      unit_of_measurement: '🏠%'
+      value_template: >
+        {%- set s = states('sensor.motion_person_home_ratio_history_stats_1w') -%}
+        {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+          {{- s|float -}}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_person_home_ratio_mean_1w:
+      friendly_name: 'Person home ratio μ (1w)'
+      unit_of_measurement: '🏠%'
+      icon_template: 'mdi:hike'
+      value_template: >-
+        {% if states('sensor.motion_person_home_ratio_statistics_1w') != 'unknown' %}
+          {{ states.sensor.motion_person_home_ratio_statistics_1w.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_person_home_ratio_min_1w:
+      friendly_name: 'Person home ratio  min (1w)'
+      unit_of_measurement: '🏠%'
+      icon_template: 'mdi:hike'
+      value_template: >-
+        {% if states('sensor.motion_person_home_ratio_statistics_1w') != 'unknown' %}
+          {{ states.sensor.motion_person_home_ratio_statistics_1w.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_person_home_ratio_max_1w:
+      friendly_name: 'Person home ratio  max (1w)'
+      unit_of_measurement: '🏠%'
+      icon_template: 'mdi:hike'
+      value_template: >-
+        {% if states('sensor.motion_person_home_ratio_statistics_1w') != 'unknown' %}
+          {{ states.sensor.motion_person_home_ratio_statistics_1w.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_person_home_ratio_stdev_1w:
+      friendly_name: Person home ratio  stdev (1w)
+      unit_of_measurement: '🏠%'
+      icon_template: 'mdi:sigma-lower'
+      value_template: >
+        {% if states('sensor.motion_person_home_ratio_statistics_1w') != 'unknown' %}
+          {{ states.sensor.motion_person_home_ratio_statistics_1w.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_person_home_ratio_change_1w:
+      friendly_name: Person home ratio  change (1w)
+      unit_of_measurement: '🏠%'
+      icon_template: 'mdi:hike'
+      value_template: >
+        {% if states('sensor.motion_person_home_ratio_statistics_1w') != 'unknown' %}
+          {{ states.sensor.motion_person_home_ratio_statistics_1w.attributes.change|float }}
+        {%- else -%}null{%- endif -%}
+
+##
+# away count
+##
+
 - platform: history_stats
-  name: motion_person_away_ratio_history_stats_1w
+  name: motion_person_away_count_history_stats_1d
   entity_id: binary_sensor.motion_person_home
   state: 'off'
-  type: ratio
+  type: count
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_person_away_count_history_stats_1w
+  entity_id: binary_sensor.motion_person_home
+  state: 'off'
+  type: count
   start: >-
     {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_person_weeks_timestamp')|int }}
   end: '{{ now() }}'
 
+- platform: statistics
+  name: motion_person_away_count_statistics_1w
+  entity_id: sensor.motion_person_away_count_count_history_stats_1d
+  sampling_size: 500
+  max_age:
+    hours: 168
+
+- platform: template
+  sensors:
+    motion_person_away_count_1d:
+      friendly_name: 'Away count (1d)'
+      icon_template: 'mdi:map'
+      unit_of_measurement: '🗺'
+      value_template: >
+        {%- set s = states('sensor.motion_person_away_count_history_stats_1d') -%}
+        {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+          {{- s|float -}}
+        {%- else -%}null{%- endif -%}
+    motion_person_away_count_1w:
+      friendly_name: 'Away count (1w)'
+      icon_template: 'mdi:map'
+      unit_of_measurement: '🗺'
+      value_template: >
+        {%- set s = states('sensor.motion_person_away_count_history_stats_1w') -%}
+        {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+          {{- s|float -}}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_person_away_count_mean_1w:
+      friendly_name: 'Person away μ (1w)'
+      unit_of_measurement: '🗺'
+      icon_template: 'mdi:hike'
+      value_template: >-
+        {% if states('sensor.motion_person_away_count_statistics_1w') != 'unknown' %}
+          {{ states.sensor.motion_person_away_count_statistics_1w.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_person_away_count_min_1w:
+      friendly_name: 'Person away min (1w)'
+      unit_of_measurement: '🗺'
+      icon_template: 'mdi:hike'
+      value_template: >-
+        {% if states('sensor.motion_person_away_count_statistics_1w') != 'unknown' %}
+          {{ states.sensor.motion_person_away_count_statistics_1w.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_person_away_count_max_1w:
+      friendly_name: 'Person away max (1w)'
+      unit_of_measurement: '🗺'
+      icon_template: 'mdi:hike'
+      value_template: >-
+        {% if states('sensor.motion_person_away_count_statistics_1w') != 'unknown' %}
+          {{ states.sensor.motion_person_away_count_statistics_1w.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_person_away_count_stdev_1w:
+      friendly_name: Person away stdev (1w)
+      unit_of_measurement: '🗺'
+      icon_template: 'mdi:sigma-lower'
+      value_template: >
+        {% if states('sensor.motion_person_away_count_statistics_1w') != 'unknown' %}
+          {{ states.sensor.motion_person_away_count_statistics_1w.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_person_away_count_change_1w:
+      friendly_name: Person away change (1w)
+      unit_of_measurement: '🗺'
+      icon_template: 'mdi:hike'
+      value_template: >
+        {% if states('sensor.motion_person_away_count_statistics_1w') != 'unknown' %}
+          {{ states.sensor.motion_person_away_count_statistics_1w.attributes.change|float }}
+        {%- else -%}null{%- endif -%}
 
 ## interactive
 
