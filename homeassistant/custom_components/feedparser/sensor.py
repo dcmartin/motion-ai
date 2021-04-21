@@ -84,7 +84,7 @@ class FeedParserSensor(SensorEntity):
             _LOGGER.warn("Feed %s not parsed; URL: %s", self._name, self._feed)
             return False
         else:
-            _LOGGER.debug("Updating feed: %s; URL: %s", self._name, self._feed)
+            _LOGGER.info("Updating feed: %s; URL: %s", self._name, self._feed)
             self._state = (
                 self._show_topn
                 if len(parsedFeed.entries) > self._show_topn
