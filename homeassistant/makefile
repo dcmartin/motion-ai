@@ -508,10 +508,11 @@ distclean: realclean
 	-@sudo rm -fr $(MAGIC_AREAS)
 
 logclean:
-	-@sudo journalctl --vacuum-time 1
-	@export LOGPATH=$$(docker inspect --format '{{json .}}' homeassistant | jq -r '.LogPath') \
-	  && echo 'Attempting to remove log file (requires sudo): '"$${LOGPATH}" \
-	  && sudo LOGPATH=$${LOGPATH} /bin/rm -f $${LOGPATH}
+	-@sudo journalctl --rotate
+	-@sudo journalctl --vacuum-time=1
+	-@export LOGPATH=$$(docker inspect --format '{{json .}}' homeassistant | jq -r '.LogPath') \
+	  && if [ ! -z "$${LOGPATH}" ]; then echo 'Attempting to remove log file: '"$${LOGPATH}" \
+	  && sudo LOGPATH=$${LOGPATH} /bin/rm -f $${LOGPATH}; fi
 
 .PHONY: chown refresh neat tidy all default run stop logs restart clean realclean distclean $(PACKAGES) $(WEBCAMS) images lovelace*.json $(MOTION_DIRS) secrets.yaml
 
