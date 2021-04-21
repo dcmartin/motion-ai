@@ -221,17 +221,20 @@ $(PACKAGES): makefile
 	  MOTION_USER="$(MOTION_USER)" \
 	  && ${MAKE} -C $@
 
-run: all configuration.yaml 
-	docker start homeassistant
+run: all configuration.yaml stop
+	@echo "${MC}Making: $@${NC}"
+	@docker start homeassistant
 
 stop:
-	-docker stop homeassistant
+	@echo "${MC}Making: $@${NC}"
+	-@docker stop homeassistant
 
 restart: stop logclean tidy run
 
 refresh: stop logclean neat run
 
 logs:
+	@echo "${MC}Making: $@${NC}"
 	docker logs -f homeassistant
 
 secrets.yaml: secrets.yaml.tmpl
