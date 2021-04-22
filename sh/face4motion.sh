@@ -18,7 +18,7 @@ if [ -z "${MOTION_CAMERA:-}" ] && [ -s MOTION_CAMERA ]; then MOTION_CAMERA=$(cat
 MOTION='{"group":"'${MOTION_GROUP}'","client":"'${MOTION_CLIENT}'","camera":"'${MOTION_CAMERA}'"}'
 
 # parameters
-SERVICE='{"label":"face4motion","id":"com.github.dcmartin.open-horizon.face4motion","version":"'${SERVICE_VERSION:-0.0.5}'","arch":"'${SERVICE_ARCH:-${BUILD_ARCH}}'","ports":{"service":'${SERVICE_PORT:-80}',"host":'${HOST_PORT:-4664}'}}'
+SERVICE='{"label":"face4motion","id":"com.github.dcmartin.open-horizon.face4motion","version":"'${SERVICE_VERSION:-0.0.6}'","arch":"'${SERVICE_ARCH:-${BUILD_ARCH}}'","ports":{"service":'${SERVICE_PORT:-80}',"host":'${HOST_PORT:-4664}'}}'
 FACE='{"country":"'${FACE_COUNTRY:-us}'","pattern":"'${FACE_PATTERN:-all}'","scale":"'${FACE_SCALE:-none}'","threshold":'${FACE_THRESHOLD:-0.25}'}'
 LOG='{"debug":'${DEBUG:-false}',"level":"'"${LOG_LEVEL:-info}"'","logto":"'"${LOGTO:-/dev/stderr}"'"}'
 
