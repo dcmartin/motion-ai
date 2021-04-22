@@ -1,29 +1,23 @@
 ###
-# homeassistant/sensor/motion/person_stationary.yaml
+# stationaryassistant/sensor/motion/person_stationary.yaml
 ###
 
-#    Stationary
-#    Walking
-#    Running
-#    Automotive
-#    Cycling
-
 ##
-# stationary
+# stationary ratio
 ##
 
 - platform: history_stats
   name: motion_person_stationary_ratio_history_stats_1d
-  entity_id: sensor.motion_person_device_activity
-  state: 'Stationary'
+  entity_id: binary_sensor.motion_person_stationary
+  state: 'on'
   type: ratio
   start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
   end: '{{ now() }}'
 
 - platform: history_stats
   name: motion_person_stationary_ratio_history_stats_1w
-  entity_id: sensor.motion_person_device_activity
-  state: 'Stationary'
+  entity_id: binary_sensor.motion_person_stationary
+  state: 'on'
   type: ratio
   start: >-
     {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_person_weeks_timestamp')|int }}
@@ -32,18 +26,18 @@
 - platform: template
   sensors:
     motion_person_stationary_ratio_1d:
-      friendly_name: 'Stationary (1d)'
-      icon_template: 'mdi:sofa'
-      unit_of_measurement: '📱%'
+      friendly_name: 'Stationary ratio (1d)'
+      icon_template: 'mdi:stationary-variant'
+      unit_of_measurement: '%'
       value_template: >
         {%- set s = states('sensor.motion_person_stationary_ratio_history_stats_1d') -%}
         {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
           {{- s|float -}}
         {%- else -%}null{%- endif -%}
     motion_person_stationary_ratio_1w:
-      friendly_name: 'Stationary (1w)'
-      icon_template: 'mdi:sofa'
-      unit_of_measurement: '📱%'
+      friendly_name: 'Stationary ratio (1w)'
+      icon_template: 'mdi:stationary-variant'
+      unit_of_measurement: '%'
       value_template: >
         {%- set s = states('sensor.motion_person_stationary_ratio_history_stats_1w') -%}
         {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
@@ -52,8 +46,8 @@
 
 - platform: statistics
   name: motion_person_stationary_ratio_statistics_1w
-  entity_id: sensor.motion_person_stationary_ratio_1d
-  sampling_size: 500
+  entity_id: sensor.motion_person_stationary_ratio_history_stats_1d
+  sampling_size: 10000
   max_age:
     hours: 168
 
@@ -96,3 +90,46 @@
           {% endif %}
           {{ '(' + states('sensor.motion_person_stationary_period_count') + ')' }}
         {%- else -%}Pending{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_person_stationary_ratio_mean_1w:
+      friendly_name: 'Person stationary μ (1w)'
+      unit_of_measurement: '%'
+      icon_template: 'mdi:map'
+      value_template: >-
+        {% if states('sensor.motion_person_stationary_ratio_statistics_1w') != 'unknown' %}
+          {{ states.sensor.motion_person_stationary_ratio_statistics_1w.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_person_stationary_ratio_min_1w:
+      friendly_name: 'Person stationary min (1w)'
+      unit_of_measurement: '%'
+      icon_template: 'mdi:map'
+      value_template: >-
+        {% if states('sensor.motion_person_stationary_ratio_statistics_1w') != 'unknown' %}
+          {{ states.sensor.motion_person_stationary_ratio_statistics_1w.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_person_stationary_ratio_max_1w:
+      friendly_name: 'Person stationary max (1w)'
+      unit_of_measurement: '%'
+      icon_template: 'mdi:map'
+      value_template: >-
+        {% if states('sensor.motion_person_stationary_ratio_statistics_1w') != 'unknown' %}
+          {{ states.sensor.motion_person_stationary_ratio_statistics_1w.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_person_stationary_ratio_stdev_1w:
+      friendly_name: Person stationary stdev (1w)
+      unit_of_measurement: '%'
+      icon_template: 'mdi:sigma-lower'
+      value_template: >
+        {% if states('sensor.motion_person_stationary_ratio_statistics_1w') != 'unknown' %}
+          {{ states.sensor.motion_person_stationary_ratio_statistics_1w.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_person_stationary_ratio_change_1w:
+      friendly_name: Person stationary change (1w)
+      unit_of_measurement: '%'
+      icon_template: 'mdi:map'
+      value_template: >
+        {% if states('sensor.motion_person_stationary_ratio_statistics_1w') != 'unknown' %}
+          {{ states.sensor.motion_person_stationary_ratio_statistics_1w.attributes.change|float }}
+        {%- else -%}null{%- endif -%}
