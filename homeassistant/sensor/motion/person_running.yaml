@@ -1,0 +1,89 @@
+##
+# homeassistant/sensor/motion/person_running.yaml
+##
+
+- platform: history_stats
+  name: motion_person_running_ratio_history_stats_1d
+  entity_id: sensor.motion_person_device_activity
+  state: 'Running'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_person_running_ratio_history_stats_1w
+  entity_id: sensor.motion_person_device_activity
+  state: 'Running'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_person_weeks_timestamp')|int }}
+  end: '{{ now() }}'
+
+- platform: template
+  sensors:
+    motion_person_running_ratio_1d:
+      friendly_name: 'Running (1d)'
+      icon_template: 'mdi:run'
+      unit_of_measurement: '📱%'
+      value_template: >
+        {%- set s = states('sensor.motion_person_running_ratio_history_stats_1d') -%}
+        {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+          {{- s|float -}}
+        {%- else -%}null{%- endif -%}
+    motion_person_running_ratio_1w:
+      friendly_name: 'Running (1w)'
+      icon_template: 'mdi:run'
+      unit_of_measurement: '📱%'
+      value_template: >
+        {%- set s = states('sensor.motion_person_running_ratio_history_stats_1w') -%}
+        {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+          {{- s|float -}}
+        {%- else -%}null{%- endif -%}
+
+- platform: statistics
+  name: motion_person_running_ratio_statistics_1w
+  entity_id: sensor.motion_person_running_ratio_1d
+  sampling_size: 500
+  max_age:
+    hours: 168
+
+- platform: template
+  sensors:
+    motion_person_running_period_count:
+      unit_of_measurement: 'Σ'
+      value_template: >-
+        {{ state_attr('sensor.motion_person_running_ratio_statistics_1w','count') }}
+    motion_person_running_period_duration:
+      friendly_name: 'Running analysis duration (s)'
+      icon_template: 'mdi:av-timer'
+      unit_of_measurement: 's'
+      value_template: >-
+        {{ utcnow().timestamp() - state_attr('sensor.motion_person_running_ratio_statistics_1w','min_age')|as_timestamp }}
+    motion_person_running_period:
+      unique_id: motion_person_running_period
+      friendly_name: 'Running analysis duration (Σ)'
+      icon_template: 'mdi:calendar-range'
+      value_template: >-
+        {% set s = states('sensor.motion_person_running_period_duration') %}
+        {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|float is number and s|float > 0.0 %}
+          {% set s = s|float %}
+          {% set d = (s/86400)|int %}
+          {% set h = ((s-(d*86400))/3600)|int %}
+          {% if d < 1 %}
+            {% set m = ((s-(d*86400)-(h*3600))/60)|int %}
+            {% set s = (s % 60)|int %}
+            {% if h < 1 %}
+              {% if m < 1 %}
+                {{ s -}}s
+              {% else %}
+                {{ m -}}m; {{ s -}}s
+              {% endif %}
+            {% else %}
+              {{ h -}}h; {{ m -}}m
+            {% endif %}
+          {% else %}
+            {{ d -}}d; {{ h -}}h
+          {% endif %}
+          {{ '(' + states('sensor.motion_person_running_period_count') + ')' }}
+        {%- else -%}Pending{%- endif -%}
+
