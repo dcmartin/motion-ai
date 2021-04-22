@@ -1,19 +1,23 @@
+###
+# walkingassistant/sensor/motion/person_walking.yaml
+###
+
 ##
-# walking
+# walking ratio
 ##
 
 - platform: history_stats
   name: motion_person_walking_ratio_history_stats_1d
-  entity_id: sensor.motion_person_device_activity
-  state: 'Walking'
+  entity_id: binary_sensor.motion_person_walking
+  state: 'on'
   type: ratio
   start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
   end: '{{ now() }}'
 
 - platform: history_stats
   name: motion_person_walking_ratio_history_stats_1w
-  entity_id: sensor.motion_person_device_activity
-  state: 'Walking'
+  entity_id: binary_sensor.motion_person_walking
+  state: 'on'
   type: ratio
   start: >-
     {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_person_weeks_timestamp')|int }}
@@ -22,18 +26,18 @@
 - platform: template
   sensors:
     motion_person_walking_ratio_1d:
-      friendly_name: 'Walking (1d)'
-      icon_template: 'mdi:walk'
-      unit_of_measurement: '📱%'
+      friendly_name: 'Walking ratio (1d)'
+      icon_template: 'mdi:walking-variant'
+      unit_of_measurement: '%'
       value_template: >
         {%- set s = states('sensor.motion_person_walking_ratio_history_stats_1d') -%}
         {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
           {{- s|float -}}
         {%- else -%}null{%- endif -%}
     motion_person_walking_ratio_1w:
-      friendly_name: 'Walking (1w)'
-      icon_template: 'mdi:walk'
-      unit_of_measurement: '📱%'
+      friendly_name: 'Walking ratio (1w)'
+      icon_template: 'mdi:walking-variant'
+      unit_of_measurement: '%'
       value_template: >
         {%- set s = states('sensor.motion_person_walking_ratio_history_stats_1w') -%}
         {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
@@ -42,8 +46,8 @@
 
 - platform: statistics
   name: motion_person_walking_ratio_statistics_1w
-  entity_id: sensor.motion_person_walking_ratio_1d
-  sampling_size: 500
+  entity_id: sensor.motion_person_walking_ratio_history_stats_1d
+  sampling_size: 10000
   max_age:
     hours: 168
 
@@ -87,3 +91,45 @@
           {{ '(' + states('sensor.motion_person_walking_period_count') + ')' }}
         {%- else -%}Pending{%- endif -%}
 
+- platform: template
+  sensors:
+    motion_person_walking_ratio_mean_1w:
+      friendly_name: 'Person walking μ (1w)'
+      unit_of_measurement: '%'
+      icon_template: 'mdi:map'
+      value_template: >-
+        {% if states('sensor.motion_person_walking_ratio_statistics_1w') != 'unknown' %}
+          {{ states.sensor.motion_person_walking_ratio_statistics_1w.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_person_walking_ratio_min_1w:
+      friendly_name: 'Person walking min (1w)'
+      unit_of_measurement: '%'
+      icon_template: 'mdi:map'
+      value_template: >-
+        {% if states('sensor.motion_person_walking_ratio_statistics_1w') != 'unknown' %}
+          {{ states.sensor.motion_person_walking_ratio_statistics_1w.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_person_walking_ratio_max_1w:
+      friendly_name: 'Person walking max (1w)'
+      unit_of_measurement: '%'
+      icon_template: 'mdi:map'
+      value_template: >-
+        {% if states('sensor.motion_person_walking_ratio_statistics_1w') != 'unknown' %}
+          {{ states.sensor.motion_person_walking_ratio_statistics_1w.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_person_walking_ratio_stdev_1w:
+      friendly_name: Person walking stdev (1w)
+      unit_of_measurement: '%'
+      icon_template: 'mdi:sigma-lower'
+      value_template: >
+        {% if states('sensor.motion_person_walking_ratio_statistics_1w') != 'unknown' %}
+          {{ states.sensor.motion_person_walking_ratio_statistics_1w.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_person_walking_ratio_change_1w:
+      friendly_name: Person walking change (1w)
+      unit_of_measurement: '%'
+      icon_template: 'mdi:map'
+      value_template: >
+        {% if states('sensor.motion_person_walking_ratio_statistics_1w') != 'unknown' %}
+          {{ states.sensor.motion_person_walking_ratio_statistics_1w.attributes.change|float }}
+        {%- else -%}null{%- endif -%}

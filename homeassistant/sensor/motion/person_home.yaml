@@ -1,0 +1,135 @@
+###
+# homeassistant/sensor/motion/person_home.yaml
+###
+
+##
+# home ratio
+##
+
+- platform: history_stats
+  name: motion_person_home_ratio_history_stats_1d
+  entity_id: binary_sensor.motion_person_home
+  state: 'on'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_person_home_ratio_history_stats_1w
+  entity_id: binary_sensor.motion_person_home
+  state: 'on'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_person_weeks_timestamp')|int }}
+  end: '{{ now() }}'
+
+- platform: template
+  sensors:
+    motion_person_home_ratio_1d:
+      friendly_name: 'Home ratio (1d)'
+      icon_template: 'mdi:home-variant'
+      unit_of_measurement: '%'
+      value_template: >
+        {%- set s = states('sensor.motion_person_home_ratio_history_stats_1d') -%}
+        {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+          {{- s|float -}}
+        {%- else -%}null{%- endif -%}
+    motion_person_home_ratio_1w:
+      friendly_name: 'Home ratio (1w)'
+      icon_template: 'mdi:home-variant'
+      unit_of_measurement: '%'
+      value_template: >
+        {%- set s = states('sensor.motion_person_home_ratio_history_stats_1w') -%}
+        {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+          {{- s|float -}}
+        {%- else -%}null{%- endif -%}
+
+- platform: statistics
+  name: motion_person_home_ratio_statistics_1w
+  entity_id: sensor.motion_person_home_ratio_history_stats_1d
+  sampling_size: 10000
+  max_age:
+    hours: 168
+
+- platform: template
+  sensors:
+    motion_person_home_period_count:
+      unit_of_measurement: 'Σ'
+      value_template: >-
+        {{ state_attr('sensor.motion_person_home_ratio_statistics_1w','count') }}
+    motion_person_home_period_duration:
+      friendly_name: 'Home analysis duration (s)'
+      icon_template: 'mdi:av-timer'
+      unit_of_measurement: 's'
+      value_template: >-
+        {{ utcnow().timestamp() - state_attr('sensor.motion_person_home_ratio_statistics_1w','min_age')|as_timestamp }}
+    motion_person_home_period:
+      unique_id: motion_person_home_period
+      friendly_name: 'Home analysis duration (Σ)'
+      icon_template: 'mdi:calendar-range'
+      value_template: >-
+        {% set s = states('sensor.motion_person_home_period_duration') %}
+        {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|float is number and s|float > 0.0 %}
+          {% set s = s|float %}
+          {% set d = (s/86400)|int %}
+          {% set h = ((s-(d*86400))/3600)|int %}
+          {% if d < 1 %}
+            {% set m = ((s-(d*86400)-(h*3600))/60)|int %}
+            {% set s = (s % 60)|int %}
+            {% if h < 1 %}
+              {% if m < 1 %}
+                {{ s -}}s
+              {% else %}
+                {{ m -}}m; {{ s -}}s
+              {% endif %}
+            {% else %}
+              {{ h -}}h; {{ m -}}m
+            {% endif %}
+          {% else %}
+            {{ d -}}d; {{ h -}}h
+          {% endif %}
+          {{ '(' + states('sensor.motion_person_home_period_count') + ')' }}
+        {%- else -%}Pending{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_person_home_ratio_mean_1w:
+      friendly_name: 'Person home μ (1w)'
+      unit_of_measurement: '%'
+      icon_template: 'mdi:map'
+      value_template: >-
+        {% if states('sensor.motion_person_home_ratio_statistics_1w') != 'unknown' %}
+          {{ states.sensor.motion_person_home_ratio_statistics_1w.state|float }}
+        {%- else -%}null{%- endif -%}
+    motion_person_home_ratio_min_1w:
+      friendly_name: 'Person home min (1w)'
+      unit_of_measurement: '%'
+      icon_template: 'mdi:map'
+      value_template: >-
+        {% if states('sensor.motion_person_home_ratio_statistics_1w') != 'unknown' %}
+          {{ states.sensor.motion_person_home_ratio_statistics_1w.attributes.min_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_person_home_ratio_max_1w:
+      friendly_name: 'Person home max (1w)'
+      unit_of_measurement: '%'
+      icon_template: 'mdi:map'
+      value_template: >-
+        {% if states('sensor.motion_person_home_ratio_statistics_1w') != 'unknown' %}
+          {{ states.sensor.motion_person_home_ratio_statistics_1w.attributes.max_value|int }}
+        {%- else -%}null{%- endif -%}
+    motion_person_home_ratio_stdev_1w:
+      friendly_name: Person home stdev (1w)
+      unit_of_measurement: '%'
+      icon_template: 'mdi:sigma-lower'
+      value_template: >
+        {% if states('sensor.motion_person_home_ratio_statistics_1w') != 'unknown' %}
+          {{ states.sensor.motion_person_home_ratio_statistics_1w.attributes.standard_deviation|float }}
+        {%- else -%}null{%- endif -%}
+    motion_person_home_ratio_change_1w:
+      friendly_name: Person home change (1w)
+      unit_of_measurement: '%'
+      icon_template: 'mdi:map'
+      value_template: >
+        {% if states('sensor.motion_person_home_ratio_statistics_1w') != 'unknown' %}
+          {{ states.sensor.motion_person_home_ratio_statistics_1w.attributes.change|float }}
+        {%- else -%}null{%- endif -%}
