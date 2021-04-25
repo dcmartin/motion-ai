@@ -288,16 +288,65 @@
             + '&camera=' + c|string
             + '&event=' + e|string
             + ')' -}}
+    - condition: and
+      conditions:
+        - condition: template
+          value_template: >
+            {{ not is_state('input_select.motion_media_player_name','none') and not is_state('input_select.motion_media_player_name',null) }}
+    - service: notify.alexa_media
+      data:
+        type: announce
+        method: speak
+      target: >-
+        {%- set s = states('sensor.motion_media_player_selected') -%}
+        {%- if s|lower == 'all' -%}
+          {%- for state in states.media_player if state.attributes.available|lower == 'true' -%}
+            {%- if loop.first -%}[{%- else -%},{%- endif -%}
+            "{{- state.entity_id -}}"
+            {%- if loop.last -%}]{%- endif -%}
+          {%- endfor -%}
+        {%- else -%}
+          ["{{- s -}}"]
+        {%- endif -%}
+      message: >-
+        {%- set ted = trigger.event.data -%}
+        {%- set sdn = ted.sourceDeviceName -%}
+        {%- set ad = ted.action_data -%}
+        {%- set d = ad.device -%}
+        {%- set c = ad.camera -%}
+        {%- set e = ad.event -%}
+        Person alert at camera {{ c }} from {{ sdn }}
+    - service: tts.cloud_say
+      data_template:
+        entity_id: >-
+          {{ states('sensor.motion_media_player_selected') }}
+        language: en-US
+        options:
+          gender: female
+        message: >-
+          {%- set ted = trigger.event.data -%}
+          {%- set sdn = ted.sourceDeviceName -%}
+          {%- set ad = ted.action_data -%}
+          {%- set d = ad.device -%}
+          {%- set c = ad.camera -%}
+          {%- set e = ad.event -%}
+          Alert from {{ sdn -}}; person at camera {{ c }}
 
 - id: motion_smartphone_person_alert_when_away
   alias: motion_smartphone_person_alert_when_away
   initial_state: on
   trigger:
     - platform: state
-      entity_id: counter.motion_detected_person_counter
+      entity_id: sensor.motion_detected_person_when
   condition:
     condition: and
     conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state
+             and trigger.to_state.state|lower != 'pending'
+             and trigger.to_state.state|lower != 'unknown'
+             and trigger.to_state.state|lower != 'null' }}
       - condition: template
         value_template: >
           {{ is_state('binary_sensor.motion_detected_person','on') }}
