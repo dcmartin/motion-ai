@@ -259,6 +259,18 @@
       - condition: template
         value_template: >
           {{ trigger.event.data.actionName|lower == 'motion_smartphone_alert_notify' }}
+  variables:
+    speakers: >-
+      {%- set s = states('sensor.motion_media_player_selected') -%}
+      {%- if s|lower == 'all' -%}
+        {%- for state in states.media_player if state.attributes.source|lower|length == 0 -%}
+          {%- if loop.first -%}[{%- else -%},{%- endif -%}
+          "{{- state.entity_id -}}"
+          {%- if loop.last -%}]{%- endif -%}
+        {%- endfor -%}
+      {%- else -%}
+        ["{{- s -}}"]
+      {%- endif -%}
   action:
     - service: persistent_notification.create
       alias: 'alert_notify create persistent notification'
@@ -301,7 +313,7 @@
         target: >-
           {%- set s = states('sensor.motion_media_player_selected') -%}
           {%- if s|lower == 'all' -%}
-            {%- for state in states.media_player if state.attributes.available|lower == 'true' -%}
+            {%- for state in states.media_player if state.attributes.source|lower|length > 0 -%}
               {%- if loop.first -%}[{%- else -%},{%- endif -%}
               "{{- state.entity_id -}}"
               {%- if loop.last -%}]{%- endif -%}
@@ -321,23 +333,59 @@
           {%- set e = ad.event -%}
           {%- set t = ad.entity -%}
           Alexa alert: {{ t }} at camera {{ c }} from {{ sdn }}
+    - alias: "speak all non-alexa media_players"
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = speakers[repeat.index - 1] %}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - alias: "set_state: motion_speaker_selected"
+            service: python_script.set_state
+            data_template:
+              allow_create: true
+              entity_id: sensor.motion_speaker_say_selected
+              state: >-
+                {{ speakers[repeat.index - 1] }}
+          - alias: "set_state: motion_speaker_message"
+            service: python_script.set_state
+            data_template:
+              allow_create: true
+              entity_id: sensor.motion_speaker_say_message
+              state: >-
+                {%- set ted = trigger.event.data -%}
+                {%- set sdn = ted.sourceDeviceName -%}
+                {%- set ad = ted.action_data -%}
+                {%- set d = ad.device -%}
+                {%- set c = ad.camera -%}
+                {%- set e = ad.event -%}
+                {%- set t = ad.entity -%}
+                Speaker alert: {{ t }} at camera {{ c }} from {{ sdn }}
+          - alias: "motion_speaker_say"
+            service: automation.trigger
+            entity_id: automation.motion_speaker_say_one
+          - alias: "wait until complete"
+            wait_template: >-
+              {% set s = state_attr('automation.motion_speaker_say_one','current') %}
+              {{ s is number and s|int == 0 }}
+
+- id: motion_speaker_say_one
+  alias: motion_speaker_say_one
+  initial_state: on
+  trigger: []
+  condition: []
+  action:
     - service: tts.cloud_say
       alias: 'alert_notify tts.cloud_say'
       data_template:
         entity_id: >-
-          {{ states('sensor.motion_media_player_selected') }}
+          {{ states('sensor.motion_speaker_say_selected') }}
         language: en-US
         options:
           gender: female
         message: >-
-          {%- set ted = trigger.event.data -%}
-          {%- set sdn = ted.sourceDeviceName -%}
-          {%- set ad = ted.action_data -%}
-          {%- set d = ad.device -%}
-          {%- set c = ad.camera -%}
-          {%- set e = ad.event -%}
-          {%- set t = ad.entity -%}
-          Speaker alert: {{ t }} at camera {{ c }} from {{ sdn }}
+          {{ states('sensor.motion_speaker_say_message') }}
 
 - id: motion_smartphone_person_alert_when_away
   alias: motion_smartphone_person_alert_when_away
