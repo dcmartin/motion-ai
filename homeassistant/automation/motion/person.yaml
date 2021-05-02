@@ -141,40 +141,6 @@
             {{- s -}},none
           {%- else -%}none{%- endif -%}
 
-- id: motion_person_location_device
-  alias: motion_person_location_device
-  initial_state: off
-  trigger:
-    - platform: state
-      entity_id: sensor.motion_person_location
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >-
-          {% set s = states('sensor.motion_person_location') %}
-          {{- s|lower == 'home' -}}
-  action:
-    - service: python_script.set_state
-      data_template:
-        entity_id: sensor.motion_person_location_estimated
-        state: >-
-          {{ states('sensor.motion_person_device_ago') }}
-        user_id: >-
-          {{ state_attr('person.' + states('sensor.motion_person'),'user_id') }}
-        source: >-
-          {{ state_attr('person.' + states('sensor.motion_person'),'source')|replace('device_tracker.','') }}
-        gps_accuracy: >-
-          {{ state_attr('person.' + states('sensor.motion_person'),'gps_accuracy') }}
-        latitude: >-
-          {{ state_attr('person.' + states('sensor.motion_person'),'latitude') }}
-        longitude: >-
-          {{ state_attr('person.' + states('sensor.motion_person'),'longitude') }}
-
-#      - condition: template
-#        value_template: >-
-#          {{ trigger.to_state.state != trigger.from_state.state }}
-
 - id: motion_person_location_camera_home
   alias: motion_person_location_camera_home
   initial_state: on
@@ -201,12 +167,13 @@
       - condition: template
         value_template: >-
           {% set s = states('sensor.motion_person_location') %}
-          {{- s|lower == 'home' -}}
+          {{- s|lower != 'away' -}}
   action:
     - service: python_script.set_state
       data_template:
         entity_id: sensor.motion_person_location_estimated
-        state: >-
+        state: 'Home'
+        ago: >-
           {% set s = states('sensor.motion_detected_person_where') %}
           {{ states('sensor.motion_' + s + '_detected_person_ago') }}
         source: >-
@@ -392,16 +359,13 @@
   initial_state: on
   trigger:
     - platform: state
-      entity_id: sensor.motion_detected_person_when
+      entity_id: binary_sensor.motion_detected_person
   condition:
     condition: and
     conditions:
       - condition: template
         value_template: >
-          {{ trigger.to_state.state != trigger.from_state.state
-             and trigger.to_state.state|lower != 'pending'
-             and trigger.to_state.state|lower != 'unknown'
-             and trigger.to_state.state|lower != 'null' }}
+          {{ trigger.to_state.state != trigger.from_state.state }}
       - condition: template
         value_template: >
           {{ is_state('binary_sensor.motion_detected_person','on') }}
