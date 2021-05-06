@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DIR='Motion-Ã👁'
+DIR="${DIR:-Motion-Ã👁}"
 
 if [ ! -d "${DIR}" ]; then
   echo "Did not find directory ${DIR}; are you running from media/ folder?"
