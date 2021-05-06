@@ -158,15 +158,17 @@ async def apply_hooks(hass):
         if isinstance(view, frontend.IndexView):
             view._template_cache = None
 
-    frontend.MANIFEST_JSON["icons"] = data["manifest_icons"].copy()
     if "manifest" in icons:
-        frontend.MANIFEST_JSON["icons"] = icons["manifest"]
+        frontend.add_manifest_json_key("icons", icons["manifest"])
+    else:
+        frontend.add_manifest_json_key("icons", data["manifest_icons"].copy())
 
-    frontend.MANIFEST_JSON["name"] = "Home Assistant"
-    frontend.MANIFEST_JSON["short_name"] = "Assistant"
     if title:
-        frontend.MANIFEST_JSON["name"] = title
-        frontend.MANIFEST_JSON["short_name"] = title
+        frontend.add_manifest_json_key("name", title)
+        frontend.add_manifest_json_key("short_name", title)
+    else:
+        frontend.add_manifest_json_key("name", "Home Assistant")
+        frontend.add_manifest_json_key("short_name", "Assistant")
 
     return True
 
@@ -174,7 +176,8 @@ async def apply_hooks(hass):
 def remove_hooks(hass):
     data = hass.data[DOMAIN]
     frontend.IndexView.get_template = data["get_template"]
-    frontend.MANIFEST_JSON["icons"] = data["manifest_icons"].copy()
-    frontend.MANIFEST_JSON["name"] = "Home Assistant"
-    frontend.MANIFEST_JSON["short_name"] = "Assistant"
+    frontend.add_manifest_json_key("icons", data["manifest_icons"].copy())
+    frontend.add_manifest_json_key("name", "Home Assistant")
+    frontend.add_manifest_json_key("short_name", "Assistant")
     return True
+
