@@ -16,19 +16,15 @@
   sensors:
     motion_${MOTION_CAMERA}_detected_old:
       value_template: >-
-        {{ as_timestamp(states.binary_sensor.motion_${MOTION_CAMERA}_detected.last_updated) < as_timestamp(states.sensor.motion_event_annotated.last_updated) }}
-    motion_${MOTION_CAMERA}_detected_entity_old:
-      value_template: >-
-        {{ as_timestamp(states.binary_sensor.motion_${MOTION_CAMERA}_detected_entity.last_updated) < as_timestamp(states.sensor.motion_event_annotated.last_updated) }}
-    motion_${MOTION_CAMERA}_detected_person_old:
-      value_template: >-
-        {{ as_timestamp(states.binary_sensor.motion_${MOTION_CAMERA}_detected_person.last_updated) < as_timestamp(states.sensor.motion_event_annotated.last_updated) }}
-    motion_${MOTION_CAMERA}_detected_vehicle_old:
-      value_template: >-
-        {{ as_timestamp(states.binary_sensor.motion_${MOTION_CAMERA}_detected_vehicle.last_updated) < as_timestamp(states.sensor.motion_event_annotated.last_updated) }}
-    motion_${MOTION_CAMERA}_detected_animal_old:
-      value_template: >-
-        {{ as_timestamp(states.binary_sensor.motion_${MOTION_CAMERA}_detected_animal.last_updated) < as_timestamp(states.sensor.motion_event_annotated.last_updated) }}
+        {% set s = states.binary_sensor.motion_${MOTION_CAMERA}_detected %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+          {% set s = as_timestamp(s.last_updated) %}
+          {% set t = states.sensor.motion_event_annotated %}
+          {% if t|lower != 'none' and t|lower != 'unknown' and t|lower != 'unavailable' and t|lower != 'null' %}
+            {% set t = as_timestamp(t.last_updated) %}
+            {{ s < t }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
 
 - platform: template
   sensors:
@@ -112,158 +108,6 @@
       value_template: >
         {% set s = states('sensor.motion_${MOTION_CAMERA}_complete') %}
         {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|float > 0.0 and s|int <= states('input_number.motion_complete')|int }}
-
-###
-## entity
-###
-
-## detected entity
-- platform: template
-  sensors:
-    motion_${MOTION_CAMERA}_detected_entity:
-      friendly_name: '${MOTION_CAMERA} entity detected'
-      icon_template: 'mdi:check'
-      value_template: >-
-        {% set mc = '${MOTION_CAMERA}' %}
-        {% set results = state_attr('sensor.motion_' + mc + '_event_annotated','results') %}
-        {% if results|lower != 'none' and results|lower != 'unavailable' and results|lower != 'unknown' and results|lower != 'null' and results|length > 0 %}
-          {% set entity = states('input_select.motion_' + mc + '_detect_entity') %}
-          {% if entity == 'all' %}
-            {% set l = results|map(attribute='confidence')|list %}
-          {% elif entity == 'none' %}
-            {# never detect #}
-          {% else %}
-            {% set options = state_attr('input_select.motion_detect_' + entity,'options') %}
-            {% if options is not iterable or options|length == 0 %}
-              {% set options = state_attr('input_select.motion_' + mc + '_detect_entity','options') %}
-            {% endif %}
-            {% if options|lower != 'none' and options|lower != 'unknown' and options|length > 0 %}
-              {% set l = results|selectattr('entity','in',options)|map(attribute='confidence')|list %}
-            {% endif %}
-          {% endif %}
-          {% set t = states('sensor.motion_detected_' + entity + '_threshold') %}
-          {% if t|lower == 'none' or t|lower == 'unknown' or t|lower == 'unavailable' or not t|int is number %}
-            {% set t = states('sensor.motion_detected_entity_threshold') %}
-          {% endif %}
-          {% if l is defined and l is iterable and l|length > 0 %}
-            {% set p = l|list|max|int %}
-            {{ p >= t|int }}
-          {% else %}false{% endif %}
-        {% else %}false{% endif %}
-
-- platform: template
-  sensors:
-    motion_${MOTION_CAMERA}_detected_entity_expired:
-      value_template: >-
-        {{ states('sensor.motion_${MOTION_CAMERA}_detected_entity_ago')|int > states('input_number.motion_detected_entity_ago')|int }}
-
-###
-## person
-###
-
-- platform: template
-  sensors:
-    motion_${MOTION_CAMERA}_detected_person:
-      friendly_name: '${MOTION_CAMERA} 👱 detected'
-      icon_template: 'mdi:check'
-      value_template: >-
-        {% set results = state_attr('sensor.motion_${MOTION_CAMERA}_event_annotated','results') %}
-        {% if results|lower != 'none' and results|lower != 'unavailable' and results|lower != 'unknown' and results|lower != 'null' and results|length > 0 %}
-          {% set option = states('input_select.motion_detect_person') %}
-          {% if option|lower == 'all' or option|lower == 'person' %}
-            {% set options = state_attr('input_select.motion_detect_person','options') %}
-            {% if options|lower != 'none' and options|lower != 'unknown' and options|length > 0 %}
-              {% set l = results|selectattr('entity','in',options)|map(attribute='confidence')|list %}
-            {% endif %}
-          {% else %}
-            {% set l = results|selectattr('entity','==',option)|map(attribute='confidence')|list %}
-          {% endif %}
-          {% if l is defined and l is iterable and l|length > 0 %}
-            {% set p = l|list|max|int %}
-            {{ p >= states('sensor.motion_detected_person_threshold')|int }}
-          {% else %}false{% endif %}
-        {% else %}false{% endif %}
-
-- platform: template
-  sensors:
-    motion_${MOTION_CAMERA}_detected_person_expired:
-      friendly_name: '${MOTION_CAMERA} 👱 expired'
-      icon_template: 'mdi:account-cancel'
-      device_class: occupancy
-      value_template: >-
-        {{ states('sensor.motion_${MOTION_CAMERA}_detected_person_ago')|int > states('input_number.motion_detected_person_ago')|int }}
-
-###
-## vehicle
-###
-
-- platform: template
-  sensors:
-    motion_${MOTION_CAMERA}_detected_vehicle:
-      friendly_name: '${MOTION_CAMERA} 🚗 detected'
-      icon_template: 'mdi:check'
-      value_template: >-
-        {% set results = state_attr('sensor.motion_${MOTION_CAMERA}_event_annotated','results') %}
-        {% if results|lower != 'none' and results|lower != 'unavailable' and results|lower != 'unknown' and results|lower != 'null' and results|length > 0 %}
-          {% set option = states('input_select.motion_detect_vehicle') %}
-          {% if option|lower == 'all' or option|lower == 'vehicle' %}
-            {% set options = state_attr('input_select.motion_detect_vehicle','options') %}
-            {% if options|lower != 'none' and options|lower != 'unknown' and options|length > 0 %}
-              {% set l = results|selectattr('entity','in',options)|map(attribute='confidence')|list %}
-            {% endif %}
-          {% else %}
-            {% set l = results|selectattr('entity','==',option)|map(attribute='confidence')|list %}
-          {% endif %}
-          {% if l is defined and l is iterable and l|length > 0 %}
-            {% set p = l|list|max|int %}
-            {{ p >= states('sensor.motion_detected_vehicle_threshold')|int }}
-          {% else %}false{% endif %}
-        {% else %}false{% endif %}
-
-- platform: template
-  sensors:
-    motion_${MOTION_CAMERA}_detected_vehicle_expired:
-      friendly_name: '${MOTION_CAMERA} 🚗 expired'
-      icon_template: 'mdi:car'
-      device_class: occupancy
-      value_template: >-
-        {{ states('sensor.motion_${MOTION_CAMERA}_detected_vehicle_ago')|int > states('input_number.motion_detected_vehicle_ago')|int }}
-
-###
-## animal
-###
-
-- platform: template
-  sensors:
-    motion_${MOTION_CAMERA}_detected_animal:
-      friendly_name: '${MOTION_CAMERA} 🐄 detected'
-      icon_template: 'mdi:check'
-      value_template: >-
-        {% set results = state_attr('sensor.motion_${MOTION_CAMERA}_event_annotated','results') %}
-        {% if results|lower != 'none' and results|lower != 'unavailable' and results|lower != 'unknown' and results|lower != 'null' and results|length > 0 %}
-          {% set option = states('input_select.motion_detect_animal') %}
-          {% if option|lower == 'all' or option|lower == 'animal' %}
-            {% set options = state_attr('input_select.motion_detect_animal','options') %}
-            {% if options|lower != 'none' and options|lower != 'unknown' and options|length > 0 %}
-              {% set l = results|selectattr('entity','in',options)|map(attribute='confidence')|list %}
-            {% endif %}
-          {% else %}
-            {% set l = results|selectattr('entity','==',option)|map(attribute='confidence')|list %}
-          {% endif %}
-          {% if l is defined and l is iterable and l|length > 0 %}
-            {% set p = l|list|max|int %}
-            {{ p >= states('sensor.motion_detected_animal_threshold')|int }}
-          {% else %}false{% endif %}
-        {% else %}false{% endif %}
-
-- platform: template
-  sensors:
-    motion_${MOTION_CAMERA}_detected_animal_expired:
-      friendly_name: ${MOTION_CAMERA} 🐄 expired
-      icon_template: 'mdi:cow'
-      device_class: occupancy
-      value_template: >-
-        {{ states('sensor.motion_${MOTION_CAMERA}_detected_animal_ago')|int > states('input_number.motion_detected_animal_ago')|int }}
 
 ###
 ## face
@@ -414,66 +258,3 @@
       friendly_name: Vehicle w/ ALPR expired
       value_template: >-
         {{ states('sensor.motion_${MOTION_CAMERA}_vehicle_alpr_ago')|int > states('input_number.motion_detected_vehicle_ago')|int }}
-
-###
-### NOTIFY
-###
-
-- platform: template
-  sensors:
-    motion_${MOTION_CAMERA}_detected_entity_notify:
-      friendly_name: motion_${MOTION_CAMERA}_detected_entity_notify
-      icon_template: 'mdi:${MOTION_CAMERA_ICON}'
-      value_template: >-
-        {{ is_state('input_boolean.motion_${MOTION_CAMERA}_detected_entity_notify','on') or is_state('input_boolean.motion_detected_entity_notify','on') }}
-    motion_${MOTION_CAMERA}_detected_person_notify:
-      friendly_name: motion_${MOTION_CAMERA}_detected_person_notify
-      icon_template: 'mdi:${MOTION_CAMERA_ICON}'
-      value_template: >-
-        {{ is_state('input_boolean.motion_${MOTION_CAMERA}_detected_person_notify','on') }}
-    motion_${MOTION_CAMERA}_detected_vehicle_notify:
-      friendly_name: motion_${MOTION_CAMERA}_detected_vehicle_notify
-      icon_template: 'mdi:${MOTION_CAMERA_ICON}'
-      value_template: >-
-        {{ is_state('input_boolean.motion_${MOTION_CAMERA}_detected_vehicle_notify','on') }}
-    motion_${MOTION_CAMERA}_detected_animal_notify:
-      friendly_name: motion_${MOTION_CAMERA}_detected_animal_notify
-      icon_template: 'mdi:${MOTION_CAMERA_ICON}'
-      value_template: >-
-        {{ is_state('input_boolean.motion_${MOTION_CAMERA}_detected_animal_notify','on') }}
-
-- platform: template
-  sensors:
-    motion_${MOTION_CAMERA}_detected_person_speak:
-      friendly_name: motion_${MOTION_CAMERA}_detected_person_speak
-      icon_template: 'mdi:${MOTION_CAMERA_ICON}'
-      value_template: >-
-        {{ is_state('input_boolean.motion_${MOTION_CAMERA}_detected_person_speak','on') }}
-    motion_${MOTION_CAMERA}_detected_vehicle_speak:
-      friendly_name: motion_${MOTION_CAMERA}_detected_vehicle_speak
-      icon_template: 'mdi:${MOTION_CAMERA_ICON}'
-      value_template: >-
-        {{ is_state('input_boolean.motion_${MOTION_CAMERA}_detected_vehicle_speak','on') }}
-    motion_${MOTION_CAMERA}_detected_animal_speak:
-      friendly_name: motion_${MOTION_CAMERA}_detected_animal_speak
-      icon_template: 'mdi:${MOTION_CAMERA_ICON}'
-      value_template: >-
-        {{ is_state('input_boolean.motion_${MOTION_CAMERA}_detected_animal_speak','on') }}
-
-- platform: template
-  sensors:
-    motion_${MOTION_CAMERA}_detected_person_tune:
-      friendly_name: motion_${MOTION_CAMERA}_detected_person_tune
-      icon_template: 'mdi:${MOTION_CAMERA_ICON}'
-      value_template: >-
-        {{ is_state('input_boolean.motion_${MOTION_CAMERA}_detected_person_tune','on') }}
-    motion_${MOTION_CAMERA}_detected_vehicle_tune:
-      friendly_name: motion_${MOTION_CAMERA}_detected_vehicle_tune
-      icon_template: 'mdi:${MOTION_CAMERA_ICON}'
-      value_template: >-
-        {{ is_state('input_boolean.motion_${MOTION_CAMERA}_detected_vehicle_tune','on') }}
-    motion_${MOTION_CAMERA}_detected_animal_tune:
-      friendly_name: motion_${MOTION_CAMERA}_detected_animal_tune
-      icon_template: 'mdi:${MOTION_CAMERA_ICON}'
-      value_template: >-
-        {{ is_state('input_boolean.motion_${MOTION_CAMERA}_detected_animal_tune','on') }}
