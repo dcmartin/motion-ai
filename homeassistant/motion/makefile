@@ -227,7 +227,7 @@ $(HIGHLOW_AUTOMATIONS): $(HIGHLOW_AUTOMATION_TEMPLATE) makefile
 WEBCAM_BINARY_SENSOR_DETECTORS: $(WEBCAM_BINARY_SENSOR_DETECTOR_TEMPLATES) ${WEBCAMS_JSON}
 	@echo "Making $@"
 	@for tmpl in $(WEBCAM_BINARY_SENSOR_DETECTOR_TEMPLATES); do \
-	  export t=$$(echo "$${tmpl##sensor.}"); \
+	  export t=$$(echo "$${tmpl##binary_sensor.}"); \
 	  u=$$(echo "$${t%%.yaml*}") && \
 	  for i in $(WEBCAMS); do \
 	    v="binary_sensor/$${u}-$${i}.yaml"; \
