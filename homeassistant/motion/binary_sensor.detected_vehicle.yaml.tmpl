@@ -1,0 +1,45 @@
+###
+## AUTO-GENERATED from homeassistant/motion/binary_sensor.webcam.yaml.tmpl
+##
+## - MOTION_CAMERA: ${MOTION_CAMERA}
+###
+
+- platform: template
+  sensors:
+    motion_${MOTION_CAMERA}_detected_vehicle:
+      friendly_name: '${MOTION_CAMERA} 🚚 detected'
+      icon_template: 'mdi:check'
+      value_template: >-
+        {% set results = state_attr('sensor.motion_${MOTION_CAMERA}_event_annotated','results') %}
+        {% if results|lower != 'none' and results|lower != 'unavailable' and results|lower != 'unknown' and results|lower != 'null' and results|length > 0 %}
+          {% set option = states('input_select.motion_detect_vehicle') %}
+          {% if option|lower == 'all' or option|lower == 'vehicle' %}
+            {% set options = state_attr('input_select.motion_detect_vehicle','options') %}
+            {% if options|lower != 'none' and options|lower != 'unknown' and options|length > 0 %}
+              {% set l = results|selectattr('entity','in',options)|map(attribute='confidence')|list %}
+            {% endif %}
+          {% else %}
+            {% set l = results|selectattr('entity','==',option)|map(attribute='confidence')|list %}
+          {% endif %}
+          {% if l is defined and l is iterable and l|length > 0 %}
+            {% set p = l|list|max|int %}
+            {{ p >= states('sensor.motion_detected_vehicle_threshold')|int }}
+          {% else %}false{% endif %}
+        {% else %}false{% endif %}
+    motion_${MOTION_CAMERA}_detected_vehicle_old:
+      value_template: >-
+        {% set s = states.binary_sensor.motion_${MOTION_CAMERA}_detected_vehicle %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+          {% set s = as_timestamp(s.last_updated) %}
+          {% set t = states.sensor.motion_event_annotated %}
+          {% if t|lower != 'none' and t|lower != 'unknown' and t|lower != 'unavailable' and t|lower != 'null' %}
+            {% set t = as_timestamp(t.last_updated) %}
+            {{ s < t }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+    motion_${MOTION_CAMERA}_detected_vehicle_expired:
+      friendly_name: '${MOTION_CAMERA} 🚚 expired'
+      icon_template: 'mdi:truck'
+      device_class: occupancy
+      value_template: >-
+        {{ states('sensor.motion_${MOTION_CAMERA}_detected_vehicle_ago')|int > states('input_number.motion_detected_vehicle_ago')|int }}
