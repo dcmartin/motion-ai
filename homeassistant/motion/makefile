@@ -56,7 +56,7 @@ WEBCAM_YAML := \
 ##
 
 # entity's items to track
-HIGHLOW_ENTITYS := annotated # detected # detected_entity # detected_person detected_vehicle detected_animal # image end annotated 
+HIGHLOW_ENTITYS := annotated detected_person # detected # detected_entity # detected_vehicle detected_animal # image end annotated 
 HIGHLOW_ITEMS := count ago
 
 # HIGHLOW templates
@@ -83,6 +83,12 @@ WEBCAM_INPUT_BOOLEAN_TEMPLATE := input_boolean.webcam.yaml.tmpl
 WEBCAM_INPUT_SELECT_TEMPLATE := input_select.webcam.yaml.tmpl
 WEBCAM_SENSOR_TEMPLATE := sensor.webcam.yaml.tmpl
 WEBCAM_SHELL_COMMAND_TEMPLATE := shell_command.webcam.yaml.tmpl
+
+WEBCAM_BINARY_SENSOR_DETECTOR_TEMPLATES := \
+	binary_sensor.detected_animal.yaml.tmpl \
+	binary_sensor.detected_entity.yaml.tmpl \
+	binary_sensor.detected_person.yaml.tmpl \
+	binary_sensor.detected_vehicle.yaml.tmpl
 
 WEBCAM_SENSOR_DETECTOR_TEMPLATES := \
 	sensor.alpr_detected.yaml.tmpl \
@@ -152,7 +158,8 @@ webcams: \
 	WEBCAM_SENSORS \
 	WEBCAM_SHELL_COMMANDS \
 	WEBCAM_AUTOMATION_DETECTORS \
-	WEBCAM_SENSOR_DETECTORS
+	WEBCAM_SENSOR_DETECTORS \
+	WEBCAM_BINARY_SENSOR_DETECTORS
 
 ## TEMPLATES
 
@@ -216,6 +223,26 @@ $(HIGHLOW_AUTOMATIONS): $(HIGHLOW_AUTOMATION_TEMPLATE) makefile
 	  cat $(HIGHLOW_AUTOMATION_TEMPLATE) | envsubst > $@
 
 ## WEBCAM targets
+
+WEBCAM_BINARY_SENSOR_DETECTORS: $(WEBCAM_BINARY_SENSOR_DETECTOR_TEMPLATES) ${WEBCAMS_JSON}
+	@echo "Making $@"
+	@for tmpl in $(WEBCAM_BINARY_SENSOR_DETECTOR_TEMPLATES); do \
+	  export t=$$(echo "$${tmpl##sensor.}"); \
+	  u=$$(echo "$${t%%.yaml*}") && \
+	  for i in $(WEBCAMS); do \
+	    v="binary_sensor/$${u}-$${i}.yaml"; \
+	    export TARGET="$${i}"; \
+	    export MOTION_CAMERA=$${TARGET%%.*}; \
+	    export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
+	    export MOTION_GROUP="$(MOTION_GROUP)"; \
+	    export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	    export MOTION_CLIENT="$(MOTION_CLIENT)"; \
+	    export MOTION_CAMERA_ICON=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.icon?" $(WEBCAMS_JSON)); \
+	    export MOTION_CAMERA_LATITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.latitude?' $(WEBCAMS_JSON)); \
+	    export MOTION_CAMERA_LONGITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.longitude?' $(WEBCAMS_JSON)); \
+	    cat $${tmpl} | envsubst > $${v}; \
+	  done; \
+	done
 
 WEBCAM_SENSOR_DETECTORS: $(WEBCAM_SENSOR_DETECTOR_TEMPLATES) ${WEBCAMS_JSON}
 	@echo "Making $@"
