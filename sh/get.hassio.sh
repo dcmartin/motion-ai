@@ -120,6 +120,16 @@ if [ "${USER:-null}" != 'root' ]; then
   exit 1
 fi
 
+## PREREQS
+DEBIAN_FRONTEND=noninteractive \
+  apt install -qq -y \
+    jq \
+    curl \
+    git \
+    build-essential \
+    gettext \
+    || echo 'Failed to install pre-requisites' &> /dev/stderr
+
 # test network
 
 alive=$(curl -fsqL -w '%{http_code}' --connect-timeout 20 --retry-connrefused --retry 10 --retry-max-time 40 --max-time 60 "https://version.home-assistant.io/stable.json" -o /dev/null 2> /dev/null || true)
@@ -127,15 +137,6 @@ if [ "${alive:-}" != '200' ]; then
   echo 'Unable to contact "https://version.home-assistant.io/stable.json"; is your DNS configured properly?' &> /dev/stderr
   exit 1
 fi
-
-## PREREQS
-DEBIAN_FRONTEND=noninteractive \
-  apt install -qq -y \
-    jq \
-    curl \
-    build-essential \
-    gettext \
-    || echo 'Failed to install pre-requisites' &> /dev/stderr
 
 ## DOCKER
 
