@@ -120,15 +120,15 @@ if [ "${USER:-null}" != 'root' ]; then
   exit 1
 fi
 
-if [ -z "$(command -v curl)" ]; then
-  echo 'Install curl; sudo apt install -qq -y curl' &> /dev/stderr
-  exit 1
-fi
-
-if [ -z "$(command -v jq)" ]; then
-  echo 'Install jq; sudo apt install -qq -y jq' &> /dev/stderr
-  exit 1
-fi
+## PREREQS
+DEBIAN_FRONTEND=noninteractive \
+  apt install -qq -y \
+    jq \
+    curl \
+    git \
+    build-essential \
+    gettext \
+    || echo 'Failed to install pre-requisites' &> /dev/stderr
 
 # test network
 
