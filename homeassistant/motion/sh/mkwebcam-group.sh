@@ -33,7 +33,7 @@ done
 
 ## BINARY_SENSORS
 if [ "${UNLIMITED_BUILD:-null}" != 'true' ]; then
-  WEBCAM_BINARY_SENSORS='status_camera end annotated detected detected_entity'
+  WEBCAM_BINARY_SENSORS='status_camera end annotated detected detected_entity detect_entity_alert detect_entity_speak'
 else
   WEBCAM_BINARY_SENSORS='status_camera detected detected_entity face_detected alpr_detected'
 fi
@@ -42,29 +42,17 @@ for WID in ${WEBCAM_BINARY_SENSORS}; do
   echo "#"
   echo "motion_${WID}:"
   echo "  name: motion_${WID}"
-  echo "  all: true"
+  echo -n "  all: "
+  if [ "${WID}" == 'status_camera' ]; then
+    echo "true"
+  else
+    echo "false"
+  fi
   echo "  entities:"
   for C in ${WEBCAMS}; do
     echo "    - binary_sensor.motion_${C}_${WID}"
   done
 done
-
-## SNAPSHOTS
-if [ "${UNLIMITED_BUILD:-null}" != 'true' ]; then
-  WEBCAM_SNAPSHOTS='end annotated detected detected_entity'
-else
-  WEBCAM_SNAPSHOTS='detected detected_entity face_detected alpr_detected'
-fi
-
-#for WID in ${WEBCAM_SNAPSHOTS}; do
-#  echo "#"
-#  echo "motion${WID}_webcams:"
-#  echo "  name: motion_${WID}_webcams"
-#  echo "  entities:"
-#  for C in ${WEBCAMS}; do
-#    echo "    - camera.motion_${WID}_${C}_snapshot"
-#  done
-#done
 
 ## CAMERAS
 if [ "${UNLIMITED_BUILD:-null}" != 'true' ]; then
