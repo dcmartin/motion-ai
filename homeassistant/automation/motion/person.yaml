@@ -142,48 +142,37 @@
   initial_state: on
   trigger:
     - platform: state
-      entity_id: sensor.motion_detected_person_where
+      entity_id: binary_sensor.motion_detected_person
   condition:
     condition: and
     conditions:
       - condition: template
-        value_template: >-
-          {% set s = states('sensor.motion_detected_person_where') %}
-          {{- s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'pending' -}}
+        value_template: >
+          {{ trigger.to_state.state|lower == 'on' }}
       - condition: template
         value_template: >-
-          {% set s = states('sensor.motion_detected_person_where') %}
-          {% set s = states('sensor.motion_' + s + '_camera_detected_person_status') %}
-          {{- s|lower != 'unknown' and s|lower != 'unavailable' -}}
-      - condition: template
-        value_template: >-
-          {% set s = states('sensor.motion_detected_person_where') %}
-          {% set s = states('sensor.motion_' + s + '_detected_person_ago') %}
-          {{- s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -}}
-      - condition: template
-        value_template: >-
-          {% set s = states('sensor.motion_person_location') %}
-          {{- s|lower != 'away' -}}
+          {% set s = state_attr('sensor.motion_person_location','source') %}
+          {{ s|lower == 'unknown' or s|lower != 'unavailable' or s|lower == 'none' or s|lower == 'null' or s|length == 0 }}
   action:
     - service: python_script.set_state
       data_template:
         entity_id: sensor.motion_person_location_estimated
         state: 'Home'
         ago: >-
-          {% set s = states('sensor.motion_detected_person_where') %}
+          {% set s = states('sensor.motion_detected_person_camera') %}
           {{ states('sensor.motion_' + s + '_detected_person_ago') }}
         source: >-
-          {% set s = states('sensor.motion_detected_person_where') %}
+          {% set s = states('sensor.motion_detected_person_camera') %}
           {{ s }}
         radius: >-
           {{- '3' -}}
         gps_accuracy: >-
           {{- '3' -}}
         latitude: >-
-          {% set s = states('sensor.motion_detected_person_where') %}
+          {% set s = states('sensor.motion_detected_person_camera') %}
           {{ state_attr('sensor.motion_' + s + '_camera_detected_person_status','latitude') }}
         longitude: >-
-          {% set s = states('sensor.motion_detected_person_where') %}
+          {% set s = states('sensor.motion_detected_person_camera') %}
           {{ state_attr('sensor.motion_' + s + '_camera_detected_person_status','longitude') }}
 
 # {
@@ -350,8 +339,8 @@
         message: >-
           {{ states('sensor.motion_speaker_say_message') }}
 
-- id: motion_smartphone_person_alert_when_away
-  alias: motion_smartphone_person_alert_when_away
+- id: motion_person_detect_alert_when_away
+  alias: motion_person_detect_alert_when_away
   initial_state: on
   trigger:
     - platform: state
@@ -370,7 +359,7 @@
           {{ is_state('binary_sensor.motion_person_home','off') }}
       - condition: template
         value_template: >
-          {{ is_state('binary_sensor.motion_smartphone_person_alert_when_away','on') }}
+          {{ is_state('binary_sensor.motion_person_detect_alert_when_away','on') }}
       - condition: template
         value_template: >-
           {% set s = states('sensor.motion_detected_person_camera') %}
