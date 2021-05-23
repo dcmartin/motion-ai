@@ -42,26 +42,25 @@
             {% set mc = '' %}
             {% set entitys = state_attr('sensor.motion_' + mc + 'event_annotated','results') %}
             {% set faces = state_attr('sensor.motion_' + mc + 'event_face','results') %}
-            {% if entitys|lower != 'null' and entitys|lower != 'unavailable' and entitys|lower != 'none' and entitys|lower != 'unknown'
-              and faces|lower != 'null' and faces|lower != 'unavailable' and faces|lower != 'none' and faces|lower != 'unknown' %}
-              {% if faces|count > 0 and entitys|count > 0 -%}
-                [{%- for face in faces if face.confidence|float >= states('sensor.motion_face_detected_threshold')|float -%}
+            {% if entitys|lower != 'null' and entitys|lower != 'unavailable' and entitys|lower != 'none' and entitys|lower != 'unknown' and entitys is iterable
+              and faces|lower != 'null' and faces|lower != 'unavailable' and faces|lower != 'none' and faces|lower != 'unknown' and faces is iterable
+              and faces|count > 0 and entitys|count > 0 -%}
+              [{%- for face in faces if face.confidence|float >= states('sensor.motion_face_detected_threshold')|float -%}
+                {% if loop.first %}{% else %},{% endif %}
+                {%- set fw = face.width|int -%}
+                {%- set fh = face.height|int -%}
+                {%- set fx = face.x + (fw/2)|int -%}
+                {%- set fy = face.y + (fh/2)|int -%}
+                {%- for person in entitys 
+                  if person.entity == 'person' and person.confidence|float >= states('sensor.motion_detected_person_threshold')|float
+                     and fx|int >= person.center.x - (person.width/2)|int
+                     and fx|int <= person.center.x + (person.height/2)|int
+                     and fy|int >= person.center.y|int - (person.height/2)|int
+                     and fy|int <= person.center.y|int + (person.height/2)|int -%}
                   {% if loop.first %}{% else %},{% endif %}
-                  {%- set fw = face.width|int -%}
-                  {%- set fh = face.height|int -%}
-                  {%- set fx = face.x + (fw/2)|int -%}
-                  {%- set fy = face.y + (fh/2)|int -%}
-                  {%- for person in entitys 
-                    if person.entity == 'person' and person.confidence|float >= states('sensor.motion_detected_person_threshold')|float
-                       and fx|int >= person.center.x - (person.width/2)|int
-                       and fx|int <= person.center.x + (person.height/2)|int
-                       and fy|int >= person.center.y|int - (person.height/2)|int
-                       and fy|int <= person.center.y|int + (person.height/2)|int -%}
-                    {% if loop.first %}{% else %},{% endif %}
-                    {{- '1' -}}
-                  {%- endfor -%}
-                {%- else -%}{{- '0' -}}{%- endfor -%}]
-              {%- else -%}null{%- endif -%}
+                  {{- '1' -}}
+                {%- endfor -%}
+              {%- else -%}{{- '0' -}}{%- endfor -%}]
             {%- else -%}null{%- endif -%}
           {%- else -%}null{%- endif -%}
         results: >-
@@ -69,7 +68,9 @@
             {% set mc = '' %}
             {% set entitys = state_attr('sensor.motion_' + mc + 'event_annotated','results') %}
             {% set faces = state_attr('sensor.motion_' + mc + 'event_face','results') %}
-            {% if faces|count > 0 and entitys|count > 0 -%}
+            {% if entitys|lower != 'null' and entitys|lower != 'unavailable' and entitys|lower != 'none' and entitys|lower != 'unknown' and entitys is iterable
+              and faces|lower != 'null' and faces|lower != 'unavailable' and faces|lower != 'none' and faces|lower != 'unknown' and faces is iterable
+              and faces|count > 0 and entitys|count > 0 -%}
               [{%- for face in faces if face.confidence|float >= states('sensor.motion_face_detected_threshold')|float -%}
                 {% if loop.first %}{% else %},{% endif %}
                 {%- set fw = face.width|int -%}
@@ -168,11 +169,11 @@
           {% if is_state('binary_sensor.motion_person_face_detected','on') %}
             {% set s = states('sensor.motion_detected_person_ago') %}
             {% if s|int > 0 %}
-              {% set d = (s/86400)|int %}
-              {% set h = (s/3600)|int %}
+              {% set d = (s|int/86400)|int %}
+              {% set h = (s|int/3600)|int %}
               {% if d < 1 %}
                 {% set m = ((s-(d*86400)-(h*3600))/60)|int %}
-                {% set s = (s % 60)|int %}
+                {% set s = (s|int % 60)|int %}
                 {% if h < 1 %}
                   {% if m < 1 %}
                     {{ s -}}s
