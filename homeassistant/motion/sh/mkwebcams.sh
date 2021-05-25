@@ -51,7 +51,7 @@ if [ $(echo "${config:-null}" | jq '.|length') -gt 0 ]; then
 	fi
       fi
       if [ "${i:-0}" -gt 0 ]; then echo ',' >> ${out}; fi
-      echo "${camera}" | jq -c '{name:.name,type:.type,latitude:"'"${lat}"'",longitude:"'"${lng}"'",top:.top,left:.left,icon:.icon,w3w:'"${w3w:-null}"',mjpeg_url:.mjpeg_url,username:.username,password:.password}' >> ${out}
+      echo "${camera}" | jq -c '.|.latitude="'"${lat}"'"|.longitude="'"${lng}"'"|.w3w='"${w3w:-null}"'' >> ${out}
       i=$((i+1))
     fi
   done
