@@ -88,15 +88,18 @@
       {% endif %}
     attributes: >-
       {{ states.sensor.motion_detector_shelly_settings.attributes }}
-    list: >-
-      {%- set prior = state_attr('sensor.motion_detector_shellies','list') -%}
-      [{%- if prior|lower != 'none' and prior|lower != 'unknown' and prior|lower != 'unavailable' and prior|lower != 'null' %}
-        {% if prior is iterable %}
-          {% if prior|length > 0 -%}
-            {%- for p in prior -%}
-              {%- if loop.first -%}{%- else -%},{% endif -%}
-              "{{- p -}}"
-            {%- endfor -%}
+    ids: >-
+      [{%- set prior = state_attr('sensor.motion_detector_shellies','list') -%}
+      {%- if prior|lower != 'none' and prior|lower != 'unknown' and prior|lower != 'unavailable' and prior|lower != 'null' %}
+        {% set prior = prior|string|from_json %}
+        {%- if prior|lower != 'none' and prior|lower != 'unknown' and prior|lower != 'unavailable' and prior|lower != 'null' %}
+          {% if prior is iterable %}
+            {% if prior|length > 0 -%}
+              {%- for p in prior -%}
+                {%- if loop.first -%}{%- else -%},{% endif -%}
+                "{{- p -}}"
+              {%- endfor -%}
+            {%- else -%}{%- set prior = null -%}{%- endif -%}
           {%- else -%}{%- set prior = null -%}{%- endif -%}
         {%- else -%}{%- set prior = null -%}{%- endif -%}
       {%- else -%}{%- set prior = null -%}{%- endif -%}
@@ -122,8 +125,8 @@
 #          value_template: >
 #            {% set s = state_attr('sensor.motion_detector_shellies','list') %}
 #            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-#               {{ not id in s -}}
-#             {% else %}true{% endif %}
+#              {{ not id in s|string|from_json -}}
+#            {% else %}true{% endif %}
     - alias: 'motion_detector_shellies: create/update binary_sensor.motion_detector_shelly_<id>'
       service: python_script.set_state
       data_template:
@@ -146,14 +149,13 @@
           {{ attributes.timezone }}
         state: >-
           {{ states('sensor.motion_detector_shelly_settings')|lower == 'true' }}
-    - alias: 'create/update motion_detector_shellies'
+    - alias: 'create/update sensor.motion_detector_shellies: list'
       service: python_script.set_state
       data_template:
         allow_create: true
         entity_id: >-
           {{- 'sensor.motion_detector_shellies' -}}
-        list: >-
-          {{ list|string }}
+        ids: >-
+          {{ ids|string }}
         state: >-
-          {{ list|from_json|length }}
-
+          {{ utcnow().timestamp()|int }}
