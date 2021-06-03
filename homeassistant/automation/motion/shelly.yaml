@@ -2,6 +2,18 @@
 # homeassistant/automation/motion/shelly.yaml
 ###
 
+- id: motion_detector_shelly_counter
+  alias: motion_detector_shelly_counter
+  initial_state: on
+  trigger:
+    platform: state
+    entity_id: binary_sensor.motion_detector_shelly
+    to: 'on'
+    from: 'off'
+  action:
+    - service: counter.increment
+      entity_id: counter.motion_detector_shelly
+
 - id: motion_detector_shelly_announce
   alias: motion_detector_shelly_announce
   initial_state: on
@@ -74,9 +86,14 @@
           {% set s = s.id|replace('-','_') %}
         {% endif %}
         {%- if s|lower == 'none' or s|lower == 'unknown' or s|lower == 'unavailable' or s|lower == 'null' -%}
-          {% set s = states.sensor.motion_detector_shelly_settings.attributes.device.hostname %}
+          {% set s = state_attr('sensor.motion_detector_shelly_settings','device') %}
           {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-            {{ s|replace('-','_') }}
+            {% set s = s.hostname %}
+            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+              {{ s|replace('-','_') }}
+            {% else %}
+              {{- 'unknown' -}}
+            {% endif %}
           {% else %}
             {{- 'unknown' -}}
           {% endif %}
@@ -105,6 +122,11 @@
       {%- else -%}{%- set prior = null -%}{%- endif -%}
       {%- if prior != null -%},{%- endif -%}
       "{{- id -}}"]
+    last: >-
+      {% set s = states('sensor.motion_detector_shelly_settings') %}
+      {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+        {{ states.sensor.motion_detector_shelly_settings.last_updated|as_timestamp|int }}
+      {% else %}null{% endif %}
   action:
     - alias: 'motion_detector_shellies: test if id != unknown'
       condition: and
@@ -135,6 +157,8 @@
           {{- 'binary_sensor.motion_detector_shelly_' + id|string -}}
         ip: >-
           {{ ip }}
+        last: >-
+          {{ last }}
         mqtt: >-
           {{ attributes.mqtt }}
         login: >-
@@ -155,7 +179,15 @@
         allow_create: true
         entity_id: >-
           {{- 'sensor.motion_detector_shellies' -}}
+        last: >-
+          {{ last }}
+        when: >-
+          {{ last|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}
+        ip: >-
+          {{- ip -}}
+        count: >-
+          {{- ids|string|from_json|list|count -}}
         ids: >-
           {{ ids|string|from_json|list|unique|list|to_json|string }}
         state: >-
-          {{ utcnow().timestamp()|int }}
+          'true'
