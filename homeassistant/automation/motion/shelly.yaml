@@ -70,7 +70,7 @@
       entity_id: sensor.motion_detector_shelly_announce
       to: 'unavailable'
     - platform: time_pattern
-      minutes: /1
+      minutes: /15
     - platform: event
       event_type: homeassistant_start
   condition:
@@ -102,19 +102,37 @@
     - platform: state
       entity_id: sensor.motion_detector_shelly_settings
     - platform: state
+      entity_id: sensor.motion_detector_shelly_status
+    - platform: state
       entity_id: sensor.motion_detector_shelly_info
     - platform: time_pattern
-      minutes: /1
+      minutes: /15
   condition:
     condition: and
     conditions:
       - condition: template
         value_template: >
+          {# all mac addresses match #}
           {% set s = states('sensor.motion_detector_shelly_settings') %}
           {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
             {% set s = state_attr('sensor.motion_detector_shelly_settings','device') %}
             {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-              {{ s.mac|string == state_attr('sensor.motion_detector_shelly_info','mac')|string }}
+              {% set settings = s.mac|string %}
+              {% set s = states('sensor.motion_detector_shelly_status') %}
+              {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+                {% set s = state_attr('sensor.motion_detector_shelly_status','mac') %}
+                {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+                  {% set status = s|string %}
+                  {% set s = states('sensor.motion_detector_shelly_info') %}
+                  {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+                    {% set s = state_attr('sensor.motion_detector_shelly_info','mac') %}
+                    {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+                      {% set info = s|string %}
+                      {{ info == status and info == settings }}
+                    {% else %}false{% endif %}
+                  {% else %}false{% endif %}
+                {% else %}false{% endif %}
+              {% else %}false{% endif %}
             {% else %}false{% endif %}
           {% else %}false{% endif %}
   variables:
@@ -178,6 +196,11 @@
       {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
         {{ states.sensor.motion_detector_shelly_settings.last_updated|as_timestamp|int }}
       {% else %}null{% endif %}
+    status: >-
+      {% set s = states('sensor.motion_detector_shelly_status') %}
+      {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+        {{ states.sensor.motion_detector_shelly_status.attributes }}
+      {% else %}null{% endif %}
   action:
     - alias: 'motion_detector_shellies: test if id != unknown'
       condition: and
@@ -222,6 +245,8 @@
           {{ attributes.device }}
         timezone: >-
           {{ attributes.timezone }}
+        status: >-
+          {{ status }}
         state: >-
           {{ states('sensor.motion_detector_shelly_settings')|lower == 'true' }}
     - alias: 'create/update sensor.motion_detector_shellies: list'

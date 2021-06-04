@@ -2,7 +2,7 @@
 ## homeassistant/motion/sensor/shelly.yaml
 ###
 
-## MQTT
+## status (MQTT)
 
 # shellies/pir-bathroom/status
 # {
@@ -22,6 +22,8 @@
   value_template: >
     {% if value_json is defined %}True{% else %}False{% endif %}
 
+## announce (MQTT)
+
 # shellies/shellymotionsensor-60A423D3F280/announce
 # {
 #   "fw_ver": "20210226-072307/v1.1.0@f31e1d2b",
@@ -35,12 +37,14 @@
 - platform: mqtt
   name: motion_detector_shelly_announce
   state_topic: shellies/+/announce
-#  expire_after: 300
-#  force_update: true
+  expire_after: 300
+  force_update: true
   json_attributes_topic: shellies/+/announce
   qos: 2
   value_template: >
     {% if value_json is defined %}True{% else %}False{% endif %}
+
+## info (MQTT)
 
 # shellies/shellymotionsensor-60A423D3F280/info
 # {
@@ -95,14 +99,14 @@
 - platform: mqtt
   name: motion_detector_shelly_info
   state_topic: shellies/+/info
-#  expire_after: 300
-#  force_update: true
+  expire_after: 300
+  force_update: true
   json_attributes_topic: shellies/+/info
   qos: 2
   value_template: >
     {% if value_json is defined %}True{% else %}False{% endif %}
 
-## REST
+## settings (REST)
 
 # curl -sSL -u 'username:password' "192.168.1.210/settings"
 # {
@@ -198,9 +202,9 @@
 - platform: rest
   name: motion_detector_shelly_settings
   authentication: basic
-  username: "username"
-  password: "password"
-  scan_interval: 300
+  username: !secret shelly-username
+  password: !secret shelly-password
+  scan_interval: 1800
   json_attributes:
     - build_info
     - cloud
@@ -225,64 +229,124 @@
   value_template: >-
     {% if value_json is defined %}True{% else %}False{% endif %}
 
-- platform: history_stats
-  name: motion_detector_shelly_history_ratio_today
-  entity_id: binary_sensor.motion_detector_shelly
-  state: 'on'
-  type: ratio
-  start: >-
-    {{ now().replace(hour=0).replace(minute=0).replace(second=0) }}
-  end: '{{ now() }}'
+## status (REST)
 
-- platform: history_stats
-  name: motion_detector_shelly_history_count_today
-  entity_id: binary_sensor.motion_detector_shelly
-  state: 'on'
-  type: count
-  start: >-
-    {{ now().replace(hour=0).replace(minute=0).replace(second=0) }}
-  end: '{{ now() }}'
+# {
+#   "actions_stats": {
+#     "skipped": 0
+#   },
+#   "active/sleep_ratio": 0,
+#   "bat": {
+#     "value": 96,
+#     "voltage": 4.125
+#   },
+#   "cfg_changed_cnt": 0,
+#   "charger": true,
+#   "cloud": {
+#     "connected": false,
+#     "enabled": false
+#   },
+#   "dbg_flags": 0,
+#   "fs_free": 59676,
+#   "fs_size": 65536,
+#   "has_update": false,
+#   "lux": {
+#     "illumination": "bright",
+#     "is_valid": true,
+#     "value": 585
+#   },
+#   "mac": "60A423D3F280",
+#   "mqtt": {
+#     "connected": true
+#   },
+#   "ps_mode": 1,
+#   "ram_free": 59296,
+#   "ram_total": 65536,
+#   "sensor": {
+#     "active": true,
+#     "is_valid": true,
+#     "motion": false,
+#     "timestamp": 1622825745,
+#     "vibration": false
+#   },
+#   "serial": 0,
+#   "sleep_time": 0,
+#   "time": "17:17",
+#   "unixtime": 1622827046,
+#   "update": {
+#     "beta_version": null,
+#     "has_update": false,
+#     "new_version": "20210531-091017/v1.1.2@aeceaa55",
+#     "old_version": "20210531-091017/v1.1.2@aeceaa55",
+#     "status": "unknown"
+#   },
+#   "uptime": 183482,
+#   "wifi_sta": {
+#     "connected": true,
+#     "ip": "192.168.1.210",
+#     "rssi": -56,
+#     "ssid": "CABIN"
+#   }
+# }
 
-# ago
+- platform: rest
+  name: motion_detector_shelly_status
+  authentication: basic
+  username: "username"
+  password: "password"
+  scan_interval: 60
+  force_update: true
+  json_attributes:
+    - actions_stats
+    - bat
+    - cloud
+    - has_update
+    - lux
+    - mac
+    - mqtt
+    - sensor
+    - unixtime
+    - update
+    - uptime
+    - wifi_sta
+  resource_template: >-
+    {% set s = state_attr('sensor.motion_detector_shelly_announce','ip') %}
+    {% if s|lower !='none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+      {{- 'http://' + s + '/status' -}}
+    {% else %}null{% endif %}
+  value_template: >-
+    {% if value_json is defined %}True{% else %}False{% endif %}
+- platform: rest
+  name: motion_detector_shelly_status
+  authentication: basic
+  username: "username"
+  password: "password"
+  scan_interval: 300
+  json_attributes:
+    - build_info
+    - cloud
+    - coiot
+    - lat
+    - lng
+    - led_status_disable
+    - mqtt
+    - name
+    - motion
+    - login
+    - device 
+    - timezone
+    - wifi_ap
+    - wifi_sta
+  force_update: true
+  resource_template: >-
+    {% set s = state_attr('sensor.motion_detector_shelly_announce','ip') %}
+    {% if s|lower !='none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+      {{- 'http://' + s + '/status' -}}
+    {% else %}null{% endif %}
+  value_template: >-
+    {% if value_json is defined %}True{% else %}False{% endif %}
 
-- platform: template
-  sensors:
-    motion_detector_shelly_ago:
-      friendly_name: 'Shelly motion ago'
-      icon_template: 'mdi:av-timer'
-      unit_of_measurement: 's'
-      value_template: >-
-        {% set s = states('sensor.motion_detector_shelly_last') %}
-        {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' and s|int > 0 %}
-          {{ utcnow().timestamp()|int - s|int }}
-        {% else %}null{% endif %}
-
-- platform: statistics
-  name: motion_detector_shelly_ago_statistics
-  entity_id: sensor.motion_detector_shelly_ago
-  sampling_size: 1000
-  max_age:
-    hours: 168
-
-# lux
-
-- platform: template
-  sensors:
-    motion_detector_shelly_lux:
-      friendly_name: 'Shelly luminosity'
-      icon_template: 'mdi:brightness-auto'
-      unit_of_measurement: 'lux'
-      value_template: >-
-        {{ state_attr('binary_sensor.motion_detector_shelly','lux') }}
-
-- platform: statistics
-  name: motion_detector_shelly_lux_statistics
-  entity_id: sensor.motion_detector_shelly_lux
-  sampling_size: 1000
-  max_age:
-    hours: 168
-
-# timestamp
+## TEMPLATES
 
 - platform: template
   sensors:
@@ -317,6 +381,57 @@
             {% if d|int > 0 %}{{ d }}{% else %}null{% endif %}
           {% else %}null{% endif %}
         {% else %}null{% endif %}
+    motion_detector_shelly_ago:
+      friendly_name: 'Shelly motion ago'
+      icon_template: 'mdi:av-timer'
+      unit_of_measurement: 's'
+      value_template: >-
+        {% set s = states('sensor.motion_detector_shelly_last') %}
+        {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' and s|int > 0 %}
+          {{ utcnow().timestamp()|int - s|int }}
+        {% else %}null{% endif %}
+    motion_detector_shelly_lux:
+      friendly_name: 'Shelly luminosity'
+      icon_template: 'mdi:brightness-auto'
+      unit_of_measurement: 'lux'
+      value_template: >-
+        {{ state_attr('binary_sensor.motion_detector_shelly','lux') }}
+
+## HISTORY
+
+- platform: history_stats
+  name: motion_detector_shelly_history_ratio_today
+  entity_id: binary_sensor.motion_detector_shelly
+  state: 'on'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0) }}
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_detector_shelly_history_count_today
+  entity_id: binary_sensor.motion_detector_shelly
+  state: 'on'
+  type: count
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0) }}
+  end: '{{ now() }}'
+
+## STATISTICS
+
+- platform: statistics
+  name: motion_detector_shelly_ago_statistics
+  entity_id: sensor.motion_detector_shelly_ago
+  sampling_size: 1000
+  max_age:
+    hours: 168
+
+- platform: statistics
+  name: motion_detector_shelly_lux_statistics
+  entity_id: sensor.motion_detector_shelly_lux
+  sampling_size: 1000
+  max_age:
+    hours: 168
 
 - platform: statistics
   name: motion_detector_shelly_duration_statistics
