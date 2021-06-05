@@ -38,6 +38,10 @@ else:
               # state can only be string
               inputState = data.get(item)
               logger.debug("set_state: updating entity state; item: {0}; value: {1}".format(item,inputState))
+            elif item == 'entity_ids':
+              attr_value = data.get(item)
+              logger.debug("set_state: updating entity attribute value; item: {0}; value: {1}".format(item,attr_value))
+              inputAttributesObject['entity_id'] = attr_value
             else:
               attr_value = data.get(item)
               logger.debug("set_state: updating entity attribute value; item: {0}; value: {1}".format(item,attr_value))
