@@ -73,10 +73,29 @@ Once the system has rebooted it will display a default view; note the image belo
 
 <img src="docs/dashboard.png" width="75%">
 
+Historial information, current status, and a device map of activity are also provided in the default dashboard.
+
+<img src="docs/person-history.png" width="30%">
+<img src="docs/person-status.png" width="30%">
+<img src="docs/device-map.png" width="30%">
+
 ## Administrators
-A more detailed interface is provided to administrators _only_, and includes both summary and detailed views for the system, including access to **NetData**  and the **motion add-on** Web interface.
+A more detailed interface is provided to administrators _only_, and includes both summary and detailed views for the system, including access to [**NetData**](docs/netdata.png)  and the [**motion add-on**](docs/motion-ui.png) Web interface.
 
 <img src="docs/administrators.png" width="75%">
+
+Administrators have access to all panels and dashboards, including the _selected_, _overview_ (aka **experimental**), and per camera (see below).  Notifications can be specified for both individual cameras as well as for all cameras.
+
+<img src="docs/selected.png" width="30%">
+<img src="docs/experimental.png" width="30%">
+<img src="docs/camera-specific.png" width="30%">
+
+## Notifications & Alerts
+Notifications appear in the side panel; alerts are sent to smartphone and smart-speakers when enabled and configured.
+
+<img src="docs/notifications.png" width="75%">
+<br>
+<img src="docs/mobile-alert.png" width="75%">
 
 # Add-on's
 Install the [MQTT](https://github.com/home-assistant/hassio-addons/blob/master/mosquitto/README.md) and [Motion Classic](https://github.com/motion-ai/addons/blob/master/motion-video0/README.md) _add-ons_ from the **Add-On Store** and configure and start; add the repository [https://github.com/motion-ai/addons](https://github.com/motion-ai/addons) to the Add-On Store to install Motion Classic.
