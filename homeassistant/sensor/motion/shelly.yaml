@@ -14,15 +14,15 @@
 #   "vibration": false
 # }
 
-- platform: mqtt
-  name: motion_detector_shelly_status
-  state_topic: shellies/+/status
-  expire_after: 60
-  force_update: true
-  json_attributes_topic: shellies/+/status
-  qos: 2
-  value_template: >
-    {% if value_json is defined %}True{% else %}False{% endif %}
+#- platform: mqtt
+#  name: motion_detector_shelly_status
+#  state_topic: shellies/+/status
+#  expire_after: 60
+#  force_update: true
+#  json_attributes_topic: shellies/+/status
+#  qos: 2
+#  value_template: >
+#    {% if value_json is defined %}True{% else %}False{% endif %}
 
 ## announce (MQTT)
 
@@ -297,7 +297,7 @@
   authentication: basic
   username: !secret shelly-username
   password: !secret shelly-password
-  scan_interval: 60
+  scan_interval: 300
   force_update: true
   json_attributes:
     - actions_stats
@@ -324,43 +324,42 @@
 
 - platform: template
   sensors:
-    motion_detector_shelly_start:
-      friendly_name: 'Shelly start'
-      icon_template: 'mdi:clock'
-      unit_of_measurement: 's'
+    motion_detector_shelly_mac:
+      friendly_name: 'Shelly mac'
+      icon_template: 'mdi:lan'
       value_template: >-
-       {{ 'null' }}
-    motion_detector_shelly_end:
-      friendly_name: 'Shelly end'
-      icon_template: 'mdi:clock'
-      unit_of_measurement: 's'
+        {% set s = state_attr('binary_sensor.motion_detector_shelly','mac') %}
+        {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' %}
+          {{ s }}
+        {% else %}Pending{% endif %}
+    motion_detector_shelly_id:
+      friendly_name: 'Where'
+      icon_template: 'mdi:map-marker'
       value_template: >-
-        {{ 'null' }}
-    motion_detector_shelly_last:
-      friendly_name: 'Shelly last'
-      icon_template: 'mdi:clock'
-      unit_of_measurement: 's'
-      value_template: >-
-        {{ 'null' }}
+        {% set s = state_attr('binary_sensor.motion_detector_shelly','id') %}
+        {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' %}
+          {{ s }}
+        {% else %}
+          {% set s = states.sensor.motion_detector_shelly_id.state %}
+          {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' %}
+            {{ s }}
+          {% else %}Pending{% endif %}
+        {% endif %}
     motion_detector_shelly_duration:
       friendly_name: 'Shelly duration'
       icon_template: 'mdi:av-timer'
       unit_of_measurement: 's'
       value_template: >-
-        {% set s = states('sensor.motion_detector_shelly_start') %}
-        {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' and s|int > 0 %}
-          {% set e = states('sensor.motion_detector_shelly_end') %}
-          {% if e|lower != 'unknown' and e|lower != 'unavailable' and e|lower != 'none' and e|lower != 'null' and e|int > 0 %}
-            {% set d = e|int - s|int %}
-            {% if d|int > 0 %}{{ d }}{% else %}null{% endif %}
-          {% else %}null{% endif %}
+        {% set s = state_attr('binary_sensor.motion_detector_shelly','duration') %}
+        {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' %}
+          {{ s }}
         {% else %}null{% endif %}
     motion_detector_shelly_ago:
       friendly_name: 'Shelly motion ago'
       icon_template: 'mdi:av-timer'
       unit_of_measurement: 's'
       value_template: >-
-        {% set s = states('sensor.motion_detector_shelly_last') %}
+        {% set s = state_attr('binary_sensor.motion_detector_shelly','last') %}
         {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' and s|int > 0 %}
           {{ utcnow().timestamp()|int - s|int }}
         {% else %}null{% endif %}
@@ -369,13 +368,19 @@
       icon_template: 'mdi:brightness-auto'
       unit_of_measurement: 'lux'
       value_template: >-
-        {{ state_attr('binary_sensor.motion_detector_shelly','lux') }}
+        {% set s = state_attr('binary_sensor.motion_detector_shelly','lux') %}
+        {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' and s|int > 0 %}
+            {{ s }}
+        {% else %}null{% endif %}
     motion_detector_shelly_battery:
-      friendly_name: 'Shelly luminosity'
-      icon_template: 'mdi:brightness-auto'
+      friendly_name: 'Shelly battery'
+      icon_template: 'mdi:battery'
       unit_of_measurement: '%'
       value_template: >-
-        {{ state_attr('binary_sensor.motion_detector_shelly','bat') }}
+        {% set s = state_attr('binary_sensor.motion_detector_shelly','bat') %}
+        {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' and s|int > 0 %}
+            {{ s }}
+        {% else %}null{% endif %}
     motion_detector_shelly_entity_ids:
       value_template: >-
         [{% for eid in states.binary_sensor|map(attribute='entity_id')|list if 'motion_detector_shelly_' in eid  -%}
