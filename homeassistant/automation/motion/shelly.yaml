@@ -19,6 +19,7 @@
 - id: motion_detector_shellies_mqtt
   alias: motion_detector_shellies_mqtt
   initial_state: on
+  mode: queued
   trigger:
     - platform: mqtt
       topic: 'shellies/+/status'
@@ -93,7 +94,7 @@
         lux: >-
           {{ trigger.payload_json.lux }}
         bat: >-
-          {{ trigger.payload_json.bat }}
+          {*{ trigger.payload_json.bat }}
         state: >-
           {% set s = trigger.payload_json.motion %}
           {% if s|lower == 'true' %}on{% else %}off{% endif %}
@@ -103,7 +104,7 @@
         - condition: template
           value_template: >-
             {{ mac|lower != 'unavailable' and mac|lower != 'unknown' and mac|lower != 'null' and mac|lower != 'none' and mac|length > 0 }}
-    - alias: 'set binary_sensor.motion_detector_shelly.mac'
+    - alias: 'set binary_sensor.motion_detector_shelly mac'
       service: python_script.set_state
       data_template:
         entity_id: >-
@@ -137,16 +138,21 @@
       conditions:
         - condition: template
           value_template: >-
-            {{ latitude|float > 0.0 and longitude|float > 0.0 }}
-    - alias: 'set binary_sensor.motion_detector_shelly'
+            {{ latitude|lower != 'null' and longitude|lower != 'null' }}
+    - alias: 'set sensor.motion_detector_shelly location'
       service: python_script.set_state
       data_template:
+        allow_create: true
         entity_id: >-
-          {{ 'binary_sensor.motion_detector_shelly' }}
+          {{ 'sensor.motion_detector_shelly' }}
         latitude: >-
           {{ latitude }}
         longitude: >-
           {{ longitude }}
+        entity_picture: >-
+          {{- '/local/images/motion.png' -}}
+        state: >-
+          {{ id }}
 
 # update on motion start
 
@@ -429,7 +435,7 @@
 
 - id: motion_detector_shellies_update
   alias: motion_detector_shellies_update
-  initial_state: on
+  initial_state: off
   mode: queued
   trigger:
     - platform: state
