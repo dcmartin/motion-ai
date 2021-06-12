@@ -24,7 +24,7 @@ else:
           inputAttributesObject = {}
     
         # process entity attribute value updates 
-        inputState = null
+        inputState = 'unknown'
         for item in data:
 
             # excluding 'entity_id', 'allow_create'
