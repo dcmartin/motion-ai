@@ -2,25 +2,25 @@
 # homeassistant/automation/motion/shelly.yaml
 ###
 
-- id: motion_detector_shelly_counter
-  alias: motion_detector_shelly_counter
+- id: motion_shellies_occupancy_counter
+  alias: motion_shellies_occupancy_counter
   initial_state: on
   trigger:
     platform: state
-    entity_id: binary_sensor.motion_detector_shelly
+    entity_id: binary_sensor.motion_shellies_occupancy
     to: 'on'
     from: 'off'
   action:
     - service: counter.increment
-      entity_id: counter.motion_detector_shelly
-
-## update on MQTT status payload
+      entity_id: counter.motion_shellies_occupancy
 
 - id: motion_shellies_mqtt_status
   alias: motion_shellies_mqtt_status
   initial_state: on
   mode: queued
   trigger:
+    - platform: mqtt
+      topic: 'shellies/+/light/0/status'
     - platform: mqtt
       topic: 'shellies/+/status'
   variables:
@@ -29,7 +29,18 @@
     status: >-
       {{ trigger.payload_json }}
     id: >-
-      {{ topic|replace('shellies/','')|replace('/status','') }}
+      {{ topic|replace('shellies/','')|replace('/light/0','')|replace('/status','') }}
+    timestamp: >-
+      {% if trigger.payload_json['timestamp'] %}
+        {% set s =  trigger.payload_json.timestamp %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int > 0 %}
+          {{ s }}
+        {% else %}
+          {{ utcnow().timestamp()|int }}
+        {% endif %}
+      {% else %}
+        {{ utcnow().timestamp()|int }}
+      {% endif %}
     mac: >-
       {% if id|lower != 'none' and id|lower != 'unavailable' and id|lower != 'unknown' and id|lower != 'null' and id|length > 0 %}
         {% set s = states('group.motion_shellies') %}
@@ -42,45 +53,27 @@
           {% else %}null{% endif %}
         {% else %}null{% endif %}
       {% else %}null{% endif %}
-    model: >-
-      {% if id|lower != 'none' and id|lower != 'unavailable' and id|lower != 'unknown' and id|lower != 'null' and id|length > 0 %}
-        {% set s = states('group.motion_shellies') %}
-        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
-          {% set s = state_attr('group.motion_shellies','entity_id') %}
-          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
-            {% for i in s if state_attr(i,'id') == id %}
-              {% if loop.first %}{{ state_attr(i,'model') }}{% endif %}
-            {% endfor %}
-          {% else %}null{% endif %}
-        {% else %}null{% endif %}
-      {% else %}null{% endif %}
     type: >-
-      {% if id|lower != 'none' and id|lower != 'unavailable' and id|lower != 'unknown' and id|lower != 'null' and id|length > 0 %}
+      {% if mac|lower != 'none' and mac|lower != 'unavailable' and mac|lower != 'unknown' and mac|lower != 'null' and mac|length > 0 %}
         {% set s = states('group.motion_shellies') %}
         {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
           {% set s = state_attr('group.motion_shellies','entity_id') %}
           {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
-            {% for i in s if state_attr(i,'id') == id %}
+            {% for i in s if state_attr(i,'mac') == mac %}
               {% if loop.first %}{{ state_attr(i,'type') }}{% endif %}
             {% endfor %}
           {% else %}null{% endif %}
         {% else %}null{% endif %}
       {% else %}null{% endif %}
     sensor: >-
-      {% if mac|lower != 'none' and mac|lower != 'unavailable' and mac|lower != 'unknown' and mac|lower != 'null' and mac|length > 0 %}
-        {% set s = states('binary_sensor.motion_detector_shelly_' + mac) %}
-        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' %}
-          {{ 'binary_sensor.motion_detector_shelly_' + mac|string }}
-        {% else %}null{% endif %}
-      {% else %}
-        {% set s = states('group.motion_shellies') %}
-        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
-          {% set s = state_attr('group.motion_shellies','entity_id') %}
-          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|count == 1 %}
-            {{ s|first }}
-          {% else %}null{% endif %}
-        {% else %}null{% endif %}
-      {% endif %}
+      {% if mac|lower != 'none' and mac|lower != 'unavailable' and mac|lower != 'unknown' and mac|lower != 'null'
+        and type|lower != 'none' and type|lower != 'unavailable' and type|lower != 'unknown' and type|lower != 'null' %}
+        {{ 'binary_sensor.motion_shelly_' + type|string + '_' + mac|string }}
+      {% else %}null{% endif %}
+    model: >-
+      {% if sensor|lower != 'none' and sensor|lower != 'unavailable' and sensor|lower != 'unknown' and sensor|lower != 'null' %}
+        {{ state_attr(sensor,'model') }}
+      {% else %}null{% endif %}
     latitude: >-
       {% if sensor|lower != 'none' and sensor|lower != 'unavailable' and sensor|lower != 'unknown' and sensor|lower != 'null' %}
         {% set s = state_attr(sensor,'settings') %}
@@ -95,30 +88,37 @@
           {{ s.lng }}
         {% else %}null{% endif %}
       {% else %}null{% endif %}
+    state: >-
+      {% if trigger.payload_json['motion'] %}
+        {% if trigger.payload_json.motion|lower == 'true' %}on{% else %}off{% endif %}
+      {% elif trigger.payload_json['ison'] %}
+        {% if trigger.payload_json.ison|lower == 'true' %}on{% else %}off{% endif %}
+      {% else %}unknown{% endif %}
   action:
-    - alias: 'test id is not null'
+    - alias: 'test status is not null'
       condition: and
       conditions:
         - condition: template
           value_template: >-
-            {{ id|lower != 'unavailable' and id|lower != 'unknown' and id|lower != 'null' and id|lower != 'none' }}
+            {{ status|lower != 'unavailable' and status|lower != 'unknown' and status|lower != 'null' and status|lower != 'none' }}
     - alias: 'test mac is not null'
       condition: and
       conditions:
         - condition: template
           value_template: >-
             {{ mac|lower != 'unavailable' and mac|lower != 'unknown' and mac|lower != 'null' and mac|lower != 'none' and mac|length > 0 }}
-    - alias: 'test if motion detector'
+    - alias: 'test type is not null'
       condition: and
       conditions:
         - condition: template
           value_template: >-
-            {{ type == 'motion' }}
-    - alias: 'set binary_sensor.motion_detector_shelly'
+            {{ type|lower != 'unavailable' and type|lower != 'unknown' and type|lower != 'null' and type|lower != 'none' and type|length > 0 }}
+    - alias: 'set binary_sensor.motion_shelly_<type>'
       service: python_script.set_state
       data_template:
+        allow_create: true
         entity_id: >-
-          {{- 'binary_sensor.motion_detector_shelly' -}}
+          {{ 'binary_sensor.motion_shellies_' + type|string }}
         id: >-
           {{ id }}
         model: >-
@@ -128,37 +128,62 @@
         mac: >-
           {{ mac }}
         timestamp: >-
-          {{ trigger.payload_json.timestamp }}
+          {{ timestamp }}
         status: >-
           {{ status }}
         state: >-
-          {% if trigger.payload_json.motion|lower == 'true' %}on{% else %}off{% endif %}
-    - alias: 'set binary_sensor.motion_detector_shelly_<mac>'
+          {{ state }}
+    - alias: 'set binary_sensor.motion_shelly_<type>_<mac>'
       service: python_script.set_state
       data_template:
         allow_create: true
         entity_id: >-
-          {{ 'binary_sensor.motion_detector_shelly_' + mac|string }}
+          {{ sensor }}
         status: >-
           {{ status }}
         timestamp: >-
-          {{ trigger.payload_json.timestamp }}
+          {{ timestamp }}
         state: >-
-          {% if trigger.payload_json.motion|lower == 'true' %}on{% else %}off{% endif %}
+          {{ state }}
+    - alias: 'test if sensor on'
+      condition: and
+      conditions:
+        - condition: template
+          value_template: >
+            {{ state == 'on' }}
+    - alias: 'set last: binary_sensor.motion_shelly_<type>'
+      service: python_script.set_state
+      data_template:
+        allow_create: true
+        entity_id: >-
+          {{ 'binary_sensor.motion_shellies_' + type|string }}
+        last: >-
+          {{ timestamp }}
+        state: >-
+          {{ state }}
+    - alias: 'set last: binary_sensor.motion_shelly_<type>_<mac>'
+      service: python_script.set_state
+      data_template:
+        entity_id: >-
+          {{ 'binary_sensor.motion_shelly_' + type|string + '_' + mac|string }}
+        last: >-
+          {{ timestamp }}
+        state: >-
+          {{ state }}
     - alias: 'test gps is not null'
       condition: and
       conditions:
         - condition: template
           value_template: >-
             {{ latitude|lower != 'null' and longitude|lower != 'null' }}
-    - alias: 'set sensor.motion_detector_shelly location'
+    - alias: 'set location: sensor.motion_shellies_<type>'
       service: python_script.set_state
       data_template:
         allow_create: true
         entity_id: >-
-          {{ 'sensor.motion_detector_shelly' }}
+          {{ 'sensor.motion_shellies_' + type|string }}
         timestamp: >-
-          {{ trigger.payload_json.timestamp }}
+          {{ timestamp }}
         latitude: >-
           {{ latitude }}
         longitude: >-
@@ -167,44 +192,24 @@
           {{ status }}
         state: >-
           {{ id }}
-    - alias: 'test if motion'
-      condition: and
-      conditions:
-        - condition: template
-          value_template: >
-            {{ trigger.payload_json.motion|lower == 'true' }}
-    - alias: 'set last: binary_sensor.motion_detector_shelly'
-      service: python_script.set_state
-      data_template:
-        entity_id: >-
-          {{- 'binary_sensor.motion_detector_shelly' -}}
-        last: >-
-          {{ trigger.payload_json.timestamp }}
-    - alias: 'set last: binary_sensor.motion_detector_shelly_<mac>'
-      service: python_script.set_state
-      data_template:
-        entity_id: >-
-          {{ 'binary_sensor.motion_detector_shelly_' + mac|string }}
-        last: >-
-          {{ trigger.payload_json.timestamp }}
 
 # update on motion start
 
-- id: motion_detector_shelly_start
-  alias: motion_detector_shelly_start
+- id: motion_shellies_occupancy_start
+  alias: motion_shellies_occupancy_start
   initial_state: on
   trigger:
     platform: state
-    entity_id: binary_sensor.motion_detector_shelly
-    to: 'on'
+    entity_id: binary_sensor.motion_shellies_occupancy
     from: 'off'
+    to: 'on'
   variables:
     sensor: >-
-      {% set mac = state_attr('binary_sensor.motion_detector_shelly','mac') %}
+      {% set mac = state_attr('binary_sensor.motion_shellies_occupancy','mac') %}
       {% if mac|lower != 'none' and mac|lower != 'unavailable' and mac|lower != 'unknown' and mac|lower != 'null' and mac|length > 0 %}
-        {% set s = states('binary_sensor.motion_detector_shelly_' + mac) %}
+        {% set s = states('binary_sensor.motion_shellies_occupancy_' + mac) %}
         {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' %}
-          {{ 'binary_sensor.motion_detector_shelly_' + mac|string }}
+          {{ 'binary_sensor.motion_shellies_occupancy_' + mac|string }}
         {% else %}null{% endif %}
       {% else %}
         {% set s = states('group.motion_shellies') %}
@@ -235,17 +240,15 @@
         {{ timestamp|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") }}
       {% else %}Pending{% endif %}
   action:
-    - alias: 'test if motion detector'
-      condition: and
-      conditions:
-        - condition: template
-          value_template: >
-            {{ type == 'motion' }}
-    - alias: 'set start to timestamp and end to null'
+    - alias: 'set on: binary_sensor.motion_shellies_occupancy'
       service: python_script.set_state
       data_template:
         entity_id: >-
-          {{- 'binary_sensor.motion_detector_shelly' -}}
+          {{- 'binary_sensor.motion_shellies_occupancy' -}}
+        timestamp: >-
+          {{ timestamp }}
+        last: >-
+          {{ timestamp }}
         when: >-
           {{ when }}
         start: >-
@@ -260,35 +263,39 @@
         - condition: template
           value_template: >-
             {{ sensor|lower != 'unavailable' and sensor|lower != 'unknown' and sensor|lower != 'null' and sensor|lower != 'none' }}
-    - alias: 'set binary_sensor.motion_detector_shelly_<mac>: on'
+    - alias: 'set on: binary_sensor.motion_shellies_occupancy_<mac>'
       service: python_script.set_state
       data_template:
         entity_id: >-
           {{ sensor }}
         when: >-
           {{ when }}
+        timestamp: >-
+          {{ timestamp }}
+        last: >-
+          {{ timestamp }}
         start: >-
-          {{ state_attr('binary_sensor.motion_detector_shelly','timestamp') }}
+          {{ timestamp }}
         end: >-
           {{- 'null' -}}
         state: >-
           {{- 'on' -}}
 
-- id: motion_detector_shelly_end
-  alias: motion_detector_shelly_end
+- id: motion_shellies_occupancy_end
+  alias: motion_shellies_occupancy_end
   initial_state: on
   trigger:
     platform: state
-    entity_id: binary_sensor.motion_detector_shelly
+    entity_id: binary_sensor.motion_shellies_occupancy
     from: 'on'
-    to: 'off'
+    from: 'off'
   variables:
     sensor: >-
-      {% set mac = state_attr('binary_sensor.motion_detector_shelly','mac') %}
+      {% set mac = state_attr('binary_sensor.motion_shellies_occupancy','mac') %}
       {% if mac|lower != 'none' and mac|lower != 'unavailable' and mac|lower != 'unknown' and mac|lower != 'null' and mac|length > 0 %}
-        {% set s = states('binary_sensor.motion_detector_shelly_' + mac) %}
+        {% set s = states('binary_sensor.motion_shellies_occupancy_' + mac) %}
         {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' %}
-          {{ 'binary_sensor.motion_detector_shelly_' + mac|string }}
+          {{ 'binary_sensor.motion_shellies_occupancy_' + mac|string }}
         {% else %}null{% endif %}
       {% else %}
         {% set s = states('group.motion_shellies') %}
@@ -307,8 +314,7 @@
         {% else %}null{% endif %}
       {% else %}null{% endif %}
     timestamp: >-
-      {% set s = states(sensor) %}
-      {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+      {% if sensor|lower != 'none' and sensor|lower != 'unavailable' and sensor|lower != 'unknown' and sensor|lower != 'null' %}
         {% set s = state_attr(sensor,'timestamp') %}
         {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int > 0 %}
           {{ s }}
@@ -324,17 +330,13 @@
         {{ timestamp|int - s|int }}
       {% else %}null{% endif %}
   action:
-    - alias: 'test if motion detector'
-      condition: and
-      conditions:
-        - condition: template
-          value_template: >
-            {{ type == 'motion' }}
-    - alias: 'set binary_sensor.motion_detector_shelly'
+    - alias: 'set off: binary_sensor.motion_shellies_occupancy'
       service: python_script.set_state
       data_template:
         entity_id: >-
-          {{- 'binary_sensor.motion_detector_shelly' -}}
+          {{- 'binary_sensor.motion_shellies_occupancy' -}}
+        timestamp: >-
+          {{ timestamp }}
         last: >-
           {{ timestamp }}
         end: >-
@@ -351,11 +353,13 @@
         - condition: template
           value_template: >-
             {{ sensor|lower != 'unavailable' and sensor|lower != 'unknown' and sensor|lower != 'null' and sensor|lower != 'none' }}
-    - alias: 'set binary_sensor.motion_detector_shelly_<mac>: off'
+    - alias: 'set off: binary_sensor.motion_shellies_occupancy_<mac>'
       service: python_script.set_state
       data_template:
         entity_id: >-
           {{- sensor -}}
+        timestamp: >-
+          {{ timestamp }}
         last: >-
           {{ timestamp }}
         end: >-
@@ -371,8 +375,6 @@
   alias: motion_shellies_mqtt_announce_publish
   initial_state: on
   trigger:
-    - platform: state
-      entity_id: sensor.motion_detector_shelly_announce
     - platform: time_pattern
       minutes: /15
     - platform: event
@@ -382,11 +384,7 @@
     conditions:
       - condition: template
         value_template: >-
-          {% set s = states('sensor.motion_detector_shelly_announce') %}
-          {{ s|lower == 'unavailable' or s|lower == 'unknown' }}
-      - condition: template
-        value_template: >-
-          {{ is_state('binary_sensor.motion_detector_shellies_publish','on') }}
+          {{ is_state('binary_sensor.motion_shellies_publish','on') }}
   action:
     - alias: 'publish command'
       service_template: mqtt.publish
@@ -398,7 +396,7 @@
         qos: 2
         retain: false
 
-# handle updates from REST API call to get settings from IP set on binary_sensor.motion_detector_shelly
+# handle updates from REST API call to get settings from IP set on binary_sensor.motion_shellies_occupancy
 
 - id: motion_shellies_settings
   alias: motion_shellies_settings
@@ -406,57 +404,76 @@
   mode: single
   trigger:
     - platform: state
-      entity_id: sensor.motion_detector_shelly_settings
+      entity_id: sensor.motion_shellies_settings
   variables:
-    model: >-
-      {% set s = states('sensor.motion_detector_shelly_settings') %}
+    settings: >-
+      {% set s = states('sensor.motion_shellies_settings') %}
       {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-        {% set s = state_attr('sensor.motion_detector_shelly_settings','device') %}
-        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-          {{ s.type }}
-        {% else %}{{- 'unknown' -}}{% endif %}
-      {% else %}{{- 'unknown' -}}{% endif %}
+        {{ states.sensor.motion_shellies_settings.attributes }}
+      {% else %}null{% endif %}
+    latitude: >-
+      {% set s = states('sensor.motion_shellies_settings') %}
+      {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+        {{ state_attr('sensor.motion_shellies_settings','lat')|float }}
+      {% else %}null{% endif %}
+    longitude: >-
+      {% set s = states('sensor.motion_shellies_settings') %}
+      {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+        {{ state_attr('sensor.motion_shellies_settings','lng')|float }}
+      {% else %}null{% endif %}
     mac: >-
-      {% set s = states('sensor.motion_detector_shelly_settings') %}
+      {% set s = states('sensor.motion_shellies_settings') %}
       {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-        {% set s = state_attr('sensor.motion_detector_shelly_settings','device') %}
+        {% set s = state_attr('sensor.motion_shellies_settings','device') %}
         {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
           {{ s.mac }}
         {% else %}{{- 'unknown' -}}{% endif %}
       {% else %}{{- 'unknown' -}}{% endif %}
-    latitude: >-
-      {% set s = states('sensor.motion_detector_shelly_settings') %}
-      {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-        {{ state_attr('sensor.motion_detector_shelly_settings','lat')|float }}
+    type: >-
+      {% if mac|lower != 'none' and mac|lower != 'unavailable' and mac|lower != 'unknown' and mac|lower != 'null' and mac|length > 0 %}
+        {% set s = states('group.motion_shellies') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+          {% set s = state_attr('group.motion_shellies','entity_id') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {% for i in s if state_attr(i,'mac') == mac %}
+              {% if loop.first %}{{ state_attr(i,'type') }}{% endif %}
+            {% endfor %}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
       {% else %}null{% endif %}
-    longitude: >-
-      {% set s = states('sensor.motion_detector_shelly_settings') %}
-      {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-        {{ state_attr('sensor.motion_detector_shelly_settings','lng')|float }}
+    sensor: >-
+      {% if mac|lower != 'none' and mac|lower != 'unavailable' and mac|lower != 'unknown' and mac|lower != 'null'
+        and type|lower != 'none' and type|lower != 'unavailable' and type|lower != 'unknown' and type|lower != 'null' and type|length > 0 %}
+        {{ 'binary_sensor.motion_shelly_' + type|string + '_' + mac|string }}
       {% else %}null{% endif %}
-    settings: >-
-      {% set s = states('sensor.motion_detector_shelly_settings') %}
-      {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-        {{ states.sensor.motion_detector_shelly_settings.attributes }}
+    id: >-
+      {% if sensor|lower != 'none' and sensor|lower != 'unavailable' and sensor|lower != 'unknown' and sensor|lower != 'null' %}
+        {{ state_attr(sensor,'id') }}
+      {% else %}null{% endif %}
+    state: >-
+      {% if sensor|lower != 'none' and sensor|lower != 'unavailable' and sensor|lower != 'unknown' and sensor|lower != 'null' %}
+        {% if is_state(sensor,'on') -%}on{% else %}off{% endif %}
       {% else %}null{% endif %}
     updated: >-
-      {% set s = states('sensor.motion_detector_shelly_settings') %}
+      {% set s = states('sensor.motion_shellies_settings') %}
       {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-        {{ states.sensor.motion_detector_shelly_settings.last_updated|as_timestamp|int }}
+        {{ states.sensor.motion_shellies_settings.last_updated|as_timestamp|int }}
       {% else %}null{% endif %}
   action:
-    - alias: 'test if mac != unknown'
+    - alias: 'test if sensor is defined'
       condition: and
       conditions:
         - condition: template
           value_template: >
-            {{ mac|lower != 'unknown' }}
-    - alias: 'update binary_sensor.motion_detector_shelly_<mac>'
+            {{ sensor|lower != 'null' }}
+    - alias: 'update binary_sensor.motion_shelly_<type>_<mac>'
       service: python_script.set_state
       data_template:
         allow_create: true
+        friendly_name: >-
+          {{ type|capitalize + ' in ' + id }}
         entity_id: >-
-          {{- 'binary_sensor.motion_detector_shelly_' + mac|string -}}
+          {{ sensor }}
         latitude: >-
           {{ latitude }}
         longitude: >-
@@ -464,7 +481,7 @@
         settings: >-
           {{ settings }}
         state: >-
-          {% if is_state('binary_sensor.motion_detector_shelly_' + mac|string,'on') -%}on{% else %}off{% endif %}
+          {{ state }}
 
 ## update on REST sensor '<username>:<password>@<ip>/shellies/<id>/status'
 
@@ -474,52 +491,73 @@
   mode: single
   trigger:
     - platform: state
-      entity_id: sensor.motion_detector_shelly_update
+      entity_id: sensor.motion_shellies_update
   variables:
-    mac: >-
-      {% set s = states('sensor.motion_detector_shelly_update') %}
+    info: >-
+      {% set s = states('sensor.motion_shellies_update') %}
       {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-        {% set s = state_attr('sensor.motion_detector_shelly_update','mac') %}
+        {{ states.sensor.motion_shellies_update.attributes }}
+      {% else %}null{% endif %}
+    mac: >-
+      {% set s = states('sensor.motion_shellies_update') %}
+      {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+        {% set s = state_attr('sensor.motion_shellies_update','mac') %}
         {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
           {{ s }}
         {% else %}{{- 'unknown' -}}{% endif %}
       {% else %}{{- 'unknown' -}}{% endif %}
+    type: >-
+      {% if mac|lower != 'none' and mac|lower != 'unavailable' and mac|lower != 'unknown' and mac|lower != 'null' and mac|length > 0 %}
+        {% set s = states('group.motion_shellies') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+          {% set s = state_attr('group.motion_shellies','entity_id') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {% for i in s if state_attr(i,'mac') == mac %}
+              {% if loop.first %}{{ state_attr(i,'type') }}{% endif %}
+            {% endfor %}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    sensor: >-
+      {% if mac|lower != 'none' and mac|lower != 'unavailable' and mac|lower != 'unknown' and mac|lower != 'null'
+        and type|lower != 'none' and type|lower != 'unavailable' and type|lower != 'unknown' and type|lower != 'null' and type|length > 0 %}
+        {{ 'binary_sensor.motion_shelly_' + type|string + '_' + mac|string }}
+      {% else %}null{% endif %}
+    id: >-
+      {% if sensor|lower != 'none' and sensor|lower != 'unavailable' and sensor|lower != 'unknown' and sensor|lower != 'null' %}
+        {{ state_attr(sensor,'id') }}
+      {% else %}null{% endif %}
+    state: >-
+      {% if sensor|lower != 'none' and sensor|lower != 'unavailable' and sensor|lower != 'unknown' and sensor|lower != 'null' %}
+        {% if is_state(sensor,'on') -%}on{% else %}off{% endif %}
+      {% else %}null{% endif %}
     updated: >-
-      {% set s = states('sensor.motion_detector_shelly_update') %}
+      {% set s = states('sensor.motion_shellies_update') %}
       {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-        {% set s = state_attr('sensor.motion_detector_shelly_update','unixtime') %}
+        {% set s = state_attr('sensor.motion_shellies_update','unixtime') %}
         {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|int > 0 -%}
           {{ s }}
         {% else %}null{% endif %}
       {% else %}null{% endif %}
-    info: >-
-      {% set s = states('sensor.motion_detector_shelly_update') %}
-      {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-        {{ states.sensor.motion_detector_shelly_update.attributes }}
-      {% else %}null{% endif %}
   action:
-    - alias: 'test if mac != unknown'
+    - alias: 'test if sensor is defined'
       condition: and
       conditions:
         - condition: template
           value_template: >
-            {{ mac|lower != 'unknown' }}
-    - alias: 'test if status is not none'
-      condition: and
-      conditions:
-        - condition: template
-          value_template: >
-            {{ status|lower != 'none' }}
-    - alias: 'update binary_sensor.motion_detector_shelly_<mac>'
+            {{ sensor|lower != 'null' }}
+    - alias: 'update binary_sensor.motion_shelly_<type>_<mac>'
       service: python_script.set_state
       data_template:
         allow_create: true
         entity_id: >-
-          {{- 'binary_sensor.motion_detector_shelly_' + mac|string -}}
+          {{ sensor }}
         info: >-
           {{ info }}
         updated: >-
           {{ updated }}
+        state: >-
+          {{ state }}
 
 ##
 ## update on MQTT payload 'shellies/+/info'
@@ -663,29 +701,46 @@
       {{ trigger.payload_json.unixtime }}
     info: >-
       {{ trigger.payload_json }}
+    type: >-
+      {% if mac|lower != 'none' and mac|lower != 'unavailable' and mac|lower != 'unknown' and mac|lower != 'null' and mac|length > 0 %}
+        {% set s = states('group.motion_shellies') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+          {% set s = state_attr('group.motion_shellies','entity_id') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {% for i in s if state_attr(i,'mac') == mac %}
+              {% if loop.first %}{{ state_attr(i,'type') }}{% endif %}
+            {% endfor %}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    sensor: >-
+      {% if mac|lower != 'none' and mac|lower != 'unavailable' and mac|lower != 'unknown' and mac|lower != 'null'
+        and type|lower != 'none' and type|lower != 'unavailable' and type|lower != 'unknown' and type|lower != 'null' and type|length > 0 %}
+        {{ 'binary_sensor.motion_shelly_' + type|string + '_' + mac|string }}
+      {% else %}null{% endif %}
+    state: >-
+      {% if sensor|lower != 'none' and sensor|lower != 'unavailable' and sensor|lower != 'unknown' and sensor|lower != 'null' %}
+        {% if is_state(sensor,'on') -%}on{% else %}off{% endif %}
+      {% else %}null{% endif %}
   action:
-    - alias: 'test if mac != unknown'
+    - alias: 'test if sensor is defined'
       condition: and
       conditions:
         - condition: template
           value_template: >
-            {{ mac|lower != 'unknown' }}
-    - alias: 'test if info is not none'
-      condition: and
-      conditions:
-        - condition: template
-          value_template: >
-            {{ info|lower != 'none' }}
-    - alias: 'update binary_sensor.motion_detector_shelly_<mac>'
+            {{ sensor|lower != 'null' }}
+    - alias: 'update binary_sensor.motion_shelly_<type>_<mac>'
       service: python_script.set_state
       data_template:
         allow_create: true
         entity_id: >-
-          {{- 'binary_sensor.motion_detector_shelly_' + mac|string -}}
+          {{ sensor }}
         info: >-
           {{ info }}
         updated: >-
           {{ updated }}
+        state: >-
+          {{ state }}
 
 ##
 ## update on MQTT payload 'shellies/+/announce'
@@ -742,10 +797,16 @@
       {{ trigger.payload_json.model }}
     announce: >-
       {{ trigger.payload_json }}
+    type: >-
+      {% if model == 'SHMOS-01' %}
+        {{ 'occupancy' }}
+      {% elif model == 'SHBDUO-1' or model == 'SHVIN-1' %}
+        {{ 'light' }}
+      {% else %}null{% endif %}
     ids: >-
-      {% set s = states('sensor.motion_detector_shellies') %}
+      {% set s = states('group.motion_shellies') %}
       [{%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-        {%- set prior = state_attr('sensor.motion_detector_shellies','ids') -%}
+        {%- set prior = state_attr('group.motion_shellies','ids') -%}
         {%- if prior|lower != 'none' and prior|lower != 'unknown' and prior|lower != 'unavailable' and prior|lower != 'null' %}
           {% set prior = prior|string|from_json %}
           {%- if prior|lower != 'none' and prior|lower != 'unknown' and prior|lower != 'unavailable' and prior|lower != 'null' %}
@@ -763,9 +824,9 @@
       {%- if prior != null -%},{%- endif -%}
       "{{- id -}}"]
     models: >-
-      {% set s = states('sensor.motion_detector_shellies') %}
+      {% set s = states('group.motion_shellies') %}
       [{%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-        {%- set prior = state_attr('sensor.motion_detector_shellies','models') -%}
+        {%- set prior = state_attr('group.motion_shellies','models') -%}
         {%- if prior|lower != 'none' and prior|lower != 'unknown' and prior|lower != 'unavailable' and prior|lower != 'null' %}
           {% set prior = prior|string|from_json %}
           {%- if prior|lower != 'none' and prior|lower != 'unknown' and prior|lower != 'unavailable' and prior|lower != 'null' %}
@@ -783,9 +844,9 @@
       {%- if prior != null -%},{%- endif -%}
       "{{- model -}}"]
     macs: >-
-      {% set s = states('sensor.motion_detector_shellies') %}
+      {% set s = states('group.motion_shellies') %}
       [{%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-        {%- set prior = state_attr('sensor.motion_detector_shellies','macs') -%}
+        {%- set prior = state_attr('group.motion_shellies','macs') -%}
         {%- if prior|lower != 'none' and prior|lower != 'unknown' and prior|lower != 'unavailable' and prior|lower != 'null' %}
           {% set prior = prior|string|from_json %}
           {%- if prior|lower != 'none' and prior|lower != 'unknown' and prior|lower != 'unavailable' and prior|lower != 'null' %}
@@ -802,62 +863,27 @@
       {%- else -%}{%- set prior = null -%}{%- endif -%}
       {%- if prior != null -%},{%- endif -%}
       "{{- mac -}}"]
-    type: >-
-      {% if model == 'SHMOS-01' %}motion{% elif model == 'SHBDUO-1' or model == 'SHVIN-1' %}light{% else %}unknown{% endif %}
     updated: >-
       {{ utcnow().timestamp()|int }}
+    sensor: >-
+      {{- 'binary_sensor.motion_shelly_' + type|string + '_' + mac|string -}}
+    state: >-
+      {% if is_state(sensor,'on') -%}on{% else %}off{% endif %}
   action:
-    - alias: 'test if mac is not unknown'
+    - alias: 'test if type is defined'
       condition: and
       conditions:
         - condition: template
           value_template: >
-            {{ mac|lower != 'unknown' }}
-    - alias: 'test if announce is not none'
-      condition: and
-      conditions:
-        - condition: template
-          value_template: >
-            {{ announce|lower != 'none' }}
-    - alias: 'update sensor.motion_detector_shellies'
+            {{ type|lower != 'null' }}
+    - alias: 'update binary_sensor.motion_shelly_<type>_<mac>'
       service: python_script.set_state
       data_template:
         allow_create: true
         entity_id: >-
-          {{- 'sensor.motion_detector_shellies' -}}
-        count: >-
-          {{- macs|string|from_json|list|unique|list|count -}}
-        macs: >-
-          {{ macs|string|from_json|list|unique|list|to_json|string }}
-        ids: >-
-          {{ ids|string|from_json|list|unique|list|to_json|string }}
-        models: >-
-          {{ models|string|from_json|list|unique|list|to_json|string }}
-        state: >-
-          {{ updated }}
-    - alias: 'update binary_sensor.motion_detector_shelly'
-      service: python_script.set_state
-      data_template:
-        entity_id: >-
-          {{- 'binary_sensor.motion_detector_shelly' -}}
-        ip: >-
-          {{ ip }}
-        mac: >-
-          {{ mac }}
-        model: >-
-          {{ model }}
-        type: >-
-          {{ type }}
-        state: >-
-          {% if is_state('binary_sensor.motion_detector_shelly_' + mac|string,'on') -%}on{% else %}off{% endif %}
-    - alias: 'update binary_sensor.motion_detector_shelly_<mac>'
-      service: python_script.set_state
-      data_template:
-        allow_create: true
-        entity_id: >-
-          {{- 'binary_sensor.motion_detector_shelly_' + mac|string -}}
+          {{ sensor }}
         device_class: >-
-          {% if type == 'motion' %}occupancy{% elif type == 'light' %}light{% else %}unknown{% endif %}
+          {{ type }}
         friendly_name: >-
           {{- type|capitalize + ' in ' + id|string -}}
         ip: >-
@@ -875,26 +901,52 @@
         updated: >-
           {{ updated }}
         state: >-
-          {% if is_state('binary_sensor.motion_detector_shelly_' + mac|string,'on') -%}on{% else %}off{% endif %}
-    - alias: 'update group.motion_shellies'
+          {{ state }}
+    - alias: 'update group.motion_shellies_<type>'
       service: python_script.set_state
       data_template:
         allow_create: true
         entity_id: >-
-          {{- 'group.motion_shellies' -}}
-        friendly_name: 'Shellies'
+          {{- 'group.motion_shellies_' + type|string -}}
+        friendly_name: >-
+          {{ type|capitalize + '(s)' }}
         entity_ids: >-
-          [{% for eid in states.binary_sensor|map(attribute='entity_id')|list if 'motion_detector_shelly_' in eid  -%}
+          [{% for eid in states.binary_sensor|map(attribute='entity_id')|list if ('motion_shelly_' + type|string) in eid  -%}
           {%- if not loop.first -%},{%- endif -%}
           "{{- eid -}}"
           {%- endfor %}]
         updated: >-
           {{ updated }}
         state: >-
-          {{ 'on' }}
-    - alias: 'update sensor.motion_detector_shelly_settings'
+          {{ state }}
+    - alias: 'update group.motion_shellies'
+      service: python_script.set_state
+      data_template:
+        allow_create: true
+        entity_id: group.motion_shellies
+        friendly_name: 'All shellies'
+        ip: >-
+          {{ ip }}
+        count: >-
+          {{- macs|string|from_json|list|unique|list|count -}}
+        macs: >-
+          {{ macs|string|from_json|list|unique|list|to_json|string }}
+        ids: >-
+          {{ ids|string|from_json|list|unique|list|to_json|string }}
+        models: >-
+          {{ models|string|from_json|list|unique|list|to_json|string }}
+        entity_ids: >-
+          [{% for eid in states.binary_sensor|map(attribute='entity_id')|list if 'motion_shelly_' in eid  -%}
+          {%- if not loop.first -%},{%- endif -%}
+          "{{- eid -}}"
+          {%- endfor %}]
+        updated: >-
+          {{ updated }}
+        state: >-
+          {{ state }}
+    - alias: 'update sensor.motion_shellies_settings'
       service: homeassistant.update_entity
-      entity_id: sensor.motion_detector_shelly_settings
-    - alias: 'update sensor.motion_detector_shelly_update'
+      entity_id: sensor.motion_shellies_settings
+    - alias: 'update sensor.motion_shellies_update'
       service: homeassistant.update_entity
-      entity_id: sensor.motion_detector_shelly_update
+      entity_id: sensor.motion_shellies_update

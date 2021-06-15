@@ -31,7 +31,7 @@ class GroupCard extends HTMLElement {
       if (!config.row) {
         config.card.entities = entities;
       }
-      else {      
+      else {
         const fmtentities = [];
         entities.forEach (function (item) {
           const stateObj = new Object;
@@ -41,6 +41,7 @@ class GroupCard extends HTMLElement {
           fmtentities.push (stateObj);
         });
         config.card.entities = fmtentities;
+      }
       if (config.card.type == "entities" || config.card.type == "glance") {
         config.card.entities = entities;
       } else {
