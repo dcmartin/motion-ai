@@ -31,7 +31,7 @@
     id: >-
       {{ topic|replace('shellies/','')|replace('/light/0','')|replace('/status','') }}
     timestamp: >-
-      {% if trigger.payload_json['timestamp'] %}
+      {% if 'timestamp' in trigger.payload_json %}
         {% set s =  trigger.payload_json.timestamp %}
         {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int > 0 %}
           {{ s }}
@@ -89,18 +89,18 @@
         {% else %}null{% endif %}
       {% else %}null{% endif %}
     state: >-
-      {% if trigger.payload_json['motion'] %}
+      {% if 'motion' in trigger.payload_json %}
         {% if trigger.payload_json.motion|lower == 'true' %}on{% else %}off{% endif %}
-      {% elif trigger.payload_json['ison'] %}
+      {% elif 'ison' in trigger.payload_json %}
         {% if trigger.payload_json.ison|lower == 'true' %}on{% else %}off{% endif %}
       {% else %}unknown{% endif %}
   action:
-    - alias: 'test status is not null'
+    - alias: 'test if state is defined'
       condition: and
       conditions:
         - condition: template
           value_template: >-
-            {{ status|lower != 'unavailable' and status|lower != 'unknown' and status|lower != 'null' and status|lower != 'none' }}
+            {{ state|lower != 'unavailable' and state|lower != 'unknown' and state|lower != 'null' and state|lower != 'none' }}
     - alias: 'test mac is not null'
       condition: and
       conditions:
@@ -113,7 +113,7 @@
         - condition: template
           value_template: >-
             {{ type|lower != 'unavailable' and type|lower != 'unknown' and type|lower != 'null' and type|lower != 'none' and type|length > 0 }}
-    - alias: 'set binary_sensor.motion_shelly_<type>'
+    - alias: 'set binary_sensor.motion_shellies_<type>'
       service: python_script.set_state
       data_template:
         allow_create: true
@@ -151,7 +151,7 @@
         - condition: template
           value_template: >
             {{ state == 'on' }}
-    - alias: 'set last: binary_sensor.motion_shelly_<type>'
+    - alias: 'set last: binary_sensor.motion_shellies_<type>'
       service: python_script.set_state
       data_template:
         allow_create: true
@@ -207,9 +207,9 @@
     sensor: >-
       {% set mac = state_attr('binary_sensor.motion_shellies_occupancy','mac') %}
       {% if mac|lower != 'none' and mac|lower != 'unavailable' and mac|lower != 'unknown' and mac|lower != 'null' and mac|length > 0 %}
-        {% set s = states('binary_sensor.motion_shellies_occupancy_' + mac) %}
+        {% set s = states('binary_sensor.motion_shelly_occupancy_' + mac) %}
         {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' %}
-          {{ 'binary_sensor.motion_shellies_occupancy_' + mac|string }}
+          {{ 'binary_sensor.motion_shelly_occupancy_' + mac|string }}
         {% else %}null{% endif %}
       {% else %}
         {% set s = states('group.motion_shellies') %}
@@ -230,9 +230,9 @@
     timestamp: >-
       {% set s = states(sensor) %}
       {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
-        {% set s = state_attr(sensor,'timestamp') %}
+        {% set s = state_attr(sensor,'status') %}
         {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int > 0 %}
-          {{ s }}
+          {{ s.timestamp }}
         {% else %}null{% endif %}
       {% else %}null{% endif %}
     when: >-
@@ -263,7 +263,7 @@
         - condition: template
           value_template: >-
             {{ sensor|lower != 'unavailable' and sensor|lower != 'unknown' and sensor|lower != 'null' and sensor|lower != 'none' }}
-    - alias: 'set on: binary_sensor.motion_shellies_occupancy_<mac>'
+    - alias: 'set on: binary_sensor.motion_shelly_occupancy_<mac>'
       service: python_script.set_state
       data_template:
         entity_id: >-
@@ -293,9 +293,9 @@
     sensor: >-
       {% set mac = state_attr('binary_sensor.motion_shellies_occupancy','mac') %}
       {% if mac|lower != 'none' and mac|lower != 'unavailable' and mac|lower != 'unknown' and mac|lower != 'null' and mac|length > 0 %}
-        {% set s = states('binary_sensor.motion_shellies_occupancy_' + mac) %}
+        {% set s = states('binary_sensor.motion_shelly_occupancy_' + mac) %}
         {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' %}
-          {{ 'binary_sensor.motion_shellies_occupancy_' + mac|string }}
+          {{ 'binary_sensor.motion_shelly_occupancy_' + mac|string }}
         {% else %}null{% endif %}
       {% else %}
         {% set s = states('group.motion_shellies') %}
@@ -315,9 +315,9 @@
       {% else %}null{% endif %}
     timestamp: >-
       {% if sensor|lower != 'none' and sensor|lower != 'unavailable' and sensor|lower != 'unknown' and sensor|lower != 'null' %}
-        {% set s = state_attr(sensor,'timestamp') %}
+        {% set s = state_attr(sensor,'status') %}
         {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int > 0 %}
-          {{ s }}
+          {{ s.timestamp }}
         {% else %}null{% endif %}
       {% else %}null{% endif %}
     when: >-
@@ -353,7 +353,7 @@
         - condition: template
           value_template: >-
             {{ sensor|lower != 'unavailable' and sensor|lower != 'unknown' and sensor|lower != 'null' and sensor|lower != 'none' }}
-    - alias: 'set off: binary_sensor.motion_shellies_occupancy_<mac>'
+    - alias: 'set off: binary_sensor.motion_shelly_occupancy_<mac>'
       service: python_script.set_state
       data_template:
         entity_id: >-
@@ -426,7 +426,7 @@
       {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
         {% set s = state_attr('sensor.motion_shellies_settings','device') %}
         {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-          {{ s.mac }}
+          {{ s.mac|upper }}
         {% else %}{{- 'unknown' -}}{% endif %}
       {% else %}{{- 'unknown' -}}{% endif %}
     type: >-
