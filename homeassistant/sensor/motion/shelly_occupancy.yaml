@@ -7,7 +7,7 @@
 - platform: template
   sensors:
     motion_shellies_occupancy:
-      friendly_name: 'Shelly sensor'
+      friendly_name: 'Occupancy sensor'
       icon_template: 'mdi:motion-sensor'
       attribute_templates:
         entity_picture: >-
@@ -15,7 +15,7 @@
       value_template: >-
         {{- 'Pending' -}}
     motion_shellies_occupancy_mac:
-      friendly_name: 'Shelly mac'
+      friendly_name: 'Occupancy mac'
       icon_template: 'mdi:lan'
       value_template: >-
         {% set s = state_attr('binary_sensor.motion_shellies_occupancy','mac') %}
@@ -79,22 +79,37 @@
           {% else %}null{% endif %}
         {% else %}null{% endif %}
     motion_shellies_occupancy_duration:
-      friendly_name: 'Shelly duration'
+      friendly_name: 'Occupancy duration'
       icon_template: 'mdi:av-timer'
       unit_of_measurement: 's'
       value_template: >-
-        {% set s = state_attr('binary_sensor.motion_shellies_occupancy','duration') %}
-        {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' %}
-          {{ s }}
+        {% set mac = state_attr('binary_sensor.motion_shellies_occupancy','mac') %}
+        {% if mac|lower != 'unknown' and mac|lower != 'unavailable' and mac|lower != 'none' and mac|lower != 'null' %}
+          {% set s = states('binary_sensor.motion_shelly_occupancy_' + mac|lower) %}
+          {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' %}
+            {% set s = state_attr('binary_sensor.motion_shelly_occupancy_' + mac|lower,'end') %}
+            {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' and s|int > 0 %}
+              {% set end = s|int %}
+              {% set s = state_attr('binary_sensor.motion_shelly_occupancy_' + mac|lower,'start') %}
+              {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' and s|int > 0 %}
+                {% set start = s|int %}
+                {{ end - start }}
+              {% else %}null{% endif %}
+            {% else %}null{% endif %}
+          {% else %}null{% endif %}
         {% else %}null{% endif %}
     motion_shellies_occupancy_ago:
       friendly_name: 'Shelly motion ago'
       icon_template: 'mdi:av-timer'
       unit_of_measurement: 's'
       value_template: >-
-        {% set s = state_attr('binary_sensor.motion_shellies_occupancy','last') %}
-        {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' and s|int > 0 %}
-          {{ utcnow().timestamp()|int - s|int }}
+        {% set s = state_attr('binary_sensor.motion_shellies_occupancy','mac') %}
+        {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' %}
+          {% set s = state_attr('binary_sensor.motion_shellies_occupancy_' + mac|lower,'last') %}
+          {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' and s|int > 0 %}
+            {% set last = s|int %}
+            {{ utcnow().timestamp()|int - last }}
+          {% else %}null{% endif %}
         {% else %}null{% endif %}
     motion_shellies_occupancy_lux:
       friendly_name: 'Shelly luminosity'
