@@ -143,7 +143,10 @@
         timestamp: >-
           {{ timestamp }}
         state: >-
-          {{ state }}
+          {% set s = state_attr('sensor.motion_shellies_' + type|string,'status') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s is iterable %}
+            {% if s|select('==','on')|list|length > 0 %}on{% else %}off{% endif %}
+          {% else %}off{% endif %}
     - alias: 'set binary_sensor.motion_shelly_<type>_<mac>'
       service: python_script.set_state
       data_template:
@@ -162,14 +165,6 @@
         - condition: template
           value_template: >
             {{ state == 'on' }}
-    - alias: 'set group.motion_shellies_<type>'
-      service: python_script.set_state
-      data_template:
-        allow_create: true
-        entity_id: >-
-          {{ 'group.motion_shellies_' + type|string }}
-        state: >-
-          {{ state }}
     - alias: 'test gps is not null'
       condition: and
       conditions:
@@ -188,8 +183,6 @@
           {{ latitude }}
         longitude: >-
           {{ longitude }}
-        status: >-
-          {{ status }}
         state: >-
           {{ id }}
 
@@ -540,16 +533,6 @@
           {{ updated }}
         state: >-
           {{ state }}
-    - alias: 'update binary_sensor.motion_shellies_<type>'
-      service: python_script.set_state
-      data_template:
-        allow_create: true
-        entity_id: >-
-          {{ 'binary_sensor.motion_shellies_' + type|string }}
-        updated: >-
-          {{ updated }}
-        state: >-
-          {{ state }}
 
 ##
 ## update on MQTT payload 'shellies/+/announce'
@@ -727,7 +710,7 @@
         updated: >-
           {{ updated }}
         state: >-
-          {{ state }}
+          {% if is_state('binary_sensor.motion_shellies_' + type|string,'on') %}on{% else %}off{% endif %}
     - alias: 'update group.motion_shellies'
       service: python_script.set_state
       data_template:
@@ -752,7 +735,7 @@
         updated: >-
           {{ updated }}
         state: >-
-          {{ state }}
+          {% if is_state('binary_sensor.motion_shellies_occupancy','on') and is_state('binary_sensor.motion_shellies_light','on') %}on{% else %}off{% endif %}
     - alias: 'update sensor.motion_shellies_settings'
       service: homeassistant.update_entity
       entity_id: sensor.motion_shellies_settings
