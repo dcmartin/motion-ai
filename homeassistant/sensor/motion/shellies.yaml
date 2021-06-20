@@ -1,5 +1,5 @@
 ###
-## homeassistant/motion/sensor/shelly.yaml
+## homeassistant/motion/sensor/shellies.yaml
 ###
 
 ## settings (REST)
@@ -222,11 +222,12 @@
 # }
 
 - platform: rest
-  name: motion_detector_shelly_settings
+  name: motion_shellies_settings
   authentication: basic
   username: !secret shelly-username
   password: !secret shelly-password
   scan_interval: 1800
+  force_update: true
   json_attributes:
     - build_info
     - cloud
@@ -242,11 +243,13 @@
     - timezone
     - wifi_ap
     - wifi_sta
-  force_update: true
   resource_template: >-
-    {% set s = state_attr('binary_sensor.motion_detector_shelly','ip') %}
+    {% set s = states('group.motion_shellies') %}
     {% if s|lower !='none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
-      {{- 'http://' + s + '/settings' -}}
+      {% set s = state_attr('group.motion_shellies','ip') %}
+      {% if s|lower !='none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+        {{- 'http://' + s + '/settings' -}}
+      {% else %}null{% endif %}
     {% else %}null{% endif %}
   value_template: >-
     {% if value_json is defined %}True{% else %}False{% endif %}
@@ -381,11 +384,11 @@
 # }
 
 - platform: rest
-  name: motion_detector_shelly_update
+  name: motion_shellies_update
   authentication: basic
   username: !secret shelly-username
   password: !secret shelly-password
-  scan_interval: 3600
+  scan_interval: 1800
   force_update: true
   json_attributes:
     - actions_stats
@@ -401,191 +404,12 @@
     - uptime
     - wifi_sta
   resource_template: >-
-    {% set s = state_attr('binary_sensor.motion_detector_shelly','ip') %}
+    {% set s = states('group.motion_shellies') %}
     {% if s|lower !='none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
-      {{- 'http://' + s + '/status' -}}
+      {% set s = state_attr('group.motion_shellies','ip') %}
+      {% if s|lower !='none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+        {{- 'http://' + s + '/status' -}}
+      {% else %}null{% endif %}
     {% else %}null{% endif %}
   value_template: >-
     {% if value_json is defined %}True{% else %}False{% endif %}
-
-## TEMPLATES
-
-- platform: template
-  sensors:
-    motion_detector_shelly:
-      friendly_name: 'Shelly sensor'
-      icon_template: 'mdi:motion-sensor'
-      attribute_templates:
-        entity_picture: >-
-          {{- '/local/images/motion.png' -}}
-      value_template: >-
-        {{- 'Pending' -}}
-    motion_detector_shelly_mac:
-      friendly_name: 'Shelly mac'
-      icon_template: 'mdi:lan'
-      value_template: >-
-        {% set s = state_attr('binary_sensor.motion_detector_shelly','mac') %}
-        {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' %}
-          {{ s }}
-        {% else %}Pending{% endif %}
-    motion_detector_shelly_id:
-      friendly_name: 'Where'
-      icon_template: 'mdi:map-marker'
-      value_template: >-
-        {% set s = state_attr('binary_sensor.motion_detector_shelly','id') %}
-        {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' %}
-          {{ s }}
-        {% else %}
-          {% set s = states.sensor.motion_detector_shelly_id.state %}
-          {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' %}
-            {{ s }}
-          {% else %}Pending{% endif %}
-        {% endif %}
-    motion_shellies_detectors_count:
-      friendly_name: 'Configured count'
-      icon_template: 'mdi:sigma'
-      unit_of_measurement: 'count'
-      value_template: >-
-        {% set s = states('group.motion_shellies') %}
-        {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' %}
-          {% set s = state_attr('group.motion_shellies','entity_id') %}
-          {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' %}
-            {{ s|count }}
-          {% else %}null{% endif %}
-        {% else %}null{% endif %}
-    motion_shellies_detectors_configured:
-      friendly_name: 'Configured detectors'
-      icon_template: 'mdi:motion-sensor'
-      value_template: >-
-        {% set s = states('group.motion_shellies') %}
-        {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' %}
-          [{% for i in state_attr('group.motion_shellies','entity_id') if state_attr(i,'info')|lower != 'none' and state_attr(i,'settings')|lower != 'none' %}
-            {%- if not loop.first -%},{%- endif -%}"{{- state_attr(i,'id') -}}"
-          {%- endfor %}]
-        {% else %}null{% endif %}
-    motion_shellies_detectors_configured_count:
-      friendly_name: 'Configured count'
-      unit_of_measurement: 'count'
-      icon_template: 'mdi:sigma'
-      value_template: >-
-        {% set s = states('sensor.motion_shellies_detectors_configured') %}
-        {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' %}
-          {{ s|from_json|count }}
-        {% else %}0{% endif %}
-    motion_shellies_detectors_configured_percent:
-      friendly_name: 'Configured percent'
-      icon_template: 'mdi:percent'
-      unit_of_measurement: '%'
-      value_template: >-
-        {% set cc = states('sensor.motion_shellies_detectors_configured_count') %}
-        {% if cc|lower != 'unknown' and cc|lower != 'unavailable' and cc|lower != 'none' and cc|lower != 'null' %}
-          {% set c = states('sensor.motion_shellies_detectors_count') %}
-          {% if c|lower != 'unknown' and c|lower != 'unavailable' and c|lower != 'none' and c|lower != 'null' and c|int > 0 %}
-            {{ (cc|float / c|float * 100.0)|int }}
-          {% else %}null{% endif %}
-        {% else %}null{% endif %}
-    motion_detector_shelly_duration:
-      friendly_name: 'Shelly duration'
-      icon_template: 'mdi:av-timer'
-      unit_of_measurement: 's'
-      value_template: >-
-        {% set s = state_attr('binary_sensor.motion_detector_shelly','duration') %}
-        {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' %}
-          {{ s }}
-        {% else %}null{% endif %}
-    motion_detector_shelly_ago:
-      friendly_name: 'Shelly motion ago'
-      icon_template: 'mdi:av-timer'
-      unit_of_measurement: 's'
-      value_template: >-
-        {% set s = state_attr('binary_sensor.motion_detector_shelly','last') %}
-        {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' and s|int > 0 %}
-          {{ utcnow().timestamp()|int - s|int }}
-        {% else %}null{% endif %}
-    motion_detector_shelly_lux:
-      friendly_name: 'Shelly luminosity'
-      icon_template: 'mdi:brightness-auto'
-      unit_of_measurement: 'lux'
-      value_template: >-
-        {% set s = state_attr('binary_sensor.motion_detector_shelly','status') %}
-        {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' %}
-            {{ s.lux }}
-        {% else %}null{% endif %}
-    motion_detector_shelly_battery:
-      friendly_name: 'Shelly battery'
-      icon_template: 'mdi:battery'
-      unit_of_measurement: '%'
-      value_template: >-
-        {% set s = state_attr('binary_sensor.motion_detector_shelly','status') %}
-        {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' %}
-            {{ s.bat }}
-        {% else %}null{% endif %}
-    motion_detector_shelly_today_ratio:
-      friendly_name: 'Ratio today'
-      icon_template: 'mdi:percent'
-      unit_of_measurement: '%'
-      value_template: >-
-        {{ states('sensor.motion_detector_shelly_history_ratio_today') }}
-    motion_detector_shelly_today_count:
-      friendly_name: 'Count today'
-      icon_template: 'mdi:sigma'
-      unit_of_measurement: 'count'
-      value_template: >-
-        {{ states('sensor.motion_detector_shelly_history_count_today') }}
-
-## HISTORY
-
-- platform: history_stats
-  name: motion_detector_shelly_history_ratio_today
-  entity_id: binary_sensor.motion_detector_shelly
-  state: 'on'
-  type: ratio
-  start: >-
-    {{ now().replace(hour=0).replace(minute=0).replace(second=0) }}
-  end: '{{ now() }}'
-
-- platform: history_stats
-  name: motion_detector_shelly_history_count_today
-  entity_id: binary_sensor.motion_detector_shelly
-  state: 'on'
-  type: count
-  start: >-
-    {{ now().replace(hour=0).replace(minute=0).replace(second=0) }}
-  end: '{{ now() }}'
-
-## STATISTICS
-
-- platform: statistics
-  name: motion_detector_shelly_battery_statistics
-  entity_id: sensor.motion_detector_shelly_battery
-  sampling_size: 1000
-  max_age:
-    hours: 168
-
-- platform: statistics
-  name: motion_detector_shelly_ago_statistics
-  entity_id: sensor.motion_detector_shelly_ago
-  sampling_size: 1000
-  max_age:
-    hours: 168
-
-- platform: statistics
-  name: motion_detector_shelly_lux_statistics
-  entity_id: sensor.motion_detector_shelly_lux
-  sampling_size: 1000
-  max_age:
-    hours: 168
-
-- platform: statistics
-  name: motion_detector_shelly_duration_statistics
-  entity_id: sensor.motion_detector_shelly_duration
-  sampling_size: 1000
-  max_age:
-    hours: 168
-
-- platform: statistics
-  name: motion_shellies_detectors_configured_percent_statistics
-  entity_id: sensor.motion_shellies_detectors_configured_percent
-  sampling_size: 1000
-  max_age:
-    hours: 168
