@@ -102,9 +102,18 @@
         {% else %}null{% endif %}
       {% else %}null{% endif %}
     distance: >-
-      {{ distance('zone.home',latitude,longitude) * 1000 }}
+      {% set s = states('zone.home') %}
+      {% if latitude|lower != 'null' and longitude|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+        {{ distance('zone.home',latitude,longitude) * 1000 }}
+      {% else %}null{% endif %}
     gps: >-
-      {{ latitude|lower != 'null' and longitude|lower != 'null' and distance|int < state_attr('zone.home','radius')|int }}
+      {% set s = states('zone.home') %}
+      {% if latitude|lower != 'null' and longitude|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+        {% set s = state_attr('zone.home','radius') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int > 0 %}
+          {{ latitude|lower != 'null' and longitude|lower != 'null' and distance|int < s|int }}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
     state: >-
       {% if 'motion' in trigger.payload_json %}
         {% if trigger.payload_json.motion|lower == 'true' %}on{% else %}off{% endif %}
@@ -166,6 +175,12 @@
         - condition: template
           value_template: >
             {{ state == 'on' }}
+    - alias: 'test location is not good'
+      condition: and
+      conditions:
+        - condition: template
+          value_template: >-
+            {{ gps|lower == 'true' }}
     - alias: 'set location: sensor.motion_shellies_<type>'
       service: python_script.set_state
       data_template:
@@ -175,29 +190,15 @@
         timestamp: >-
           {{ timestamp }}
         latitude: >-
-          {% if gps|lower == 'true' %}{{ latitude }}{% else %}{{ state_attr('zone.home','latitude') }}{% endif %}
+          {{ latitude }}
         longitude: >-
-          {% if gps|lower == 'true' %}{{ longitude }}{% else %}{{ state_attr('zone.home','longitude') }}{% endif %}
+          {{ longitude }}
         gps: >-
           {{ gps }}
         distance: >-
           {{ distance }}
         state: >-
           {{ id }}
-    - alias: 'test gps is not good'
-      condition: and
-      conditions:
-        - condition: template
-          value_template: >-
-            {{ gps|lower != 'true' }}
-    - service: persistent_notification.create
-      data_template:
-        title: >
-          Location warning; ID: {{ id -}}; type: {{ type }}
-        notification_id: >-
-          {{ id + '_gps_location_warning' }}
-        message: >
-          Device: {{ id }} too far: {{ distance|int -}}m, defaulting to home zone
 
 # handle updates from REST API call to get settings from IP set on binary_sensor.motion_shellies_occupancy
 
@@ -225,9 +226,18 @@
         {{ state_attr('sensor.motion_shellies_settings','lng')|float }}
       {% else %}null{% endif %}
     distance: >-
-      {{ distance('zone.home',latitude,longitude) * 1000 }}
+      {% set s = states('zone.home') %}
+      {% if latitude|lower != 'null' and longitude|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+        {{ distance('zone.home',latitude,longitude) * 1000 }}
+      {% else %}null{% endif %}
     gps: >-
-      {{ latitude|lower != 'null' and longitude|lower != 'null' and distance|int < state_attr('zone.home','radius')|int }}
+      {% set s = states('zone.home') %}
+      {% if latitude|lower != 'null' and longitude|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+        {% set s = state_attr('zone.home','radius') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int > 0 %}
+          {{ latitude|lower != 'null' and longitude|lower != 'null' and distance|int < s|int }}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
     mac: >-
       {% set s = states('sensor.motion_shellies_settings') %}
       {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
@@ -302,13 +312,12 @@
     - service: persistent_notification.create
       data_template:
         title: >
-          Settings warning; ID: {{ id -}}; type: {{ type }}
+          Settings warning; ID: {{ id -}}
         notification_id: >-
           {{ id + '_gps_settings_warning' }}
         message: >
-          Device: {{ id }} too far: {{ distance|int -}}m;
-          latitude: {{ latitude -}}, longitude: {{ longitude -}};
-          radius: {{ state_attr('zone.home','radius')|int -}}m
+          Device {{ id }}; type: {{ type }}; GPS: {{ latitude,longitude -}}; distance: {{ distance|int -}}m;
+          Location outside of home zone {{ state_attr('zone.home','latitude'),state_attr('zone.home','longitude') -}}: radius: {{ state_attr('zone.home','radius')|int -}}m
 
 ## update on REST sensor '<username>:<password>@<ip>/shellies/<id>/status'
 
