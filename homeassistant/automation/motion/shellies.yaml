@@ -631,10 +631,10 @@
       {{ trigger.payload_json.ip }}
     mac: >-
       {{ trigger.payload_json.mac|lower }}
-    model: >-
-      {{ trigger.payload_json.model }}
     announce: >-
       {{ trigger.payload_json }}
+    model: >-
+      {{ trigger.payload_json.model|upper }}
     type: >-
       {% if model == 'SHMOS-01' %}
         {{ 'occupancy' }}
@@ -791,3 +791,128 @@
     - alias: 'update sensor.motion_shellies_update'
       service: homeassistant.update_entity
       entity_id: sensor.motion_shellies_update
+
+
+- id: motion_shellies_scan
+  alias: motion_shellies_scan
+  initial_state: on
+  mode: single
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_addon_rtsp
+#    - platform: time_pattern
+#      minutes: /15
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {% set s = state_attr('sensor.motion_addon_rtsp','rtsp') %}
+          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'null' }}
+  variables:
+    devices: >-
+      {%- set s = state_attr('sensor.motion_addon_rtsp','rtsp').devices -%}
+      {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|length > 0 -%}
+        {%- for c in s|selectattr('code','!=','200')|list -%}
+          {%- if loop.first -%}[{%- else -%},{%- endif -%}
+          "{{- c.ip -}}"
+          {%- if loop.last -%}]{%- endif -%}
+        {%- endfor -%}
+      {% else %}null{%- endif -%}
+  action:
+    - alias: 'test for list of devices'
+      condition: and
+      conditions:
+        - condition: template
+          value_template: >
+            {{ devices|length > 0 }}
+    - alias: "check all non-rtsp devices for shelly"
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = devices[repeat.index - 1] %}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - alias: "wait until ready"
+            wait_template: >-
+              {% set s = state_attr('automation.motion_shellies_scan_process','current') %}
+              {{ s is number and s|int == 0 }}
+          - alias: "set_state: motion_shellies_scan_ip"
+            service: python_script.set_state
+            data_template:
+              allow_create: true
+              entity_id: sensor.motion_shellies_scan_ip
+              state: >-
+                {{ devices[repeat.index - 1] }}
+          - alias: "update motion_shellies_scan"
+            service: homeassistant.update_entity
+            entity_id: sensor.motion_shellies_scan
+
+#          - alias: 'test if scan successful'
+#            condition: and
+#            conditions:
+#              - condition: template
+#                value_template: >
+#                  {{ states('sensor.motion_shellies_scan')|lower == 'true' }}
+#          - alias: "trigger automation.motion_shellies_scan_process"
+#            service: automation.trigger
+#            entity_id: automation.motion_shellies_scan_process
+
+# {
+#   "auth": true,
+#   "fw": "20210429-100039/v1.10.4-g3f94cd7",
+#   "mac": "ECFABC6F7138",
+#   "num_outputs": 1,
+#   "type": "SHVIN-1"
+# }
+
+- id: motion_shellies_scan_process
+  alias: motion_shellies_scan_process
+  initial_state: on
+  mode: single
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_shellies_scan
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {% set s = states('sensor.motion_shellies_scan') %}
+          {{ s|lower == 'true' }}
+  variables:
+    mac: >-
+      {{ state_attr('sensor.motion_shellies_scan','mac')|lower }}
+    model: >-
+      {{ state_attr('sensor.motion_shellies_scan','type')|upper }}
+    type: >-
+      {% if model == 'SHMOS-01' %}
+        {{ 'occupancy' }}
+      {% elif model == 'SHBDUO-1' or model == 'SHVIN-1' %}
+        {{ 'light' }}
+      {% else %}null{% endif %}
+  action:
+    - alias: 'test if mac and type are defined'
+      condition: and
+      conditions:
+        - condition: template
+          value_template: >
+            {{ mac|lower != 'null' and type|lower != 'null' }}
+    - alias: 'test if sensor is already defined'
+      condition: and
+      conditions:
+        - condition: template
+          value_template: >
+            {% set s = states('binary_sensor.motion_shelly_' + type|string + '_' + mac|string) %}
+            {{ s|lower == 'none' }}
+    - alias: "set ip for group.motion_shellies"
+      service: python_script.set_state
+      data_template:
+        allow_create: true
+        entity_id: group.motion_shellies
+        ip: >-
+          {{ states('sensor.motion_shellies_scan_ip') }}
+    - alias: "update motion_shellies_settings"
+      service: homeassistant.update_entity
+      entity_id: sensor.motion_shellies_settings
