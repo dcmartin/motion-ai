@@ -46,21 +46,13 @@
     topic: >-
       {{ trigger.topic }}
     attr: >-
-      {{ topic|regex_replace('shellies/[^/]*/','') }}
+      {{ topic|regex_replace('shellies/[^/]*/sensor/','') }}
     val: >-
       {{ trigger.payload_json }}
     id: >-
-      {{ topic|replace('shellies/','')|replace('/sensor/','')|replace('/' + attr,'') }}
+      {{ topic|replace('shellies/','')|replace('sensor/','')|replace('/' + attr,'') }}
     timestamp: >-
-      {% if 'timestamp' in trigger.payload_json %}
-        {% set s = trigger.payload_json.timestamp %}
-        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int > 0 %}
-          {{ s }}
-        {% else %}
-          {{ utcnow().timestamp()|int }}
-        {% endif %}
-      {% else %}
-        {{ utcnow().timestamp()|int }}
+      {{ utcnow().timestamp()|int }}
     mac: >-
       {% if id|lower != 'none' and id|lower != 'unavailable' and id|lower != 'unknown' and id|lower != 'null' and id|length > 0 %}
         {% set s = states('group.motion_shellies') %}
@@ -112,19 +104,27 @@
       {% if sensor|lower != 'null' %}
         {% set s = state_attr(sensor,'status') %}
         {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
-          {% if not s is string %}{% set s = s|to_json %}{% endif %}
-          {% set old = '"' + attr + '":[ ]*[^}^,]*' %}
-          {% set new = '"' + attr + '": ' + val|to_json|string %}
-          {% set s = s|regex_replace(old,new) %}
+          {% if s is string %}{% set s = s|from_json %}{% endif %}
+          {% if attr in s %}
+            {% set s = s|to_json %}
+            {% set old = '"' + attr + '":[ ]*[^}^,]*' %}
+            {% set new = '"' + attr + '": ' + val|to_json|string %}
+            {% set s = s|regex_replace(old,new) %}
+          {% else %}
+            {% set s = s|to_json %}
+            {% set old = '}' %}
+            {% set new = ',"' + attr + '": ' + val|to_json|string + '}' %}
+            {% set s = s|regex_replace(old,new) %}
+          {% endif %}
           {% set old = '"timestamp":[ ]*[^}^,]*' %}
-          {% set new = '"timestamp": ' + timestamp|to_json|string %}
+          {% set new = '"timestamp": ' + timestamp|int|string %}
           {% set p = s|regex_replace(old,new) %}
         {% endif %}
       {% endif %}
       {% if p is defined %}
-        {{ p }}
+        {{ p|from_json }}
       {% else %}
-        {{- '{"' + attr + '":' + val|string + ',"timestamp":' + timestamp|string + '}' -}}
+        {{- '{"' + attr + '":' + val|string + ',"timestamp":' + timestamp|int|string + '}' -}}
       {% endif %}
     state: >-
       {% if attr|lower == 'flood' %}
@@ -166,6 +166,7 @@
         entity_id: >-
           {{ sensor }}
         status: >-
+          {% if not status is string %}{% set status = status|to_json|string %}{% endif %}
           {{ status }}
         timestamp: >-
           {{ timestamp }}
