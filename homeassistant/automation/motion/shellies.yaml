@@ -7,7 +7,7 @@
   initial_state: on
   trigger:
     - platform: time_pattern
-      minutes: /15
+      minutes: /59
     - platform: event
       event_type: homeassistant_start
   condition:
@@ -17,13 +17,36 @@
         value_template: >-
           {{ is_state('binary_sensor.motion_shellies_publish','on') }}
   action:
-    - alias: 'publish command'
+    - alias: 'publish announce command'
       service_template: mqtt.publish
       data_template:
         topic: >-
           {{- 'shellies/command' -}}
         payload_template: >-
           {{- 'announce' -}}
+        qos: 2
+        retain: false
+
+- id: motion_shellies_mqtt_update_publish
+  alias: motion_shellies_mqtt_update_publish
+  initial_state: on
+  trigger:
+    - platform: time_pattern
+      minutes: /17
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_shellies_publish','on') }}
+  action:
+    - alias: 'publish update command'
+      service_template: mqtt.publish
+      data_template:
+        topic: >-
+          {{- 'shellies/command' -}}
+        payload_template: >-
+          {{- 'update' -}}
         qos: 2
         retain: false
 
@@ -92,7 +115,7 @@
         updated: >-
           {{ timestamp }}
         state: >-
-          {% set s = state(sensor) %}
+          {% set s = states(sensor) %}
           {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
             {{ s }}
           {% else %}null{% endif %}
@@ -232,7 +255,7 @@
         timestamp: >-
           {{ updated }}
         state: >-
-          {% set s = state(sensor) %}
+          {% set s = states(sensor) %}
           {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
             {{ s }}
           {% else %}null{% endif %}
@@ -593,7 +616,7 @@
 - id: motion_shellies_settings_rest
   alias: motion_shellies_settings_rest
   initial_state: on
-  mode: queued
+  mode: parallel
   trigger:
     - platform: state
       entity_id: sensor.motion_shellies_settings
@@ -714,7 +737,7 @@
 - id: motion_shellies_update_rest
   alias: motion_shellies_update_rest
   initial_state: off
-  mode: queued
+  mode: parallel
   trigger:
     - platform: state
       entity_id: sensor.motion_shellies_update
@@ -1003,9 +1026,9 @@
       {% else %}null{% endif %}
     state: >-
       {% if 'sensor' in info %}
-        {{ info.sensor.motion|lower == 'true' }}
+        {% if info.sensor.motion|lower == 'true' %}on{% else %}off{% endif %}on{% else %}off{% endif %}
       {% elif 'lights' in info %}
-        {{ info.lights.ison|lower == 'true' }}
+        {% if info.lights.ison|lower == 'true' %}on{% else %}off{% endif %}
       {% else %}null{% endif %}
   action:
     - alias: 'test if sensor is defined'
