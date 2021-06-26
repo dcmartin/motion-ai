@@ -2,8 +2,8 @@
 # homeassistant/automation/motion/shelly.yaml
 ###
 
-- id: motion_shellies_mqtt_announce_publish
-  alias: motion_shellies_mqtt_announce_publish
+- id: motion_shellies_mqtt_publish_announce
+  alias: motion_shellies_mqtt_publish_announce
   initial_state: on
   trigger:
     - platform: time_pattern
@@ -27,8 +27,8 @@
         qos: 2
         retain: false
 
-- id: motion_shellies_mqtt_update_publish
-  alias: motion_shellies_mqtt_update_publish
+- id: motion_shellies_mqtt_publish_update
+  alias: motion_shellies_mqtt_publish_update
   initial_state: on
   trigger:
     - platform: time_pattern
@@ -55,7 +55,7 @@
 - id: motion_shellies_mqtt_energy
   alias: motion_shellies_mqtt_energy
   initial_state: on
-  mode: parallel
+  mode: queued
   trigger:
     - platform: mqtt
       topic: 'shellies/+/+/+/energy'
@@ -125,7 +125,7 @@
 - id: motion_shellies_mqtt_power
   alias: motion_shellies_mqtt_power
   initial_state: on
-  mode: parallel
+  mode: queued
   trigger:
     - platform: mqtt
       topic: 'shellies/+/+/+/power'
@@ -195,7 +195,7 @@
 - id: motion_shellies_mqtt_online
   alias: motion_shellies_mqtt_online
   initial_state: on
-  mode: parallel
+  mode: queued
   trigger:
     - platform: mqtt
       topic: 'shellies/+/online'
@@ -271,7 +271,7 @@
 - id: motion_shellies_mqtt_sensor
   alias: motion_shellies_mqtt_sensor
   initial_state: on
-  mode: parallel
+  mode: queued
   trigger:
     - platform: mqtt
       topic: 'shellies/+/sensor/+'
@@ -435,7 +435,7 @@
 - id: motion_shellies_mqtt_status
   alias: motion_shellies_mqtt_status
   initial_state: on
-  mode: parallel
+  mode: queued
   trigger:
     - platform: mqtt
       topic: 'shellies/+/light/0/status'
@@ -616,7 +616,7 @@
 - id: motion_shellies_settings_rest
   alias: motion_shellies_settings_rest
   initial_state: on
-  mode: parallel
+  mode: queued
   trigger:
     - platform: state
       entity_id: sensor.motion_shellies_settings
@@ -736,8 +736,8 @@
 
 - id: motion_shellies_update_rest
   alias: motion_shellies_update_rest
-  initial_state: off
-  mode: parallel
+  initial_state: on
+  mode: queued
   trigger:
     - platform: state
       entity_id: sensor.motion_shellies_update
@@ -806,6 +806,82 @@
         entity_id: >-
           {{ sensor }}
         info: >-
+          {{ info }}
+        updated: >-
+          {{ updated }}
+        state: >-
+          {{ state }}
+
+- id: motion_shellies_ota_rest
+  alias: motion_shellies_ota_rest
+  initial_state: on
+  mode: queued
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_shellies_ota
+  variables:
+    ota: >-
+      {% set s = states('sensor.motion_shellies_ota') %}
+      {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+        {{ states.sensor.motion_shellies_ota.attributes }}
+      {% else %}null{% endif %}
+    ip: >-
+      {% set s = states('group.motion_shellies') %}
+      {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+        {% set s = state_attr('group.motion_shellies','ip') %}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {{ s|lower }}
+        {% else %}{{- 'unknown' -}}{% endif %}
+      {% else %}{{- 'unknown' -}}{% endif %}
+    mac: >-
+      {% if ip|lower != 'none' and ip|lower != 'unavailable' and ip|lower != 'unknown' and ip|lower != 'null' and ip|length > 0 %}
+        {% set s = states('group.motion_shellies') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+          {% set s = state_attr('group.motion_shellies','entity_id') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {% for i in s if state_attr(i,'ip') == ip %}
+              {% if loop.first %}{{ state_attr(i,'mac') }}{% endif %}
+            {% endfor %}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    type: >-
+      {% if mac|lower != 'none' and mac|lower != 'unavailable' and mac|lower != 'unknown' and mac|lower != 'null' and mac|length > 0 %}
+        {% set s = states('group.motion_shellies') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+          {% set s = state_attr('group.motion_shellies','entity_id') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {% for i in s if state_attr(i,'mac') == mac %}
+              {% if loop.first %}{{ state_attr(i,'type') }}{% endif %}
+            {% endfor %}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    sensor: >-
+      {% if mac|lower != 'none' and mac|lower != 'unavailable' and mac|lower != 'unknown' and mac|lower != 'null'
+        and type|lower != 'none' and type|lower != 'unavailable' and type|lower != 'unknown' and type|lower != 'null' and type|length > 0 %}
+        {{ 'binary_sensor.motion_shelly_' + type|string + '_' + mac|string }}
+      {% else %}null{% endif %}
+    state: >-
+      {% if sensor|lower != 'none' and sensor|lower != 'unavailable' and sensor|lower != 'unknown' and sensor|lower != 'null' %}
+        {% if is_state(sensor,'on') -%}on{% else %}off{% endif %}
+      {% else %}null{% endif %}
+    updated: >-
+      {{ utcnow().timestamp()|int }}
+  action:
+    - alias: 'test if sensor is defined'
+      condition: and
+      conditions:
+        - condition: template
+          value_template: >
+            {{ sensor|lower != 'null' }}
+    - alias: 'update binary_sensor.motion_shelly_<type>_<mac>'
+      service: python_script.set_state
+      data_template:
+        allow_create: true
+        entity_id: >-
+          {{ sensor }}
+        ota: >-
           {{ info }}
         updated: >-
           {{ updated }}
@@ -990,7 +1066,7 @@
 - id: motion_shellies_mqtt_info
   alias: motion_shellies_mqtt_info
   initial_state: on
-  mode: parallel
+  mode: queued
   trigger:
     - platform: mqtt
       topic: 'shellies/+/info'
@@ -1099,7 +1175,7 @@
 - id: motion_shellies_mqtt_announce
   alias: motion_shellies_mqtt_announce
   initial_state: on
-  mode: parallel
+  mode: queued
   trigger:
     - platform: mqtt
       topic: 'shellies/+/announce'
@@ -1274,7 +1350,12 @@
     - alias: 'update sensor.motion_shellies_update'
       service: homeassistant.update_entity
       entity_id: sensor.motion_shellies_update
-
+    - alias: 'update sensor.motion_shellies_ota'
+      service: homeassistant.update_entity
+      entity_id: sensor.motion_shellies_ota
+    - alias: 'publish update command'
+      service: automation.trigger
+      entity_id: automation.motion_shellies_mqtt_publish_update
 
 - id: motion_shellies_scan
   alias: motion_shellies_scan
