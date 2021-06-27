@@ -1,81 +1,68 @@
 ###
-# homeassistant/automation/motion/shelly_occupancy.yaml
+# homeassistant/automation/motion/shelly_moisture.yaml
 ###
 
-- id: motion_shellies_occupancy_counter
-  alias: motion_shellies_occupancy_counter
+- id: motion_shellies_moisture_counter
+  alias: motion_shellies_moisture_counter
   initial_state: on
   trigger:
     platform: state
-    entity_id: binary_sensor.motion_shellies_occupancy
+    entity_id: binary_sensor.motion_shellies_moisture
     from: 'off'
     to: 'on'
   action:
     - service: counter.increment
-      entity_id: counter.motion_shellies_occupancy
+      entity_id: counter.motion_shellies_moisture
 
-# update occupancy group on binary_sensor
+# update moisture group on binary_sensor
 
-- id: motion_shellies_occupancy_group_update
-  alias: motion_shellies_occupancy_group_update
+- id: motion_shellies_moisture_group_update
+  alias: motion_shellies_moisture_group_update
   initial_state: on
   mode: restart
   trigger:
     - platform: state
-      entity_id: binary_sensor.motion_shellies_occupancy
+      entity_id: binary_sensor.motion_shellies_moisture
   action:
-    - alias: 'set group.motion_shellies_occupancy'
+    - alias: 'set group.motion_shellies_moisture'
       service: python_script.set_state
       data_template:
         allow_create: true
         entity_id: >-
-          {{ 'group.motion_shellies_occupancy' }}
+          {{ 'group.motion_shellies_moisture' }}
         state: >-
-          {% set s = state_attr('sensor.motion_shellies_occupancy','status') %}
+          {% set s = state_attr('sensor.motion_shellies_moisture','status') %}
           {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s is iterable %}
             {% if s|select('==','on')|list|length > 0 %}on{% else %}off{% endif %}
           {% else %}off{% endif %}
 
-# update on motion start
+# update on moisture start
 
-- id: motion_shellies_occupancy_start
-  alias: motion_shellies_occupancy_start
+- id: motion_shellies_moisture_start
+  alias: motion_shellies_moisture_start
   mode: queued
   initial_state: on
   trigger:
     platform: state
-    entity_id: binary_sensor.motion_shellies_occupancy
+    entity_id: binary_sensor.motion_shellies_moisture
     from: 'off'
     to: 'on'
   variables:
     sensor: >-
-      {% set mac = state_attr('binary_sensor.motion_shellies_occupancy','mac') %}
+      {% set mac = state_attr('binary_sensor.motion_shellies_moisture','mac') %}
       {% if mac|lower != 'none' and mac|lower != 'unavailable' and mac|lower != 'unknown' and mac|lower != 'null' and mac|length > 0 %}
-        {{ 'binary_sensor.motion_shelly_occupancy_' + mac|lower }}
+        {{ 'binary_sensor.motion_shelly_moisture_' + mac|lower }}
       {% else %}null{% endif %}
     now: >-
-      {% if sensor|lower != 'null' %}
-        {% set s = state_attr(sensor,'status') %}
-        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
-          {% if 'timestamp' in s %}
-            {% set s = s.timestamp %}
-            {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int > 0 %}
-              {% set p = s|int %}
-            {% endif %}
-          {% endif %}
-        {% endif %}
-      {% endif %}
-      {% if p is defined %}
-        {{ p }}
-      {% else %}{{ utcnow().timestamp()|int }}{% endif %}
+      {{ utcnow().timestamp()|int }}
     when: >-
       {{ now|timestamp_custom("%a %b %d %I:%M:%S %p %Z") }}
   action:
-    - alias: 'set on: binary_sensor.motion_shellies_occupancy'
+    - alias: 'set on: binary_sensor.motion_shellies_moisture'
       service: python_script.set_state
       data_template:
         entity_id: >-
-          {{- 'binary_sensor.motion_shellies_occupancy' -}}
+          {{- 'binary_sensor.motion_shellies_moisture' -}}
         last: >-
           {{ now }}
         when: >-
@@ -88,7 +75,7 @@
         - condition: template
           value_template: >-
             {{ sensor|lower != 'unavailable' and sensor|lower != 'unknown' and sensor|lower != 'null' and sensor|lower != 'none' }}
-    - alias: 'set on: binary_sensor.motion_shelly_occupancy_<mac>'
+    - alias: 'set on: binary_sensor.motion_shelly_moisture_<mac>'
       service: python_script.set_state
       data_template:
         allow_create: true
@@ -105,36 +92,23 @@
         state: >-
           {{- 'on' -}}
 
-- id: motion_shellies_occupancy_end
-  alias: motion_shellies_occupancy_end
+- id: motion_shellies_moisture_end
+  alias: motion_shellies_moisture_end
   mode: queued
   initial_state: on
   trigger:
     platform: state
-    entity_id: binary_sensor.motion_shellies_occupancy
+    entity_id: binary_sensor.motion_shellies_moisture
     from: 'on'
     to: 'off'
   variables:
     sensor: >-
-      {% set mac = state_attr('binary_sensor.motion_shellies_occupancy','mac') %}
+      {% set mac = state_attr('binary_sensor.motion_shellies_moisture','mac') %}
       {% if mac|lower != 'none' and mac|lower != 'unavailable' and mac|lower != 'unknown' and mac|lower != 'null' and mac|length > 0 %}
-        {{ 'binary_sensor.motion_shelly_occupancy_' + mac|lower }}
+        {{ 'binary_sensor.motion_shelly_moisture_' + mac|lower }}
       {% else %}null{% endif %}
     now: >-
-      {% if sensor|lower != 'null' %}
-        {% set s = state_attr(sensor,'status') %}
-        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
-          {% if 'timestamp' in s %}
-            {% set s = s.timestamp %}
-            {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int > 0 %}
-              {% set p = s|int %}
-            {% endif %}
-          {% endif %}
-        {% endif %}
-      {% endif %}
-      {% if p is defined %}
-        {{ p }}
-      {% else %}{{ utcnow().timestamp()|int }}{% endif %}
+      {{ utcnow().timestamp()|int }}
     when: >-
       {{ now|timestamp_custom("%a %b %d %I:%M:%S %p %Z") }}
     duration: >-
@@ -145,12 +119,12 @@
         {% else %}null{% endif %}
       {% else %}null{% endif %}
   action:
-    - alias: 'set off: binary_sensor.motion_shellies_occupancy'
+    - alias: 'set off: binary_sensor.motion_shellies_moisture'
       service: python_script.set_state
       data_template:
         allow_create: true
         entity_id: >-
-          {{- 'binary_sensor.motion_shellies_occupancy' -}}
+          {{- 'binary_sensor.motion_shellies_moisture' -}}
         last: >-
           {{ now }}
         when: >-
@@ -165,7 +139,7 @@
         - condition: template
           value_template: >-
             {{ sensor|lower != 'unavailable' and sensor|lower != 'unknown' and sensor|lower != 'null' and sensor|lower != 'none' }}
-    - alias: 'set off: binary_sensor.motion_shelly_occupancy_<mac>'
+    - alias: 'set off: binary_sensor.motion_shelly_moisture_<mac>'
       service: python_script.set_state
       data_template:
         allow_create: true

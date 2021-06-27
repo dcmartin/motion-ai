@@ -2,6 +2,70 @@
 ## homeassistant/motion/sensor/shellies.yaml
 ###
 
+## shelly (REST)
+
+# curl -sSL -u 'username:password' "192.168.1.210/shelly"
+
+# {
+#  "auth": true,
+#  "fw": "20210429-100039/v1.10.4-g3f94cd7",
+#  "mac": "ECFABC6F7138",
+#  "num_outputs": 1,
+#  "type": "SHVIN-1"
+# }
+
+- platform: rest
+  name: motion_shellies_scan
+  json_attributes:
+    - auth
+    - fw
+    - mac
+    - type
+  resource_template: >-
+    {% set s = states('sensor.motion_shellies_scan_ip') %}
+    {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+      {{- 'http://' + s + '/shelly' -}}
+    {% else %}null{% endif %}
+  value_template: >-
+    {% if value_json is defined and 'mac' in value_json %}True{% else %}False{% endif %}
+
+## settings_set
+
+# curl -u 'username:password' -sSL "192.168.1.212/settings?mqtt_enable=1&mqtt_server=192.168.1.40:1883&mqtt_user=username&mqtt_pass=password&mqtt_retain=0"
+
+- platform: rest
+  name: motion_shellies_settings_mqtt
+  authentication: basic
+  username: !secret shelly-username
+  password: !secret shelly-password
+  json_attributes:
+    - mqtt
+  resource_template: >-
+    {% set s = states('group.motion_shellies') -%}
+    {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' -%}
+      {%- set s = state_attr('group.motion_shellies','ip') -%}
+      {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' -%}
+        {{- 'http://' + s + '/settings?' 
+          + 'mqtt_enable=1'
+          + '&'
+          + 'mqtt_server=' + states('input_text.motion_mqtt_broker') + ':' + states('input_text.motion_mqtt_port')
+          + '&'
+          + 'mqtt_user=' + states('input_text.motion_mqtt_username')
+          + '&'
+          + 'mqtt_pass=' + states('input_text.motion_mqtt_password')
+          + '&'
+          + 'mqtt_update_period=0'
+          + '&'
+          + 'timezone=UTC'
+          + '&'
+          + 'mqtt_max_qos=2'
+          + '&'
+          + 'mqtt_retain=0' -}}
+      {%- else -%}null{%- endif -%}
+    {%- else -%}null{%- endif -%}
+  value_template: >-
+    {% if value_json is defined and 'mqtt' in value_json %}True{% else %}False{% endif %}
+
 ## settings (REST)
 
 # curl -sSL -u 'username:password' "192.168.1.210/settings"
@@ -221,6 +285,111 @@
 #   }
 # }
 
+# flood
+
+# {
+#   "actions": {
+#     "active": false,
+#     "names": [
+#       "report_url",
+#       "flood_detected_url",
+#       "flood_gone_url",
+#       "temp_over_url",
+#       "temp_under_url"
+#     ]
+#   },
+#   "allow_cross_origin": false,
+#   "build_info": {
+#     "build_id": "20210413-155706/v1.10.2-gb89901a",
+#     "build_timestamp": "2021-04-13T15:57:06Z",
+#     "build_version": "1.0"
+#   },
+#   "cloud": {
+#     "connected": true,
+#     "enabled": true
+#   },
+#   "coiot": {
+#     "enabled": false,
+#     "peer": "",
+#     "update_period": 15
+#   },
+#   "debug_enable": false,
+#   "device": {
+#     "hostname": "shellyflood-B0AC23",
+#     "mac": "84CCA8B0AC23",
+#     "sleep_mode": true,
+#     "type": "SHWT-1"
+#   },
+#   "discoverable": true,
+#   "fw": "20210413-155706/v1.10.2-gb89901a",
+#   "lat": 37.953732,
+#   "lng": -121.290459,
+#   "login": {
+#     "enabled": true,
+#     "unprotected": false,
+#     "username": "username"
+#   },
+#   "mqtt": {
+#     "clean_session": true,
+#     "enable": true,
+#     "id": "bathroom-flood",
+#     "keep_alive": 60,
+#     "max_qos": 2,
+#     "reconnect_timeout_max": 60,
+#     "reconnect_timeout_min": 2,
+#     "retain": false,
+#     "server": "192.168.1.40:1883",
+#     "update_period": 30,
+#     "user": "username"
+#   },
+#   "name": "bathroom-flood",
+#   "pin_code": "",
+#   "rain_sensor": false,
+#   "sensors": {
+#     "temperature_threshold": 1,
+#     "temperature_unit": "F"
+#   },
+#   "sleep_mode": {
+#     "period": 12,
+#     "unit": "h"
+#   },
+#   "sntp": {
+#     "enabled": true,
+#     "server": "time.google.com"
+#   },
+#   "temperature_offset": 0,
+#   "time": "14:38",
+#   "timezone": "UTC",
+#   "tz_dst": false,
+#   "tz_dst_auto": false,
+#   "tz_utc_offset": 0,
+#   "tzautodetect": false,
+#   "unixtime": 1624545492,
+#   "wifi_ap": {
+#     "enabled": false,
+#     "key": "",
+#     "ssid": "shellyflood-B0AC23"
+#   },
+#   "wifi_sta": {
+#     "dns": null,
+#     "enabled": true,
+#     "gw": null,
+#     "ip": null,
+#     "ipv4_method": "dhcp",
+#     "mask": null,
+#     "ssid": "CABIN"
+#   },
+#   "wifi_sta1": {
+#     "dns": null,
+#     "enabled": false,
+#     "gw": null,
+#     "ip": null,
+#     "ipv4_method": "dhcp",
+#     "mask": null,
+#     "ssid": null
+#   }
+# }
+
 - platform: rest
   name: motion_shellies_settings
   authentication: basic
@@ -245,9 +414,9 @@
     - wifi_sta
   resource_template: >-
     {% set s = states('group.motion_shellies') %}
-    {% if s|lower !='none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+    {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
       {% set s = state_attr('group.motion_shellies','ip') %}
-      {% if s|lower !='none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+      {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
         {{- 'http://' + s + '/settings' -}}
       {% else %}null{% endif %}
     {% else %}null{% endif %}
@@ -383,6 +552,61 @@
 #   }
 # }
 
+# flood
+
+# {
+#   "act_reasons": [
+#     "button"
+#   ],
+#   "actions_stats": {
+#     "skipped": 0
+#   },
+#   "bat": {
+#     "value": 82,
+#     "voltage": 2.82
+#   },
+#   "cfg_changed_cnt": 0,
+#   "cloud": {
+#     "connected": false,
+#     "enabled": false
+#   },
+#   "flood": false,
+#   "fs_free": 148090,
+#   "fs_size": 233681,
+#   "has_update": false,
+#   "is_valid": true,
+#   "mac": "84CCA8B0AC23",
+#   "mqtt": {
+#     "connected": false
+#   },
+#   "rain_sensor": false,
+#   "ram_free": 31768,
+#   "ram_total": 51024,
+#   "serial": 1,
+#   "time": "",
+#   "tmp": {
+#     "is_valid": true,
+#     "tC": 23.25,
+#     "tF": 73.85,
+#     "units": "F",
+#     "value": 73.85
+#   },
+#   "unixtime": 0,
+#   "update": {
+#     "has_update": false,
+#     "new_version": "",
+#     "old_version": "20210413-155706/v1.10.2-gb89901a",
+#     "status": "unknown"
+#   },
+#   "uptime": 79,
+#   "wifi_sta": {
+#     "connected": true,
+#     "ip": "192.168.1.219",
+#     "rssi": -37,
+#     "ssid": "CABIN"
+#   }
+# }
+
 - platform: rest
   name: motion_shellies_update
   authentication: basic
@@ -405,11 +629,42 @@
     - wifi_sta
   resource_template: >-
     {% set s = states('group.motion_shellies') %}
-    {% if s|lower !='none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+    {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
       {% set s = state_attr('group.motion_shellies','ip') %}
-      {% if s|lower !='none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+      {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
         {{- 'http://' + s + '/status' -}}
       {% else %}null{% endif %}
     {% else %}null{% endif %}
   value_template: >-
-    {% if value_json is defined %}True{% else %}False{% endif %}
+    {% if value_json is defined and 'uptime' in value_json %}True{% else %}False{% endif %}
+
+# {
+#     "status": "idle",
+#     "has_update": false,
+#     "new_version": "20200320-123430/v1.6.2@514044b4",
+#     "old_version": "20200320-123430/v1.6.2@514044b4"
+# }
+
+- platform: rest
+  name: motion_shellies_ota
+  authentication: basic
+  username: !secret shelly-username
+  password: !secret shelly-password
+  scan_interval: 86400
+  force_update: true
+  json_attributes:
+    - status
+    - has_update
+    - new_version
+    - old_version
+    - beta_version
+  resource_template: >-
+    {% set s = states('group.motion_shellies') %}
+    {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+      {% set s = state_attr('group.motion_shellies','ip') %}
+      {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+        {{- 'http://' + s + '/status' -}}
+      {% else %}null{% endif %}
+    {% else %}null{% endif %}
+  value_template: >-
+    {% if value_json is defined and 'status' in value_json %}True{% else %}False{% endif %}
