@@ -14,10 +14,93 @@
     - service: counter.increment
       entity_id: counter.motion_shellies_light
 
+# set lights brightness
+
+- id: motion_shellies_light_brightness_rest
+  alias: motion_shellies_light_brightness_rest
+  initial_state: on
+  mode: single
+  trigger:
+    - platform: state
+      entity_id: input_number.motion_shellies_light_brightness
+  variables:
+    devices: >-
+      {%- set s = state_attr('group.motion_shellies_light','entity_id') -%}
+      {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {%- for c in s -%}
+          {%- if loop.first -%}[{%- else -%},{%- endif -%}
+          "{{- state_attr(c,'ip') -}}"
+          {%- if loop.last -%}]{%- endif -%}
+        {%- endfor -%}
+      {% else %}null{%- endif -%}
+  action:
+    - alias: 'set brightness for all lights'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = devices[repeat.index - 1] %}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - alias: 'set sensor.motion_shellies_light_ip'
+            service: python_script.set_state
+            data_template:
+              entity_id: sensor.motion_shellies_light_ip
+              state: >-
+                {{ devices[repeat.index - 1] }}
+          - alias: 'request update sensor.motion_shellies_light_brightness_set'
+            service: homeassistant.update_entity
+            entity_id: sensor.motion_shellies_light_brightness_set
+          - alias: 'wait for update complete'
+            wait_for_trigger:
+              - platform: state
+                entity_id: sensor.motion_shellies_light_brightness_set
+                to: 'True'
+            timeout: 5
+            continue_on_timeout: true
+
+# set lights brightness
+
+- id: motion_shellies_light_set_brightness_mqtt
+  alias: motion_shellies_light_set_brightness_mqtt
+  initial_state: off
+  mode: single
+  trigger:
+    - platform: state
+      entity_id: input_number.motion_shellies_light_brightness
+  variables:
+    devices: >-
+      {%- set s = state_attr('group.motion_shellies_light','entity_id') -%}
+      {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {%- for c in s -%}
+          {%- if loop.first -%}[{%- else -%},{%- endif -%}
+          "{{- state_attr(c,'id') -}}"
+          {%- if loop.last -%}]{%- endif -%}
+        {%- endfor -%}
+      {% else %}null{%- endif -%}
+  action:
+    - alias: 'set brightness on on all shelly lights'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = devices[repeat.index - 1] %}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - alias: 'publish light set command'
+            service_template: mqtt.publish
+            data_template:
+              topic: >-
+                {{- 'shellies/' + devices[repeat.index - 1] + '/light/0/set' -}}
+              payload_template: >-
+                {{ '{"brightness":' + states('input_number.motion_shellies_light_brightness')|int|string + ',"turn":"on"}' }}
+              qos: 2
+              retain: false
+
 # turn on all lights
 
-- id: motion_shellies_light_on
-  alias: motion_shellies_light_on
+- id: motion_shellies_light_on_mqtt
+  alias: motion_shellies_light_on_mqtt
   initial_state: on
   mode: single
   trigger:
@@ -41,7 +124,7 @@
       conditions:
         - condition: template
           value_template: >-
-            {% set s = state_attr('automation.motion_shellies_light_off','current') %}
+            {% set s = state_attr('automation.motion_shellies_light_off_mqtt','current') %}
             {{ s is number and s|int == 0 }}
     - alias: 'turn on all shelly lights'
       repeat:
@@ -67,8 +150,8 @@
 
 # turn off all lights
 
-- id: motion_shellies_light_off
-  alias: motion_shellies_light_off
+- id: motion_shellies_light_off_mqtt
+  alias: motion_shellies_light_off_mqtt
   initial_state: on
   mode: single
   trigger:
@@ -92,7 +175,7 @@
       conditions:
         - condition: template
           value_template: >-
-            {% set s = state_attr('automation.motion_shellies_light_on','current') %}
+            {% set s = state_attr('automation.motion_shellies_light_on_mqtt','current') %}
             {{ s is number and s|int == 0 }}
     - alias: 'turn off all shelly lights'
       repeat:
@@ -145,14 +228,14 @@
       conditions:
         - condition: template
           value_template: >-
-            {% set s = state_attr('automation.motion_shellies_light_on','current') %}
+            {% set s = state_attr('automation.motion_shellies_light_on_mqtt','current') %}
             {{ s is number and s|int == 0 }}
     - alias: "test if not turning off"
       condition: and
       conditions:
         - condition: template
           value_template: >-
-            {% set s = state_attr('automation.motion_shellies_light_off','current') %}
+            {% set s = state_attr('automation.motion_shellies_light_off_mqtt','current') %}
             {{ s is number and s|int == 0 }}
     - alias: 'set input_boolean.motion_shellies_light'
       service: python_script.set_state
