@@ -1175,7 +1175,7 @@
 - id: motion_shellies_mqtt_announce
   alias: motion_shellies_mqtt_announce
   initial_state: on
-  mode: queued
+  mode: parallel
   trigger:
     - platform: mqtt
       topic: 'shellies/+/announce'
@@ -1356,6 +1356,41 @@
     - alias: 'publish update command'
       service: automation.trigger
       entity_id: automation.motion_shellies_mqtt_publish_update
+    - alias: 'update input_select.motion_shellies'
+      service: python_script.input_select_set_options
+      data_template:
+        entity_id: input_select.motion_shellies
+        default: >-
+          {% set s = states('input_select.motion_shellies') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'latest' and s|length > 0 -%}
+            {{- s -}}
+          {%- else -%}{{- id -}}{%- endif %}
+        options: >-
+          {% set s = state_attr('group.motion_shellies','entity_id') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+            {%- for c in s -%}
+              {%- if not loop.first -%},{%- endif -%}
+              {{- state_attr(c,'id') -}}
+            {%- endfor -%}
+          {% else %}none{%- endif %}
+    - alias: 'update input_select.motion_shellies_<type>'
+      service: python_script.input_select_set_options
+      data_template:
+        entity_id: >-
+          {{ 'input_select.motion_shellies_' + type|string }}
+        default: >-
+          {% set s = states('input_select.motion_shellies_' + type|string) -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'latest' and s|length > 0 -%}
+            {{- s -}}
+          {%- else -%}{{- id -}}{%- endif %}
+        options: >-
+          {% set s = state_attr('group.motion_shellies','entity_id') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+            {%- for c in s if state_attr(c,'type')|string == type|string -%}
+              {%- if not loop.first -%},{%- endif -%}
+              {{- state_attr(c,'id') -}}
+            {%- endfor -%}
+          {% else %}none{%- endif %}
 
 - id: motion_shellies_scan
   alias: motion_shellies_scan
