@@ -2,7 +2,7 @@
 
 get_dropbox()
 {
-  local DROPBOX=( https://www.dropbox.com/s/ma1z3lq4xjutyj7/yolov2-tiny-voc.weights https://www.dropbox.com/s/uz15x6xbudqyweg/yolov2.weights https://www.dropbox.com/s/iv7114em0cedacv/yolov3-tiny.weights https://www.dropbox.com/s/xhl17axl9915cj3/yolov3.weights )
+  local DROPBOX=( http://www.dropbox.com/s/ma1z3lq4xjutyj7/yolov2-tiny-voc.weights http://www.dropbox.com/s/uz15x6xbudqyweg/yolov2.weights http://www.dropbox.com/s/iv7114em0cedacv/yolov3-tiny.weights http://www.dropbox.com/s/xhl17axl9915cj3/yolov3.weights )
 
   for m in ${DROPBOX[@]}; do
     if [ ! -s "${m##*/}" ]; then
