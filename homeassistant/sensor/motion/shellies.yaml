@@ -2,6 +2,21 @@
 ## homeassistant/motion/sensor/shellies.yaml
 ###
 
+- platform: template
+  sensors:
+    motion_shellies_count:
+      friendly_name: 'Shelly count'
+      icon_template: 'mdi:sigma'
+      unit_of_measurement: 'count'
+      value_template: >-
+        {% set s = states('group.motion_shellies') -%}
+        {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' -%}
+          {%- set s = state_attr('group.motion_shellies','entity_id') -%}
+          {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' -%}
+            {{ s|count }}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+
 ## shelly (REST)
 
 # curl -sSL -u 'username:password' "192.168.1.210/shelly"
@@ -40,11 +55,13 @@
   password: !secret shelly-password
   json_attributes:
     - mqtt
+    - timezone
   resource_template: >-
     {% set s = states('group.motion_shellies') -%}
     {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' -%}
-      {%- set s = state_attr('group.motion_shellies','ip') -%}
+      {%- set s = state_attr('group.motion_shellies','sensor') -%}
       {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' -%}
+        {%- set s = state_attr(s,'ip') -%}
         {{- 'http://' + s + '/settings?' 
           + 'mqtt_enable=1'
           + '&'
@@ -62,9 +79,46 @@
           + '&'
           + 'mqtt_retain=0' -}}
       {%- else -%}null{%- endif -%}
-    {%- else -%}null{%- endif -%}
+    {%- else -%}null{%- endif %}
   value_template: >-
     {% if value_json is defined and 'mqtt' in value_json %}True{% else %}False{% endif %}
+
+- platform: rest
+  name: motion_shellies_settings_occupancy
+  authentication: basic
+  username: !secret shelly-username
+  password: !secret shelly-password
+  json_attributes:
+    - motion
+    - led_status_disable
+    - twilight_threshold
+    - dark_threshold
+    - tamper_sensitivity
+  resource_template: >-
+    {% set s = states('group.motion_shellies') -%}
+    {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' -%}
+      {%- set s = state_attr('group.motion_shellies','sensor') -%}
+      {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and state_attr(s,'type')|lower == 'occupancy' %}
+        {%- set s = state_attr(s,'ip') -%}
+        {{- 'http://' + s + '/settings?' 
+          + 'motion_sensitivity=50'
+          + '&'
+          + 'motion_blind_time_minutes=1'
+          + '&'
+          + 'motion_pulse_count=1'
+          + '&'
+          + 'motion_operating_mode=0'
+          + '&'
+          + 'tamper_sensitivity=0'
+          + '&'
+          + 'led_status_disable=1'
+          + '&'
+          + 'motion_enable=1'
+        -}}
+      {%- else -%}null{%- endif -%}
+    {%- else -%}null{%- endif %}
+  value_template: >-
+    {% if value_json is defined and 'motion' in value_json %}True{% else %}False{% endif %}
 
 ## settings (REST)
 
@@ -415,8 +469,9 @@
   resource_template: >-
     {% set s = states('group.motion_shellies') %}
     {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
-      {% set s = state_attr('group.motion_shellies','ip') %}
+      {% set s = state_attr('group.motion_shellies','sensor') %}
       {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+        {% set s = state_attr(s,'ip') %}
         {{- 'http://' + s + '/settings' -}}
       {% else %}null{% endif %}
     {% else %}null{% endif %}
@@ -630,8 +685,9 @@
   resource_template: >-
     {% set s = states('group.motion_shellies') %}
     {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
-      {% set s = state_attr('group.motion_shellies','ip') %}
+      {% set s = state_attr('group.motion_shellies','sensor') %}
       {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+        {% set s = state_attr(s,'ip') %}
         {{- 'http://' + s + '/status' -}}
       {% else %}null{% endif %}
     {% else %}null{% endif %}
@@ -661,8 +717,9 @@
   resource_template: >-
     {% set s = states('group.motion_shellies') %}
     {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
-      {% set s = state_attr('group.motion_shellies','ip') %}
+      {% set s = state_attr('group.motion_shellies','sensor') %}
       {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+        {% set s = state_attr(s,'ip') %}
         {{- 'http://' + s + '/status' -}}
       {% else %}null{% endif %}
     {% else %}null{% endif %}

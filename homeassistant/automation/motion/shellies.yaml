@@ -66,7 +66,7 @@
       {{ trigger.payload_json|int }}
     id: >-
       {{ topic|regex_replace('shellies/','')|regex_replace('/[^/]*/[^/]*/energy','') }}
-    updated: >-
+    timestamp: >-
       {{ utcnow().timestamp()|int }}
     mac: >-
       {% if id|lower != 'none' and id|lower != 'unavailable' and id|lower != 'unknown' and id|lower != 'null' and id|length > 0 %}
@@ -136,7 +136,7 @@
       {{ trigger.payload_json|float }}
     id: >-
       {{ topic|regex_replace('shellies/','')|regex_replace('/[^/]*/[^/]*/power','') }}
-    updated: >-
+    timestamp: >-
       {{ utcnow().timestamp()|int }}
     mac: >-
       {% if id|lower != 'none' and id|lower != 'unavailable' and id|lower != 'unknown' and id|lower != 'null' and id|length > 0 %}
@@ -206,7 +206,7 @@
       {{ trigger.payload_json|lower == 'true' }}
     id: >-
       {{ topic|replace('shellies/','')|replace('/online','') }}
-    updated: >-
+    timestamp: >-
       {{ utcnow().timestamp()|int }}
     mac: >-
       {% if id|lower != 'none' and id|lower != 'unavailable' and id|lower != 'unknown' and id|lower != 'null' and id|length > 0 %}
@@ -252,8 +252,8 @@
           {{ sensor }}
         active: >-
           {{ active }}
-        timestamp: >-
-          {{ updated }}
+        updated: >-
+          {{ timestamp }}
         state: >-
           {% set s = states(sensor) %}
           {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
@@ -611,7 +611,7 @@
         state: >-
           {{ id }}
 
-# handle updates from REST API call to get settings from IP set on binary_sensor.motion_shellies_occupancy
+# handle updates from REST API call to get settings from IP
 
 - id: motion_shellies_settings_rest
   alias: motion_shellies_settings_rest
@@ -619,7 +619,11 @@
   mode: queued
   trigger:
     - platform: state
-      entity_id: sensor.motion_shellies_settings
+      entity_id:
+        - sensor.motion_shellies_settings
+        - sensor.motion_shellies_settings_mqtt
+        - sensor.motion_shellies_settings_occupancy
+      to: 'True'
   variables:
     settings: >-
       {% set s = states('sensor.motion_shellies_settings') %}
@@ -741,6 +745,7 @@
   trigger:
     - platform: state
       entity_id: sensor.motion_shellies_update
+      to: 'True'
   variables:
     info: >-
       {% set s = states('sensor.motion_shellies_update') %}
@@ -819,6 +824,7 @@
   trigger:
     - platform: state
       entity_id: sensor.motion_shellies_ota
+      to: 'True'
   variables:
     ota: >-
       {% set s = states('sensor.motion_shellies_ota') %}
@@ -1175,7 +1181,7 @@
 - id: motion_shellies_mqtt_announce
   alias: motion_shellies_mqtt_announce
   initial_state: on
-  mode: parallel
+  mode: queued
   trigger:
     - platform: mqtt
       topic: 'shellies/+/announce'
@@ -1325,10 +1331,8 @@
         allow_create: true
         entity_id: group.motion_shellies
         friendly_name: 'All shellies'
-        ip: >-
-          {{ ip }}
-        count: >-
-          {{- macs|string|from_json|list|unique|list|count -}}
+        sensor: >-
+          {{ sensor }}
         macs: >-
           {{ macs|string|from_json|list|unique|list|to_json|string }}
         ids: >-
@@ -1493,6 +1497,8 @@
       {% elif model == 'SHWT-1' %}
         {{ 'moisture' }}
       {% else %}null{% endif %}
+    sensor: >-
+      {{ 'binary_sensor.motion_shelly_' + type|string + '_' + mac|string }}
   action:
     - alias: 'test if mac and type are defined'
       condition: and
@@ -1500,20 +1506,36 @@
         - condition: template
           value_template: >
             {{ mac|lower != 'null' and type|lower != 'null' }}
-    - alias: 'test if sensor is already defined'
+    - alias: 'test if binary_sensor_motion_shelly_<type>_<mac> is not defined'
       condition: and
       conditions:
         - condition: template
           value_template: >
-            {% set s = states('binary_sensor.motion_shelly_' + type|string + '_' + mac|string) %}
+            {% set s = states(sensor) %}
             {{ s|lower == 'none' }}
-    - alias: "set ip for group.motion_shellies"
+    - alias: 'create binary_sensor_motion_shelly_<type>_<mac>'
+      service: python_script.set_state
+      data_template:
+        allow_create: true
+        entity_id: >-
+          {{ sensor }}
+        auth: >-
+          {{ auth }}
+        mac: >-
+          {{ mac }}
+        model: >-
+          {{ model }}
+        type: >-
+          {{ type }}
+        ip: >-
+          {{ states(' sensor.motion_shellies_scan_ip') }}
+    - alias: 'update "sensor" for group.motion_shellies'
       service: python_script.set_state
       data_template:
         allow_create: true
         entity_id: group.motion_shellies
-        ip: >-
-          {{ states('sensor.motion_shellies_scan_ip') }}
-    - alias: "update motion_shellies_settings"
+        sensor: >-
+          {{ sensor }}
+    - alias: "update sensor motion_shellies_settings"
       service: homeassistant.update_entity
       entity_id: sensor.motion_shellies_settings
