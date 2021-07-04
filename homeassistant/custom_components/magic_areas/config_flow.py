@@ -117,6 +117,15 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             else []
         )
         all_entities = [entity for entity in self.hass.states.async_entity_ids()]
+
+#        all_entities = (
+#             for entity in self.hass.states.async_entity_ids():
+#               data = self.hass.data[MODULE_DATA][entity]
+#               area = data[DATA_AREA_OBJECT]
+#               if area is not None:
+#                 entity
+#        )
+
         entity_list = cv.multi_select(sorted(all_entities))
         empty_entry = [""]
         to_replace = {
