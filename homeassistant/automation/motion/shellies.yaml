@@ -61,7 +61,7 @@
 
 - id: motion_shellies_mqtt_publish_update
   alias: motion_shellies_mqtt_publish_update
-  initial_state: on
+  initial_state: off
   trigger:
     - platform: time_pattern
       minutes: /17
@@ -562,6 +562,19 @@
         {% if trigger.payload_json.ison|lower == 'true' %}on{% else %}off{% endif %}
       {% else %}unknown{% endif %}
   action:
+    - alias: 'if mac not found'
+      choose:
+        - alias: 'mac not found; publish MQTT command to <id> for announce'
+          conditions:
+            - condition: template
+              value_template: >
+                {{ mac|lower == 'unavailable' or mac|lower == 'unknown' or mac|lower == 'null' or mac|lower == 'none' or mac|length == 0 }}
+          sequence:
+            - service: mqtt.publish
+              data_template:
+                topic: >-
+                  {{ 'shellies/' + id|string + '/command' }}
+                payload: 'announce'
     - alias: 'test mac is not null'
       condition: and
       conditions:
@@ -655,20 +668,23 @@
         - sensor.motion_shellies_settings
         - sensor.motion_shellies_settings_mqtt
         - sensor.motion_shellies_settings_occupancy
+        - sensor.motion_shellies_occupancy_selected_sensitivity_set
+        - binary_sensor.motion_shellies_occupancy_selected_active_set
+        - binary_sensor.motion_shellies_occupancy_selected_led_set
       to: 'True'
   variables:
     settings: >-
-      {% set s = states('sensor.motion_shellies_settings') %}
+      {% set s = states(trigger.entity_id) %}
       {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
         {{ states.sensor.motion_shellies_settings.attributes }}
       {% else %}null{% endif %}
     latitude: >-
-      {% set s = states('sensor.motion_shellies_settings') %}
+      {% set s = states(trigger.entity_id) %}
       {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
         {{ state_attr('sensor.motion_shellies_settings','lat')|float }}
       {% else %}null{% endif %}
     longitude: >-
-      {% set s = states('sensor.motion_shellies_settings') %}
+      {% set s = states(trigger.entity_id) %}
       {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
         {{ state_attr('sensor.motion_shellies_settings','lng')|float }}
       {% else %}null{% endif %}
@@ -686,7 +702,7 @@
         {% else %}null{% endif %}
       {% else %}null{% endif %}
     mac: >-
-      {% set s = states('sensor.motion_shellies_settings') %}
+      {% set s = states(trigger.entity_id) %}
       {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
         {% set s = state_attr('sensor.motion_shellies_settings','device') %}
         {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
@@ -719,7 +735,7 @@
         {% if is_state(sensor,'on') -%}on{% else %}off{% endif %}
       {% else %}null{% endif %}
     updated: >-
-      {% set s = states('sensor.motion_shellies_settings') %}
+      {% set s = states(trigger.entity_id) %}
       {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
         {{ states.sensor.motion_shellies_settings.last_updated|as_timestamp|int }}
       {% else %}
@@ -761,12 +777,11 @@
     - service: persistent_notification.create
       data_template:
         title: >
-          Settings warning; ID: {{ id -}}
+          Location setings; ID: {{ id -}}
         notification_id: >-
           {{ id + '_gps_settings_warning' }}
         message: >
-          Device {{ id }}; type: {{ type }}; GPS: {{ latitude,longitude -}}; distance: {{ distance|int -}}m;
-          Location outside of home zone {{ state_attr('zone.home','latitude'),state_attr('zone.home','longitude') -}}: radius: {{ state_attr('zone.home','radius')|int -}}m
+          Location outside of home zone.  Device {{ id }}; type: {{ type }}; GPS: {{ latitude,longitude -}}; distance: {{ distance|int -}}m;
 
 ## update on REST sensor '<username>:<password>@<ip>/shellies/<id>/status'
 
@@ -1238,6 +1253,8 @@
       {% elif model == 'SHWT-1' %}
         {{ 'moisture' }}
       {% else %}null{% endif %}
+    picture: >-
+      {{ '/local/images/' + model|string + '.png' }}
     ids: >-
       {% set s = states('group.motion_shellies') %}
       [{%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
@@ -1317,6 +1334,8 @@
         allow_create: true
         entity_id: >-
           {{ sensor }}
+        entity_picture: >-
+          {{ picture }}
         device_class: >-
           {{ type }}
         friendly_name: >-
