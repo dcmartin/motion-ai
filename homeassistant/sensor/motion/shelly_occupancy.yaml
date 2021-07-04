@@ -2,6 +2,63 @@
 ## homeassistant/motion/sensor/shelly_occupancy.yaml
 ###
 
+## REST
+
+## sensitivity settings
+
+- platform: rest
+  name: motion_shellies_occupancy_selected_sensitivity_set
+  authentication: basic
+  username: !secret shelly-username
+  password: !secret shelly-password
+  json_attributes:
+    - motion
+  resource_template: >-
+    {% set s = states('sensor.motion_shellies_occupancy_selected') -%}
+    {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'pending' -%}
+      {%- set s = state_attr(s,'ip') -%}
+      {{- 'http://' + s + '/settings?' + 'motion_sensitivity=' + states('sensor.motion_shellies_occupancy_selected_sensitivity')|string -}}
+    {%- else -%}null{%- endif %}
+  value_template: >-
+    {% if value_json is defined and 'motion' in value_json %}True{% else %}False{% endif %}
+
+## OCCUPANCY settings
+
+- platform: rest
+  name: motion_shellies_occupancy_settings
+  authentication: basic
+  username: !secret shelly-username
+  password: !secret shelly-password
+  json_attributes:
+    - motion
+    - led_status_disable
+    - twilight_threshold
+    - dark_threshold
+    - tamper_sensitivity
+  resource_template: >-
+    {% set s = states('group.motion_shellies') -%}
+    {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' -%}
+      {%- set s = state_attr('group.motion_shellies','sensor') -%}
+      {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and state_attr(s,'type')|lower == 'occupancy' %}
+        {%- set s = state_attr(s,'ip') -%}
+        {{- 'http://' + s + '/settings?'
+          + 'motion_blind_time_minutes=1'
+          + '&'
+          + 'motion_pulse_count=1'
+          + '&'
+          + 'motion_operating_mode=0'
+          + '&'
+          + 'tamper_sensitivity=0'
+          + '&'
+          + 'led_status_disable=1'
+          + '&'
+          + 'motion_enable=1'
+        -}}
+      {%- else -%}null{%- endif -%}
+    {%- else -%}null{%- endif %}
+  value_template: >-
+    {% if value_json is defined and 'motion' in value_json %}True{% else %}False{% endif %}
+
 ## TEMPLATES
 
 - platform: template
@@ -11,6 +68,14 @@
       icon_template: 'mdi:motion-sensor'
       value_template: >-
         {{- 'Pending' -}}
+    motion_shellies_occupancy_selected_sensitivity:
+      friendly_name: 'Selected sensor sensitivity'
+      icon_template: 'mdi:gauge'
+      value_template: >-
+        {%- set s = states('input_number.motion_shelly_occupancy_sensitivity') -%}
+        {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' -%}
+          {{- (s|float * 256.0)|int -}}
+        {%- else -%}null{%- endif -%}
     motion_shellies_occupancy:
       unique_id: motion_shellies_occupancy_current
       friendly_name: 'Detector ID'
