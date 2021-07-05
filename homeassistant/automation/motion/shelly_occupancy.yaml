@@ -5,6 +5,7 @@
 - id: motion_shellies_occupancy_counter
   alias: motion_shellies_occupancy_counter
   initial_state: on
+  mode: queued
   trigger:
     platform: state
     entity_id: binary_sensor.motion_shellies_occupancy
@@ -16,10 +17,10 @@
 
 # set sensitivity
 
-- id: motion_shellies_occupancy_selected_set_sensitivity
-  alias: motion_shellies_occupancy_selected_set_sensitivity
+- id: motion_shellies_settings_occupancy_selected_sensitivity
+  alias: motion_shellies_settings_occupancy_selected_sensitivity
   initial_state: on
-  mode: restart
+  mode: queued
   trigger:
     - platform: state
       entity_id: sensor.motion_shellies_occupancy_selected_sensitivity
@@ -33,17 +34,17 @@
   action:
     - alias: 'specify sensitivity for selected occupancy sensor'
       service: homeassistant.update_entity
-      entity_id: sensor.motion_shellies_occupancy_selected_sensitivity_set
+      entity_id: sensor.motion_shellies_settings_occupancy_selected_sensitivity
 
 # set LED
 
-- id: motion_shellies_occupancy_selected_set_led
-  alias: motion_shellies_occupancy_selected_set_led
+- id: motion_shellies_settings_occupancy_selected_led
+  alias: motion_shellies_settings_occupancy_selected_led
   initial_state: on
-  mode: restart
+  mode: queued
   trigger:
     - platform: state
-      entity_id: sensor.motion_shellies_occupancy_selected_led
+      entity_id: binary_sensor.motion_shellies_occupancy_selected_led
   condition:
     condition: and
     conditions:
@@ -54,17 +55,17 @@
   action:
     - alias: 'specify LED for selected occupancy sensor'
       service: homeassistant.update_entity
-      entity_id: binary_sensor.motion_shellies_occupancy_selected_led_set
+      entity_id: binary_sensor.motion_shellies_settings_occupancy_selected_led
 
 # set active
 
-- id: motion_shellies_occupancy_selected_set_active
-  alias: motion_shellies_occupancy_selected_set_active
+- id: motion_shellies_settings_occupancy_selected_active
+  alias: motion_shellies_settings_occupancy_selected_active
   initial_state: on
-  mode: restart
+  mode: queued
   trigger:
     - platform: state
-      entity_id: sensor.motion_shellies_occupancy_selected_active
+      entity_id: binary_sensor.motion_shellies_occupancy_selected_active
   condition:
     condition: and
     conditions:
@@ -75,7 +76,7 @@
   action:
     - alias: 'specify active for selected occupancy sensor'
       service: homeassistant.update_entity
-      entity_id: binary_sensor.motion_shellies_occupancy_selected_active_set
+      entity_id: binary_sensor.motion_shellies_settings_occupancy_selected_active
 
 # update occupancy group on binary_sensor
 
@@ -252,6 +253,8 @@
   trigger:
     - platform: state
       entity_id: input_select.motion_shellies_occupancy
+    - platform: state
+      entity_id: sensor.motion_shellies_occupancy_selected
   condition:
     condition: and
     conditions:
@@ -259,6 +262,10 @@
         value_template: >-
           {% set id = states('input_select.motion_shellies_occupancy') %}
           {{ id|lower != 'none' and id|lower != 'unavailable' and id|lower != 'unknown' and id|lower != 'null' and id|length > 0 }}
+      - condition: template
+        value_template: >-
+          {{ trigger.from_state != trigger.to_state
+            and trigger.to_state|lower != 'null' and trigger.to_state|lower != 'unknown' and trigger.to_state|lower != 'none' }}
   variables:
     sensor: >-
       {% set id = states('input_select.motion_shellies_occupancy') %}
@@ -305,12 +312,6 @@
     distance: >-
       {% if latitude|lower != 'null' and longitude|lower != 'null' %}
         {{ (distance(latitude, longitude, 'zone.home') * 1000)|int }}
-      {% else %}null{% endif %}
-    led: >-
-      {% if settings|lower != 'null' %}
-        {% if 'led_status_disable' in settings %}
-          {% if settings.led_status_disable|lower == 'true' %}off{% else %}on{% endif %}
-        {% else %}null{% endif %}
       {% else %}null{% endif %}
     mqtt: >-
       {% if settings|lower != 'null' %}
@@ -375,14 +376,6 @@
           {% else %}null{% endif %}
         {% else %}null{% endif %}
       {% else %}null{% endif %}
-    sensitivity: >-
-      {% if motion|lower != 'null' %}
-        {{ (motion.sensitivity|float / 256.0 * 100.0)|int }}
-      {% else %}null{% endif %}
-    active: >-
-      {% if motion|lower != 'null' %}
-        {{ motion.enabled|lower == 'true' }}
-      {% else %}null{% endif %}
     blind_time: >-
       {% if motion|lower != 'null' %}
         {{ motion.blind_time_minutes|int }}
@@ -391,6 +384,33 @@
       {% if motion|lower != 'null' %}
         {{ motion.pulse_count|int }}
       {% else %}null{% endif %}
+    sensitivity: >-
+      {% if motion|lower != 'null' %}
+        {{ (motion.sensitivity|float / 256.0 * 100.0)|int }}
+      {% else %}
+        {{ states('input_number.motion_shellies_occupancy_sensitivity') }}
+      {% endif %}
+    active: >-
+      {% if motion|lower != 'null' %}
+        {{ motion.enabled|lower == 'true' }}
+      {% else %}
+        {{ states('input_boolean.motion_shellies_occupancy_active') }}
+      {% endif %}
+    led: >-
+      {% if settings|lower != 'null' %}
+        {% if 'led_status_disable' in settings %}
+          {% if settings.led_status_disable|lower == 'true' %}
+            {% set s = 'off' %}
+          {% else %}
+            {% set s = 'on' %}
+          {% endif %}
+        {% endif %}
+      {% endif %}
+      {% if s is not defined %}
+        {{ s }}
+      {% else %}
+        {{ states('input_boolean.motion_shellies_occupancy_led') }}
+      {% endif %}
   action:
     - alias: 'test input_select'
       condition: and
