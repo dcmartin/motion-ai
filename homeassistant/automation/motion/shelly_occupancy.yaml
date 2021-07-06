@@ -17,8 +17,8 @@
 
 # set sensitivity
 
-- id: motion_shellies_settings_occupancy_selected_sensitivity
-  alias: motion_shellies_settings_occupancy_selected_sensitivity
+- id: motion_shellies_occupancy_selected_sensitivity
+  alias: motion_shellies_occupancy_selected_sensitivity
   initial_state: on
   mode: queued
   trigger:
@@ -31,10 +31,59 @@
         value_template: >-
           {{ trigger.from_state != trigger.to_state
             and trigger.to_state|lower != 'null' and trigger.to_state|lower != 'unknown' and trigger.to_state|lower != 'none' }}
+  variables:
+    sensor: >-
+      {% set s = state_attr('sensor.motion_shellies_occupancy_selected','sensor') %}
+      {% if s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'none' %}
+        {{ s }}
+      {% else %}null{% endif %}
   action:
-    - alias: 'specify sensitivity for selected occupancy sensor'
+    - alias: 'sensor good?'
+      condition: and
+      conditions:
+        - condition: template
+          value_template: >
+            {{ sensor|lower != 'null' }}
+    - alias: 'update sensor.motion_shellies_settings_occupancy_selected_sensitivity'
       service: homeassistant.update_entity
       entity_id: sensor.motion_shellies_settings_occupancy_selected_sensitivity
+
+- id: motion_shellies_settings_occupancy_selected_sensitivity
+  alias: motion_shellies_settings_occupancy_selected_sensitivity
+  initial_state: on
+  mode: queued
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_shellies_settings_occupancy_selected_sensitivity
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ trigger.from_state != trigger.to_state
+            and trigger.to_state|lower != 'null' and trigger.to_state|lower != 'unknown' and trigger.to_state|lower != 'none' }}
+  variables:
+    sensor: >-
+      {% set s = state_attr('sensor.motion_shellies_occupancy_selected','sensor') %}
+      {% if s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'none' %}
+        {{ s }}
+      {% else %}null{% endif %}
+  action:
+    - alias: 'sensitivity good?'
+      condition: and
+      conditions:
+        - condition: template
+          value_template: >
+            {% set s = states('sensor.motion_shellies_settings_occupancy_selected_sensitivity') %}
+            {{ s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'none' }}
+    - alias: 'update calculated sensitivity % for specified occupancy sensor'
+      service: python_script.set_state
+      data_template:
+        entity_id: >-
+          {{ sensor }}
+        sensitivity: >-
+          {% set s =  states('sensor.motion_shellies_settings_occupancy_selected_sensitivity') %}
+          {{ (s|float*100/256)|int }}
 
 # set LED
 
@@ -246,15 +295,15 @@
         state: >-
           {{- 'off' -}}
 
-- id: motion_shellies_update_selected_occupancy
-  alias: motion_shellies_update_selected_occupancy
+- id: motion_shellies_occupancy_selected_update
+  alias: motion_shellies_occupancy_selected_update
   initial_state: on
   mode: single
   trigger:
     - platform: state
       entity_id: input_select.motion_shellies_occupancy
     - platform: state
-      entity_id: sensor.motion_shellies_occupancy_selected
+      entity_id: sensor.motion_shellies_settings_occupancy
   condition:
     condition: and
     conditions:
