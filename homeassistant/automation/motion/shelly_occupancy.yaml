@@ -31,6 +31,10 @@
         value_template: >-
           {{ trigger.from_state != trigger.to_state
             and trigger.to_state|lower != 'null' and trigger.to_state|lower != 'unknown' and trigger.to_state|lower != 'none' }}
+      - condition: template
+        value_template: >-
+          {% set s = states('sensor.motion_shellies_occupancy_selected_sensitivity') %}
+          {{ s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'none' }}
   variables:
     sensor: >-
       {% set s = state_attr('sensor.motion_shellies_occupancy_selected','sensor') %}
@@ -69,6 +73,12 @@
         {{ s }}
       {% else %}null{% endif %}
   action:
+    - alias: 'sensor good?'
+      condition: and
+      conditions:
+        - condition: template
+          value_template: >
+            {{ sensor|lower != 'null' }}
     - alias: 'sensitivity good?'
       condition: and
       conditions:
@@ -84,6 +94,18 @@
         sensitivity: >-
           {% set s =  states('sensor.motion_shellies_settings_occupancy_selected_sensitivity') %}
           {{ (s|float*100/256)|int }}
+        state: >-
+          {{ states(sensor) }}
+    - alias: 'update calculated sensitivity % for selected occupancy sensor'
+      service: python_script.set_state
+      data_template:
+        entity_id: >-
+          {{ 'sensor.motion_shellies_occupancy_selected' }}
+        sensitivity: >-
+          {% set s =  states('sensor.motion_shellies_settings_occupancy_selected_sensitivity') %}
+          {{ (s|float*100/256)|int }}
+        state: >-
+          {{ state_attr(sensor,'id') }}
 
 # set LED
 
