@@ -5,7 +5,7 @@ HOSTID=$(uname -n | sed 's/[-+#]*//g')
 
 # container
 LABEL='motion'
-IMAGE='dcmartin/addon-motion-video0:0.10.132'
+IMAGE='dcmartin/addon-motion-video0:0.10.133'
 
 # defaults
 OPTIONS='{"log_level":"info","log_motion_level":"info","log_motion_type":"ALL","default":{"changes":"on","event_gap":30,"framerate":5,"minimum_motion_frames":15,"post_pictures":"best","text_scale":2,"threshold_maximum":100000,"threshold_percent":1,"username":"username","password":"password","netcam_userpass":"nothing:nothing","width":640,"height":480},"mqtt":{"host":"127.0.0.1","port":1883,"username":"username","password":"password"},"group":"motion","device":"rpi0w","client":"rpi0w","timezone":"America/Los_Angeles","cameras":[]}'
@@ -47,7 +47,7 @@ elif [ -s MOTION_THRESHOLD_PERCENT ]; then
   MOTION_THRESHOLD_PERCENT=$(cat MOTION_THRESHOLD_PERCENT)
   MOTION_THRESHOLD=$((MOTION_THRESHOLD_PERCENT * MOTION_WIDTH * MOTION_HEIGHT / 100))
 fi
-MOTION_THRESHOLD=${MOTION_THRESHOLD:-1000}
+MOTION_THRESHOLD=${MOTION_THRESHOLD:-1500}
 
 # maximum threshold
 if [ -s MOTION_THRESHOLD_MAXIMUM ]; then 

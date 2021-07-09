@@ -1,0 +1,66 @@
+###
+## homeassistant/motion/sensor/shelly_occupancy.yaml
+###
+
+## REST
+
+## active and LED settings
+
+- platform: rest
+  name: motion_shellies_settings_occupancy_selected_active
+  scan_interval: 86400
+  authentication: basic
+  username: !secret shelly-username
+  password: !secret shelly-password
+  resource_template: >-
+    {% set s = states('sensor.motion_shellies_occupancy_selected') -%}
+    {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'pending' -%}
+      {%- set ip = state_attr(s,'ip') -%}
+      {% if states('binary_sensor.motion_shellies_occupancy_selected_active')|lower == 'true' %}{% set s = 1 %}{% else %}{% set s = 0 %}{% endif %}
+      {{- 'http://' + ip + '/settings?' + 'motion_enable=' + s|string -}}
+    {%- else -%}null{%- endif %}
+  value_template: >-
+    {% if value_json is defined and 'motion' in value_json %}{{ value_json.motion.enabled|lower == 'true' }}{% else %}False{% endif %}
+
+- platform: rest
+  name: motion_shellies_settings_occupancy_selected_led
+  scan_interval: 86400
+  authentication: basic
+  username: !secret shelly-username
+  password: !secret shelly-password
+  resource_template: >-
+    {% set s = states('sensor.motion_shellies_occupancy_selected') -%}
+    {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'pending' -%}
+      {%- set ip = state_attr(s,'ip') -%}
+      {% if states('binary_sensor.motion_shellies_occupancy_selected_led')|lower == 'true' %}{% set s = 0 %}{% else %}{% set s = 1 %}{% endif %}
+      {{- 'http://' + ip + '/settings?' + 'led_status_disable' + s|string -}}
+    {%- else -%}null{%- endif %}
+  value_template: >-
+    {% if value_json is defined and 'led_status_disable' in value_json %}{{ value_json.led_status_disable|lower != 'true' }}{% else %}False{% endif %}
+
+## TEMPLATE
+
+- platform: template
+  sensors:
+    motion_shellies_occupancy:
+      unique_id: motion_shellies_occupancy_all
+      friendly_name: Motion
+      device_class: 'occupancy'
+      icon_template: >-
+        {% if is_state('binary_sensor.motion_shellies_occupancy','on') %}
+          {{- 'mdi:motion-sensor' -}}
+        {% else %}
+          {{- 'mdi:motion-sensor-off' -}}
+        {% endif %}
+      value_template: >-
+        {{- false -}}
+    motion_shellies_occupancy_selected_active:
+      friendly_name: 'Selected sensor active'
+      icon_template: 'mdi:toggle-switch'
+      value_template: >-
+        {{- is_state('input_boolean.motion_shellies_occupancy_selected_active','on') -}}
+    motion_shellies_occupancy_selected_led:
+      friendly_name: 'Selected sensor LED'
+      icon_template: 'mdi:toggle-switch'
+      value_template: >-
+        {{- is_state('input_boolean.motion_shellies_occupancy_selected_led','on') -}}
