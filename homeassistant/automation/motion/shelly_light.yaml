@@ -99,16 +99,8 @@
               qos: 2
               retain: false
     - alias: 'update group.motion_shellies_light'
-      service: homeassistant.update_entity
-      entity_id: group.motion_shellies_light
-    - alias: 'set group.motion_shellies_light'
-      service: python_script.set_state
-      data_template:
-        allow_create: true
-        entity_id: >-
-          {{ 'group.motion_shellies_light' }}
-        state: >-
-          {{ 'on' }}
+      service: automation.trigger
+      entity_id: automation.motion_shellies_light_group_update
 
 # turn off all lights
 
@@ -156,14 +148,9 @@
                 {{- 'off' -}}
               qos: 2
               retain: false
-    - alias: 'set group.motion_shellies_light'
-      service: python_script.set_state
-      data_template:
-        allow_create: true
-        entity_id: >-
-          {{ 'group.motion_shellies_light' }}
-        state: >-
-          {{ 'off' }}
+    - alias: 'update group.motion_shellies_light'
+      service: automation.trigger
+      entity_id: automation.motion_shellies_light_group_update
 
 # update light group on binary_sensor
 
@@ -173,7 +160,7 @@
   mode: restart
   trigger:
     - platform: state
-      entity_id: binary_sensor.motion_shellies_light
+      entity_id: sensor.motion_shellies_light
   variables:
     state: >-
       {% set s = state_attr('sensor.motion_shellies_light','status') %}
@@ -309,3 +296,69 @@
           {{ now }}
         state: >-
           {{- 'off' -}}
+
+## MQTT
+
+# light on message
+
+- id: motion_shellies_light_mqtt_on
+  alias: motion_shellies_light_mqtt_on
+  initial_state: on
+  mode: queued
+  trigger:
+    - platform: mqtt
+      topic: 'shellies/+/light/0'
+  variables:
+    topic: >-
+      {{ trigger.topic }}
+    state: >-
+      {{ trigger.payload_json|lower == 'on' }}
+    id: >-
+      {{ topic|replace('shellies/','')|replace('/light/0','') }}
+    updated: >-
+      {{ utcnow().timestamp()|int }}
+    mac: >-
+      {% if id|lower != 'none' and id|lower != 'unavailable' and id|lower != 'unknown' and id|lower != 'null' and id|length > 0 %}
+        {% set s = states('group.motion_shellies') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+          {% set s = state_attr('group.motion_shellies','entity_id') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {% for i in s if state_attr(i,'id') == id %}
+              {% if loop.first %}{{ state_attr(i,'mac') }}{% endif %}
+            {% endfor %}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    type: >-
+      {% if mac|lower != 'none' and mac|lower != 'unavailable' and mac|lower != 'unknown' and mac|lower != 'null' and mac|length > 0 %}
+        {% set s = states('group.motion_shellies') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+          {% set s = state_attr('group.motion_shellies','entity_id') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {% for i in s if state_attr(i,'mac') == mac %}
+              {% if loop.first %}{{ state_attr(i,'type') }}{% endif %}
+            {% endfor %}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    sensor: >-
+      {% if mac|lower != 'null' and mac|length > 0 and type|lower != 'null' and type|length > 0 %}
+        {{ 'binary_sensor.motion_shelly_' + type|string + '_' + mac|string }}
+      {% else %}null{% endif %}
+  action:
+    - alias: 'test sensor is not null'
+      condition: and
+      conditions:
+        - condition: template
+          value_template: >-
+            {{ sensor|lower != 'null' }}
+    - alias: 'set_state: binary_sensor.motion_shelly_<type>_<mac>'
+      service: python_script.set_state
+      data_template:
+        allow_create: true
+        entity_id: >-
+          {{ sensor }}
+        updated: >-
+          {{ updated }}
+        state: >-
+          {{ state }}
