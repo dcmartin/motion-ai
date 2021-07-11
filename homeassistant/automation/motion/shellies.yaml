@@ -595,6 +595,8 @@
         {% if trigger.payload_json.motion|lower == 'true' %}on{% else %}off{% endif %}
       {% elif 'ison' in trigger.payload_json %}
         {% if trigger.payload_json.ison|lower == 'true' %}on{% else %}off{% endif %}
+      {% elif 'flood' in trigger.payload_json %}
+        {% if trigger.payload_json.flood|lower == 'true' %}on{% else %}off{% endif %}
       {% elif sensor|lower != 'null' %}
         {% set s = states(sensor) %}
         {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
@@ -610,7 +612,7 @@
         {% endif %}
       {% else %}unavailable{% endif %}
   action:
-    - alias: 'choose: mac defined y/n'
+    - alias: 'choose: announce mac if not defined'
       choose:
         - alias: 'condition: mac defined?'
           conditions:
@@ -1199,32 +1201,41 @@
         {{ 'binary_sensor.motion_shelly_' + type|string + '_' + mac|string }}
       {% else %}null{% endif %}
     state: >-
-      {% if 'sensor' in info %}
+      {% if 'sensor' in info and 'motion' in info.sensor %}
         {% if info.sensor.motion|lower == 'true' %}on{% else %}off{% endif %}
-      {% elif 'lights' in info %}
+      {% elif 'lights' in info and 'ison' in info.lights %}
         {% if info.lights.ison|lower == 'true' %}on{% else %}off{% endif %}
+      {% elif 'flood' in info %}
+        {% if info.flood|lower == 'true' %}on{% else %}off{% endif %}
       {% else %}null{% endif %}
   action:
-#    - alias: 'test if sensor not defined'
-#      choose:
-#        - alias: 'sensor not defined; publish MQTT command to <id> for announce'
-#          conditions:
-#            - condition: template
-#              value_template: >
-#                {{ sensor|lower == 'null' }}
-#          sequence:
-#            - service: mqtt.publish
-#              data_template:
-#                topic: >-
-#                  {{ 'shellies/' + id|string + '/command' }}
-#                payload: 'announce'
-    - alias: 'sensor good?'
+    - alias: 'choose: announce if sensor not defined'
+      choose:
+        - alias: 'condition: sensor is null'
+          conditions:
+            - condition: template
+              value_template: >
+                {{ sensor|lower == 'null' }}
+          sequence:
+            - alias: 'sequence: mqtt.publish: shellies/<id>/command announce'
+              service: mqtt.publish
+              data_template:
+                topic: >-
+                  {{ 'shellies/' + id|string + '/command' }}
+                payload: 'announce'
+    - alias: 'condition: sensor good?'
       condition: and
       conditions:
         - condition: template
           value_template: >
             {{ sensor|lower != 'null' }}
-    - alias: 'update binary_sensor.motion_shelly_<type>_<mac>'
+    - alias: 'condition: state good?'
+      condition: and
+      conditions:
+        - condition: template
+          value_template: >
+            {{ state|lower != 'null' }}
+    - alias: 'set_state: binary_sensor.motion_shelly_<type>_<mac>'
       service: python_script.set_state
       data_template:
         allow_create: true
