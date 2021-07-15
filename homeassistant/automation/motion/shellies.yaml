@@ -109,7 +109,7 @@
   variables:
     topic: >-
       {{ trigger.topic }}
-    active: >-
+    online: >-
       {{ trigger.payload_json|lower == 'true' }}
     id: >-
       {{ topic|replace('shellies/','')|replace('/online','') }}
@@ -185,7 +185,7 @@
         allow_create: true
         entity_id: >-
           {{ sensor }}
-        active: >-
+        online: >-
           {{ active }}
         updated: >-
           {{ timestamp }}
@@ -340,8 +340,6 @@
   mode: queued
   trigger:
     - platform: mqtt
-      topic: 'shellies/+/light/0/status'
-    - platform: mqtt
       topic: 'shellies/+/status'
   variables:
     topic: >-
@@ -349,14 +347,22 @@
     status: >-
       {{ trigger.payload_json }}
     id: >-
-      {{ topic|replace('shellies/','')|replace('/light/0','')|replace('/status','') }}
+      {{ topic|replace('shellies/','')|replace('/status','') }}
     active: >-
       {% if 'active' in status %}
         {{ status.active|lower == 'true' }}
       {% else %}true{% endif %}
+    lux: >-
+      {% if 'lux' in status %}
+        {{ status.lux }}
+      {% else %}null{% endif %}
+    bat: >-
+      {% if 'bat' in status %}
+        {{ status.bat}}
+      {% else %}null{% endif %}
     timestamp: >-
-      {% if 'timestamp' in trigger.payload_json %}
-        {% set s = trigger.payload_json.timestamp %}
+      {% if 'timestamp' in status %}
+        {% set s = status.timestamp %}
         {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int > 0 %}
           {{ s }}
         {% else %}
@@ -426,10 +432,8 @@
         {% else %}null{% endif %}
       {% else %}null{% endif %}
     state: >-
-      {% if 'motion' in trigger.payload_json %}
+      {% if 'motion' in status %}
         {% if trigger.payload_json.motion|lower == 'true' %}on{% else %}off{% endif %}
-      {% elif 'ison' in trigger.payload_json %}
-        {% if trigger.payload_json.ison|lower == 'true' %}on{% else %}off{% endif %}
       {% elif 'flood' in trigger.payload_json %}
         {% if trigger.payload_json.flood|lower == 'true' %}on{% else %}off{% endif %}
       {% elif sensor|lower != 'null' %}
@@ -439,8 +443,7 @@
         {% else %}
           {% set s = state_attr(sensor,'status') %}
           {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
-            {% if 'ison' in s %}{% if s.ison|lower == 'true' %}on{% else %}off{% endif %}
-            {% elif 'motion' in s %}{% if s.motion|lower == 'true' %}on{% else %}off{% endif %}
+            {% if 'motion' in s %}{% if s.motion|lower == 'true' %}on{% else %}off{% endif %}
             {% elif 'flood' in s %}{% if s.flood|lower == 'true' %}on{% else %}off{% endif %}
             {% else %}none{% endif %}
           {% else %}unknown{% endif %}
@@ -491,6 +494,10 @@
           {{ sensor }}
         active: >-
           {{ active }}
+        bat: >-
+          {{ bat }}
+        lux: >-
+          {{ lux }}
         status: >-
           {{ status }}
         timestamp: >-
@@ -525,6 +532,12 @@
           {{ gps }}
         distance: >-
           {{ distance }}
+        active: >-
+          {{ active }}
+        bat: >-
+          {{ bat }}
+        lux: >-
+          {{ lux }}
         state: >-
           {{ id }}
 
@@ -1511,3 +1524,76 @@
     - alias: "update sensor motion_shellies_settings"
       service: homeassistant.update_entity
       entity_id: sensor.motion_shellies_settings
+
+### TIMEOUT
+
+- id: motion_shellies_offline_timeout
+  alias: motion_shellies_offline_timeout
+  initial_state: on
+  mode: single
+  trigger:
+    - platform: time_pattern
+      minutes: /1
+  variables:
+    entities: >-
+      {% set s = state_attr('group.motion_shellies','entity_id') %}
+      {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+        {{ s }}
+      {% else %}null{% endif %}
+    ago: >-
+      {% if entities|lower != 'null' and entities is iterable %}
+        {%- set now = utcnow().timestamp()|int %}
+        [{%- for e in entities -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {%- if state_attr(e,'updated')|lower != 'none' -%}{{- now - state_attr(e,'updated')|int -}}{%- else -%}null{%- endif -%}
+        {%- endfor %}]
+      {% else %}null{% endif %}
+    offline: >-
+      {% if entities|lower != 'null' and entities is iterable -%}
+        [{%- for i in range(entities|count) if ago[i]|lower == 'null' or ago[i]|int > 60 -%}
+          {%- if not loop.first -%},{%- endif -%}
+          "{{ state_attr(entities[i],'id') }}"
+        {%- endfor -%}]
+      {% else %}null{% endif %}
+    offline_eid: >-
+      {% if entities|lower != 'null' and entities is iterable -%}
+        [{%- for i in range(entities|count) if ago[i]|lower == 'null' or ago[i]|int > 60 -%}
+          {%- if not loop.first -%},{%- endif -%}
+          "{{ entities[i] }}"
+        {%- endfor -%}]
+      {% else %}null{% endif %}
+  action:
+    - alias: 'set binary_sensor.motion_shellies_offline'
+      service: python_script.set_state
+      data_template:
+        allow_create: true
+        entity_id: >-
+          {{ 'binary_sensor.motion_shellies_offline' }}
+        offline: >-
+          {{ offline }}
+        state: >-
+          {% if offline|lower != 'none' and offline|count > 0 %}on{% else %}off{% endif %}
+    - alias: 'condition: nothing offline?'
+      condition: and
+      conditions:
+        - condition: template
+          value_template: >-
+            {{ offline_eid|count > 0 }}
+    - alias: 'repeat: all light offline'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = offline_eid[repeat.index - 1] %}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - alias: 'set_state: binary_sensor.motion_shellies_<type>_<mac>; online: false'
+            service_template: python_script.set_state
+            data_template:
+              entity_id: >-
+                {{ offline_eid[repeat.index - 1] }} 
+              online: >-
+                {{- false -}}
+              state: >-
+                {{ states(offline_eid[repeat.index - 1]) }}
+
