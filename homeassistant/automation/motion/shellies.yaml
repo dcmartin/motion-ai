@@ -24,9 +24,9 @@
       entity_id: sensor.motion_shellies_settings_login
     - alias: 'wait for login settings to update'
       wait_for_trigger:
-        - platform: state 
+        - platform: state
           entity_id: sensor.motion_shellies_settings_login
-          to: 'True' 
+          to: 'True'
       continue_on_timeout: true
       timeout:
         seconds: 5
@@ -35,9 +35,9 @@
       entity_id: sensor.motion_shellies_settings_timezone
     - alias: 'wait for timezone settings to update'
       wait_for_trigger:
-        - platform: state 
+        - platform: state
           entity_id: sensor.motion_shellies_settings_timezone
-          to: 'True' 
+          to: 'True'
       continue_on_timeout: true
       timeout:
         seconds: 5
@@ -1322,9 +1322,9 @@
       entity_id: sensor.motion_shellies_settings_login
     - alias: 'wait for login settings to update'
       wait_for_trigger:
-        - platform: state 
+        - platform: state
           entity_id: sensor.motion_shellies_settings_login
-          to: 'True' 
+          to: 'True'
       continue_on_timeout: true
       timeout:
         seconds: 5
@@ -1485,12 +1485,12 @@
         {{ 'binary_sensor.motion_shelly_' + type|string + '_' + mac|string }}
       {% else %}null{% endif %}
   action:
-    - alias: 'mac and type good?'
+    - alias: 'sensor good?'
       condition: and
       conditions:
         - condition: template
           value_template: >
-            {{ mac|lower != 'null' and type|lower != 'null' }}
+            {{ sensor|lower != 'null' }}
     - alias: 'test if binary_sensor_motion_shelly_<type>_<mac> is not defined'
       condition: and
       conditions:
@@ -1550,7 +1550,7 @@
       {% else %}null{% endif %}
     offline: >-
       {% if entities|lower != 'null' and entities is iterable -%}
-        [{%- for i in range(entities|count) if ago[i]|lower == 'null' or ago[i]|int > 60 -%}
+        [{%- for i in range(entities|count) if ago[i]|lower == 'null' or ago[i]|int > 120 -%}
           {%- if not loop.first -%},{%- endif -%}
           "{{ state_attr(entities[i],'id') }}"
         {%- endfor -%}]
@@ -1573,27 +1573,23 @@
           {{ offline }}
         state: >-
           {% if offline|lower != 'none' and offline|count > 0 %}on{% else %}off{% endif %}
-    - alias: 'condition: nothing offline?'
-      condition: and
-      conditions:
-        - condition: template
-          value_template: >-
-            {{ offline_eid|count > 0 }}
-    - alias: 'repeat: all light offline'
+    - alias: 'repeat: all entity'
       repeat:
         while:
           - condition: template
             value_template: >-
-              {% set s = offline_eid[repeat.index - 1] %}
+              {% set s = entities[repeat.index - 1] %}
               {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
         sequence:
-          - alias: 'set_state: binary_sensor.motion_shellies_<type>_<mac>; online: false'
+          - alias: 'set_state: binary_sensor.motion_shellies_<type>_<mac>'
             service_template: python_script.set_state
             data_template:
               entity_id: >-
-                {{ offline_eid[repeat.index - 1] }} 
+                {{ entities[repeat.index - 1] }}
+              ago: >-
+                {{- ago[repeat.index - 1] -}}
               online: >-
-                {{- false -}}
+                {%- set s = ago[repeat.index - 1] -%}
+                {{- s|lower != 'null' and s|int <= 120 -}}
               state: >-
-                {{ states(offline_eid[repeat.index - 1]) }}
-
+                {{ states(entities[repeat.index - 1]) }}
