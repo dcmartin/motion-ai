@@ -656,7 +656,7 @@
         {{ state_attr(sensor,'id') }}
       {% else %}null{% endif %}
     state: >-
-      {% if sensor|lower != 'none' and sensor|lower != 'unavailable' and sensor|lower != 'unknown' and sensor|lower != 'null' %}
+      {% if sensor|lower != 'null' %}
         {% if is_state(sensor,'on') -%}on{% else %}off{% endif %}
       {% else %}null{% endif %}
   action:
@@ -1395,6 +1395,32 @@
         - condition: template
           value_template: >
             {{ type|lower != 'null' and type|length > 0 }}
+    - alias: 'update group.motion_shellies_<type>'
+      service: python_script.set_state
+      data_template:
+        allow_create: true
+        entity_id: >-
+          {{- 'group.motion_shellies_' + type|string -}}
+        friendly_name: >-
+          {{ type|capitalize + '(s)' }}
+        entity_ids: >-
+          [{% for eid in states.binary_sensor|map(attribute='entity_id')|list if ('motion_shelly_' + type|string) in eid  -%}
+          {%- if not loop.first -%},{%- endif -%}
+          "{{- eid -}}"
+          {%- endfor %}]
+        updated: >-
+          {{ utcnow().timestamp()|int }}
+        state: >-
+          {% set s = state_attr('sensor.motion_shellies_' + type|string,'status') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s is iterable %}
+            {% if s|select('==','on')|list|length > 0 %}on{% else %}off{% endif %}
+          {% else %}off{% endif %}
+    - alias: 'sensor good?'
+      condition: and
+      conditions:
+        - condition: template
+          value_template: >
+            {{ sensor|lower != 'null' }}
     - alias: 'update binary_sensor.motion_shelly_<type>_<mac>'
       service: python_script.set_state
       data_template:
@@ -1423,26 +1449,6 @@
           {{ utcnow().timestamp()|int }}
         state: >-
           {{ state }}
-    - alias: 'update group.motion_shellies_<type>'
-      service: python_script.set_state
-      data_template:
-        allow_create: true
-        entity_id: >-
-          {{- 'group.motion_shellies_' + type|string -}}
-        friendly_name: >-
-          {{ type|capitalize + '(s)' }}
-        entity_ids: >-
-          [{% for eid in states.binary_sensor|map(attribute='entity_id')|list if ('motion_shelly_' + type|string) in eid  -%}
-          {%- if not loop.first -%},{%- endif -%}
-          "{{- eid -}}"
-          {%- endfor %}]
-        updated: >-
-          {{ utcnow().timestamp()|int }}
-        state: >-
-          {% set s = state_attr('sensor.motion_shellies_' + type|string,'status') %}
-          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s is iterable %}
-            {% if s|select('==','on')|list|length > 0 %}on{% else %}off{% endif %}
-          {% else %}off{% endif %}
     - alias: 'update group.motion_shellies'
       service: python_script.set_state
       data_template:
@@ -1544,13 +1550,16 @@
           {{ is_state('input_boolean.motion_shellies_scan','on') }}
   variables:
     devices: >-
-      {%- set s = state_attr('sensor.motion_addon_rtsp','rtsp').devices -%}
-      {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|length > 0 -%}
-        {%- for c in s|selectattr('code','!=','200')|list -%}
-          {%- if loop.first -%}[{%- else -%},{%- endif -%}
-          "{{- c.ip -}}"
-          {%- if loop.last -%}]{%- endif -%}
-        {%- endfor -%}
+      {%- set s = state_attr('sensor.motion_addon_rtsp','rtsp') -%}
+      {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and 'devices' in s -%}
+        {%- set s = s.devices -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s is iterable and s|length > 0 -%}
+          {%- for c in s|selectattr('code','!=','200')|list -%}
+            {%- if loop.first -%}[{%- else -%},{%- endif -%}
+            "{{- c.ip -}}"
+            {%- if loop.last -%}]{%- endif -%}
+          {%- endfor -%}
+        {% else %}null{%- endif -%}
       {% else %}null{%- endif -%}
   action:
     - alias: 'test for list of devices'
@@ -1558,7 +1567,7 @@
       conditions:
         - condition: template
           value_template: >
-            {{ devices|length > 0 }}
+            {{ devices|lower != 'null' and devices is iterable and devices|length > 0 }}
     - alias: "check all non-rtsp devices for shelly"
       repeat:
         while:
