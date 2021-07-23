@@ -5,26 +5,53 @@
 - platform: template
   sensors:
     plex:
-      icon: 'mdi:plex'
       friendly_name: Plex server
+      icon_template: 'mdi:plex'
       attribute_templates:
         watching: >-
           {% set plex = states('sensor.plex') %}
-          {{ states('sensor.plex_' + plex) }}
+          {% if plex|lower != 'unknown' and plex|length > 0 %}
+            {{ states('sensor.plex_' + plex) }}
+          {% else %}null{% endif %}
+        users: >-
+          {% set plex = states('sensor.plex') -%}
+          {%- if plex|lower != 'unknown' and plex|length > 0 -%}
+            {% for state in states.sensor if ('sensor.plex_' + plex) == state.entity_id %}
+              {% for key,value in state.attributes.items() if 'Plex' in key %}
+                {%- if not loop.first -%},{%- else -%}[{%- endif -%}
+                "{{- key|regex_replace(' - .*','') -}}"
+                {%- if loop.last -%}]{%- endif -%}
+              {%- endfor -%}
+            {%- endfor %}
+          {% else %}null{% endif %}
         now_playing: >-
-          {% set plex = states('sensor.plex') %}
-          {{ state_attr('sensor.plex_' + plex,plex + ' - Plex Media Player') }}
+          {% set plex = states('sensor.plex') -%}
+          {%- if plex|lower != 'unknown' and plex|length > 0 -%}
+            {% for state in states.sensor if ('sensor.plex_' + plex) == state.entity_id %}
+              {% for key,value in state.attributes.items() if 'Plex' in key %}
+                {%- if not loop.first -%},{%- else -%}[{%- endif -%}
+                {"{{- key|regex_replace(' - .*','') -}}": "{{- value -}}"}
+                {%- if loop.last -%}]{%- endif -%}
+              {%- endfor -%}
+            {%- endfor %}
+          {% else %}null{% endif %}
         movies: >-
           {% set plex = states('sensor.plex') %}
-          {{ states('sensor.' + plex + '_library_movies') }}
+          {% if plex|lower != 'unknown' and plex|length > 0 %}
+            {{ states('sensor.' + plex + '_library_movies') }}
+          {% else %}null{% endif %}
         episodes: >-
           {% set plex = states('sensor.plex') %}
-          {{ states('sensor.' + plex + '_library_tv_shows') }}
+          {% if plex|lower != 'unknown' and plex|length > 0 %}
+            {{ states('sensor.' + plex + '_library_tv_shows') }}
+          {% else %}null{% endif %}
         shows: >-
           {% set plex = states('sensor.plex') %}
-          {{ state_attr('sensor.' + plex + '_library_tv_shows','shows') }}
+          {% if plex|lower != 'unknown' and plex|length > 0 %}
+            {{ state_attr('sensor.' + plex + '_library_tv_shows','shows') }}
+          {% else %}null{% endif %}
       value_template: >-
-        {% for state in states.sensor if 'plex' in state.entity_id -%}
+        {% for state in states.sensor if 'plex_' in state.entity_id -%}
           {%- if loop.first -%}
             {{- state.entity_id|string|replace('sensor.plex_','') -}}
           {%- endif -%}
