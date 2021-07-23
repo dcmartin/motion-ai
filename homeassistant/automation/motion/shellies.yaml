@@ -167,24 +167,6 @@
         {% endif %}
       {% else %}unavailable{% endif %}
   action:
-    - alias: 'choose: announce if sensor not defined'
-      choose:
-        - alias: 'condition: sensor defined?'
-          conditions:
-            - condition: template
-              value_template: >
-                {{ sensor|lower == 'null' }}
-            - condition: template
-              value_template: >
-                {{ is_state('input_boolean.motion_shellies_publish_announce','on') }}
-          sequence:
-            - alias: 'sequence: mqtt.publish: shellies/<id>/command announce'
-              service: mqtt.publish
-              data_template:
-                topic: >-
-                  {{ 'shellies/' + id|string + '/command' }}
-                payload_template: >-
-                  {{- 'announce' -}}
     - alias: 'test sensor is not null'
       condition: and
       conditions:
@@ -481,9 +463,6 @@
             - condition: template
               value_template: >
                 {{ sensor|lower == 'null' }}
-            - condition: template
-              value_template: >
-                {{ is_state('input_boolean.motion_shellies_publish_announce','on') }}
           sequence:
             - alias: 'sequence: mqtt.publish: shellies/<id>/command announce'
               service: mqtt.publish
@@ -1135,24 +1114,6 @@
         {% if info.flood|lower == 'true' %}on{% else %}off{% endif %}
       {% else %}null{% endif %}
   action:
-    - alias: 'choose: announce if sensor not defined'
-      choose:
-        - alias: 'condition: sensor is null'
-          conditions:
-            - condition: template
-              value_template: >
-                {{ sensor|lower == 'null' }}
-            - condition: template
-              value_template: >
-                {{ is_state('input_boolean.motion_shellies_publish_announce','on') }}
-          sequence:
-            - alias: 'sequence: mqtt.publish: shellies/<id>/command announce'
-              service: mqtt.publish
-              data_template:
-                topic: >-
-                  {{ 'shellies/' + id|string + '/command' }}
-                payload_template: >-
-                  {{- 'announce' -}}
     - alias: 'condition: sensor good?'
       condition: and
       conditions:
@@ -1283,6 +1244,7 @@
       {{ trigger.topic }}
     id: >-
       {{ topic|replace('shellies/','')|replace('/announce','') }}
+#      {{ trigger.payload_json.id }}
     ip: >-
       {{ trigger.payload_json.ip }}
     mac: >-
@@ -1389,32 +1351,6 @@
         {% endif %}
       {% else %}unavailable{% endif %}
   action:
-    - alias: 'type good?'
-      condition: and
-      conditions:
-        - condition: template
-          value_template: >
-            {{ type|lower != 'null' and type|length > 0 }}
-    - alias: 'update group.motion_shellies_<type>'
-      service: python_script.set_state
-      data_template:
-        allow_create: true
-        entity_id: >-
-          {{- 'group.motion_shellies_' + type|string -}}
-        friendly_name: >-
-          {{ type|capitalize + '(s)' }}
-        entity_ids: >-
-          [{% for eid in states.binary_sensor|map(attribute='entity_id')|list if ('motion_shelly_' + type|string) in eid  -%}
-          {%- if not loop.first -%},{%- endif -%}
-          "{{- eid -}}"
-          {%- endfor %}]
-        updated: >-
-          {{ utcnow().timestamp()|int }}
-        state: >-
-          {% set s = state_attr('sensor.motion_shellies_' + type|string,'status') %}
-          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s is iterable %}
-            {% if s|select('==','on')|list|length > 0 %}on{% else %}off{% endif %}
-          {% else %}off{% endif %}
     - alias: 'sensor good?'
       condition: and
       conditions:
@@ -1449,6 +1385,26 @@
           {{ utcnow().timestamp()|int }}
         state: >-
           {{ state }}
+    - alias: 'update group.motion_shellies_<type>'
+      service: python_script.set_state
+      data_template:
+        allow_create: true
+        entity_id: >-
+          {{- 'group.motion_shellies_' + type|string -}}
+        friendly_name: >-
+          {{ type|capitalize + '(s)' }}
+        entity_ids: >-
+          [{% for eid in states.binary_sensor|map(attribute='entity_id')|list if ('motion_shelly_' + type|string) in eid  -%}
+          {%- if not loop.first -%},{%- endif -%}
+          "{{- eid -}}"
+          {%- endfor %}]
+        updated: >-
+          {{ utcnow().timestamp()|int }}
+        state: >-
+          {% set s = state_attr('sensor.motion_shellies_' + type|string,'status') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s is iterable %}
+            {% if s|select('==','on')|list|length > 0 %}on{% else %}off{% endif %}
+          {% else %}off{% endif %}
     - alias: 'update group.motion_shellies'
       service: python_script.set_state
       data_template:

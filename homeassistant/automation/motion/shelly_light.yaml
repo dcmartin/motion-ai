@@ -411,17 +411,23 @@
       {% else %}null{% endif %}
     state: >-
       {% if sensor|lower != 'null' %}
-        {% set s = states(sensor) %}
+        {% set s = state_attr(sensor,'status') %}
         {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
-          {{ s }}
-        {% else %}
-          {% set s = state_attr(sensor,'status') %}
-          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
-            {% if 'ison' in s %}{% if s.ison|lower == 'true' %}on{% else %}off{% endif %}
-            {% else %}none{% endif %}
-          {% else %}unknown{% endif %}
+          {% if 'ison' in s %}{% if s.ison|lower == 'true' %}{% set p = 'on' %}{% else %}{% set p = 'off' %}{% endif %}{% endif %}
         {% endif %}
-      {% else %}unavailable{% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% else %}
+          {% set s = state_attr(sensor,'ago') %}
+          {% if s|lower != 'null' and s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' %}
+            {% if s|int < 120 and state_attr(sensor,'online')|lower == 'true' and state_attr(sensor,'power')|int > 0 %}
+              {{ 'on' }}
+            {% else %}
+              {{ 'off' }}
+            {% endif %}
+          {% else %}null{% endif %}
+        {% endif %}
+      {% else %}null{% endif %}
   action:
     - alias: 'condition: sensor defined?'
       condition: and
@@ -495,7 +501,11 @@
         {{ 'binary_sensor.motion_shelly_' + type|string + '_' + mac|string }}
       {% else %}null{% endif %}
     state: >-
-      {% if power > 0 %}on{% else %}off{% endif %}
+      {% if power > 0 %}
+        {{ 'on' }}
+      {% else %}
+        {{ 'off' }}
+      {% endif %}
   action:
     - alias: 'condition: sensor defined?'
       condition: and
@@ -652,6 +662,21 @@
         {% endif %}
       {% else %}unavailable{% endif %}
   action:
+    - alias: 'choose: announce if sensor not defined'
+      choose:
+        - alias: 'condition: sensor defined?'
+          conditions:
+            - condition: template
+              value_template: >
+                {{ sensor|lower == 'null' }}
+          sequence:
+            - alias: 'sequence: mqtt.publish: shellies/<id>/command announce'
+              service: mqtt.publish
+              data_template:
+                topic: >-
+                  {{ 'shellies/' + id|string + '/command' }}
+                payload_template: >-
+                  {{- 'announce' -}}
     - alias: 'condition: type good?'
       condition: and
       conditions:
