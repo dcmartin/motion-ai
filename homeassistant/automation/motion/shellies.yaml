@@ -162,10 +162,10 @@
             {% if 'ison' in s %}{% if s.ison|lower == 'true' %}on{% else %}off{% endif %}
             {% elif 'motion' in s %}{% if s.motion|lower == 'true' %}on{% else %}off{% endif %}
             {% elif 'flood' in s %}{% if s.flood|lower == 'true' %}on{% else %}off{% endif %}
-            {% else %}none{% endif %}
-          {% else %}unknown{% endif %}
+            {% else %}null{% endif %}
+          {% else %}null{% endif %}
         {% endif %}
-      {% else %}unavailable{% endif %}
+      {% else %}null{% endif %}
   action:
     - alias: 'condition: sensor good?'
       condition: and
@@ -173,6 +173,9 @@
         - condition: template
           value_template: >-
             {{ sensor|lower != 'null' }}
+        - condition: template
+          value_template: >-
+            {{ state|lower != 'null' }}
     - alias: 'set binary_sensor.motion_shelly_<type>_<mac>'
       service: python_script.set_state
       data_template:
@@ -201,6 +204,7 @@
 # shellies/sheshed-temperature/sensor/battery 66
 # shellies/sheshed-temperature/sensor/error 0
 # shellies/sheshed-temperature/sensor/act_reasons ["button"]
+# shellies/door-window-2/sensor/act_reasons ["sensor","temperature"]
 
 - id: motion_shellies_mqtt_sensor
   alias: motion_shellies_mqtt_sensor
@@ -216,8 +220,6 @@
       {{ trigger.topic }}
     attr: >-
       {{ topic|regex_replace('shellies/[^/]*/sensor/','') }}
-    val: >-
-      {{ trigger.payload_json }}
     id: >-
       {{ topic|replace('shellies/','')|replace('sensor/','')|replace('/' + attr,'') }}
     timestamp: >-
@@ -276,12 +278,12 @@
           {% if attr in s %}
             {% set s = s|to_json %}
             {% set old = '"' + attr + '":[ ]*[^}^,]*' %}
-            {% set new = '"' + attr + '": ' + val|to_json|string %}
+            {% set new = '"' + attr + '": ' + trigger.payload_json|to_json|string %}
             {% set s = s|regex_replace(old,new) %}
           {% else %}
             {% set s = s|to_json %}
             {% set old = '}' %}
-            {% set new = ',"' + attr + '": ' + val|to_json|string + '}' %}
+            {% set new = ',"' + attr + '": ' + trigger.payload_json|to_json|string + '}' %}
             {% set s = s|regex_replace(old,new) %}
           {% endif %}
           {% set old = '"timestamp":[ ]*[^}^,]*' %}
@@ -292,7 +294,7 @@
       {% if p is defined %}
         {{ p|from_json }}
       {% else %}
-        {{- '{"' + attr + '":' + val|string + ',"timestamp":' + timestamp|int|string + '}' -}}
+        {{- '{"' + attr + '":' + trigger.payload_json|to_json|string + ',"timestamp":' + timestamp|int|string + '}' -}}
       {% endif %}
     state: >-
       {% if sensor|lower != 'null' %}
@@ -305,10 +307,10 @@
             {% if 'ison' in s %}{% if s.ison|lower == 'true' %}on{% else %}off{% endif %}
             {% elif 'motion' in s %}{% if s.motion|lower == 'true' %}on{% else %}off{% endif %}
             {% elif 'flood' in s %}{% if s.flood|lower == 'true' %}on{% else %}off{% endif %}
-            {% else %}none{% endif %}
-          {% else %}unknown{% endif %}
+            {% else %}null{% endif %}
+          {% else %}null{% endif %}
         {% endif %}
-      {% else %}unavailable{% endif %}
+      {% else %}null{% endif %}
   action:
     - alias: 'condition: sensor defined?'
       condition: and
@@ -329,7 +331,6 @@
         entity_id: >-
           {{ sensor }}
         status: >-
-          {% if not status is string %}{% set status = status|to_json|string %}{% endif %}
           {{ status }}
         updated: >-
           {{ utcnow().timestamp()|int }}
