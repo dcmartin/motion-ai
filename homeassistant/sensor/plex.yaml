@@ -1,0 +1,63 @@
+###
+# homeassistant/sensor/plex.yaml
+###
+
+- platform: template
+  sensors:
+    plex:
+      friendly_name: Plex server
+      icon_template: 'mdi:plex'
+      attribute_templates:
+        watching: >-
+          {% set plex = states('sensor.plex') %}
+          {% if plex|lower != 'unknown' and plex|length > 0 %}
+            {{ states('sensor.plex_' + plex) }}
+          {% else %}null{% endif %}
+        users: >-
+          {% set plex = states('sensor.plex') -%}
+          {%- if plex|lower != 'unknown' and plex|length > 0 -%}
+            {% for state in states.sensor if ('sensor.plex_' + plex) == state.entity_id %}
+              {% for key,value in state.attributes.items() if 'Plex' in key %}
+                {%- if not loop.first -%},{%- else -%}[{%- endif -%}
+                "{{- key|regex_replace(' - .*','') -}}"
+                {%- if loop.last -%}]{%- endif -%}
+              {%- endfor -%}
+            {%- endfor %}
+          {% else %}null{% endif %}
+        now_playing: >-
+          {% set plex = states('sensor.plex') -%}
+          {%- if plex|lower != 'unknown' and plex|length > 0 -%}
+            {% for state in states.sensor if ('sensor.plex_' + plex) == state.entity_id %}
+              {% for key,value in state.attributes.items() if 'Plex' in key %}
+                {%- if not loop.first -%},{%- else -%}[{%- endif -%}
+                "{{- value -}}"
+                {%- if loop.last -%}]{%- endif -%}
+              {%- endfor -%}
+            {%- endfor %}
+          {% else %}null{% endif %}
+        movies: >-
+          {% set plex = states('sensor.plex') %}
+          {% if plex|lower != 'unknown' and plex|length > 0 %}
+            {{ states('sensor.' + plex + '_library_movies') }}
+          {% else %}null{% endif %}
+        episodes: >-
+          {% set plex = states('sensor.plex') %}
+          {% if plex|lower != 'unknown' and plex|length > 0 %}
+            {{ states('sensor.' + plex + '_library_tv_shows') }}
+          {% else %}null{% endif %}
+        shows: >-
+          {% set plex = states('sensor.plex') %}
+          {% if plex|lower != 'unknown' and plex|length > 0 %}
+            {{ state_attr('sensor.' + plex + '_library_tv_shows','shows') }}
+          {% else %}null{% endif %}
+        server: >-
+          {% for state in states.sensor if 'plex_' in state.entity_id -%}
+            {%- if loop.first -%}
+              {{- state.entity_id|string|replace('sensor.plex_','') -}}
+            {%- endif -%}
+          {%- endfor %}
+      value_template: >-
+        {% set s = state_attr('sensor.plex','server') %} 
+        {% if s|lower != 'null' and s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|length > 0 %}
+          {{ s }}
+        {% else %}null{% endif %}

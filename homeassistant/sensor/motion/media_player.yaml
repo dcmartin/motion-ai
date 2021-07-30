@@ -11,23 +11,15 @@
 
 - platform: template
   sensors:
-    motion_media_player_status_array:
-      friendly_name: Media Player states
-      value_template: >-
-        [{%- for state in states.media_player -%}
-          {%- if loop.first -%}{%- else -%},{%- endif -%}
-          {%- set s = state.state_with_unit|lower -%}
-          {%- if s == 'on' or s == 'off' -%}1{%- else -%}0{%- endif -%}
-        {%- endfor -%}]
-
-- platform: template
-  sensors:
     motion_media_player_count:
       friendly_name: Media Player count
       icon_template: 'mdi:counter'
       unit_of_measurement: '🔊'
       value_template: >-
-        {{ states('sensor.motion_media_player_status_array')|from_json|length }}
+        {% set s = state_attr('sensor.motion_media_player_status','array') %}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+          {{ s|length }}
+        {% else %}null{% endif %}
 
 - platform: template
   sensors:
@@ -36,7 +28,10 @@
       icon_template: 'mdi:counter'
       unit_of_measurement: '🔊'
       value_template: >-
-        {{ states('sensor.motion_media_player_status_array')|from_json|sum }}
+        {% set s = state_attr('sensor.motion_media_player_status','array') %}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+          {{ s|sum }}
+        {% else %}null{% endif %}
 
 - platform: template
   sensors:
@@ -67,6 +62,13 @@
       unique_id: motion_media_player_status
       friendly_name: Media Player on-line status 
       icon_template: 'mdi:play'
+      attribute_templates:
+        array: >-
+          [{%- for state in states.media_player -%}
+            {%- if loop.first -%}{%- else -%},{%- endif -%}
+            {%- set s = state.state_with_unit|lower -%}
+            {%- if s == 'on' or s == 'off' -%}1{%- else -%}0{%- endif -%}
+          {%- endfor -%}]
       value_template: >-
         {{ states('sensor.motion_media_player_count_online') -}}/{{- states('sensor.motion_media_player_count') -}}🔊;
         {{ states('sensor.motion_media_player_online_percent') -}}%

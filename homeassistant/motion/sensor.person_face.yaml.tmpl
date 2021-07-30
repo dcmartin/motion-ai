@@ -15,6 +15,84 @@
 
 - platform: template
   sensors:
+    motion_${MOTION_CAMERA}_person_face:
+      friendly_name: '${MOTION_CAMERA} 🙆'
+      attribute_templates:
+        faces: >-
+          {% set mc = '${MOTION_CAMERA}' %}
+          {% set pe = states('sensor.motion_' + mc + '_detected_person_event') %}
+          {% set fe = states('sensor.motion_' + mc + '_face_detected_event') %}
+          {% if pe|lower != 'null' and pe|lower != 'unavailable' and pe|lower != 'none' and pe|lower != 'unknown'
+            and fe|lower != 'null' and fe|lower != 'unavailable' and fe|lower != 'none' and fe|lower != 'unknown'
+            and pe == fe %}
+            {% set entitys = state_attr('sensor.motion_' + mc + '_event_annotated','results') %}
+            {% set f = state_attr('sensor.motion_' + mc + '_event_face','results') %}
+            {% if entitys|lower != 'null' and entitys|lower != 'unavailable' and entitys|lower != 'none' and entitys|lower != 'unknown'
+              and f|lower != 'null' and f|lower != 'unavailable' and f|lower != 'none' and f|lower != 'unknown' %}
+              {% if f|count > 0 and entitys|count > 0 -%}
+                [{%- for face in f if face.confidence|float >= states('sensor.motion_face_detected_threshold')|float -%}
+                  {% if loop.first %}{% else %},{% endif %}
+                  {%- set fw = face.width|int -%}
+                  {%- set fh = face.height|int -%}
+                  {%- set fx = face.x + (fw/2)|int -%}
+                  {%- set fy = face.y + (fh/2)|int -%}
+                  {%- for person in entitys if person.entity == 'person' and person.confidence|float >= states('sensor.motion_detected_person_threshold')|float
+                       and fx|int >= person.center.x - (person.width/2)|int
+                       and fx|int <= person.center.x + (person.height/2)|int
+                       and fy|int >= person.center.y|int - (person.height/2)|int
+                       and fy|int <= person.center.y|int + (person.height/2)|int -%}
+                    {% if loop.first %}{% else %},{% endif %}
+                    {{- '1' -}}
+                  {%- endfor -%}
+                {%- else -%}{{- '0' -}}{%- endfor -%}]
+              {%- else -%}null{%- endif -%}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        results: >-
+          {% set mc = '${MOTION_CAMERA}' %}
+          {% if is_state('binary_sensor.motion_' + mc + '_detected_person','on') and is_state('binary_sensor.motion_' + mc + '_face_detected','on') %}
+            {% set entitys = state_attr('sensor.motion_' + mc + '_event_annotated','results') %}
+            {% set f = state_attr('sensor.motion_' + mc + '_event_face','results') %}
+            {% if f|count > 0 and entitys|count > 0 -%}
+              [{%- for face in f if face.confidence|float >= states('sensor.motion_face_detected_threshold')|float -%}
+                {% if loop.first %}{% else %},{% endif %}
+                {%- set fw = face.width|int -%}
+                {%- set fh = face.height|int -%}
+                {%- set fx = face.x + (fw/2)|int -%}
+                {%- set fy = face.y + (fh/2)|int -%}
+                {%- for person in entitys if person.entity == 'person' and person.confidence|float >= states('sensor.motion_detected_person_threshold')|float
+                     and fx|int >= person.center.x - (person.width/2)|int
+                     and fx|int <= person.center.x + (person.height/2)|int
+                     and fy|int >= person.center.y|int - (person.height/2)|int
+                     and fy|int <= person.center.y|int + (person.height/2)|int -%}
+                  {% if loop.first %}{% else %},{% endif %}
+                   {"p":{
+                     "c":{{- person.confidence|int -}},
+                     "x":{{- person.center.x - (person.width/2)|int -}},
+                     "y":{{- person.center.y - (person.height/2)|int -}},
+                     "w":{{- person.width -}},
+                     "h":{{- person.height -}}},
+                    "f":{
+                     "c":{{- face.confidence|int -}},
+                     "x":{{- fx -}},
+                     "y":{{- fy -}},
+                     "w":{{- fw -}},
+                     "h":{{- fh -}}
+                    }}
+                    {%- endfor -%}
+              {%- else -%}null{%- endfor -%}]
+            {%- else -%}null{%- endif -%}
+          {%- elif is_state('binary_sensor.motion_' + mc + '_person_face_expired','off') -%}
+            {% set s = state_attr('sensor.motion_' + mc + '_person_face','results') %}
+            {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+              {{ s }}
+            {% else %}null{% endif %}
+          {% else %}null{% endif %}
+      value_template: >
+        {{ states('binary_sensor.motion_${MOTION_CAMERA}_person_face') }}
+
+- platform: template
+  sensors:
     motion_${MOTION_CAMERA}_person_face_event:
       friendly_name: '${MOTION_CAMERA} 🙆 event'
       value_template: >
@@ -274,82 +352,3 @@
   max_age:
     hours: 24
 
-- platform: template
-  sensors:
-    motion_${MOTION_CAMERA}_person_faces:
-      friendly_name: '🙆 (${MOTION_CAMERA})'
-      icon_template: 'mdi:account'
-      value_template: >-
-        {% set mc = '${MOTION_CAMERA}' %}
-        {% set pe = states('sensor.motion_' + mc + '_detected_person_event') %}
-        {% set fe = states('sensor.motion_' + mc + '_face_detected_event') %}
-        {% if pe|lower != 'null' and pe|lower != 'unavailable' and pe|lower != 'none' and pe|lower != 'unknown'
-          and fe|lower != 'null' and fe|lower != 'unavailable' and fe|lower != 'none' and fe|lower != 'unknown'
-          and pe == fe %}
-          {% set entitys = state_attr('sensor.motion_' + mc + '_event_annotated','results') %}
-          {% set faces = state_attr('sensor.motion_' + mc + '_event_face','results') %}
-          {% if entitys|lower != 'null' and entitys|lower != 'unavailable' and entitys|lower != 'none' and entitys|lower != 'unknown'
-            and faces|lower != 'null' and faces|lower != 'unavailable' and faces|lower != 'none' and faces|lower != 'unknown' %}
-            {% if faces|count > 0 and entitys|count > 0 -%}
-              [{%- for face in faces if face.confidence|float >= states('sensor.motion_face_detected_threshold')|float -%}
-                {% if loop.first %}{% else %},{% endif %}
-                {%- set fw = face.width|int -%}
-                {%- set fh = face.height|int -%}
-                {%- set fx = face.x + (fw/2)|int -%}
-                {%- set fy = face.y + (fh/2)|int -%}
-                {%- for person in entitys if person.entity == 'person' and person.confidence|float >= states('sensor.motion_detected_person_threshold')|float
-                     and fx|int >= person.center.x - (person.width/2)|int
-                     and fx|int <= person.center.x + (person.height/2)|int
-                     and fy|int >= person.center.y|int - (person.height/2)|int
-                     and fy|int <= person.center.y|int + (person.height/2)|int -%}
-                  {% if loop.first %}{% else %},{% endif %}
-                  {{- '1' -}}
-                {%- endfor -%}
-              {%- else -%}{{- '0' -}}{%- endfor -%}]
-            {%- else -%}null{%- endif -%}
-          {%- else -%}null{%- endif -%}
-        {%- else -%}null{%- endif -%}
-
-- platform: template
-  sensors:
-    motion_${MOTION_CAMERA}_person_face_results:
-      value_template: >-
-        {% set mc = '${MOTION_CAMERA}' %}
-        {% if is_state('binary_sensor.motion_' + mc + '_detected_person','on') and is_state('binary_sensor.motion_' + mc + '_face_detected','on') %}
-          {% set entitys = state_attr('sensor.motion_' + mc + '_event_annotated','results') %}
-          {% set faces = state_attr('sensor.motion_' + mc + '_event_face','results') %}
-          {% if faces|count > 0 and entitys|count > 0 -%}
-            [{%- for face in faces if face.confidence|float >= states('sensor.motion_face_detected_threshold')|float -%}
-              {% if loop.first %}{% else %},{% endif %}
-              {%- set fw = face.width|int -%}
-              {%- set fh = face.height|int -%}
-              {%- set fx = face.x + (fw/2)|int -%}
-              {%- set fy = face.y + (fh/2)|int -%}
-              {%- for person in entitys if person.entity == 'person' and person.confidence|float >= states('sensor.motion_detected_person_threshold')|float
-                   and fx|int >= person.center.x - (person.width/2)|int
-                   and fx|int <= person.center.x + (person.height/2)|int
-                   and fy|int >= person.center.y|int - (person.height/2)|int
-                   and fy|int <= person.center.y|int + (person.height/2)|int -%}
-                {% if loop.first %}{% else %},{% endif %}
-                 {"p":{
-                   "c":{{- person.confidence|int -}},
-                   "x":{{- person.center.x - (person.width/2)|int -}},
-                   "y":{{- person.center.y - (person.height/2)|int -}},
-                   "w":{{- person.width -}},
-                   "h":{{- person.height -}}},
-                  "f":{
-                   "c":{{- face.confidence|int -}},
-                   "x":{{- fx -}},
-                   "y":{{- fy -}},
-                   "w":{{- fw -}},
-                   "h":{{- fh -}}
-                  }}
-                  {%- endfor -%}
-            {%- else -%}null{%- endfor -%}]
-          {%- else -%}null{%- endif -%}
-        {%- elif is_state('binary_sensor.motion_' + mc + '_person_face_expired','off') -%}
-          {% set s = states('sensor.motion_' + mc + '_person_face_results') %}
-          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
-            {{ s }}
-          {% else %}null{% endif %}
-        {% else %}null{% endif %}
