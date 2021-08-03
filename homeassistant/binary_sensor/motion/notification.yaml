@@ -1,0 +1,77 @@
+###
+# homeassistant/sensor/motion/notification.yaml
+###
+
+- platform: template
+  sensors:
+    motion_notification:
+      unique_id: motion_notification
+      friendly_name: Notifications
+      device_class: 'problem'
+      attribute_templates:
+        total: >-
+          {{ states.persistent_notification|length }}
+        unread: >-
+          [{%- for state in states.persistent_notification -%}
+            {%- if not loop.first -%},{%- endif -%}
+            {%- set s = state.state_with_unit|lower -%}
+            {%- if s == 'unread' -%}1{%- else -%}0{%- endif -%}
+          {%- endfor -%}]
+        read: >-
+          [{%- for state in states.persistent_notification -%}
+            {%- if not loop.first -%},{%- endif -%}
+            {%- set s = state.state_with_unit|lower -%}
+            {%- if s == 'read' -%}1{%- else -%}0{%- endif -%}
+          {%- endfor -%}]
+        notifying: >-
+          [{%- for state in states.persistent_notification -%}
+            {%- if not loop.first -%},{%- endif -%}
+            {%- set s = state.state_with_unit|lower -%}
+            {%- set t = state.attributes.title|lower -%}
+            {%- if s == 'notifying' and  t!= 'unknown' and t|lower != 'none' and t|lower != 'null' and t|length > 0 -%}1{%- else -%}0{%- endif -%}
+          {%- endfor -%}]
+        count: >-
+          {% set s = state_attr('binary_sensor.motion_notification','notifying') %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' %}
+            {% if s is string %}{% set s = s|from_json %}{% endif %}
+            {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' %}
+              {% set s = s|sum|int %}
+              {% set n = states.persistent_notification|list|length|int %}
+              {% if s > 0 and s <= n %}{{ s }}{% else %}{{ n }}{% endif %}
+            {% else %}null{% endif %}
+          {% else %}null{% endif %}
+        all: >-
+          {% set s = state_attr('binary_sensor.motion_notification','count') %}
+          {% if s|int > 0 %}
+            {{ '(' + s|string + '): ' }}
+            {%- for state in states.persistent_notification if state.state_with_unit|lower == 'notifying' -%}
+              {%- if loop.first -%}{%- else -%}{{- '; ' -}}{%- endif -%}
+              {{ state.attributes.title }}
+            {%- endfor -%}
+          {%- else -%}None{%- endif -%} 
+        title: >-
+          {% set s = state_attr('binary_sensor.motion_notification','count') %}
+          {% if s|int > 0 %}
+            {%- for state in states.persistent_notification if state.state_with_unit|lower == 'notifying' -%}
+              {%- if loop.last -%}
+                {{ state.attributes.title }}
+              {%- endif -%}
+            {%- endfor -%}
+          {%- else -%}None{%- endif -%} 
+        message: >-
+          {% set s = state_attr('binary_sensor.motion_notification','count') %}
+          {% if s|int > 0 %}
+            {%- for state in states.persistent_notification if state.state_with_unit|lower == 'notifying' -%}
+              {%- if loop.last -%}
+                {{ state.attributes.message }}
+              {%- endif -%}
+            {%- endfor -%}
+          {%- else -%}None{%- endif -%} 
+      icon_template: >-
+        {% set s = state_attr('binary_sensor.motion_notification','count') %}
+        {% if s is number and s|int > 0 %}{{ 'mdi:book' }}{% else %}{{ 'mdi:book-outline' }}{% endif %}
+      value_template: >-
+        {% set s = state_attr('binary_sensor.motion_notification','count') %}
+        {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' %}
+          {{ s|int > 0 }}
+        {% else %}null{% endif %}
