@@ -102,6 +102,12 @@ WEBCAM_SENSOR_DETECTOR_TEMPLATES := \
 	sensor.vehicle_alpr.yaml.tmpl \
 	sensor.detected_vehicle.yaml.tmpl
 
+WEBCAM_TEMPLATE_DETECTOR_TEMPLATES := \
+	template.detected_person.yaml.tmpl \
+	template.detected_vehicle.yaml.tmpl \
+	template.detected_animal.yaml.tmpl \
+	template.detected_entity.yaml.tmpl
+
 WEBCAM_AUTOMATION_DETECTOR_TEMPLATES := \
 	automation.alpr_detected.yaml.tmpl \
 	automation.detected_animal.yaml.tmpl \
@@ -159,6 +165,7 @@ webcams: \
 	WEBCAM_SHELL_COMMANDS \
 	WEBCAM_AUTOMATION_DETECTORS \
 	WEBCAM_SENSOR_DETECTORS \
+	WEBCAM_TEMPLATE_DETECTORS \
 	WEBCAM_BINARY_SENSOR_DETECTORS
 
 ## TEMPLATES
@@ -251,6 +258,26 @@ WEBCAM_SENSOR_DETECTORS: $(WEBCAM_SENSOR_DETECTOR_TEMPLATES) ${WEBCAMS_JSON}
 	  u=$$(echo "$${t%%.yaml*}") && \
 	  for i in $(WEBCAMS); do \
 	    v="sensor/$${u}-$${i}.yaml"; \
+	    export TARGET="$${i}"; \
+	    export MOTION_CAMERA=$${TARGET%%.*}; \
+	    export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
+	    export MOTION_GROUP="$(MOTION_GROUP)"; \
+	    export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	    export MOTION_CLIENT="$(MOTION_CLIENT)"; \
+	    export MOTION_CAMERA_ICON=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.icon?" $(WEBCAMS_JSON)); \
+	    export MOTION_CAMERA_LATITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.latitude?' $(WEBCAMS_JSON)); \
+	    export MOTION_CAMERA_LONGITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.longitude?' $(WEBCAMS_JSON)); \
+	    cat $${tmpl} | envsubst > $${v}; \
+	  done; \
+	done
+
+WEBCAM_TEMPLATE_DETECTORS: $(WEBCAM_TEMPLATE_DETECTOR_TEMPLATES) ${WEBCAMS_JSON}
+	@echo "Making $@"
+	@for tmpl in $(WEBCAM_TEMPLATE_DETECTOR_TEMPLATES); do \
+	  export t=$$(echo "$${tmpl##template.}"); \
+	  u=$$(echo "$${t%%.yaml*}") && \
+	  for i in $(WEBCAMS); do \
+	    v="template/$${u}-$${i}.yaml"; \
 	    export TARGET="$${i}"; \
 	    export MOTION_CAMERA=$${TARGET%%.*}; \
 	    export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
