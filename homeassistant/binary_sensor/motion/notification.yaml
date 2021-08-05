@@ -27,9 +27,49 @@
           [{%- for state in states.persistent_notification -%}
             {%- if not loop.first -%},{%- endif -%}
             {%- set s = state.state_with_unit|lower -%}
-            {%- set t = state.attributes.title|lower -%}
-            {%- if s == 'notifying' and  t!= 'unknown' and t|lower != 'none' and t|lower != 'null' and t|length > 0 -%}1{%- else -%}0{%- endif -%}
+            {%- set t = state.attributes.title -%}
+            {%- if s == 'notifying' and t != 'unknown' and t|lower != 'none' and t|lower != 'null' and t|length > 0 -%}1{%- else -%}0{%- endif -%}
           {%- endfor -%}]
+        critical: >-
+          {%- for state in states.persistent_notification if state.state_with_unit|lower == 'notifying' and 'CRITICAL' in state.attributes.title -%}
+            {%- if not loop.first -%},{% else %}[{%- endif -%}
+            {%- set t = state.attributes.title -%}
+            {%- set m = state.attributes.message -%}
+            ["{{- t -}}","{{- m -}}"]
+            {%- if loop.last -%}]{%- endif -%}
+          {%- endfor -%}
+        alert: >-
+          {%- for state in states.persistent_notification if state.state_with_unit|lower == 'notifying' and 'ALERT' in state.attributes.title -%}
+            {%- if not loop.first -%},{% else %}[{%- endif -%}
+            {%- set t = state.attributes.title -%}
+            {%- set m = state.attributes.message -%}
+            ["{{- t -}}","{{- m -}}"]
+            {%- if loop.last -%}]{%- endif -%}
+          {%- endfor -%}
+        warn: >-
+          {%- for state in states.persistent_notification if state.state_with_unit|lower == 'notifying' and 'WARN' in state.attributes.title -%}
+            {%- if not loop.first -%},{% else %}[{%- endif -%}
+            {%- set t = state.attributes.title -%}
+            {%- set m = state.attributes.message -%}
+            ["{{- t -}}","{{- m -}}"]
+            {%- if loop.last -%}]{%- endif -%}
+          {%- endfor -%}
+        notice: >-
+          {%- for state in states.persistent_notification if state.state_with_unit|lower == 'notifying' and 'NOTICE' in state.attributes.title -%}
+            {%- if not loop.first -%},{% else %}[{%- endif -%}
+            {%- set t = state.attributes.title -%}
+            {%- set m = state.attributes.message -%}
+            ["{{- t -}}","{{- m -}}"]
+            {%- if loop.last -%}]{%- endif -%}
+          {%- endfor -%}
+        info: >-
+          {%- for state in states.persistent_notification if state.state_with_unit|lower == 'notifying' and 'INFO' in state.attributes.title -%}
+            {%- if not loop.first -%},{% else %}[{%- endif -%}
+            {%- set t = state.attributes.title -%}
+            {%- set m = state.attributes.message -%}
+            ["{{- t -}}","{{- m -}}"]
+            {%- if loop.last -%}]{%- endif -%}
+          {%- endfor -%}
         count: >-
           {% set s = state_attr('binary_sensor.motion_notification','notifying') %}
           {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' %}
@@ -50,28 +90,54 @@
             {%- endfor -%}
           {%- else -%}None{%- endif -%} 
         title: >-
-          {% set s = state_attr('binary_sensor.motion_notification','count') %}
-          {% if s|int > 0 %}
-            {%- for state in states.persistent_notification if state.state_with_unit|lower == 'notifying' -%}
-              {%- if loop.last -%}
-                {{ state.attributes.title }}
-              {%- endif -%}
-            {%- endfor -%}
-          {%- else -%}None{%- endif -%} 
+          {% if state_attr('binary_sensor.motion_notification','critical')|lower != 'none'
+            and state_attr('binary_sensor.motion_notification','critical')|length > 0
+            and state_attr('binary_sensor.motion_notification','critical')|from_json|reject('none')|list|count > 0 -%}
+            {{ state_attr('binary_sensor.motion_notification','critical')|from_json|last|first }}
+          {%- elif state_attr('binary_sensor.motion_notification','alert')|lower != 'none'
+            and state_attr('binary_sensor.motion_notification','alert')|length > 0
+            and state_attr('binary_sensor.motion_notification','alert')|from_json|reject('none')|list|count > 0 -%}
+            {{ state_attr('binary_sensor.motion_notification','alert')|from_json|last|first }}
+          {%- elif state_attr('binary_sensor.motion_notification','warn')|lower != 'none'
+            and state_attr('binary_sensor.motion_notification','warn')|length > 0
+            and state_attr('binary_sensor.motion_notification','warn')|from_json|reject('none')|list|count > 0 -%}
+            {{ state_attr('binary_sensor.motion_notification','notice')|from_json|last|first }}
+          {%- elif state_attr('binary_sensor.motion_notification','notice')|lower != 'none'
+            and state_attr('binary_sensor.motion_notification','notice')|length > 0
+            and state_attr('binary_sensor.motion_notification','notice')|from_json|reject('none')|list|count > 0 -%}
+            {{ state_attr('binary_sensor.motion_notification','notice')|from_json|last|first }}
+          {%- elif state_attr('binary_sensor.motion_notification','info')|lower != 'none'
+            and state_attr('binary_sensor.motion_notification','info')|length > 0
+            and state_attr('binary_sensor.motion_notification','info')|from_json|reject('none')|list|count > 0 -%}
+            {{ state_attr('binary_sensor.motion_notification','info')|from_json|last|first }}
+          {%- else -%}None{%- endif %} 
         message: >-
-          {% set s = state_attr('binary_sensor.motion_notification','count') %}
-          {% if s|int > 0 %}
-            {%- for state in states.persistent_notification if state.state_with_unit|lower == 'notifying' -%}
-              {%- if loop.last -%}
-                {{ state.attributes.message }}
-              {%- endif -%}
-            {%- endfor -%}
-          {%- else -%}None{%- endif -%} 
+          {% if state_attr('binary_sensor.motion_notification','critical')|lower != 'none'
+            and state_attr('binary_sensor.motion_notification','critical')|length > 0
+            and state_attr('binary_sensor.motion_notification','critical')|from_json|reject('none')|list|count > 0 -%}
+            {{ state_attr('binary_sensor.motion_notification','critical')|from_json|last|last }}
+          {%- elif state_attr('binary_sensor.motion_notification','alert')|lower != 'none'
+            and state_attr('binary_sensor.motion_notification','alert')|length > 0
+            and state_attr('binary_sensor.motion_notification','alert')|from_json|reject('none')|list|count > 0 -%}
+            {{ state_attr('binary_sensor.motion_notification','alert')|from_json|last|last }}
+          {%- elif state_attr('binary_sensor.motion_notification','warn')|lower != 'none'
+            and state_attr('binary_sensor.motion_notification','warn')|length > 0
+            and state_attr('binary_sensor.motion_notification','warn')|from_json|reject('none')|list|count > 0 -%}
+            {{ state_attr('binary_sensor.motion_notification','warn')|from_json|last|last }}
+          {%- elif state_attr('binary_sensor.motion_notification','notice')|lower != 'none'
+            and state_attr('binary_sensor.motion_notification','notice')|length > 0
+            and state_attr('binary_sensor.motion_notification','notice')|from_json|reject('none')|list|count > 0 -%}
+            {{ state_attr('binary_sensor.motion_notification','notice')|from_json|last|last }}
+          {%- elif state_attr('binary_sensor.motion_notification','info')|lower != 'none'
+            and state_attr('binary_sensor.motion_notification','info')|length > 0
+            and state_attr('binary_sensor.motion_notification','info')|from_json|reject('none')|list|count > 0 -%}
+            {{ state_attr('binary_sensor.motion_notification','info')|from_json|last|last }}
+          {%- else -%}None{%- endif %} 
       icon_template: >-
         {% set s = state_attr('binary_sensor.motion_notification','count') %}
         {% if s is number and s|int > 0 %}{{ 'mdi:book' }}{% else %}{{ 'mdi:book-outline' }}{% endif %}
       value_template: >-
-        {% set s = state_attr('binary_sensor.motion_notification','count') %}
-        {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' %}
-          {{ s|int > 0 }}
+        {% set s = state_attr('binary_sensor.motion_notification','title') %}
+        {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
+          {{ s|length > 0 }}
         {% else %}null{% endif %}
