@@ -151,6 +151,11 @@ TPLINK_DISCOVERY ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.TPLINK_DISCOV
 INTERNET_SCAN_INTERVAL ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.INTERNET_SCAN_INTERVAL' $(SETUP)) && echo "${TS}++ INTERNET_SCAN_INTERVAL: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard INTERNET_SCAN_INTERVAL),$(shell v=$$(cat INTERNET_SCAN_INTERVAL) && echo "${TG}== INTERNET_SCAN_INTERVAL: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="14400" && echo "${TB}** INTERNET_SCAN_INTERVAL unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 INTRANET_SCAN_INTERVAL ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.INTRANET_SCAN_INTERVAL' $(SETUP)) && echo "${TS}++ INTRANET_SCAN_INTERVAL: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard INTRANET_SCAN_INTERVAL),$(shell v=$$(cat INTRANET_SCAN_INTERVAL) && echo "${TG}== INTRANET_SCAN_INTERVAL: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="1800" && echo "${TB}** INTRANET_SCAN_INTERVAL unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 
+# omada
+OMADA_URL ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.OMADA_URL' $(SETUP)) && echo "${TS}++ OMADA_URL: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard OMADA_URL),$(shell v=$$(cat OMADA_URL) && echo "${TG}== OMADA_URL: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="https://${HOST_IPADDR}:8043/" && echo "${TB}** OMADA_URL unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+OMADA_USERNAME ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.OMADA_USERNAME' $(SETUP)) && echo "${TS}++ OMADA_USERNAME: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard OMADA_USERNAME),$(shell v=$$(cat OMADA_USERNAME) && echo "${TG}== OMADA_USERNAME: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="username" && echo "${TB}** OMADA_USERNAME unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}")))
+OMADA_PASSWORD ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.OMADA_PASSWORD' $(SETUP)) && echo "${TS}++ OMADA_PASSWORD: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard OMADA_PASSWORD),$(shell v=$$(cat OMADA_PASSWORD) && echo "${TG}== OMADA_PASSWORD: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="password" && echo "${TB}** OMADA_PASSWORD unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}")))
+
 ###
 ### TARGETS
 ###
@@ -345,6 +350,9 @@ secrets.yaml: secrets.yaml.tmpl
 	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
 	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
 	  NETDATA_URL="$(NETDATA_URL)" \
+	  OMADA_USERNAME="$(OMADA_USERNAME)" \
+	  OMADA_PASSWORD="$(OMADA_PASSWORD)" \
+	  OMADA_URL="$(OMADA_URL)" \
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	  UPTIMEROBOT_RSSURL="$(UPTIMEROBOT_RSSURL)" \
 	&& cat $< | envsubst > $@
