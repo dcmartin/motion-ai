@@ -22,6 +22,69 @@
       - condition: template
         value_template: >
           {{ is_state('input_boolean.motion_person_face_notify','on') }}
+  variables:
+    message: >-
+      {%- set c = states('sensor.motion_person_face_camera') -%}
+      {%- set d = states('sensor.motion_person_face_device') -%}
+      {%- set e = states('sensor.motion_person_face_event') -%}
+      {%- set r = state_attr('sensor.motion_person_face','results') -%}
+      {%- if r|lower != 'none' and r|lower != 'unknown' and r|lower != 'unavailable' and r|lower != 'null' -%}
+        {% if not r is string %}{% set r = r|to_json|string %}{% endif %}
+        {%- set u = '&results=' + r|urlencode -%}
+        {%- set r = r|from_json -%}
+      {%- else -%}
+        {%- set u = '' -%}
+        {%- set r = null -%}
+      {%- endif -%}
+      {% if is_state('input_boolean.motion_media_mask','on') %}
+      {{- '[![]('
+         + '/local/images/motion/'
+         + c
+         + '/person_face_animated_mask'
+         + '.gif?e='
+         + e
+         + ')]('
+         + '/local/images/motion/'
+         + c
+         + '/person_face'
+         + '.jpg?e='
+         + e
+         + ')' }}
+      {%- else -%}
+      {{- '[![]('
+         + '/local/images/motion/'
+         + c
+         + '/person_face'
+         + '.jpg?e='
+         + e
+         + ')]('
+         + '/local/images/motion/'
+         + c
+         + '/person_face_animated'
+         + '.gif?e='
+         + e
+         + ')' -}}
+      {%- endif -%}
+      {{ 'Detected ' + states('sensor.motion_detected_person_count')|string + ' person-face(s) at ' + states('sensor.motion_person_face_when')|string }}
+      {%- if is_state('input_boolean.motion_media_mask','off') -%}
+        {% if r|lower != 'none' and r|lower != 'unknown' and r|lower != 'unavailable' and r|lower != 'null' and r is iterable and r|length > 0 -%}
+          {%- set i = 'person' -%}
+          {{- '[![](https://img.shields.io/badge/' + i + '-yes-green.svg)]('
+            + states('sensor.motion_person_face_api')
+            + '/cgi-bin/predict.yes?entity=' + i
+            + '&camera=' + c
+            + '&event=' + e
+            + u
+            + ')' -}}
+          {{- '[![](https://img.shields.io/badge/' + i + '-no-red.svg)]('
+            + states('sensor.motion_person_face_api')
+            + '/cgi-bin/predict.no?entity=' + i
+            + '&camera=' + c
+            + '&event=' + e
+            + u
+            + ')' -}}
+        {%- endif -%}
+      {%- endif %}
   action:
     - service: persistent_notification.create
       data_template:
@@ -31,70 +94,7 @@
           {%- set c = states('sensor.motion_person_face_camera') -%}
           motion_person_face-{{- c -}}
         message: >-
-          {%- set c = states('sensor.motion_person_face_camera') -%}
-          {%- set d = states('sensor.motion_person_face_device') -%}
-          {%- set e = states('sensor.motion_person_face_event') -%}
-          {%- set r = state_attr('sensor.motion_person_face','results') -%}
-          {%- if r|lower != 'none' and r|lower != 'unknown' and r|lower != 'unavailable' and r|lower != 'null' -%}
-            {% if not r is string %}{% set r = r|to_json|string %}{% endif %}
-            {%- set u = '&results=' + r|urlencode -%}
-            {%- set r = r|from_json -%}
-          {%- else -%}
-            {%- set u = '' -%}
-            {%- set r = null -%}
-          {%- endif -%}
-          {% if is_state('input_boolean.motion_media_mask','on') %}
-          {{- '[![]('
-             + '/local/images/motion/'
-             + c
-             + '/person_face_animated_mask'
-             + '.gif?e='
-             + e
-             + ')]('
-             + '/local/images/motion/'
-             + c
-             + '/person_face'
-             + '.jpg?e='
-             + e
-             + ')' }}
-          {%- else -%}
-          {{- '[![]('
-             + '/local/images/motion/'
-             + c
-             + '/person_face'
-             + '.jpg?e='
-             + e
-             + ')]('
-             + '/local/images/motion/'
-             + c
-             + '/person_face_animated'
-             + '.gif?e='
-             + e
-             + ')' }}
-          {%- endif %}
-          Detected {{ states('sensor.motion_detected_person_count') }} person-face(s)
-          for {{ states('sensor.motion_person_face_elapsed') }} seconds
-          at {{ states('sensor.motion_person_face_when') }}
-          {% if is_state('input_boolean.motion_media_mask','off') %}
-            {% if r|lower != 'none' and r|lower != 'unknown' and r|lower != 'unavailable' and r|lower != 'null' and r is iterable and r|length > 0 -%}
-              {%- set i = 'person' -%}
-              {{- '[![](https://img.shields.io/badge/' + i + '-yes-green.svg)]('
-                + states('sensor.motion_person_face_api')
-                + '/cgi-bin/predict.yes?entity=' + i
-                + '&camera=' + c
-                + '&event=' + e
-                + u
-                + ')' -}}
-              {{- '[![](https://img.shields.io/badge/' + i + '-no-red.svg)]('
-                + states('sensor.motion_person_face_api')
-                + '/cgi-bin/predict.no?entity=' + i
-                + '&camera=' + c
-                + '&event=' + e
-                + u
-                + ')' -}}
-            {%- endif %}
-          {%- endif %}
-
+          {{ message }}
 
 - id: motion_person_face_notify_smartphone
   alias: motion_person_face_notify_smartphone
