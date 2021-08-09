@@ -30,6 +30,67 @@
           {% if is_state('input_boolean.motion_detect_animal_confirmed','on') %}
             {{ is_state('binary_sensor.motion_detected_animal_confirmed','on') }}
           {% else %}true{% endif %}
+  variables:
+    message: >-
+      {%- set c = states('sensor.motion_detected_animal_camera') -%}
+      {%- set d = states('sensor.motion_detected_animal_device') -%}
+      {%- set l = state_attr('sensor.motion_detected_animal','list') -%}
+      {%- if l|lower != 'none' and l|lower != 'unknown' and l|lower != 'unavailable' and l|lower != 'null' and l is iterable and l|length > 0 -%}
+        {%- set u = '&results=' + l|to_json|string|urlencode -%}
+      {%- else -%}
+        {%- set u = '' -%}
+        {%- set l = null -%}
+      {%- endif -%}
+      {%- set e = states('sensor.motion_' + states('sensor.motion_detected_animal_camera') + '_detected_animal_event') -%}
+      {% if is_state('input_boolean.motion_media_mask','on') %}
+      {{- '[![]('
+         + '/local/images/motion/'
+         + c
+         + '/detected_animal_animated_mask'
+         + '.gif?e='
+         + e
+         + ')]('
+         + '/local/images/motion/'
+         + c
+         + '/detected_animal'
+         + '.jpg?e='
+         + e
+         + ')' }}
+      {%- else -%}
+      {{- '[![]('
+         + '/local/images/motion/'
+         + c
+         + '/detected_animal'
+         + '.jpg?e='
+         + e
+         + ')]('
+         + '/local/images/motion/'
+         + c
+         + '/detected_animal_animated'
+         + '.gif?e='
+         + e
+         + ')' }}
+      {%- endif %} Camera {{ states('sensor.motion_detected_animal_camera') }} detected {{ states('sensor.motion_detected_animal_count') }} animal(s) at {{ states('sensor.motion_detected_animal_when') }}
+      {%- if is_state('input_boolean.motion_media_mask','off') -%}
+        {%- if l is iterable and l|length > 0 -%}
+          {%- for i in l|map(attribute="e")|unique|list -%}
+          {{- '<br>[![](https://img.shields.io/badge/' + i + '-yes-green.svg)]('
+            + states('sensor.motion_detected_animal_api')
+            + '/cgi-bin/predict.yes?entity=' + i
+            + '&camera=' + c
+            + '&event=' + e
+            + u
+            + ')' -}}
+          {{- '[![](https://img.shields.io/badge/' + i + '-no-red.svg)]('
+            + states('sensor.motion_detected_animal_api')
+            + '/cgi-bin/predict.no?entity=' + i
+            + '&camera=' + c
+            + '&event=' + e
+            + u
+            + ')' -}}
+          {%- endfor -%}
+        {%- endif %}
+      {%- endif %}
   action:
     - service: persistent_notification.create
       data_template:
@@ -38,66 +99,7 @@
         notification_id: >
           motion_detected_animal-{{- states('sensor.motion_detected_animal_camera') -}}
         message: >-
-          {%- set c = states('sensor.motion_detected_animal_camera') -%}
-          {%- set d = states('sensor.motion_detected_animal_device') -%}
-          {%- set l = state_attr('sensor.motion_detected_animal','list') -%}
-          {%- if l|lower != 'none' and l|lower != 'unknown' and l|lower != 'unavailable' and l|lower != 'null' and l is iterable and l|length > 0 -%}
-            {%- set u = '&results=' + l|to_json|string|urlencode -%}
-          {%- else -%}
-            {%- set u = '' -%}
-            {%- set l = null -%}
-          {%- endif -%}
-          {%- set e = states('sensor.motion_' + states('sensor.motion_detected_animal_camera') + '_detected_animal_event') -%}
-          {% if is_state('input_boolean.motion_media_mask','on') %}
-          {{- '[![]('
-             + '/local/images/motion/'
-             + c
-             + '/detected_animal_animated_mask'
-             + '.gif?e='
-             + e
-             + ')]('
-             + '/local/images/motion/'
-             + c
-             + '/detected_animal'
-             + '.jpg?e='
-             + e
-             + ')' }}
-          {%- else -%}
-          {{- '[![]('
-             + '/local/images/motion/'
-             + c
-             + '/detected_animal_animated'
-             + '.gif?e='
-             + e
-             + ')]('
-             + '/local/images/motion/'
-             + c
-             + '/detected_animal'
-             + '.jpg?e='
-             + e
-             + ')' }}
-          {%- endif %}
-          {{ states('sensor.motion_detected_animal_camera') }}
-          detected {{ states('sensor.motion_detected_animal_count') }} animal(s)
-          at {{ states('sensor.motion_detected_animal_when') }}
-          {% if l is iterable and l|length > 0 -%}
-            {% for i in l|map(attribute="e")|unique|list -%}
-            {{- '[![](https://img.shields.io/badge/' + i + '-yes-green.svg)]('
-              + states('sensor.motion_detected_animal_api')
-              + '/cgi-bin/predict.yes?entity=' + i
-              + '&camera=' + c
-              + '&event=' + e
-              + u
-              + ')' -}}
-            {{- '[![](https://img.shields.io/badge/' + i + '-no-red.svg)]('
-              + states('sensor.motion_detected_animal_api')
-              + '/cgi-bin/predict.no?entity=' + i
-              + '&camera=' + c
-              + '&event=' + e
-              + u
-              + ')' -}}
-            {%- endfor -%}
-          {%- endif %}
+          {{ message }}
 
 # ago low/high counters
 
@@ -159,16 +161,19 @@
       - condition: template
         value_template: >
           {{ states('sensor.intranet_test')|lower != 'none' and state_attr('sensor.intranet_test','date')|lower != 'none' }}
+  variables:
+    message: >-
+      Current: {{ state_attr('sensor.motion_detected_animal','status') -}}; 
+      average {{ states('sensor.motion_detected_animal_ago_mean') }} animal(s);
+      stdev {{ state_attr('sensor.motion_detected_animal_ago_stdev_statistics') }} animal(s)
   action:
     - service: persistent_notification.create
       data_template:
         title: >-
           WARN: Animal ago low at {{ now().timestamp()|int|timestamp_custom("%a %b %d %I:%M %p %Z") }}
         notification_id: motion_detected_animal_ago_low
-        message: >
-          Current: {{ state_attr('sensor.motion_detected_animal','status') -}}; 
-          average {{ states('sensor.motion_detected_animal_ago_mean') }} animal(s);
-          stdev {{ state_attr('sensor.motion_detected_animal_ago_stdev_statistics') }} animal(s)
+        message: >-
+          {{ message }}
 
 - id: motion_detected_animal_ago_low_dismiss
   alias: motion_detected_animal_ago_low_dismiss
@@ -200,6 +205,11 @@
       - condition: template
         value_template: >
           {{ states('sensor.intranet_test')|lower != 'none' }}
+  variables:
+    message: >-
+      Current: {{ state_attr('sensor.motion_detected_animal','status') -}}; 
+      average {{ states('sensor.motion_detected_animal_ago_mean') }} animal(s);
+      stdev {{ state_attr('sensor.motion_detected_animal_ago_stdev_statistics') }} animal(s)
   action:
     - service: persistent_notification.create
       data_template:
@@ -207,9 +217,7 @@
           ALERT: Animal ago persistently low at {{ now().timestamp()|int|timestamp_custom("%a %b %d %I:%M %p %Z") }}
         notification_id: motion_detected_animal_ago_low
         message: >-
-          Current: {{ state_attr('sensor.motion_detected_animal','status') -}}; 
-          average {{ states('sensor.motion_detected_animal_ago_mean') }} animal(s);
-          stdev {{ state_attr('sensor.motion_detected_animal_ago_stdev_statistics') }} animal(s)
+          {{ message }}
 
 - id: motion_detected_animal_ago_high_notify
   alias: motion_detected_animal_ago_high_notify
@@ -223,16 +231,19 @@
       - condition: template
         value_template: >
           {{ is_state('binary_sensor.detected_animal_ago_high','on') }}
+  variables:
+    message: >-
+      Current: {{ state_attr('sensor.motion_detected_animal','status') -}}; 
+      average {{ states('sensor.motion_detected_animal_ago_mean') }} animal(s);
+      stdev {{ state_attr('sensor.motion_detected_animal_ago_stdev_statistics') }} animal(s)
   action:
     - service: persistent_notification.create
       data_template:
         title: >-
           INFO: Animal ago high at {{ now().timestamp()|int|timestamp_custom("%a %b %d %I:%M %p %Z") }}
         notification_id: motion_detected_animal_ago_high
-        message: >
-          Current: {{ state_attr('sensor.motion_detected_animal','status') -}}; 
-          average {{ states('sensor.motion_detected_animal_ago_mean') }} animal(s);
-          stdev {{ state_attr('sensor.motion_detected_animal_ago_stdev_statistics') }} animal(s)
+        message: >-
+          {{ message }}
 
 - id: motion_detected_animal_ago_high_dismiss
   alias: motion_detected_animal_ago_high_dismiss
@@ -261,13 +272,16 @@
       - condition: template
         value_template: >
           {{ is_state('binary_sensor.detected_animal_ago_high_persistent','on') }}
+  variables:
+    message: >-
+      Current: {{ state_attr('sensor.motion_detected_animal','status') -}}; 
+      average {{ states('sensor.motion_detected_animal_ago_mean') }} animal(s);
+      stdev {{ state_attr('sensor.motion_detected_animal_ago_stdev_statistics') }} animal(s)
   action:
     - service: persistent_notification.create
       data_template:
         title: >-
           INFO: Animal ago high at {{ now().timestamp()|int|timestamp_custom("%a %b %d %I:%M %p %Z") }}
         notification_id: motion_detected_animal_ago_high
-        message: >
-          Current: {{ state_attr('sensor.motion_detected_animal','status') -}}; 
-          average {{ states('sensor.motion_detected_animal_ago_mean') }} animal(s);
-          stdev {{ state_attr('sensor.motion_detected_animal_ago_stdev_statistics') }} animal(s)
+        message: >-
+          {{ message }}
