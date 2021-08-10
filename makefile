@@ -138,6 +138,11 @@ MOTIONCAM_PASSWORD ?= $(if $(wildcard MOTIONCAM_PASSWORD),$(shell v=$$(cat MOTIO
 # netdata
 NETDATA_URL ?= $(if $(wildcard NETDATA_URL),$(shell v=$$(cat NETDATA_URL) && echo "${TG}== NETDATA_URL: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="http://${HOST_IPADDR}:19999/" && echo "${DF}** NETDATA_URL${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 
+# omada
+OMADA_URL ?= $(if $(wildcard OMADA_URL),$(shell v=$$(cat OMADA_URL) && echo "${TG}== OMADA_URL: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="https://${HOST_IPADDR}:8043/" && echo "${DF}** OMADA_URL${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+OMADA_USERNAME ?= $(if $(wildcard OMADA_USERNAME),$(shell v=$$(cat OMADA_USERNAME) && echo "${TG}== OMADA_USERNAME: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='admin' && echo "${DF}** OMADA_USERNAME${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+OMADA_PASSWORD ?= $(if $(wildcard OMADA_PASSWORD),$(shell v=$$(cat OMADA_PASSWORD) && echo "${TG}== OMADA_PASSWORD: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='admin' && echo "${DF}** OMADA_PASSWORD${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+
 # jupyter
 JUPYTER_URL ?= $(if $(wildcard JUPYTER_URL),$(shell v=$$(cat JUPYTER_URL) && echo "${TG}== JUPYTER_URL: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="http://${HOST_IPADDR}:7777/" && echo "${DF}** JUPYTER_URL${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 
