@@ -12,15 +12,65 @@
   condition:
     condition: and
     conditions:
-      - condition: template
-        value_template: >
-          {{ trigger.to_state.state != trigger.from_state.state }}
+#      - condition: template
+#        value_template: >
+#          {{ trigger.to_state.state != trigger.from_state.state }}
       - condition: template
         value_template: >-
           {{ is_state('binary_sensor.motion_person_face','on') }}
   action:
     - service: counter.increment
       entity_id: counter.motion_person_face_counter
+
+## media
+- id: motion_person_face_media_animated
+  alias: motion_person_face_media_animated
+  initial_state: on
+  trigger:
+    platform: state
+    entity_id: counter.motion_person_face_counter
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {% set s = states('sensor.motion_person_face_camera') %}
+          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'unknown' }}
+      - condition: template
+        value_template: >-
+          {{ is_state('input_boolean.motion_media_save','on') }}
+      - condition: template
+        value_template: >-
+          {% if is_state('input_boolean.motion_media_mask','off') %}
+            {% set ep = state_attr('camera.motion_event_animated','entity_picture') %}
+            {{ ep is not none and ep|lower != 'unavailable' and ep|lower != 'none' and ep|lower != 'unknown' }}
+          {% else %}
+            {% set ep = state_attr('camera.motion_event_animated_mask','entity_picture') %}
+            {{ ep is not none and ep|lower != 'unavailable' or ep|lower != 'none' or ep|lower != 'unknown' }}
+          {% endif %}
+  action:
+    - service: camera.snapshot
+      data_template:
+        entity_id: >-
+          {% set mc = '' %}
+          {% set s = states('sensor.motion_person_face_camera') %}
+          {% set ep = state_attr('camera.motion_' + s + '_event_animated','entity_picture') %}
+          {% if ep is not none and ep|lower != 'unavailable' and ep|lower != 'null' and ep|lower != 'unknown' %}
+            {% set mc = s + '_' %}
+          {% endif %}
+          {% if is_state('input_boolean.motion_media_mask','off') %}
+            {{ 'camera.motion_' + mc + 'event_animated' }}
+          {% else %}
+            {{ 'camera.motion_' + mc + 'event_animated_mask' }}
+          {% endif %}
+        filename: >-
+          {% set s = states('sensor.motion_person_face_date')|int %}
+          {% set c = states('sensor.motion_person_face_camera')|string %}
+          {% set w = s|timestamp_custom("%H:%M:%S") %}
+          {% set year = s|timestamp_custom("%Y") %}
+          {% set month = s|timestamp_custom("%b") %}
+          {% set day = s|timestamp_custom("%d") %}
+          {{ '/media/Motion-Ã👁/' + year + '-' + month + '-' + day + '/person/' + w + ' at ' + c + '.gif' }}
 
 ## snapshot
 - id: motion_person_face_snapshot
@@ -33,42 +83,79 @@
     condition: and
     conditions:
       - condition: template
-        value_template: >
-          {%- set c = states('sensor.motion_person_face_camera') -%}
-          {%- set e = states('sensor.motion_' + c + '_person_face_event') -%}
-          {{ e|lower != 'unknown' and e|lower != 'none' and e|lower != 'unavailable' and e|lower != 'null' }}
+        value_template: >-
+          {% set s = states('sensor.motion_person_face_camera') %}
+          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'unknown' }}
       - condition: template
         value_template: >-
-          {%- set c = states('sensor.motion_person_face_camera') -%}
-          {% set ep = state_attr('camera.motion_' + c + '_detected_person','entity_picture') %}
-          {{ ep|lower == 'unavailable' or ep|lower == 'none' or ep|lower == 'unknown' or ep|lower == 'null' }}
+          {% set ep = state_attr('camera.motion_' + states('sensor.motion_person_face_camera') + '_event_end','entity_picture') %}
+          {{ ep is none or ep|lower == 'unavailable' or ep|lower == 'null' or ep|lower == 'unknown' }}
       - condition: template
         value_template: >-
-          {% set s = states('camera.motion_detected_person') %}
+          {% set s = states('camera.motion_event_annotated') %}
           {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'unknown' %}
-            {% set ep = state_attr('camera.motion_detected_person','entity_picture') %}
+            {% set ep = state_attr('camera.motion_event_annotated','entity_picture') %}
+            {{ ep|lower != 'none' and ep|lower != 'unavailable' and ep|lower != 'null' and ep|lower != 'unknown' }}
+          {% else %}false{% endif %}
+  action:
+    # annotated
+    - service: camera.snapshot
+      data_template:
+        entity_id: >-
+          {{ 'camera.motion_event_annotated' }}
+        filename: >-
+          {{ '/config/www/images/motion/' + states('sensor.motion_person_face_camera') + '/person_face.jpg' }}
+    - service: local_file.update_file_path
+      data_template:
+        entity_id: >-
+          {{ 'camera.motion_person_face' }}
+        file_path: >-
+          {{ '/config/www/images/motion/' + states('sensor.motion_person_face_camera') + '/person_face.jpg' }}
+
+- id: motion_person_face_composite
+  alias: motion_person_face_composite
+  initial_state: off
+  trigger:
+    platform: state
+    entity_id: counter.motion_person_face_counter
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {% set s = states('sensor.motion_person_face_camera') %}
+          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'unknown' }}
+      - condition: template
+        value_template: >-
+          {% set ep = state_attr('camera.motion_' + states('sensor.motion_person_face_camera') + '_event_composite','entity_picture') %}
+          {{ ep is none or ep|lower == 'unavailable' or ep|lower == 'none' or ep|lower == 'unknown' }}
+      - condition: template
+        value_template: >-
+          {% set s = states('camera.motion_event_composite') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'unknown' %}
+            {% set ep = state_attr('camera.motion_event_composite','entity_picture') %}
             {{ ep|lower != 'none' and ep|lower != 'unavailable' and ep|lower != 'null' and ep|lower != 'unknown' }}
           {% else %}false{% endif %}
   action:
     - service: camera.snapshot
       data_template:
         entity_id: >-
-          {{ 'camera.motion_detected_person' }}
+          {{ 'camera.motion_event_composite' }}
         filename: >-
-          {{ '/config/www/images/motion/person_face.jpg' }}
+          {{ '/config/www/images/motion/' + states('sensor.motion_person_face_camera') + '/person_face_composite.jpg' }}
     - service: local_file.update_file_path
       data_template:
         entity_id: >-
-          {{ 'camera.motion_person_face' }}
+          {{ 'camera.motion_person_face_composite' }}
         file_path: >-
-          {{ '/config/www/images/motion/person_face.jpg' }}
+          {{ '/config/www/images/motion/' + states('sensor.motion_person_face_camera') + '/person_face_composite.jpg' }}
 
 - id: motion_person_face_animated
   alias: motion_person_face_animated
   initial_state: on
   trigger:
     platform: state
-    entity_id: sensor.motion_person_face_camera
+    entity_id: counter.motion_person_face_counter
   condition:
     condition: and
     conditions:
@@ -78,35 +165,35 @@
           {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'unknown' }}
       - condition: template
         value_template: >-
-          {% set ep = state_attr('camera.motion_' + states('sensor.motion_person_face_camera') + '_detected_person_animated','entity_picture') %}
+          {% set ep = state_attr('camera.motion_' + states('sensor.motion_person_face_camera') + '_event_animated','entity_picture') %}
           {{ ep is none or ep|lower == 'unavailable' or ep|lower == 'none' or ep|lower == 'unknown' }}
       - condition: template
         value_template: >-
-          {% set s = states('camera.motion_detected_person_animated') %}
+          {% set s = states('camera.motion_event_animated') %}
           {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'unknown' %}
-            {% set ep = state_attr('camera.motion_detected_person_animated','entity_picture') %}
+            {% set ep = state_attr('camera.motion_event_animated','entity_picture') %}
             {{ ep|lower != 'none' and ep|lower != 'unavailable' and ep|lower != 'null' and ep|lower != 'unknown' }}
           {% else %}false{% endif %}
   action:
     - service: camera.snapshot
       data_template:
         entity_id: >-
-          {{ 'camera.motion_detected_person_animated' }}
+          {{ 'camera.motion_event_animated' }}
         filename: >-
-          {{ '/config/www/images/motion/person_face_animated.gif' }}
+          {{ '/config/www/images/motion/' + states('sensor.motion_person_face_camera') + '/person_face_animated.gif' }}
     - service: local_file.update_file_path
       data_template:
         entity_id: >-
           {{ 'camera.motion_person_face_animated' }}
         file_path: >-
-          {{ '/config/www/images/motion/person_face_animated.gif' }}
+          {{ '/config/www/images/motion' + states('sensor.motion_person_face_camera') + '//person_face_animated.gif' }}
 
 - id: motion_person_face_animated_mask
   alias: motion_person_face_animated_mask
   initial_state: on
   trigger:
     platform: state
-    entity_id: counter.motion_person_face_camera_counter
+    entity_id: counter.motion_person_face_counter
   condition:
     condition: and
     conditions:
@@ -116,25 +203,25 @@
           {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'unknown' }}
       - condition: template
         value_template: >-
-          {% set ep = state_attr('camera.motion_' + states('sensor.motion_person_face_camera') + '_detected_person_animated_mask','entity_picture') %}
+          {% set ep = state_attr('camera.motion_' + states('sensor.motion_person_face_camera') + '_event_animated_mask','entity_picture') %}
           {{ ep is none or ep|lower == 'unavailable' or ep|lower == 'none' or ep|lower == 'unknown' }}
       - condition: template
         value_template: >-
-          {% set s = states('camera.motion_detected_person_animated_mask') %}
+          {% set s = states('camera.motion_event_animated_mask') %}
           {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'unknown' %}
-            {% set ep = state_attr('camera.motion_detected_person_animated_mask','entity_picture') %}
+            {% set ep = state_attr('camera.motion_event_animated_mask','entity_picture') %}
             {{ ep|lower != 'none' and ep|lower != 'unavailable' and ep|lower != 'null' and ep|lower != 'unknown' }}
           {% else %}false{% endif %}
   action:
     - service: camera.snapshot
       data_template:
         entity_id: >-
-          {{ 'camera.motion_detected_person_animated_mask' }}
+          {{ 'camera.motion_event_animated_mask' }}
         filename: >-
-          {{ '/config/www/images/motion/person_face_animated_mask.gif' }}
+          {{ '/config/www/images/motion/' + states('sensor.motion_person_face_camera') + '/person_face_animated_mask.gif' }}
     - service: local_file.update_file_path
       data_template:
         entity_id: >-
           {{ 'camera.motion_person_face_animated_mask' }}
         file_path: >-
-          {{ '/config/www/images/motion/person_face_animated_mask.gif' }}
+          {{ '/config/www/images/motion/' + states('sensor.motion_person_face_camera') + '/person_face_animated_mask.gif' }}
