@@ -377,10 +377,13 @@ homeassistant/setup.json: setup.json.tmpl
 	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
 	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
 	  NETDATA_URL="$(NETDATA_URL)" \
+	  OMADA_PASSWORD="$(OMADA_PASSWORD)" \
+	  OMADA_USERNAME="$(OMADA_USERNAME)" \
+	  OMADA_URL="$(OMADA_URL)" \
 	  TIMESTAMP="$(TIMESTAMP)" \
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	  UPTIMEROBOT_RSSURL="$(UPTIMEROBOT_RSSURL)" \
-	&& cat $< | envsubst > $@
+	&& cat $< | envsubst | jq -S -c . > $@
 
 .PHONY: ${MEDIA} necessary all default run stop logs restart tidy clean realclean distclean $(PACKAGES) homeassistant/motion/webcams.json homeassistant/setup.json allclean
 
