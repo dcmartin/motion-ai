@@ -1,0 +1,40 @@
+###
+## homeassistant/sensor/uptime.yaml
+###
+
+- platform: uptime
+
+- platform: template
+  sensors:
+    uptime_ago:
+      friendly_name:  'Ago (s)'
+      unit_of_measurement: 's'
+      availability_template: >-
+        {%- set s = states('sensor.uptime') -%}
+        {{- s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'unavailable' 
+          and strptime(s, '%Y-%m-%dT%H:%M:%S.%f%z') is not string -}}
+      value_template: >-
+        {%- set s = states('sensor.uptime') %}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'unavailable' -%}
+          {%- set r = strptime(s, '%Y-%m-%dT%H:%M:%S.%f%z') -%}
+          {{- (utcnow().timestamp() - r|as_timestamp)|round -}}
+        {%- else -%}null{%- endif -%}
+    uptime_relative:
+      friendly_name:  'Uptime'
+      availability_template: >-
+        {%- set s = states('sensor.uptime') -%}
+        {{- s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'unavailable' 
+          and strptime(s, '%Y-%m-%dT%H:%M:%S.%f%z') is not string -}}
+      value_template: >-
+        {%- set t = utcnow() -%}
+        {%- set s = states('sensor.uptime') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'unavailable' -%}
+          {{- relative_time(strptime(s, '%Y-%m-%dT%H:%M:%S.%f%z')) -}}
+        {%- else -%}null{%- endif -%}
+
+- platform: statistics
+  name: uptime_ago_statistics
+  entity_id: sensor.uptime_ago
+  sampling_size: 100
+  max_age:
+    hours: 24
