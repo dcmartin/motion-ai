@@ -6,14 +6,19 @@
   sensors:
     weather_home:
       value_template: >-
-        {% if states.weather|count > 0 %}
-          {{ (states.weather|first).entity_id }}
-        {% else %}
-          {% set s = states('sensor.homeassistant_name') %}
-          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-            {{ 'weather.' + s|lower|replace('-','_')|replace(' ','_') }}
-          {% else %}null{% endif %}
-        {% endif %}
+        {%- set s = states('sensor.homeassistant_name') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {%- set e = 'weather.' + s|lower|replace('-','_')|replace(' ','_') -%}
+        {%- endif -%}
+        {%- if e is defined and states(e)|lower != 'none' and states(e)|lower != 'unknown' -%}
+          {{- e -}}
+        {%- else -%}
+          {%- if states.weather|count > 0 -%}
+            {%- for n in states.weather|list|sort(reverse=true,attribute='last_updated') if n.entity_id != 'weather.forecast' -%}
+              {%- if loop.first -%}{{- n.entity_id -}}{%- endif -%}
+            {%- endfor -%}
+          {%- else -%}null{%- endif -%}
+        {%- endif -%}
     weather_ago_relative:
       friendly_name: 'Weather ago'
       icon_template: 'mdi:clock'
