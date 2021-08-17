@@ -223,7 +223,7 @@
 - id: motion_shellies_mqtt_sensor
   alias: motion_shellies_mqtt_sensor
   initial_state: on
-  mode: queued
+  mode: parallel
   max_exceeded: warn
   max: 100
   trigger:
@@ -345,6 +345,20 @@
       data_template:
         allow_create: true
         entity_id: >-
+          {{ sensor }}
+        status: >-
+          {{ status|string|from_json|to_json|string }}
+        updated: >-
+          {{ timestamp }}
+        state: >-
+          {{ state }}
+    - alias: 'set_state: binary_sensor.motion_shellies_<type>'
+      service: python_script.set_state
+      data_template:
+        allow_create: true
+        entity_id: >-
+          {{ 'binary_sensor.motion_shellies_' + type|string }}
+        sensor: >-
           {{ sensor }}
         status: >-
           {{ status|string|from_json|to_json|string }}
@@ -518,6 +532,8 @@
         allow_create: true
         entity_id: >-
           {{ 'binary_sensor.motion_shellies_' + type|string }}
+        sensor: >-
+          {{ sensor }}
         id: >-
           {{ id }}
         model: >-
@@ -1445,8 +1461,6 @@
         allow_create: true
         entity_id: group.motion_shellies
         friendly_name: 'All shellies'
-        sensor: >-
-          {{ sensor }}
         macs: >-
           {{ macs|string|from_json|list|unique|list|to_json|string }}
         ids: >-
@@ -1459,7 +1473,9 @@
           "{{- eid -}}"
           {%- endfor %}]
         state: >-
-          {% if is_state('binary_sensor.motion_shellies_occupancy','on') and is_state('binary_sensor.motion_shellies_light','on') %}on{% else %}off{% endif %}
+          {%- if is_state('binary_sensor.motion_shellies_occupancy','on') and is_state('binary_sensor.motion_shellies_light','on') -%}
+            {{- 'on' -}}
+          {%- else -%}{{- 'off' -}}{%- endif -%}
     - alias: 'update info'
       service: homeassistant.update_entity
       entity_id: sensor.motion_shellies_update
@@ -1747,7 +1763,7 @@
       {% else %}null{% endif %}
     offline: >-
       {% if entities|lower != 'null' and entities is iterable -%}
-        [{%- for i in range(entities|count) if ago[i]|lower == 'null' or ago[i]|int > 120 -%}
+        [{%- for i in range(entities|count) if ago[i]|lower == 'null' or ago[i]|int > states('input_number.motion_shellies_timeout')|int -%}
           {%- if not loop.first -%},{%- endif -%}
           "{{ state_attr(entities[i],'id') }}"
         {%- endfor -%}]
@@ -1793,6 +1809,6 @@
                 {{- ago[repeat.index - 1] -}}
               online: >-
                 {%- set s = ago[repeat.index - 1] -%}
-                {{- s|lower != 'null' and s|int <= 120 -}}
+                {{- s|lower != 'null' and s|int <= states('input_number.motion_shellies_timeout')|int -}}
               state: >-
                 {{ states(entities[repeat.index - 1]) }}
