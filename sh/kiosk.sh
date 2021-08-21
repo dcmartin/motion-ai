@@ -1,22 +1,22 @@
 #!/bin/bash
 
 if [ ! -z $(command -v "xset") ]; then
-  echo "Install X Window System; apt install --no-install-recommends -qq -y xserver-xorg xinit x11-xserver-utils" >&2
+  echo "Installing X Window System; $(sudo apt install --no-install-recommends -qq -y xserver-xorg xinit x11-xserver-utils)" >&2
   exit 1
 fi
 
 if [ ! -z $(command -v "matchbox-window-manager") ]; then
-  echo "Install matchbox window manager; apt install -qq -y matchbox-window-manager xautomation" >&2
+  echo "Installing matchbox window manager; $(sudo apt install -qq -y matchbox-window-manager xautomation)" >&2
   exit 1
 fi
 
 if [ ! -z $(command -v "unclutter") ]; then
-  echo "Install unclutter; apt install -qq -y unclutter" >&2
+  echo "Installing unclutter; $(sudo apt install -qq -y unclutter)" >&2
   exit 1
 fi
 
 if [ ! -z $(command -v "chromium-browser") ]; then
-  echo "Install Chromium browser; apt install -qq -y chromium-browser" >&2
+  echo "Installing Chromium browser; $(sudo apt install -qq -y chromium-browser)" >&2
   exit 1
 fi
 
