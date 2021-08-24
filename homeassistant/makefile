@@ -175,7 +175,7 @@ MOTION_DIRS := \
 	image_processing/motion \
 	input_boolean/motion \
 	input_datetime/motion \
-	input_numeric/motion \
+	input_number/motion \
 	input_select/motion \
 	input_text/motion \
 	notify/motion \
