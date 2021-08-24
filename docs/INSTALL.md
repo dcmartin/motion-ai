@@ -44,7 +44,7 @@ sudo apt install -qq -y git jq
 # 3. clone the repository into location with sufficient space
 mkdir motion-ai
 cd motion-ai
-git clone http://github.com/dcmartin/motion-ai.git .
+git clone http://github.com/motion-ai/motion-ai.git .
 ```
 ```
 # 4. download and install Home Assistant, Docker, NetData, and supporting components
