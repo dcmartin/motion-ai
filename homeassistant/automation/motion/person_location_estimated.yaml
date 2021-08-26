@@ -1,0 +1,123 @@
+###
+# homeassistant/automation/motion/person_location_estimated.yaml
+###
+
+- id: motion_person_location_estimated
+  alias: motion_person_location_estimated
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_detected_person
+  variables:
+    home: >-
+      {% set s = state_attr('sensor.motion_person_location','zone') %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {% set s = s|from_json %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and 'entity_id' in s %}
+          {{ s.entity_id|lower == 'zone.home' }}
+        {% else %}true{% endif %}
+      {% else %}false{% endif %}
+    camera: >-
+      {{ states('sensor.motion_detected_person_camera') }}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state|lower == 'on' }}
+      - condition: template
+        value_template: >-
+          {{ home|lower == 'true' }}
+  action:
+    - service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_person_location_estimated
+        state: >-
+          {{ home }}
+        source: >-
+          {{ camera }}
+        ago: >-
+          {% set s = state_attr('sensor.motion_' + camera + '_camera_detected_person_status','ago') %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+            {{ s }}
+          {% else %}
+            {{ states('sensor.motion_detected_person_ago') }}
+          {% endif %}
+        latitude: >-
+          {% set s = state_attr('sensor.motion_' + camera + '_camera_detected_person_status','latitude') %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        longitude: >-
+          {% set s = state_attr('sensor.motion_' + camera + '_camera_detected_person_status','longitude') %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        radius: >-
+          {% set s = state_attr('sensor.motion_' + camera + '_camera_detected_person_status','radius') %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        gps_accuracy: >-
+          {% set s = state_attr('sensor.motion_' + camera + '_camera_detected_person_status','gps_accuracy') %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+            {{ s }}
+          {% else %}null{% endif %}
+
+- id: motion_person_location_estimated_previous
+  alias: motion_person_location_estimated_previous
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_person_location_estimated
+  action:
+    - service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_person_location_estimated_previous
+        movement: >-
+          {% set s = states('sensor.motion_person_location_estimated_previous') %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+            {% set s = state_attr('sensor.motion_person_location_estimated_previous','latitude') %}
+            {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+              {% set plat = s|float %}
+              {% set s = state_attr('sensor.motion_person_location_estimated_previous','longitude') %}
+              {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+                {% set plng = s|float %}
+                {% set s = state_attr('sensor.motion_person_location_estimated','latitude') %}
+                {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+                  {% set clat = s|float %}
+                  {% set s = state_attr('sensor.motion_person_location_estimated','longitude') %}
+                  {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+                    {% set clng = s|float %}
+                    {% set d = distance(plat, plng, clat, clng) * 1000 %}
+                    {{- '%0.2f'|format(d) -}}
+                  {% else %}null{% endif %}
+                {% else %}null{% endif %}
+              {% else %}null{% endif %}
+            {% else %}null{% endif %}
+          {% else %}null{% endif %}
+        velocity: >-
+          {% set s = states('sensor.motion_person_location_estimated_previous') %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+            {% set s = state_attr('sensor.motion_person_location_estimated_previous','latitude') %}
+            {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+              {% set plat = s|float %}
+              {% set s = state_attr('sensor.motion_person_location_estimated_previous','longitude') %}
+              {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+                {% set plng = s|float %}
+                {% set s = state_attr('sensor.motion_person_location_estimated','latitude') %}
+                {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+                  {% set clat = s|float %}
+                  {% set s = state_attr('sensor.motion_person_location_estimated','longitude') %}
+                  {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+                    {% set clng = s|float %}
+                    {% set d = distance(plat, plng, clat, clng) * 1000 %}
+                    {% set t = state_attr('sensor.motion_person_location_estimated_previous','timestamp') %}
+                    {% if t|lower != 'none' and t|lower != 'unknown' and t|lower != 'unavailable' and t|lower != 'null' %}
+                      {% set t = utcnow().timestamp() - t|float %}
+                      {{- '%0.2f'|format(d/t|float) -}}
+                    {% else %}null{% endif %}
+                  {% else %}null{% endif %}
+                {% else %}null{% endif %}
+              {% else %}null{% endif %}
+            {% else %}null{% endif %}
