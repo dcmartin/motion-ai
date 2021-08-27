@@ -226,6 +226,9 @@
         {%- endif %}
       value_template: >-
         {%- if is_state('binary_sensor.motion_person_home','on') -%}Home{%- else -%}Away{%- endif -%}
+
+- platform: template
+  sensors:
     motion_person_zone:
       friendly_name: '👱 zone'
       icon_template: >-
@@ -245,14 +248,6 @@
             {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and 'entity_id' in s %}
               {% set s = s|from_json %}
               {{ state_attr(s.entity_id,'friendly_name') }}
-            {%- else -%}none{%- endif -%}
-          {%- else -%}unknown{%- endif -%}
-        gps_accuracy: >-
-          {% if is_state('binary_sensor.motion_person_zones','on') -%}
-            {% set s = state_attr('sensor.motion_person_location','zone') %}
-            {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and 'entity_id' in s %}
-              {% set s = s|from_json %}
-              {{ state_attr(s.entity_id,'gps_accuracy') }}
             {%- else -%}none{%- endif -%}
           {%- else -%}unknown{%- endif -%}
         radius: >-
@@ -317,110 +312,6 @@
             {{ s.entity_id|replace('zone.','') }}
           {%- else -%}none{%- endif -%}
         {%- else -%}unknown{%- endif -%}
-    motion_person_location_previous:
-      unique_id: motion_person_location_previous
-      friendly_name: '👱 previous location'
-      icon_template: >-
-        {{- 'mdi:map-marker' -}}
-      value_template: >-
-        {{ 'unknown' }}
-    motion_person_location:
-      unique_id: motion_person_location
-      friendly_name: '👱 location'
-      attribute_templates:
-        id: >-
-          {{ state_attr('person.' + states('sensor.motion_person'),'id') }}
-        user_id: >-
-          {{ state_attr('person.' + states('sensor.motion_person'),'user_id') }}
-        zone: >-
-          {% if is_state('binary_sensor.motion_person_zones','on') %}
-            {% set zones = state_attr('binary_sensor.motion_person_zones','zones') %}
-            {% if zones|lower != 'unknown' and zones|lower != 'none' and zones|lower != 'unavailable' and zones is iterable and zones|length > 0 %}
-              {% set s = closest('sensor.motion_person_location',zones) %}
-              {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
-                {% set d = distance(s,'sensor.motion_person_location') * 1000 %}
-                {% set r = s.attributes.radius %}
-                {% set g = state_attr('person.' + states('sensor.motion_person'),'gps_accuracy') %}
-                {{ '{"name":"' + s.attributes.friendly_name + '","gps_accuracy":' + g|string + ',"radius":' + r|string + ',"entity_id":"' + s.entity_id + '","inside":' + (d|int < r|int)|lower + ',"distance":' + d|string + '}' }}
-              {%- else -%}null{%- endif -%}
-            {%- else -%}none{%- endif -%}
-          {%- else -%}unknown{%- endif -%}
-        entity_picture: >-
-          {{ state_attr('person.' + states('sensor.motion_person'),'entity_picture')|default('/local/images/genie.png',true)  }}
-        latitude: >-
-          {% set s = states('person.' + states('sensor.motion_person')) %}
-          {% if s|lower != 'null' and s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' %}
-            {{ state_attr('person.' + states('sensor.motion_person'),'latitude') }}
-          {% else %}
-            {% set s = state_attr('sensor.motion_person_location_estimated','latitude') %}
-            {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' %}
-              {{ s }}
-            {% else %}null{% endif %}
-          {% endif %}
-        longitude: >-
-          {% set s = states('person.' + states('sensor.motion_person')) %}
-          {% if s|lower != 'null' and s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' %}
-            {{ state_attr('person.' + states('sensor.motion_person'),'longitude') }}
-          {% else %}
-            {% set s = state_attr('sensor.motion_person_location_estimated','longitude') %}
-            {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' %}
-              {{ s }}
-            {% else %}null{% endif %}
-          {% endif %}
-        distance: >-
-          {% set s = states('person.' + states('sensor.motion_person')) %}
-          {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
-            {% set clat = state_attr('person.' + states('sensor.motion_person'),'latitude') %}
-            {% set clng = state_attr('person.' + states('sensor.motion_person'),'longitude') %}
-            {% set s = distance('zone.home', clat, clng) %}
-            {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
-              {{- '%0.2f'|format(s|float * 1000) -}}
-            {% else %}null{% endif %}
-          {% else %}
-            {% set s = states('sensor.motion_person_location_estimated') %}
-            {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
-              {% set clat = state_attr('sensor.motion_person_location_estimated','latitude') %}
-              {% set clng = state_attr('sensor.motion_person_location_estimated','longitude') %}
-              {% set s = distance('zone.home', clat, clng) %}
-              {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
-                {{- '%0.2f'|format(s|float * 1000) -}}
-              {% else %}null{% endif %}
-            {% else %}null{% endif %}
-          {% endif %}
-        gps_accuracy: >-
-          {% set s = states('person.' + states('sensor.motion_person')) %}
-          {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' %}
-            {{ state_attr('person.' + states('sensor.motion_person'),'gps_accuracy') }}
-          {% else %}
-            {% set s = state_attr('sensor.motion_person_location_estimated','gps_accuracy') %}
-            {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' %}
-              {{ s }}
-            {% else %}null{% endif %}
-          {% endif %}
-        source: >-
-          {% set s = states('person.' + states('sensor.motion_person')) %}
-          {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' %}
-            {{ state_attr('person.' + states('sensor.motion_person'),'source') }}
-          {% else %}
-            {% set s = state_attr('sensor.motion_person_location_estimated','source') %}
-            {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' %}
-              {{ s }}
-            {% else %}null{% endif %}
-          {% endif %}
-      icon_template: >-
-        {{- 'mdi:map-marker' -}}
-      value_template: >-
-        {% set s = states('person.' + states('sensor.motion_person')) %}
-        {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' %}
-          {{ s }}
-        {% else %}
-          {% set s = states('sensor.motion_person_location_estimated') %}
-          {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' %}
-            {{ s }}
-          {% else %}
-           {{ 'unknown' }}
-          {% endif %}
-        {% endif %}
 
 - platform: template
   sensors:
