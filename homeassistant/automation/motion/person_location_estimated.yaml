@@ -9,14 +9,11 @@
     - platform: state
       entity_id: binary_sensor.motion_detected_person
   variables:
-    home: >-
-      {% set s = state_attr('sensor.motion_person_location','zone') %}
+    location: >-
+      {% set s = states('sensor.motion_person_location') %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-        {% set s = s|from_json %}
-        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and 'entity_id' in s %}
-          {{ s.entity_id|lower == 'zone.home' }}
-        {% else %}true{% endif %}
-      {% else %}false{% endif %}
+        {{ s }}
+      {% else %}null{% endif %}
     camera: >-
       {{ states('sensor.motion_detected_person_camera') }}
   condition:
@@ -27,13 +24,13 @@
           {{ trigger.to_state.state|lower == 'on' }}
       - condition: template
         value_template: >-
-          {{ home|lower == 'true' }}
+          {{ location|lower == 'home' }}
   action:
     - service: python_script.set_state
       data_template:
         entity_id: sensor.motion_person_location_estimated
         state: >-
-          {{ home }}
+          {{ camera|string + ' at ' + location|string }}
         source: >-
           {{ camera }}
         ago: >-
