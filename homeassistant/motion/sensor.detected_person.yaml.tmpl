@@ -90,11 +90,153 @@
             {% else %}{{- 'nominal' -}}
           {% endif %}
         {% else %}{{- 'null' -}}{% endif %}
+
+- platform: template
+  sensors:
     motion_${MOTION_CAMERA}_camera_detected_person_status:
       unique_id: motion_${MOTION_CAMERA}_camera_detected_person_status
       friendly_name: '${MOTION_CAMERA}'
       unit_of_measurement: '≋'
       attribute_templates:
+        event: >-
+          {% set mc = '${MOTION_CAMERA}' %}
+          {% if is_state('binary_sensor.motion_' + mc + '_detected_person','on') %}
+            {% set e = state_attr('sensor.motion_' + mc + '_event_annotated','event') %}
+            {% if e is mapping %}
+              {% set s = e.event %}
+              {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
+                {{ s|int }}
+              {%- else -%}null{%- endif -%}
+            {%- else -%}null{%- endif -%}
+          {% else %}null{% endif %}
+        camera: >-
+          {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_detected_person','on') or is_state('binary_sensor.motion_${MOTION_CAMERA}_detected_person_expired','off') %}
+            {% set s = state_attr('sensor.motion_${MOTION_CAMERA}_event_annotated','event') %}
+            {% if s|lower != 'none' and s is mapping %}
+              {% set p = s.camera %}
+            {% endif %}
+          {% endif %}
+          {% if p is defined %}
+            {{ p }}
+          {% else %}null{% endif %}
+        elapsed: >-
+          {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_detected_person','on') or is_state('binary_sensor.motion_${MOTION_CAMERA}_detected_person_expired','off') %}
+            {% set s = state_attr('sensor.motion_${MOTION_CAMERA}_event_annotated','event') %}
+            {% if s|lower != 'none' and s is mapping %}
+              {% set p = s.elapsed %}
+            {% endif %}
+          {% endif %}
+          {% if p is defined %}
+            {{ p }}
+          {% else %}null{% endif %}
+        date: >-
+          {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_detected_person','on') or is_state('binary_sensor.motion_${MOTION_CAMERA}_detected_person_expired','off') %}
+            {% set s = state_attr('sensor.motion_${MOTION_CAMERA}_event_annotated','event') %}
+            {% if s|lower != 'none' and s is mapping %}
+              {% set p = s.end %}
+            {% endif %}
+          {% endif %}
+          {% if p is defined %}
+            {{ p }}
+          {% else %}null{% endif %}
+        confidence: >-
+          {% set mc = '${MOTION_CAMERA}' %}
+          {% if is_state('binary_sensor.motion_' + mc + '_detected','on') %}
+            {% set results = state_attr('sensor.motion_' + mc + '_event_annotated','results') %}
+            {% if results|lower != 'none' and results|lower != 'unavailable' and results|lower != 'unknown' and results|length > 0 %}
+              {% set option = states('input_select.motion_detect_person') %}
+              {% if option|lower == 'all' or option|lower == 'person' %}
+                {% set options = state_attr('input_select.motion_detect_person','options') %}
+                {% if options|lower != 'none' and options|lower != 'unknown' and options|length > 0 %}
+                  {% set l = results|selectattr('entity','in',options)|map(attribute='confidence')|list %}
+                {% endif %}
+              {% else %}
+                {% set options = state_attr('input_select.motion_detect_person','options') %}
+                {% if options|lower != 'none' and options|lower != 'unknown' and options|length > 0 %}
+                  {% set l = results|selectattr('entity','==',option)|map(attribute='confidence')|list %}
+                {% endif %}
+              {% endif %}
+              {% if l|lower != 'none' and l|length > 0 %}
+                {% set p = l|max|int %}
+              {% endif %}
+            {% endif %}
+          {% endif %}
+          {% if p is defined %}
+            {{ p }}
+          {%- elif is_state('binary_sensor.motion_' + mc + '_detected_person_expired','off') -%}
+            {% set s = states('sensor.motion_' + mc + '_detected_person_confidence.state') %}
+            {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+              {{ s }}
+            {% else %}null{% endif %}
+          {% else %}null{% endif %}
+        rank: >-
+          {% set mc = '${MOTION_CAMERA}' %}
+          {% set n = states('sensor.motion_detected_person_agos_min') -%}
+          {% set m = states('sensor.motion_detected_person_agos_max') -%}
+          {% set d = states('sensor.motion_' + mc + '_detected_person_ago') -%}
+          {% if n|float > 0.0 and m|float > 0.0 and d|float > 0.0 -%}
+            {% set n = n|float -%}
+            {% set m = m|float -%}
+            {% set d = d|float -%}
+            {% if d <= n %}
+              {% set s = 100 %}
+            {% elif d >= m %}
+              {% set s = 0 %}
+            {% else %}
+              {%- set s = n/d*100 -%}
+            {% endif %}
+            {%- if s|float <= 100.0 %}
+              {{- "%.2f"|format(s) -}}
+            {%- else -%}null{%- endif -%}
+          {% else %}null{% endif %}
+        picture: >-
+          {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_status_camera','on') %}
+            {% set s = states('sensor.motion_${MOTION_CAMERA}_camera_detected_person_level') %}
+            {% if s|lower != 'unavailable' %}
+              {% if s|lower == 'none' %}
+                {{- '/local/images/none-signal.png' -}}
+              {% elif s|lower == 'verylow' %}
+                {{- '/local/images/verylow-signal.png' -}}
+              {% elif s|lower == 'veryhigh' %}
+                {{- '/local/images/veryhigh-signal.png' -}}
+              {% elif s|lower == 'low' %}
+                {{- '/local/images/low-signal.png' -}}
+              {% elif s|lower == 'high' %}
+                {{- '/local/images/high-signal.png' -}}
+              {% elif s|lower == 'null' %}
+                {{- '/local/images/null-signal.png' -}}
+              {% elif s|lower == 'nominal' %}
+                {{- '/local/images/nominal-signal.png' -}}
+              {% else %}
+                {{- '/local/images/unknown-signal.png' -}}
+              {% endif %}
+            {% else %}
+              {{- '/local/images/noise-signal.gif' -}}
+            {% endif %}
+          {% else %}
+            {{- '/local/images/no-signal.gif' -}}
+          {% endif %}
+        level: >-
+          {% set mc = '${MOTION_CAMERA}' %}
+          {% set s = states('sensor.motion_detected_person_ago_stdev') -%}
+          {% set m = states('sensor.motion_detected_person_ago_mean') -%}
+          {% set n = states('sensor.motion_detected_person_ago_min') -%}
+          {% if s|float > 0.0 and m|float > 0.0 and n|float > 0.0 %}
+            {% set rate_u = n|float / m|float * 100.0 %}
+            {% set rate_s = n|float / s|float * 100.0 %}
+            {% set rate_vl = rate_u - rate_s %}
+            {% set rate_vh = rate_u + rate_s %}
+            {% set rate_l = rate_u - rate_s/2 %}
+            {% set rate_h = rate_u + rate_s/2 %}
+            {% set v = states('sensor.motion_' + mc + '_camera_detected_person_rank') %}
+            {%- if v|float >= rate_vh %}{{- 'veryhigh' -}}
+              {% elif v|float >= rate_h %}{{- 'high' -}}
+              {% elif v|float <= 0.0 %}{{- 'none' -}}
+              {% elif v|float <= rate_vl %}{{- 'verylow' -}}
+              {% elif v|float <= rate_l %}{{- 'low' -}}
+              {% else %}{{- 'nominal' -}}
+            {% endif %}
+          {% else %}{{- 'null' -}}{% endif %}
         ago: >-
           {{ states('sensor.motion_${MOTION_CAMERA}_detected_person_ago') }}
         latitude: >-
