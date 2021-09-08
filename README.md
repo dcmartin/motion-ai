@@ -73,7 +73,7 @@ Once the system has rebooted it will display a default view; note the image belo
 
 <img src="docs/dashboard.png" width="75%">
 
-Historial information, current status, and a device map of activity are also provided in the default dashboard.
+Historical information, current status, and a device map of activity are also provided in the default dashboard.
 
 <img src="docs/person-history.png" width="30%">
 <img src="docs/person-status.png" width="30%">
