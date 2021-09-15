@@ -72,20 +72,25 @@
           {{ ((pa|float - pam|float) / pasm|float) >= pad|float }}
         {% else %}null{% endif %}
 
-- platform: template
+# trend over 0.1 m/s over 3600 seconds (0.0000277777)
+
+- platform: trend
   sensors:
-    motion_person_location_estimated_movement_low:
-      friendly_name: Movement low
-      icon_template: 'mdi:priority-low'
-      value_template: >-
-        {{ is_state('binary_sensor.motion_person_location_estimated_movement_1d_low','on')
-             or is_state('binary_sensor.motion_person_location_estimated_movement_1d_low_persistent','on' ) }}
-    motion_person_location_estimated_movement_high:
-      friendly_name: Movement high
-      icon_template: 'mdi:priority-high'
-      value_template: >-
-        {{ is_state('binary_sensor.motion_person_location_estimated_movement_1d_high','on')
-             or is_state('binary_sensor.motion_person_location_estimated_movement_1d_high_persistent','on' ) }}
+    motion_person_velocity_faster_1h:
+      entity_id: sensor.motion_person_location_estimated_previous
+      friendly_name: Velocity faster (1h)
+      attribute: velocity
+      sample_duration: 3600
+      max_samples: 60
+      min_gradient: 0.000028
+      device_class: occupancy
+    motion_person_velocity_slower_1h:
+      entity_id: sensor.motion_person_location_estimated_previous
+      attribute: Velocity slower (1h)
+      sample_duration: 3600
+      max_samples: 60
+      min_gradient: -0.000028
+      device_class: occupancy
 
 ## VELOCITY
 
@@ -161,37 +166,99 @@
           {{ ((pa|float - pam|float) / pasm|float) >= pad|float }}
         {% else %}null{% endif %}
 
+## SUMMARY
+
 - platform: template
   sensors:
-    motion_person_location_estimated_velocity_low:
+    motion_person_location_estimated_movement_low_1d:
+      friendly_name: Movement low
+      icon_template: 'mdi:priority-low'
+      value_template: >-
+        {{ is_state('binary_sensor.motion_person_location_estimated_movement_1d_low','on')
+             or is_state('binary_sensor.motion_person_location_estimated_movement_1d_low_persistent','on' ) }}
+    motion_person_location_estimated_movement_high_1d:
+      friendly_name: Movement high
+      icon_template: 'mdi:priority-high'
+      value_template: >-
+        {{ is_state('binary_sensor.motion_person_location_estimated_movement_1d_high','on')
+             or is_state('binary_sensor.motion_person_location_estimated_movement_1d_high_persistent','on' ) }}
+
+- platform: template
+  sensors:
+    motion_person_location_estimated_velocity_fast_1d:
       friendly_name: Movement low
       icon_template: 'mdi:priority-low'
       value_template: >-
         {{ is_state('binary_sensor.motion_person_location_estimated_velocity_1d_low','on')
              or is_state('binary_sensor.motion_person_location_estimated_velocity_1d_low_persistent','on' ) }}
-    motion_person_location_estimated_velocity_high:
+    motion_person_location_estimated_velocity_slow_1d:
       friendly_name: Movement high
       icon_template: 'mdi:priority-high'
       value_template: >-
         {{ is_state('binary_sensor.motion_person_location_estimated_velocity_1d_high','on')
              or is_state('binary_sensor.motion_person_location_estimated_velocity_1d_high_persistent','on' ) }}
 
-# trend over 0.1 m/s over 3600 seconds (0.0000277777)
+## ACTIVITY
 
-- platform: trend
+- platform: template
   sensors:
-    motion_person_velocity_faster_1h:
-      entity_id: sensor.motion_person_location_estimated_previous
-      friendly_name: Velocity faster (1h)
-      attribute: velocity
-      sample_duration: 3600
-      max_samples: 60
-      min_gradient: 0.000028
-      device_class: occupancy
-    motion_person_velocity_slower_1h:
-      entity_id: sensor.motion_person_location_estimated_previous
-      attribute: Velocity slower (1h)
-      sample_duration: 3600
-      max_samples: 60
-      min_gradient: -0.000028
-      device_class: occupancy
+    motion_person_location_estimated_activity_low_1d:
+      friendly_name: Activity low
+      icon_template: 'mdi:priority-low'
+      value_template: >-
+        {{ is_state('binary_sensor.motion_person_location_estimated_movement_low_1d','on')
+             and is_state('binary_sensor.motion_person_location_estimated_velocity_slow_1d','on' ) }}
+    motion_person_location_estimated_activity_high_1d:
+      friendly_name: Activity high
+      icon_template: 'mdi:priority-high'
+      value_template: >-
+        {{ is_state('binary_sensor.motion_person_location_estimated_movement_high_1d','on')
+             and is_state('binary_sensor.motion_person_location_estimated_velocity_fast_1d','on' ) }}
+
+## BAYESIAN
+
+- platform: bayesian
+  name: motion_person_location_estimated_active
+  prior: 0.5
+  probability_threshold: 0.5
+  observations:
+    - platform: state
+      entity_id: binary_sensor.motion_person_location_movement_low_1d
+      prob_given_true: 0.3
+      prob_given_false: 0.7
+      to_state: 'on'
+    - platform: state
+      entity_id: binary_sensor.motion_person_location_velocity_slow_1d
+      prob_given_true: 0.3
+      prob_given_false: 0.7
+      to_state: 'on'
+    - platform: state
+      entity_id: binary_sensor.motion_person_location_movement_high_1d
+      prob_given_true: 0.95
+      prob_given_false: 0.05
+      to_state: 'on'
+    - platform: state
+      entity_id: binary_sensor.motion_person_location_velocity_fast_1d
+      prob_given_true: 0.95
+      prob_given_false: 0.05
+      to_state: 'on'
+    - platform: state
+      entity_id: binary_sensor.motion_detected_person_ago_high
+      prob_given_true: 0.2
+      prob_given_false: 0.8
+      to_state: 'on'
+    - platform: state
+      entity_id: binary_sensor.motion_detected_person_ago_high_persistent
+      prob_given_true: 0.1
+      prob_given_false: 0.9
+      to_state: 'on'
+    - platform: state
+      entity_id: binary_sensor.motion_detected_person_ago_low
+      prob_given_true: 0.8
+      prob_given_false: 0.2
+      to_state: 'on'
+    - platform: state
+      entity_id: binary_sensor.motion_detected_person_ago_low_persistent
+      prob_given_true: 0.9
+      prob_given_false: 0.1
+      to_state: 'on'
