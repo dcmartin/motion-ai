@@ -47,7 +47,7 @@
         - condition: template
           value_template: >
             {{ sensor|lower != 'null' }}
-    - alias: 'update sensor.motion_shellies_settings_occupancy_selected_sensitivity'
+    - alias: 'update sensor.motion_shellies_settings_occupancy_selected_sensitivity_rest'
       service: homeassistant.update_entity
       entity_id: sensor.motion_shellies_settings_occupancy_selected_sensitivity_rest
 
@@ -266,23 +266,10 @@
       {% if mac|lower != 'none' and mac|lower != 'unavailable' and mac|lower != 'unknown' and mac|lower != 'null' and mac|length > 0 %}
         {{ 'binary_sensor.motion_shelly_occupancy_' + mac|lower }}
       {% else %}null{% endif %}
-    now: >-
-      {% if sensor|lower != 'null' %}
-        {% set s = state_attr(sensor,'status') %}
-        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
-          {% if 'timestamp' in s %}
-            {% set s = s.timestamp %}
-            {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int > 0 %}
-              {% set p = s|int %}
-            {% endif %}
-          {% endif %}
-        {% endif %}
-      {% endif %}
-      {% if p is defined %}
-        {{ p }}
-      {% else %}{{ utcnow().timestamp()|int }}{% endif %}
+    last: >-
+      {{ utcnow().timestamp()|int }}
     when: >-
-      {{ now|timestamp_custom("%a %b %d %I:%M:%S %p %Z") }}
+      {{ last|timestamp_custom("%a %b %d %I:%M:%S %p %Z") }}
   action:
     - alias: 'set on: binary_sensor.motion_shellies_occupancy'
       service: python_script.set_state
@@ -290,7 +277,7 @@
         entity_id: >-
           {{- 'binary_sensor.motion_shellies_occupancy' -}}
         last: >-
-          {{ now }}
+          {{ last }}
         when: >-
           {{ when }}
         icon: >-
@@ -312,9 +299,9 @@
         when: >-
           {{ when }}
         last: >-
-          {{ now }}
+          {{ last }}
         start: >-
-          {{ now }}
+          {{ last }}
         end: >-
           {{- 'null' -}}
         state: >-
@@ -335,28 +322,15 @@
       {% if mac|lower != 'none' and mac|lower != 'unavailable' and mac|lower != 'unknown' and mac|lower != 'null' and mac|length > 0 %}
         {{ 'binary_sensor.motion_shelly_occupancy_' + mac|lower }}
       {% else %}null{% endif %}
-    now: >-
-      {% if sensor|lower != 'null' %}
-        {% set s = state_attr(sensor,'status') %}
-        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
-          {% if 'timestamp' in s %}
-            {% set s = s.timestamp %}
-            {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int > 0 %}
-              {% set p = s|int %}
-            {% endif %}
-          {% endif %}
-        {% endif %}
-      {% endif %}
-      {% if p is defined %}
-        {{ p }}
-      {% else %}{{ utcnow().timestamp()|int }}{% endif %}
+    last: >-
+      {{ utcnow().timestamp()|int }}
     when: >-
-      {{ now|timestamp_custom("%a %b %d %I:%M:%S %p %Z") }}
+      {{ last|timestamp_custom("%a %b %d %I:%M:%S %p %Z") }}
     duration: >-
       {% if sensor|lower != 'null' %}
       {% set s = state_attr(sensor,'start') %}
         {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int > 0 %}
-          {{ now - s|int }}
+          {{ last - s|int }}
         {% else %}null{% endif %}
       {% else %}null{% endif %}
   action:
@@ -367,7 +341,7 @@
         entity_id: >-
           {{- 'binary_sensor.motion_shellies_occupancy' -}}
         last: >-
-          {{ now }}
+          {{ last }}
         when: >-
           {{ when }}
         duration: >-
@@ -393,21 +367,38 @@
         duration: >-
           {{ duration }}
         last: >-
-          {{ now }}
+          {{ last }}
         end: >-
-          {{ now }}
+          {{ last }}
         state: >-
           {{- 'off' -}}
 
-- id: motion_shellies_occupancy_selected_update
-  alias: motion_shellies_occupancy_selected_update
+- id: motion_shellies_occupancy_selected_update_rest
+  alias: motion_shellies_occupancy_selected_update_rest
   initial_state: on
   mode: single
   trigger:
     - platform: state
       entity_id: input_select.motion_shellies_occupancy
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {% set id = states('input_select.motion_shellies_occupancy') %}
+          {{ id|lower != 'none' and id|lower != 'unavailable' and id|lower != 'unknown' and id|lower != 'null' and id|length > 0 }}
+  action:
+    - alias: 'update sensor.motion_shellies_settings_occupancy_selected_rest'
+      service: homeassistant.update_entity
+      entity_id: sensor.motion_shellies_settings_occupancy_selected_rest
+
+- id: motion_shellies_occupancy_selected_rest
+  alias: motion_shellies_occupancy_selected_rest
+  initial_state: on
+  mode: single
+  trigger:
     - platform: state
-      entity_id: sensor.motion_shellies_settings_occupancy
+      entity_id: sensor.motion_shellies_settings_occupancy_selected_rest
   condition:
     condition: and
     conditions:
@@ -642,7 +633,10 @@
         when: >-
           {{ state_attr(sensor,'when') }}
         ago: >-
-          {{ utcnow().timestamp()|int - state_attr(sensor,'updated') }}
+          {% set s = state_attr(sensor,'updated') %}
+          {% if s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ utcnow().timestamp()|int - s|int }}
+          {% else %}null{% endif %}
         state: >-
           {{ states('input_select.motion_shellies_occupancy') }}
     - alias: 'set input_number.motion_shellies_occupancy_selected_sensitivity'

@@ -1,0 +1,84 @@
+###
+## sensor/motion/w3w.yaml
+###
+
+- platform: template
+  sensors:
+    motion_w3w_location:
+      friendly_name: W3W Location
+      icon_template: 'mdi:map-marker'
+      attribute_templates:
+        words: >-
+          {% set s = states('input_text.motion_w3w_location') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|length > 0 %}
+            {{ ('[' + s|string|replace('///','"')|replace('.','","') + '"]')|from_json|default(null) }}
+          {% else %}null{% endif %}
+        latitude: >-
+          {% set s = states('sensor.motion_w3w_location_rest') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {% set s = state_attr('sensor.motion_w3w_location_rest','coordinates') %}
+            {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+              {{ s.lat|float }}
+            {% else %}null{% endif %}
+          {% else %}null{% endif %}
+        longitude: >-
+          {% set s = states('sensor.motion_w3w_location_rest') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {% set s = state_attr('sensor.motion_w3w_location_rest','coordinates') %}
+            {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+              {{ s.lng|float }}
+            {% else %}null{% endif %}
+          {% else %}null{% endif %}
+        gps_accuracy: 3
+      value_template: >-
+        {{ states('input_text.motion_w3w_location') }}
+
+# {
+#   "coordinates": {
+#     "lat": 37.174981,
+#     "lng": -121.816223
+#   },
+#   "country": "US",
+#   "language": "en",
+#   "map": "https://w3w.co/gangs.lovely.gossip",
+#   "nearestPlace": "Seven Trees, California",
+#   "square": {
+#     "northeast": {
+#       "lat": 37.174995,
+#       "lng": -121.816206
+#     },
+#     "southwest": {
+#       "lat": 37.174968,
+#       "lng": -121.81624
+#     }
+#   },
+#   "words": "gangs.lovely.gossip"
+# }
+
+- platform: rest
+  name: motion_w3w_location_rest
+  method: GET
+  timeout: 5
+  verify_ssl: false
+  force_update: true
+  scan_interval: 60
+  json_attributes:
+    - coordinates
+    - country
+    - language
+    - map
+    - nearestPlace
+    - square
+    - words
+  resource_template: >-
+    {% set s = state_attr('sensor.motion_w3w_location','words') %}
+    {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|length == 3 %}
+      {% set s = s[0]|string + '.' + s[1]|string + '.' + s[2]|string %}
+      {% set url = 'https://api.what3words.com/v3/convert-to-coordinates?words=' + s %}
+      {% set s = states('input_text.motion_w3w_apikey') %}
+      {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|length > 0 %}
+        {{ url + '&key=' + s }}
+      {% else %}null{% endif %}
+    {% else %}null{% endif %}
+  value_template: >-
+    {{ value_json is defined and 'coordinates' in value_json }}
