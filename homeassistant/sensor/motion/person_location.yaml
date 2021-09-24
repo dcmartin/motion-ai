@@ -4,33 +4,10 @@
 
 - platform: template
   sensors:
-    motion_person_location:
-      unique_id: motion_person_location
-      friendly_name: '👱 location'
+    motion_person_location_derived:
+      unique_id: motion_person_location_derived
+      friendly_name: '👱 location derived'
       attribute_templates:
-        entity_picture: >-
-          {{ state_attr('person.' + states('sensor.motion_person'),'entity_picture')|default('/local/images/genie.png',true)  }}
-        id: >-
-          {{ state_attr('person.' + states('sensor.motion_person'),'id') }}
-        user_id: >-
-          {{ state_attr('person.' + states('sensor.motion_person'),'user_id') }}
-        zone: >-
-          {% if is_state('binary_sensor.motion_person_zones','on') %}
-            {% set zones = state_attr('binary_sensor.motion_person_zones','zones') %}
-            {% if zones|lower != 'unknown' and zones|lower != 'none' and zones|lower != 'unavailable' and zones is iterable and zones|length > 0 %}
-              {% set clat = state_attr('person.' + states('sensor.motion_person'),'latitude') %}
-              {% set clng = state_attr('person.' + states('sensor.motion_person'),'longitude') %}
-              {% set s = closest(clat,clng,zones) %}
-              {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
-                {% set d = distance(clat, clng, s) %}
-                {% if d|lower != 'none' and d|lower != 'null' and d|lower != 'unknown' and d|lower != 'unavailable' and d|int is number and d|int < 40075 %}
-                  {% set d = '%0.2f'|format(d|float * 1000) %}
-                {% else %}{% set d = null %}{% endif %}
-                {% set r = s.attributes.radius %}
-                {{ '{"name":"' + s.attributes.friendly_name + '","radius":' + r|string + ',"entity_id":"' + s.entity_id + '","inside":' + (d|int < r|int)|lower + ',"distance":' + d|string + '}' }}
-              {%- else -%}null{%- endif -%}
-            {%- else -%}none{%- endif -%}
-          {%- else -%}unknown{%- endif -%}
         latitude: >-
           {% set s = states('person.' + states('sensor.motion_person')) %}
           {% if s|lower != 'null' and s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' %}
@@ -49,26 +26,6 @@
             {% set s = state_attr('sensor.motion_person_location','longitude') %}
             {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' %}
               {{ s }}
-            {% else %}null{% endif %}
-          {% endif %}
-        distance: >-
-          {% set s = states('person.' + states('sensor.motion_person')) %}
-          {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
-            {% set clat = state_attr('person.' + states('sensor.motion_person'),'latitude') %}
-            {% set clng = state_attr('person.' + states('sensor.motion_person'),'longitude') %}
-            {% set s = distance('zone.home', clat, clng) %}
-            {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' and s|int is number and s|int < 40075 %}
-              {{- '%0.2f'|format(s|float * 1000) -}}
-            {% else %}null{% endif %}
-          {% else %}
-            {% set s = states('sensor.motion_person_location') %}
-            {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
-              {% set clat = state_attr('sensor.motion_person_location','latitude') %}
-              {% set clng = state_attr('sensor.motion_person_location','longitude') %}
-              {% set s = distance('zone.home', clat, clng) %}
-              {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' and s|int is number and s|int < 40075 %}
-                {{- '%0.2f'|format(s|float * 1000) -}}
-              {% else %}null{% endif %}
             {% else %}null{% endif %}
           {% endif %}
         gps_accuracy: >-
@@ -91,19 +48,6 @@
               {{ s }}
             {% else %}null{% endif %}
           {% endif %}
-        confidence: >-
-          {% set s = states('person.' + states('sensor.motion_person')) %}
-          {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' %}
-            {% set a = state_attr('person.' + s|string,'gps_accuracy')|float %}
-            {% set am = states('sensor.motion_person_location_accuracy_statistics_1d')|float %}
-            {% set as = state_attr('sensor.motion_person_location_accuracy_statistics_1d','standard_deviation')|float %}
-            {% set v = state_attr('sensor.motion_person_location_previous','velocity')|float %}
-            {% set vm = states('sensor.motion_person_location_velocity_statistics_1d')|float %}
-            {% set vs = state_attr('sensor.motion_person_location_velocity_statistics_1d','standard_deviation')|float %}
-            {{ a, am, as, v, vm, vs }}
-          {% else %}null{% endif %}
-      icon_template: >-
-        {{- 'mdi:map-marker' -}}
       value_template: >-
         {% set s = states('person.' + states('sensor.motion_person')) %}
         {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' %}
@@ -116,6 +60,23 @@
            {{ 'unknown' }}
           {% endif %}
         {% endif %}
+
+- platform: template
+  sensors:
+    motion_person_location:
+      unique_id: motion_person_location
+      friendly_name: '👱 location'
+      attribute_templates:
+        entity_picture: >-
+          {{ state_attr('person.' + states('sensor.motion_person'),'entity_picture')|default('/local/images/genie.png',true)  }}
+        id: >-
+          {{ state_attr('person.' + states('sensor.motion_person'),'id') }}
+        user_id: >-
+          {{ state_attr('person.' + states('sensor.motion_person'),'user_id') }}
+      icon_template: >-
+        {{- 'mdi:map-marker' -}}
+      value_template: >-
+        {{ 'unknown' }}
     motion_person_location_previous:
       unique_id: motion_person_location_previous
       friendly_name: '👱 previous location'
