@@ -93,3 +93,94 @@
           {% else %}null{% endif %}
         state: >-
           {{ states('sensor.motion_person_location') }}
+
+- id: motion_person_location
+  alias: motion_person_location
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_person_location_derived
+  variables:
+    person: >-
+      {% set s = states('sensor.motion_person') %}
+      {% if s|lower != 'null' and s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' %}
+        {{ 'person.' + states('sensor.motion_person') }}
+      {% else %}null{% endif %}
+    latitude: >-
+      {% if person|lower != 'null' %}
+        {{ state_attr(person,'latitude') }}
+      {% else %}null{% endif %}
+    longitude: >-
+      {% if person|lower != 'null' %}
+        {{ state_attr(person,'longitude') }}
+      {% else %}null{% endif %}
+    zone: >-
+      {%- if latitude|lower != 'null' and longitude|lower != 'null' and is_state('binary_sensor.motion_person_zones','on') -%}
+        {%- set zones = state_attr('binary_sensor.motion_person_zones','zones') -%}
+        {%- if zones|lower != 'unknown' and zones|lower != 'none' and zones|lower != 'unavailable' and zones is iterable and zones|length > 0 -%}
+          {%- set s = closest(latitude,longitude,zones) -%}
+          {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {%- set d = distance(latitude, longitude, s) -%}
+            {%- if d|lower != 'none' and d|lower != 'null' and d|lower != 'unknown' and d|lower != 'unavailable' and d|int is number and d|int < 40075 -%}
+              {%- set d = '%0.2f'|format(d|float * 1000) -%}
+            {%- else -%}{%- set d = null -%}{%- endif -%}
+            {%- set r = s.attributes.radius -%}
+            {{- '{"name":"' + s.attributes.friendly_name + '","radius":' + r|string + ',"entity_id":"' + s.entity_id + '","inside":' + (d|int < r|int)|lower + ',"distance":' + d|string + '}' -}}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}none{%- endif -%}
+      {%- else -%}unknown{%- endif -%}
+    distance: >-
+      {% if latitude|lower != 'null' and longitude|lower != 'null' %}
+        {% set s = distance('zone.home', latitude, longitude) %}
+        {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' and s|int is number and s|int < 40075 %}
+          {{- '%0.2f'|format(s|float * 1000) -}}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    gps_accuracy: >-
+      {% if person|lower != 'null' %}
+        {{ state_attr(person,'gps_accuracy') }}
+      {% else %}null{% endif %}
+    source: >-
+      {% if person|lower != 'null' %}
+        {{ state_attr(person,'source') }}
+      {% else %}null{% endif %}
+    confidence: >-
+      {% if person|lower != 'null' %}
+        {% set a = state_attr(person,'gps_accuracy')|float %}
+        {% set am = states('sensor.motion_person_location_accuracy_statistics_1d')|float %}
+        {% set as = state_attr('sensor.motion_person_location_accuracy_statistics_1d','standard_deviation')|float %}
+        {% set v = state_attr('sensor.motion_person_location_previous','velocity')|float %}
+        {% set vm = states('sensor.motion_person_location_velocity_statistics_1d')|float %}
+        {% set vs = state_attr('sensor.motion_person_location_velocity_statistics_1d','standard_deviation')|float %}
+        {{ a, am, as, v, vm, vs }}
+      {% else %}null{% endif %}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ latitude|lower != 'null' and longitude|lower != 'null' }}
+  action:
+    - service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_person_location
+        person: >-
+          {{ person }}
+        zone: >-
+          {{ zone }}
+        latitude: >-
+          {{ latitude }}
+        longitude: >-
+          {{ longitude }}
+        source: >-
+          {{ source }}
+        distance: >-
+          {{ distance }}
+        confidence: >-
+          {{ confidence }}
+        gps_accuracy: >-
+          {{ gps_accuracy }}
+        timestamp: >-
+          {{ utcnow().timestamp() }}
+        state: >-
+          {{ states(person) }}
