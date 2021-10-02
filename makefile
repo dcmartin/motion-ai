@@ -57,6 +57,8 @@ MOTION_MEDIA_MASK ?= $(if $(wildcard MOTION_MEDIA_MASK),$(shell v=$$(cat MOTION_
 
 MOTION_CAMERA_RESTART ?= $(if $(wildcard MOTION_CAMERA_RESTART),$(shell v=$$(cat MOTION_CAMERA_RESTART) && echo "${TG}== MOTION_CAMERA_RESTART: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${DF}** MOTION_CAMERA_RESTART${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 
+MOTION_CAMERA_ANY ?= $(if $(wildcard MOTION_CAMERA_ANY),$(shell v=$$(cat MOTION_CAMERA_ANY) && echo "${TG}== MOTION_CAMERA_ANY: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${DF}** MOTION_CAMERA_ANY${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+
 MOTION_YOLO_IP ?= $(if $(wildcard MOTION_YOLO_IP),$(shell v=$$(cat MOTION_YOLO_IP) && echo "${TG}== MOTION_YOLO_IP: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='${THIS_HOSTIP}' && echo "${DF}** MOTION_YOLO_IP${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_YOLO_CONFIG ?= $(if $(wildcard MOTION_YOLO_CONFIG),$(shell v=$$(cat MOTION_YOLO_CONFIG) && echo "${TG}== MOTION_YOLO_CONFIG: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='tiny-v2' && echo "${DF}** MOTION_YOLO_CONFIG${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 
@@ -210,6 +212,7 @@ $(ACTIONS): necessary
 	  MOTION_ALPR_DETECTED_TUNE="$(MOTION_ALPR_DETECTED_TUNE)" \
 	  MOTION_ANNOTATED_AGO="$(MOTION_ANNOTATED_AGO)" \
 	  MOTION_CAMERA_RESTART="$(MOTION_CAMERA_RESTART)" \
+	  MOTION_CAMERA_ANY="$(MOTION_CAMERA_ANY)" \
 	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
 	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
 	  MOTION_CLIENT="$(MOTION_CLIENT)" \
@@ -313,6 +316,7 @@ homeassistant/setup.json: setup.json.tmpl
 	  MOTION_ALPR_DETECTED_TUNE="$(MOTION_ALPR_DETECTED_TUNE)" \
 	  MOTION_ANNOTATED_AGO="$(MOTION_ANNOTATED_AGO)" \
 	  MOTION_CAMERA_RESTART="$(MOTION_CAMERA_RESTART)" \
+	  MOTION_CAMERA_ANY="$(MOTION_CAMERA_ANY)" \
 	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
 	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
 	  MOTION_CLIENT="$(MOTION_CLIENT)" \
