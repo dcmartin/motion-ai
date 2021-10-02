@@ -71,6 +71,8 @@ MOTION_MEDIA_MASK ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_MEDIA
 
 MOTION_CAMERA_RESTART ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_CAMERA_RESTART' $(SETUP)) && echo "${TS}++ MOTION_CAMERA_RESTART: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_CAMERA_RESTART),$(shell v=$$(cat MOTION_CAMERA_RESTART) && echo "${TG}== MOTION_CAMERA_RESTART: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="true" && echo "${TB}** MOTION_CAMERA_RESTART unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 
+MOTION_CAMERA_ANY ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_CAMERA_ANY' $(SETUP)) && echo "${TS}++ MOTION_CAMERA_ANY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_CAMERA_ANY),$(shell v=$$(cat MOTION_CAMERA_ANY) && echo "${TG}== MOTION_CAMERA_ANY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="false" && echo "${TB}** MOTION_CAMERA_ANY unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+
 MOTION_YOLO_IP ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_YOLO_IP' $(SETUP)) && echo "${TS}++ MOTION_YOLO_IP: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_YOLO_IP),$(shell v=$$(cat MOTION_YOLO_IP) && echo "${TG}== MOTION_YOLO_IP: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='${THIS_HOSTIP}' && echo "${TB}** MOTION_YOLO_IP unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 
 MOTION_TWILIO_NAME ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_TWILIO_NAME' $(SETUP)) && echo "${TS}++ MOTION_TWILIO_NAME: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_TWILIO_NAME),$(shell v=$$(cat MOTION_TWILIO_NAME) && echo "${TG}== MOTION_TWILIO_NAME: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='twilio' && echo "${TB}** MOTION_TWILIO_NAME unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}")))
@@ -287,6 +289,7 @@ secrets.yaml: secrets.yaml.tmpl
           MOTION_ALPR_DETECTED_TUNE="$(MOTION_ALPR_DETECTED_TUNE)" \
           MOTION_ANNOTATED_AGO="$(MOTION_ANNOTATED_AGO)" \
 	  MOTION_CAMERA_RESTART="$(MOTION_CAMERA_RESTART)" \
+	  MOTION_CAMERA_ANY="$(MOTION_CAMERA_ANY)" \
 	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
 	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
 	  MOTION_CLIENT="$(MOTION_CLIENT)" \
