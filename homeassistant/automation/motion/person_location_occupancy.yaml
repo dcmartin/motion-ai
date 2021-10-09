@@ -1,0 +1,176 @@
+###
+# homeassistant/automation/motion/person_location_occupancy.yaml
+###
+
+- id: motion_person_location_occupancy_previous
+  alias: motion_person_location_occupancy_previous
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_person_location_occupancy
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {% set s = states('sensor.motion_person_location_occupancy') %}
+          {{ s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' }}
+  variables:
+    movement: >-
+      {% set s = states('sensor.motion_person_location_occupancy_previous') %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {% set s = state_attr('sensor.motion_person_location_occupancy_previous','latitude') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+          {% set plat = s|float %}
+          {% set s = state_attr('sensor.motion_person_location_occupancy_previous','longitude') %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+            {% set plng = s|float %}
+            {% set s = state_attr('sensor.motion_person_location_occupancy','latitude') %}
+            {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+              {% set clat = s|float %}
+              {% set s = state_attr('sensor.motion_person_location_occupancy','longitude') %}
+              {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+                {% set clng = s|float %}
+                {% set d = distance(plat, plng, clat, clng) %}
+                {% if d|lower != 'none' and d|lower != 'null' and d|lower != 'unknown' and d|lower != 'unavailable' and d|int is number and d|int < 40075 %}
+                  {{- '%0.2f'|format(d * 1000) -}}
+                {% else %}null{% endif %}
+              {% else %}null{% endif %}
+            {% else %}null{% endif %}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    interval: >-
+      {% set t = state_attr('sensor.motion_person_location_occupancy_previous','timestamp') %}
+      {% if t|lower != 'none' and t|lower != 'unknown' and t|lower != 'unavailable' and t|lower != 'null' and t|float is number and t|float > 0 %}
+        {{ utcnow().timestamp() - t|float }}
+      {% else %}null{% endif %}
+    velocity: >-
+      {% set d = movement %}
+      {% if d|lower != 'null' and d|int is number and d|int < 40075 %}
+        {% set t = interval %}
+        {% if t|lower != 'null' and t|float is number and t|float > 0 %}
+          {{- '%0.2f'|format(d|float/t|float) -}}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+  action:
+    - service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_person_location_occupancy_previous
+        movement: >-
+          {{ movement }}
+        interval: >-
+          {{ interval }}
+        velocity: >-
+          {{ velocity }}
+        timestamp: >-
+          {{ utcnow().timestamp() }}
+        latitude: >-
+          {{ state_attr('sensor.motion_person_location_occupancy','latitude') }}
+        longitude: >-
+          {{ state_attr('sensor.motion_person_location_occupancy','longitude') }}
+        distance: >-
+          {{ state_attr('sensor.motion_person_location_occupancy','distance') }}
+        source: >-
+          {{ state_attr('sensor.motion_person_location_occupancy','source') }}
+        area: >-
+          {{ state_attr('sensor.motion_person_location_occupancy','area') }}
+        state: >-
+          {{ states('sensor.motion_person_location_occupancy') }}
+
+- id: motion_person_location_occupancy
+  alias: motion_person_location_occupancy
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_shellies_occupancy
+      to: 'on'
+  variables:
+    source: >-
+      {% set s = state_attr('binary_sensor.motion_shellies_occupancy','sensor') %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ s }}
+      {% else %}null{% endif %}
+    area: >-
+      {% if source|lower != 'null' %}
+        {% set s = area_name(source) %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+          {{ s }}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    id: >-
+      {% if source|lower != 'null' %}
+        {% set s = state_attr(source,'id') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+          {{ s }}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    ago: >-
+      {% if source|lower != 'null' %}
+        {% set s = state_attr(source,'last') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+          {{ utcnow().timestamp()|int - s|int }}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    duration: >-
+      {% if source|lower != 'null' %}
+        {% set s = state_attr(source,'duration') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+          {{ s|int }}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    latitude: >-
+      {% if source|lower != 'null' %}
+        {% set s = state_attr(source,'latitude') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+          {{ s|float }}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    longitude: >-
+      {% if source|lower != 'null' %}
+        {% set s = state_attr(source,'longitude') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+          {{ s|float }}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    distance: >-
+      {% if latitude|lower != 'null' and longitude|lower != 'null' %}
+        {% set s = distance('zone.home', longitude, latitude) %}
+        {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' and s|int is number and s|int < 40075 %}
+          {{- '%0.2f'|format(s|float * 1000) -}}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+  action:
+    - service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_person_location_occupancy
+        source: >-
+          {{ source }}
+        area: >-
+          {{ area }}
+        ago: >-
+          {{ ago }}
+        latitude: >-
+          {{ latitude }}
+        longitude: >-
+          {{ longitude  }}
+        distance: >-
+          {{ distance }}
+        probability: >-
+          {{ state_attr('binary_sensor.motion_person_location_occupancy_active','probability') }}
+        state: >-
+          {{ id }}
+
+- id: motion_person_location_occupancy_off
+  alias: motion_person_location_occupancy_off
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_shellies_occupancy
+      to: 'off'
+  action:
+    - service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_person_location_occupancy
+        state: >-
+          {{ 'none' }}

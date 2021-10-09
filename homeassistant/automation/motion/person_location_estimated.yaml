@@ -71,6 +71,8 @@
           {{ state_attr('sensor.motion_person_location_estimated','longitude') }}
         confidence: >-
           {{ state_attr('sensor.motion_person_location_estimated','confidence') }}
+        gps_accuracy: >-
+          {{ state_attr('sensor.motion_person_location_estimated','gps_accuracy') }}
         distance: >-
           {{ state_attr('sensor.motion_person_location_estimated','distance') }}
         source: >-
@@ -99,7 +101,9 @@
       {% set s = states('sensor.motion_' + camera|string + '_detected_person') %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
         {{ states('sensor.motion_' + camera|string + '_detected_person_confidence') }}
-      {% else %}null{% endif %}
+      {% else %}
+        {{ states('sensor.motion_detected_person_confidence') }}
+      {% endif %}
     source: >-
       {% set s = states('camera.motion_' + camera|string + '_detected_person') %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
@@ -155,7 +159,23 @@
           {% else %}null{% endif %}
         area: >-
           {{ area }}
+        probability: >-
+          {{ state_attr('binary_sensor.motion_person_location_estimated_active','probability') }}
         confidence: >-
           {{ confidence }}
         state: >-
           {{ camera }}
+
+- id: motion_person_location_estimated_off
+  alias: motion_person_location_estimated_off
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_detected_person
+      to: 'off'
+  action:
+    - service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_person_location_estimated
+        state: >-
+          {{ 'none' }}
