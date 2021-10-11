@@ -445,6 +445,11 @@
       {% if sensor|lower != 'none' and sensor|lower != 'unavailable' and sensor|lower != 'unknown' and sensor|lower != 'null' %}
         {{ state_attr(sensor,'model') }}
       {% else %}null{% endif %}
+    ip: >-
+      {% set s = state_attr(sensor,'ip') %}
+      {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+        {{ s }}
+      {% else %}null{% endif %}
     latitude: >-
       {% if sensor|lower != 'none' and sensor|lower != 'unavailable' and sensor|lower != 'unknown' and sensor|lower != 'null' %}
         {% set s = state_attr(sensor,'settings') %}
@@ -595,13 +600,21 @@
           sequence:
             - alias: 'motion_shellies_mqtt_status: notify invalid GPS'
               service: persistent_notification.create
-              data_template: 
+              data_template:
                 title: >-
                   INVALID: Location: {{ id }}
                 notification_id: >-
                   {{ id + '_gps_settings_warning' }}
                 message: >-
-                  Invalid location; sensor {{ id }} located outside of home; type: {{ type }}; distance: {{ distance|int -}}m; GPS: {{ latitude,longitude -}}
+                  Invalid location; sensor {{ id }} located outside of home; type: {{ type }}; distance: {{ distance|int -}}m; GPS: {{ latitude,longitude }}
+                  {{-
+                   '<br>[![](https://img.shields.io/badge/VISIT-green.svg)]('
+                    + 'http://' + states('input_text.motion_shellies_username')
+                    + ':'
+                    + states('input_text.motion_shellies_password')
+                    + '@'
+                    + ip|string + ')'
+                  -}}
         - alias: 'condition: gps good?'
           conditions:
             - condition: template
@@ -689,6 +702,14 @@
           {{ s.mac|lower }}
         {% else %}{{- 'unknown' -}}{% endif %}
       {% else %}{{- 'unknown' -}}{% endif %}
+    ip: >-
+      {% set s = states(trigger.entity_id) %}
+      {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+        {% set s = state_attr('sensor.motion_shellies_settings_rest','wifi_sta') %}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {{ s.ip|lower }}
+        {% else %}{{- 'unknown' -}}{% endif %}
+      {% else %}{{- 'unknown' -}}{% endif %}
     type: >-
       {% if mac|lower != 'none' and mac|lower != 'unavailable' and mac|lower != 'unknown' and mac|lower != 'null' and mac|length > 0 %}
         {% set s = states('group.motion_shellies') %}
@@ -759,7 +780,15 @@
         notification_id: >-
           {{ id + '_gps_settings_warning' }}
         message: >-
-          Invalid location; sensor {{ id }} located outside of home; type: {{ type }}; distance: {{ distance|int -}}m; GPS: {{ latitude,longitude -}}
+          Invalid location; sensor {{ id }} located outside of home; type: {{ type }}; distance: {{ distance|int -}}m; GPS: {{ latitude,longitude }}
+          {{-
+            '<br>[![](https://img.shields.io/badge/VISIT-green.svg)]('
+            + 'http://' + states('input_text.motion_shellies_username')
+            + ':'
+            + states('input_text.motion_shellies_password')
+            + '@'
+            + ip|string + ')'
+          -}}
 
 ## update on REST sensor '<username>:<password>@<ip>/status'
 

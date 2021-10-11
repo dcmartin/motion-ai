@@ -16,6 +16,21 @@
           {% set s = states('sensor.motion_person_location_detected') %}
           {{ s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' }}
   variables:
+    latitude: >-
+      {% set s = state_attr('sensor.motion_person_location_detected','latitude') %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ s }}
+      {% else %}null{% endif %}
+    longitude: >-
+      {% set s = state_attr('sensor.motion_person_location_detected','longitude') %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ s }}
+      {% else %}null{% endif %}
+    id: >-
+      {% set s = state_attr('sensor.motion_person_location_detected','id') %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ s }}
+      {% else %}null{% endif %}
     movement: >-
       {% set s = states('sensor.motion_person_location_detected_previous') %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
@@ -54,9 +69,22 @@
         {% else %}null{% endif %}
       {% else %}null{% endif %}
   action:
-    - service: python_script.set_state
+    - alias: 'camera and location good?'
+      condition: and
+      conditions:
+        - condition: template
+          value_template: >-
+            {{ id|lower != 'null' and latitude|lower != 'null' and longitude|lower != 'null' }}
+    - alias: 'set sensor.motion_person_location_detected_previous'
+      service: python_script.set_state
       data_template:
         entity_id: sensor.motion_person_location_detected_previous
+        id: >-
+          {{ id }}
+        latitude: >-
+          {{ latitude }}
+        longitude: >-
+          {{ longitude }}
         movement: >-
           {{ movement }}
         interval: >-
@@ -65,10 +93,8 @@
           {{ velocity }}
         timestamp: >-
           {{ utcnow().timestamp() }}
-        latitude: >-
-          {{ state_attr('sensor.motion_person_location_detected','latitude') }}
-        longitude: >-
-          {{ state_attr('sensor.motion_person_location_detected','longitude') }}
+        location: >-
+          {{ state_attr('sensor.motion_person_location_detected','location') }}
         confidence: >-
           {{ state_attr('sensor.motion_person_location_detected','confidence') }}
         gps_accuracy: >-
@@ -97,39 +123,42 @@
           {% set s = states('sensor.motion_detected_person_camera') %}
           {{ s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' }}
   variables:
-    source: >-
-      {% set s = states('camera.motion_' + camera|string + '_detected_person') %}
+    id: >-
+      {% set s = states('sensor.motion_detected_person_camera') %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-        {{ 'camera.motion_' + camera|string + '_detected_person' }}
-      {% else %}
-        {{ 'camera.motion_detected_person' }}
-      {% endif %}
+        {{ s }}
+      {% else %}null{% endif %}
     location: >-
       {% set s = states('sensor.motion_person_location') %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
         {{ s }}
       {% else %}null{% endif %}
-    camera: >-
-      {{ states('sensor.motion_detected_person_camera') }}
-    confidence: >-
-      {% set s = states('sensor.motion_' + camera|string + '_detected_person') %}
+    source: >-
+      {% set s = states('camera.motion_' + id|string + '_detected_person') %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-        {{ states('sensor.motion_' + camera|string + '_detected_person_confidence') }}
+        {{ 'camera.motion_' + id|string + '_detected_person' }}
+      {% else %}
+        {{ 'camera.motion_detected_person' }}
+      {% endif %}
+    confidence: >-
+      {% set s = states('sensor.motion_' + id|string + '_detected_person') %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ states('sensor.motion_' + id|string + '_detected_person_confidence') }}
       {% else %}
         {{ states('sensor.motion_detected_person_confidence') }}
       {% endif %}
     latitude: >-
-      {% set s = state_attr('sensor.motion_' + camera|string + '_camera_detected_person_status','latitude') %}
+      {% set s = state_attr('sensor.motion_' + id|string + '_camera_detected_person_status','latitude') %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
         {{ s }}
       {% else %}null{% endif %}
     longitude: >-
-      {% set s = state_attr('sensor.motion_' + camera|string + '_camera_detected_person_status','longitude') %}
+      {% set s = state_attr('sensor.motion_' + id|string + '_camera_detected_person_status','longitude') %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
         {{ s }}
       {% else %}null{% endif %}
     gps_accuracy: >-
-      {% set s = state_attr('sensor.motion_' + camera|string + '_camera_detected_person_status','gps_accuracy') %}
+      {% set s = state_attr('sensor.motion_' + id|string + '_camera_detected_person_status','gps_accuracy') %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
         {{ s }}
       {% else %}null{% endif %}
@@ -141,43 +170,37 @@
         {% else %}null{% endif %}
       {% else %}null{% endif %}
     ago: >-
-      {% set s = state_attr('sensor.motion_' + camera|string + '_camera_detected_person_status','ago') %}
+      {% set s = state_attr('sensor.motion_' + id|string + '_camera_detected_person_status','ago') %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
         {{ s }}
       {% else %}
         {{ states('sensor.motion_detected_person_ago') }}
       {% endif %}
     area: >-
-      {% set s = states('binary_sensor.motion_' + camera|string + '_detected_person') %}
+      {% set s = area_name(source) %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-        {% set s = area_name('binary_sensor.motion_' + camera|string + '_detected_person') %}
-        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-          {% set p = s %}
-        {% endif %}
-      {% endif %}
-      {% if p is defined %}
-        {{ p }}
-      {% else %}{{ 'unknown' }}{% endif %}
+        {{ s }}
+      {% else %}null{% endif %}
     probability: >-
       {{ state_attr('binary_sensor.motion_person_detected_active','probability') }}
   action:
-    - alias: 'choose: notify on bad latitude or longitude'
+    - alias: 'choose: notify on bad id or latitude or longitude'
       choose:
-        - alias: 'condition: camera unknown or latitude or longitude null?'
+        - alias: 'condition: id unknown or latitude or longitude null?'
           conditions:
             - condition: template
               value_template: >
-                {{ camera|lower == 'unknown' or latitude|lower == 'null' or longitude|lower == 'null' }}
+                {{ id|lower == 'null' or latitude|lower == 'null' or longitude|lower == 'null' }}
           sequence:
-            - alias: 'notify invalid latitude, longitude'
+            - alias: 'notify invalid id or latitude, longitude'
               service: persistent_notification.create
               data_template:
                 title: >-
-                  INVALID: Location: {{ camera }}
+                  INVALID: Location: {{ id }}
                 notification_id: >-
-                  {{ camera + '_gps_settings_warning' }}
+                  {{ source + '_gps_settings_warning' }}
                 message: >-
-                  Invalid location; camera {{ camera }}; source: {{ source }}; GPS: {{ latitude,longitude -}}
+                  Invalid location; id: {{ id -}}; source: {{ source -}}; GPS: {{ latitude,longitude -}}
     - alias: 'camera and location good?'
       condition: and
       conditions:
@@ -192,8 +215,8 @@
           {{ source }}
         location: >-
           {{ location }}
-        camera: >-
-          {{ camera }}
+        id: >-
+          {{ id }}
         confidence: >-
           {{ confidence }}
         latitude: >-
@@ -211,7 +234,7 @@
         probability: >-
           {{ probability }}
         state: >-
-          {{ camera }}
+          {{ id }}
 
 - id: motion_person_location_detected_off
   alias: motion_person_location_detected_off
