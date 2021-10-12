@@ -26,6 +26,11 @@
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
         {{ s }}
       {% else %}null{% endif %}
+    id: >-
+      {% set s = state_attr('sensor.motion_person_location_occupancy','id') %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ s }}
+      {% else %}null{% endif %}
     movement: >-
       {% set s = states('sensor.motion_person_location_occupancy_previous') %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
@@ -69,7 +74,7 @@
       conditions:
         - condition: template
           value_template: >-
-            {{ latitude|lower != 'null' and longitude|lower != 'null' }}
+            {{ id|lower != 'null' and latitude|lower != 'null' and longitude|lower != 'null' }}
     - alias: 'set sensor.motion_person_location_occupancy_previous'
       service: python_script.set_state
       data_template:
@@ -78,6 +83,8 @@
           {{ latitude }}
         longitude: >-
           {{ longitude }}
+        id: >-
+          {{ id }}
         movement: >-
           {{ movement }}
         interval: >-
@@ -172,11 +179,11 @@
   action:
     - alias: 'choose: notify on id or gps'
       choose:
-        - alias: 'condition: id unknown or gps null?'
+        - alias: 'condition: id unknown or gps bad?'
           conditions:
             - condition: template
               value_template: >
-                {{ id|lower == 'null' or gps|lower == 'null' }}
+                {{ id|lower == 'null' or gps|lower != 'true' }}
           sequence:
             - alias: 'notify id or gps bad'
               service: persistent_notification.create
@@ -187,12 +194,12 @@
                   {{ source|string + '_person_location_occupancy' }}
                 message: >-
                   Source location or id invalid; id: {{ id -}}; GPS: {{ latitude,longitude -}}; distance: {{ distance }} 
-    - alias: 'location good?'
+    - alias: 'gps good?'
       condition: and
       conditions:
         - condition: template
           value_template: >-
-            {{ gps|lower != 'null' }}
+            {{ id|lower != 'null' and gps|lower == 'true' }}
     - service: python_script.set_state
       data_template:
         entity_id: sensor.motion_person_location_occupancy
