@@ -140,13 +140,6 @@
       {% else %}
         {{ 'camera.motion_detected_person' }}
       {% endif %}
-    confidence: >-
-      {% set s = states('sensor.motion_' + id|string + '_detected_person') %}
-      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-        {{ states('sensor.motion_' + id|string + '_detected_person_confidence') }}
-      {% else %}
-        {{ states('sensor.motion_detected_person_confidence') }}
-      {% endif %}
     latitude: >-
       {% set s = state_attr('sensor.motion_' + id|string + '_camera_detected_person_status','latitude') %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
@@ -157,16 +150,18 @@
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
         {{ s }}
       {% else %}null{% endif %}
-    gps_accuracy: >-
-      {% set s = state_attr('sensor.motion_' + id|string + '_camera_detected_person_status','gps_accuracy') %}
-      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-        {{ s }}
-      {% else %}null{% endif %}
     distance: >-
       {% if latitude|lower != 'null' and longitude|lower != 'null' %}
         {% set s = distance('zone.home', latitude, longitude) %}
         {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' and s|int is number and s|int < 40075 %}
           {{- '%0.2f'|format(s|float * 1000) -}}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    gps: >-
+      {% if latitude|lower != 'null' and longitude|lower != 'null' %}
+        {% set s = state_attr('zone.home','radius') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int > 0 %}
+          {{ latitude|lower != 'null' and longitude|lower != 'null' and distance|int < s|int }}
         {% else %}null{% endif %}
       {% else %}null{% endif %}
     ago: >-
@@ -183,16 +178,28 @@
       {% else %}null{% endif %}
     probability: >-
       {{ state_attr('binary_sensor.motion_person_detected_active','probability') }}
+    gps_accuracy: >-
+      {% set s = state_attr('sensor.motion_' + id|string + '_camera_detected_person_status','gps_accuracy') %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ s }}
+      {% else %}null{% endif %}
+    confidence: >-
+      {% set s = states('sensor.motion_' + id|string + '_detected_person') %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ states('sensor.motion_' + id|string + '_detected_person_confidence') }}
+      {% else %}
+        {{ states('sensor.motion_detected_person_confidence') }}
+      {% endif %}
   action:
-    - alias: 'choose: notify on bad id or latitude or longitude'
+    - alias: 'choose: notify on id or gps'
       choose:
-        - alias: 'condition: id unknown or latitude or longitude null?'
+        - alias: 'condition: id null or gps bad?'
           conditions:
             - condition: template
               value_template: >
-                {{ id|lower == 'null' or latitude|lower == 'null' or longitude|lower == 'null' }}
+                {{ id|lower == 'null' or gps|lower == 'null' }}
           sequence:
-            - alias: 'notify invalid id or latitude, longitude'
+            - alias: 'notify invalid id or gps'
               service: persistent_notification.create
               data_template:
                 title: >-
@@ -206,7 +213,7 @@
       conditions:
         - condition: template
           value_template: >-
-            {{ camera|lower != 'unknown' and latitude|lower != 'null' and longitude|lower != 'null' }}
+            {{ camera|lower != 'unknown' and gps|lower != 'null' }}
     - alias: 'set sensor.motion_person_location_detected'
       service: python_script.set_state
       data_template:

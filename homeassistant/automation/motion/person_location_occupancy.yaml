@@ -155,6 +155,13 @@
           {{- '%0.2f'|format(s|float * 1000) -}}
         {% else %}null{% endif %}
       {% else %}null{% endif %}
+    gps: >-
+      {% if latitude|lower != 'null' and longitude|lower != 'null' %}
+        {% set s = state_attr('zone.home','radius') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int > 0 %}
+          {{ latitude|lower != 'null' and longitude|lower != 'null' and distance|int < s|int }}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
     area: >-
       {% set s = area_name(source) %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
@@ -163,15 +170,15 @@
     probability: >-
       {{ state_attr('binary_sensor.motion_person_occupancy_active','probability') }}
   action:
-    - alias: 'choose: notify on bad id or latitude or longitude'
+    - alias: 'choose: notify on id or gps'
       choose:
-        - alias: 'condition: camera unknown or latitude or longitude null?'
+        - alias: 'condition: id unknown or gps null?'
           conditions:
             - condition: template
               value_template: >
-                {{ id|lower == 'null' or latitude|lower == 'null' or longitude|lower == 'null' }}
+                {{ id|lower == 'null' or gps|lower == 'null' }}
           sequence:
-            - alias: 'notify invalid id, latitude, longitude'
+            - alias: 'notify id or gps bad'
               service: persistent_notification.create
               data_template:
                 title: >-
@@ -185,7 +192,7 @@
       conditions:
         - condition: template
           value_template: >-
-            {{ latitude|lower != 'null' and longitude|lower != 'null' }}
+            {{ gps|lower != 'null' }}
     - service: python_script.set_state
       data_template:
         entity_id: sensor.motion_person_location_occupancy
