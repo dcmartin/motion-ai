@@ -220,6 +220,18 @@
         {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' %}
           {{ s|count > 0 }}
         {% else %}null{% endif %}
+    motion_notification_error:
+      attribute_templates:
+        count: >-
+          {% set s = state_attr('binary_sensor.motion_notification_system','error') %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' %}
+            {{ s|count }}
+          {% else %}null{% endif %}
+      value_template: >-
+        {% set s = state_attr('binary_sensor.motion_notification_system','error') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' %}
+          {{ s|count > 0 }}
+        {% else %}null{% endif %}
     motion_notification_warn:
       attribute_templates:
         count: >-
@@ -251,11 +263,21 @@
       attribute_templates:
         count: >-
           {{ state_attr('binary_sensor.motion_notification_failure','count')|int +
+           state_attr('binary_sensor.motion_notification_error','count')|int +
            state_attr('binary_sensor.motion_notification_warn','count')|int +
            state_attr('binary_sensor.motion_notification_invalid','count')|int }}
         failure: >-
           {%- for state in states.persistent_notification|sort(reverse=true,attribute='last_updated')
             if state.state_with_unit|lower == 'notifying' and 'FAILURE' in state.attributes.title -%}
+            {%- if not loop.first -%},{% else %}[{%- endif -%}
+            {%- set t = state.attributes.title -%}
+            {%- set m = state.attributes.message -%}
+            ["{{- t -}}",{{- utcnow().timestamp() - state.last_updated|as_timestamp -}},"{{- m -}}"]
+            {%- if loop.last -%}]{%- endif -%}
+          {%- endfor -%}
+        error: >-
+          {%- for state in states.persistent_notification|sort(reverse=true,attribute='last_updated')
+            if state.state_with_unit|lower == 'notifying' and 'ERROR' in state.attributes.title -%}
             {%- if not loop.first -%},{% else %}[{%- endif -%}
             {%- set t = state.attributes.title -%}
             {%- set m = state.attributes.message -%}
@@ -288,6 +310,11 @@
               and state_attr('binary_sensor.motion_notification_system','failure')|length > 0
               and state_attr('binary_sensor.motion_notification_system','failure')|reject('none')|list|length > 0 -%}
               {{- state_attr('binary_sensor.motion_notification_system','failure')|first|first -}}
+            {%- elif state_attr('binary_sensor.motion_notification_system','error')|lower != 'none'
+              and not state_attr('binary_sensor.motion_notification_system','error') is string
+              and state_attr('binary_sensor.motion_notification_system','error')|length > 0
+              and state_attr('binary_sensor.motion_notification_system','error')|reject('none')|list|length > 0 -%}
+              {{- state_attr('binary_sensor.motion_notification_system','error')|first|first -}}
             {%- elif state_attr('binary_sensor.motion_notification_system','warn')|lower != 'none'
               and not state_attr('binary_sensor.motion_notification_system','warn') is string
               and state_attr('binary_sensor.motion_notification_system','warn')|length > 0
@@ -308,6 +335,11 @@
               and state_attr('binary_sensor.motion_notification_system','failure')|length > 0
               and state_attr('binary_sensor.motion_notification_system','failure')|reject('none')|list|length > 0 -%}
               {{- state_attr('binary_sensor.motion_notification_system','failure')|first|last -}}
+            {%- elif state_attr('binary_sensor.motion_notification_system','error')|lower != 'none'
+              and not state_attr('binary_sensor.motion_notification_system','error') is string
+              and state_attr('binary_sensor.motion_notification_system','error')|length > 0
+              and state_attr('binary_sensor.motion_notification_system','error')|reject('none')|list|length > 0 -%}
+              {{- state_attr('binary_sensor.motion_notification_system','error')|first|last -}}
             {%- elif state_attr('binary_sensor.motion_notification_system','warn')|lower != 'none'
               and not state_attr('binary_sensor.motion_notification_system','warn') is string
               and state_attr('binary_sensor.motion_notification_system','warn')|length > 0
