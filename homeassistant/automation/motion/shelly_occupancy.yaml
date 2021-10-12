@@ -365,27 +365,71 @@
   mode: single
   trigger:
     - platform: state
-      entity_id: input_select.motion_shellies_occupancy
+      entity_id: sensor.motion_shellies_occupancy
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {% set s = states('sensor.motion_shellies_occupancy') %}
+          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' }}
+  variables:
+    mac: >-
+      {% set s = state_attr('sensor.motion_shellies_occupancy','mac') -%}
+      {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' -%}
+        {{ s }}
+      {%- else -%}null{%- endif %}
+    sensor: >-
+      {% if mac|lower != 'null' %}
+        {{ 'binary_sensor.motion_shelly_occupancy_' + mac|lower }}
+      {% else %}null{% endif %}
+    ip: >-
+      {% if sensor|lower != 'null' %}
+        {{ state_attr(sensor,'ip') }}
+      {% else %}null{% endif %}
+  action:
+    - alias: 'condition: sensor good?'
+      condition: and
+      conditions:
+        - condition: template
+          value_template: >
+            {{ sensor|lower != 'null' }}
+    - alias: 'update sensor.motion_shellies_occupancy_selected_settings_rest'
+      service: homeassistant.update_entity
+      entity_id: sensor.motion_shellies_occupancy_selected_settings_rest
+
+- id: motion_shellies_occupancy_selected_select
+  alias: motion_shellies_occupancy_selected_select
+  initial_state: on
+  mode: single
+  trigger:
     - platform: state
-      entity_id: sensor.motion_shellies_occupancy_selected
+      entity_id: input_select.motion_shellies_occupancy
   condition:
     condition: and
     conditions:
       - condition: template
         value_template: >-
           {{ states('input_select.motion_shellies_occupancy')|lower != 'none' }}
-      - condition: template
-        value_template: >-
-          {% set s = state_attr('sensor.motion_shellies_occupancy_selected','mac') %}
-          {{ s|lower != 'none' and s|lower != 'unknown' }}
   variables:
+    mac: >-
+      {% set s = states('group.motion_shellies_occupancy') -%}
+      {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' -%}
+        {%- set s = state_attr('group.motion_shellies_occupancy','entity_id') -%}
+        {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s is iterable and s|length > 0 %}
+          {% for sensor in s if state_attr(sensor,'id') == states('input_select.motion_shellies_occupancy') %}
+            {% if loop.first %}
+              {{- state_attr(sensor,'mac') -}}
+            {% endif %}
+          {% endfor %}
+        {%- else -%}null{%- endif -%}
+      {%- else -%}null{%- endif %}
     sensor: >-
-      {% set s = state_attr('sensor.motion_shellies_occupancy_selected','mac') %}
-      {% if s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'none' %}
+      {% if mac|lower != 'null' %}
         {{ 'binary_sensor.motion_shelly_occupancy_' + mac|lower }}
       {% else %}null{% endif %}
     settings: >-
-      {% if sensor|lower != 'null' and sensor|lower != 'none' and sensor|length > 0 %}
+      {% if sensor|lower != 'null' %}
         {% set s = state_attr(sensor,'settings') %}
         {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
           {{ s }}
