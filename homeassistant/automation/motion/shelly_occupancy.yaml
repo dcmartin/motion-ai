@@ -27,7 +27,7 @@
   mode: single
   trigger:
     - platform: state
-      entity_id: sensor.motion_shellies_occupancy_selected
+      entity_id: sensor.motion_shellies_occupancy_selected_settings
       attribute: sensivitity
   condition:
     condition: and
@@ -37,14 +37,18 @@
           {{ trigger.to_state is number and trigger.to_state|int < 256 }}
       - condition: template
         value_template: >-
-          {% set s = states('sensor.motion_shellies_occupancy_selected_sensitivity') %}
+          {% set s = state_attr('sensor.motion_shellies_occupancy_selected_settings','sensitivity') %}
           {{ s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'none' }}
   variables:
     sensor: >-
-      {% set s = state_attr('sensor.motion_shellies_occupancy_selected','sensor') %}
-      {% if s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'none' %}
-        {{ s }}
-      {% else %}null{% endif %}
+      {%- set s = state_attr('group.motion_shellies_occupancy','entity_id') -%}
+      {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s is iterable and s|length > 0 %}
+        {% for i in s if state_attr(sensor,'id') == states('input_select.motion_shellies_occupancy') %}
+          {% if loop.first %}
+            {{ i }}
+          {%- else -%}null{%- endif %}
+        {% endfor %}
+      {%- else -%}null{%- endif %}
   action:
     - alias: 'sensor good?'
       condition: and
@@ -52,6 +56,9 @@
         - condition: template
           value_template: >
             {{ sensor|lower != 'null' }}
+        - condition: template
+          value_template: >
+            {{ is_state('input_boolean.motion_shellies_manage_settings','on') }}
     - alias: 'update sensor.motion_shellies_occupancy_selected_settings_rest'
       service: homeassistant.update_entity
       entity_id: sensor.motion_shellies_occupancy_selected_settings_rest
@@ -64,7 +71,7 @@
   mode: single
   trigger:
     - platform: state
-      entity_id: sensor.motion_shellies_occupancy_selected
+      entity_id: sensor.motion_shellies_occupancy_selected_settings
       attribute: location
   condition:
     condition: and
@@ -72,10 +79,48 @@
       - condition: template
         value_template: >-
           {{ trigger.from_state != trigger.to_state and ( trigger.to_state|lower == 'on' or trigger.to_state|lower == 'off' ) }}
+      - condition: template
+        value_template: >-
+          {% set s = state_attr('sensor.motion_shellies_occupancy_selected_settings','location') %}
+          {{ if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s is iterable and s|length == 2 }}
+  variables:
+    latitude: >-
+      {{ state_attr('sensor.motion_shellies_occupancy_selected_settings','location')|first }}
+    longitude: >-
+      {{ state_attr('sensor.motion_shellies_occupancy_selected_settings','location')|last }}
+    sensor: >-
+      {%- set s = state_attr('group.motion_shellies_occupancy','entity_id') -%}
+      {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s is iterable and s|length > 0 %}
+        {% for i in s if state_attr(sensor,'id') == states('input_select.motion_shellies_occupancy') %}
+          {% if loop.first %}
+            {{ i }}
+          {%- else -%}null{%- endif %}
+        {% endfor %}
+      {%- else -%}null{%- endif %}
   action:
-    - alias: 'specify LOCATION for selected occupancy sensor'
+    - alias: 'sensor good?'
+      condition: and
+      conditions:
+        - condition: template
+          value_template: >
+            {{ sensor|lower != 'null' }}
+        - condition: template
+          value_template: >
+            {{ is_state('input_boolean.motion_shellies_manage_settings','on') }}
+    - alias: 'set sensor.motion_shellies_occupancy_selected_settings'
+      service: python_script.set_state
+      data_template:
+        allow_create: true
+        entity_id: sensor.motion_shellies_occupancy_selected_settings
+        latitude: >-
+          {{ latitude }}
+        longitude: >-
+          {{ longitude }}
+        state: >-
+          {{ 'set' }}
+    - alias: 'update sensor.motion_shellies_occupancy_selected_settings_rest'
       service: homeassistant.update_entity
-      entity_id: sensor.motion_shellies_occupancy_selected_settings_location_rest
+      entity_id: sensor.motion_shellies_occupancy_selected_settings_rest
 
 # set LED
 
@@ -276,7 +321,7 @@
 - id: motion_shellies_occupancy_selected_settings_rest
   alias: motion_shellies_occupancy_selected_settings_rest
   initial_state: on
-  mode: single
+  mode: queued
   trigger:
     - platform: state
       entity_id: sensor.motion_shellies_occupancy_selected_settings_rest
@@ -315,15 +360,11 @@
     sensitivity: >-
       {% if motion|lower != 'null' %}
         {{ (motion.sensitivity|float / 256.0 * 100.0)|int }}
-      {% else %}
-        {{ states('input_number.motion_shellies_occupancy_sensitivity') }}
-      {% endif %}
+      {% else %}null{% endif %}
     active: >-
       {% if motion|lower != 'null' %}
         {{ motion.enabled|lower == 'true' }}
-      {% else %}
-        {{ states('input_boolean.motion_shellies_occupancy_active') }}
-      {% endif %}
+      {% else %}null{% endif %}
     led: >-
       {% if settings|lower != 'null' %}
         {% if 'led_status_disable' in settings %}
@@ -334,11 +375,7 @@
           {% endif %}
         {% endif %}
       {% endif %}
-      {% if s is defined %}
-        {{ s }}
-      {% else %}
-        {{ states('input_boolean.motion_shellies_occupancy_led') }}
-      {% endif %}
+      {% if s is defined %}{{ s }}{% else %}null{% endif %}
   action:
     - alias: 'update settings'
       service: python_script.set_state
@@ -348,14 +385,16 @@
           {{ sensor }}
         settings: >-
           {{ settings }}
-        active: >-
-          {{ active }}
-        sensitivity: >-
-          {{ sensitivity }}
         blind_time: >-
           {{ blind_time }}
         pulse_count: >-
           {{ pulse_count }}
+        sensitivity: >-
+          {{ sensitivity }}
+        active: >-
+          {{ active }}
+        led: >-
+          {{ led }}
         state: >-
           {{ state(sensor) }}
 
@@ -405,12 +444,17 @@
   trigger:
     - platform: state
       entity_id: input_select.motion_shellies_occupancy
+    - platform: state
+      entity_id: sensor.motion_shellies_occupancy_selected_settings_rest
   condition:
     condition: and
     conditions:
       - condition: template
         value_template: >-
           {{ states('input_select.motion_shellies_occupancy')|lower != 'none' }}
+      - condition: template
+        value_template: >-
+          {{ states('sensor.motion_shellies_occupancy_selected_settings_rest')|lower == 'true' }}
   variables:
     mac: >-
       {% set s = states('group.motion_shellies_occupancy') -%}
