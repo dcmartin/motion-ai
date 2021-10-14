@@ -21,6 +21,12 @@
           {% set s = state_attr('group.motion_shellies','sensor') %}
           {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' }}
   action:
+    - alias: 'condition: manage settings on?'
+      condition: and
+      conditions:
+        - condition: template
+          value_template: >-
+            {{ is_state('input_boolean.motion_shellies_manage_settings','on') }}
     - alias: 'motion_shellies_settings_login_failure: sensor.motion_shellies_settings_login'
       service: homeassistant.update_entity
       entity_id: sensor.motion_shellies_settings_login
@@ -28,17 +34,6 @@
       wait_for_trigger:
         - platform: state
           entity_id: sensor.motion_shellies_settings_login
-          to: 'True'
-      continue_on_timeout: true
-      timeout:
-        seconds: 5
-    - alias: 'motion_shellies_settings_login_failure: sensor.motion_shellies_settings_timezone'
-      service: homeassistant.update_entity
-      entity_id: sensor.motion_shellies_settings_timezone
-    - alias: 'wait for timezone settings to update'
-      wait_for_trigger:
-        - platform: state
-          entity_id: sensor.motion_shellies_settings_timezone
           to: 'True'
       continue_on_timeout: true
       timeout:
@@ -606,17 +601,17 @@
                 title: >-
                   WARN: Status : {{ id }}
                 notification_id: >-
-                  {{ sensor + '_gps_status_warn ' }}
+                  {{ sensor + '_gps_invalid' }}
                 message: >-
                   Sensor **{{- id -}}** location outside of home; model: {{ model -}}; distance: {{ distance|int -}}m; GPS: {{ latitude,longitude }}
                   {{- '<br>' -}}
                   {%- if ip|lower != 'none' -%}
-                    {{- '[![](https://img.shields.io/badge/device-fix-green.svg)]('
+                    {{- '[![](https://img.shields.io/badge/location-reset-green.svg)]('
                     + 'http://' + states('input_text.motion_shellies_username')
                     + ':'
                     + states('input_text.motion_shellies_password')
                     + '@'
-                    + ip|string + ')' -}}
+                    + ip|string + '/settings?timezone=utc&lat=' + state_attr('zone.home','latitude')|string + '&lng=' + state_attr('zone.home','longitude')|string + ')' -}}
                   {%- endif -%}
                   {%- if latitude|lower != 'null' and longitude|lower != 'null' -%}
                     {{- '[![](https://img.shields.io/badge/device-map-blue.svg)]('
@@ -667,8 +662,7 @@
   max: 10
   trigger:
     - platform: state
-      entity_id:
-        - sensor.motion_shellies_settings_rest
+      entity_id: sensor.motion_shellies_settings_rest
   condition:
     condition: and
     conditions:
@@ -767,12 +761,12 @@
           {{ sensor }}
         friendly_name: >-
           {{ type|capitalize + ' in ' + id }}
+        ip: >-
+          {{ ip }}
         latitude: >-
           {{ latitude }}
         longitude: >-
           {{ longitude }}
-        ip: >-
-          {{ ip }}
         settings: >-
           {{ settings }}
         home: >-
@@ -795,23 +789,23 @@
         title: >-
           INVALID: Settings: {{ id }}
         notification_id: >-
-          {{ sensor + '_gps_settings_invalid' }}
+          {{ sensor + '_gps_invalid' }}
         message: >-
           Sensor **{{- id -}}** location outside of home; model: {{ model -}}; distance: {{ distance|int -}}m; GPS: {{ latitude,longitude }}
           {{- '<br>' -}}
           {%- if ip|lower != 'none' -%}
-            {{- '[![](https://img.shields.io/badge/device-fix-green.svg)]('
+            {{- '[![](https://img.shields.io/badge/location-reset-green.svg)]('
             + 'http://' + states('input_text.motion_shellies_username')
             + ':'
             + states('input_text.motion_shellies_password')
             + '@'
-            + ip|string + ')' -}}
+            + ip|string + '/settings?timezone=utc&lat=' + state_attr('zone.home','latitude')|string + '&lng=' + state_attr('zone.home','longitude')|string + ')' -}}
           {%- endif -%}
           {%- if latitude|lower != 'null' and longitude|lower != 'null' -%}
-          {{- '[![](https://img.shields.io/badge/device-map-blue.svg)]('
-            + 'https://www.google.com/maps/@'
-            + latitude|string + ',' + longitude|string + ',15z'
-            + ')' -}}
+            {{- '[![](https://img.shields.io/badge/device-map-blue.svg)]('
+              + 'https://www.google.com/maps/@'
+              + latitude|string + ',' + longitude|string + ',15z'
+              + ')' -}}
           {%- endif -%}
           {{-  '[![](https://img.shields.io/badge/home-map-blue.svg)]('
             + 'https://www.google.com/maps/@'
@@ -1652,15 +1646,6 @@
               continue_on_timeout: true
               timeout:
                 seconds: 5
-            - alias: 'manage settings: timezone'
-              service: homeassistant.update_entity
-              entity_id: sensor.motion_shellies_settings_timezone
-            - alias: 'manage settings: mqtt'
-              service: homeassistant.update_entity
-              entity_id: sensor.motion_shellies_settings_mqtt
-            - alias: 'manage settings: sensor.motion_shellies_ota'
-              service: homeassistant.update_entity
-              entity_id: sensor.motion_shellies_ota
             - alias: 'update settings: sensor.motion_shellies_settings_rest'
               service: homeassistant.update_entity
               entity_id: sensor.motion_shellies_settings_rest
