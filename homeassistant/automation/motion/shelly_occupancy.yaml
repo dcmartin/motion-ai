@@ -216,19 +216,6 @@
     when: >-
       {{ last|timestamp_custom("%a %b %d %I:%M:%S %p %Z") }}
   action:
-    - alias: 'set on: binary_sensor.motion_shellies_occupancy'
-      service: python_script.set_state
-      data_template:
-        entity_id: >-
-          {{- 'binary_sensor.motion_shellies_occupancy' -}}
-        last: >-
-          {{ last }}
-        when: >-
-          {{ when }}
-        icon: >-
-          {{- 'mdi:motion-sensor' -}}
-        state: >-
-          {{- 'on' -}}
     - alias: 'condition: sensor good?'
       condition: and
       conditions:
@@ -243,7 +230,7 @@
           {{ sensor }}
         when: >-
           {{ when }}
-        last: >-
+        last: >- 
           {{ last }}
         start: >-
           {{ last }}
@@ -251,6 +238,21 @@
           {{- 'null' -}}
         state: >-
           {{- 'on' -}}
+    - alias: 'set_state: sensor.motion_shellies_occupancy'
+      service: python_script.set_state
+      data_template:
+        entity_id: >-
+          {{- 'sensor.motion_shellies_occupancy' -}}
+        sensor: >-
+          {{ sensor }}
+        last: >-
+          {{ last }}
+        when: >-
+          {{ when }}
+        icon: >-
+          {{- 'mdi:motion-sensor' -}}
+        state: >-
+          {{- state_attr(sensor,'id') -}}
 
 - id: motion_shellies_occupancy_end
   alias: motion_shellies_occupancy_end
@@ -268,39 +270,52 @@
         {{ 'binary_sensor.motion_shelly_occupancy_' + mac|lower }}
       {% else %}null{% endif %}
     last: >-
-      {{ utcnow().timestamp()|int }}
-    when: >-
-      {{ last|timestamp_custom("%a %b %d %I:%M:%S %p %Z") }}
-    duration: >-
+      {{ utcnow().timestamp() }}
+    start: >-
       {% if sensor|lower != 'null' %}
-      {% set s = state_attr(sensor,'start') %}
+        {% set s = state_attr(sensor,'start') %}
         {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int > 0 %}
-          {{ last - s|int }}
+          {{ s }}
         {% else %}null{% endif %}
       {% else %}null{% endif %}
+    when: >-
+      {% if start|lower != 'null' %}
+        {{ start|timestamp_custom("%a %b %d %I:%M:%S %p %Z") }}
+      {% else %}null{% endif %}
+    duration: >-
+      {% if start|lower != 'null' %}
+        {{ last|float - start|float }}
+      {% else %}null{% endif %}
   action:
-    - alias: 'set off: binary_sensor.motion_shellies_occupancy'
-      service: python_script.set_state
-      data_template:
-        allow_create: true
-        entity_id: >-
-          {{- 'binary_sensor.motion_shellies_occupancy' -}}
-        last: >-
-          {{ last }}
-        when: >-
-          {{ when }}
-        duration: >-
-          {{ duration }}
-        icon: >-
-          {{- 'mdi:motion-sensor-off' -}}
-        state: >-
-          {{- 'off' -}}
     - alias: 'condition: sensor good?'
       condition: and
       conditions:
         - condition: template
           value_template: >-
             {{ sensor|lower != 'null' }}
+    - alias: 'set_state: sensor.motion_shellies_occupancy'
+      service: python_script.set_state
+      data_template:
+        entity_id: >-
+          {{- 'sensor.motion_shellies_occupancy' -}}
+        sensor: >-
+          {{ sensor }}
+        latitude: >-
+          {{ state_attr(sensor,'latitude') }}
+        longitude: >-
+          {{ state_attr(sensor,'longitude') }}
+        last: >-
+          {{ last }}
+        when: >-
+          {{ when }}
+        icon: >-
+          {{- 'mdi:motion-sensor-off' -}}
+        duration: >-
+          {{ duration }}
+        ago: >-
+          {{ utcnow().timestamp()|float - start|float }}
+        state: >-
+          {{- state_attr(sensor,'id') -}}
     - alias: 'set off: binary_sensor.motion_shelly_occupancy_<mac>'
       service: python_script.set_state
       data_template:
@@ -309,12 +324,14 @@
           {{- sensor -}}
         when: >-
           {{ when }}
-        duration: >-
-          {{ duration }}
         last: >-
           {{ last }}
         end: >-
           {{ last }}
+        duration: >-
+          {{ duration }}
+        ago: >-
+          {{ utcnow().timestamp()|float - start|float }}
         state: >-
           {{- 'off' -}}
 
@@ -400,7 +417,7 @@
 
 - id: motion_shellies_occupancy_selected_update
   alias: motion_shellies_occupancy_selected_update
-  initial_state: on
+  initial_state: off
   mode: single
   trigger:
     - platform: state
@@ -436,6 +453,8 @@
     - alias: 'update sensor.motion_shellies_occupancy_selected_settings_rest'
       service: homeassistant.update_entity
       entity_id: sensor.motion_shellies_occupancy_selected_settings_rest
+
+# update selected occupancy sensor when settings are updated via REST API
 
 - id: motion_shellies_occupancy_selected_select
   alias: motion_shellies_occupancy_selected_select
