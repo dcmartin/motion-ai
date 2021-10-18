@@ -116,3 +116,101 @@
 #          {%- else -%}
 #            {%- if prior != 'null' -%}{%- endif -%}
 #          {%- endif -%}
+
+- id: motion_camera_detected
+  alias: motion_camera_detected
+  initial_state: off
+  mode: queued
+  max_exceeded: warn
+  max: 100
+  trigger:
+    - platform: mqtt
+      topic: '+/+/+/event/end/+'
+  variables:
+    topic: >-
+      {{ trigger.topic }}
+    event: >-
+      {% if 'event' in trigger.payload_json %}
+        {{ trigger.payload_json.event }}
+      {% else %}null{% endif %}
+    detected: >-
+      {% if 'detected' in trigger.payload_json %}
+        {{ trigger.payload_json.detected }}
+      {% else %}null{% endif %}
+    count: >-
+      {% if 'count' in trigger.payload_json %}
+        {{ trigger.payload_json.count|int }}
+      {% else %}null{% endif %}
+    results: >-
+      {% if 'results' in trigger.payload_json %}
+        {{ trigger.payload_json.results }}
+      {% else %}null{% endif %}
+    date: >-
+      {% if 'date' in trigger.payload_json %}
+        {{ trigger.payload_json.date }}
+      {% else %}null{% endif %}
+    group: >-
+      {% if event|lower != 'none' %}
+        {{ event.group }}
+      {% else %}null{% endif %}
+    device: >-
+      {% if event|lower != 'none' %}
+        {{ event.device }}
+      {% else %}null{% endif %}
+    camera: >-
+      {% if event|lower != 'none' %}
+        {{ event.camera }}
+      {% else %}null{% endif %}
+    timestamp: >-
+      {% if event|lower != 'none' %}
+        {{ event.timestamp }}
+      {% else %}null{% endif %}
+    sensor: >-
+      {% if camera|lower != 'null' and camera|lower != 'none' and camera|lower|length > 0 %}
+        {{ 'binary_sensor.motion_camera_' + camera|lower + '_detected' }}
+      {% else %}null{% endif %}
+    state: >-
+      {{ detected|lower != 'null' }}
+  action:
+    - alias: 'sensor good?'
+      condition: and
+      conditions:
+        - condition: template
+          value_template: >-
+            {{ sensor|lower != 'null' }}
+    - alias: 'set binary_sensor.motion_camera_<camera>_detected'
+      service: python_script.set_state
+      data_template:
+        allow_create: true
+        entity_id: >-
+          {{ sensor }}
+        event: >-
+          {{ event }}
+        detected: >-
+          {{ detected }}
+        count: >-
+          {{ count }}
+        results: >-
+          {{ results }}
+        group: >-
+          {{ group }}
+        device: >-
+          {{ device }}
+        camera: >-
+          {{ camera }}
+        timestamp: >-
+          {{ timestamp }}
+        state: >-
+          {{ state }}
+    - alias: 'set binary_sensor.motion_cameras_detected'
+      service: python_script.set_state
+      data_template:
+        allow_create: true
+        entity_id: >-
+          {{ 'binary_sensor.motion_cameras_detected' }}
+        sensor: >-
+          {{ sensor }}
+        timestamp: >-
+          {{ timestamp }}
+        state: >-
+          {{ state }}
