@@ -117,9 +117,9 @@
 #            {%- if prior != 'null' -%}{%- endif -%}
 #          {%- endif -%}
 
-- id: motion_camera_detected
-  alias: motion_camera_detected
-  initial_state: off
+- id: motion_camera_detected_entity
+  alias: motion_camera_detected_entity
+  initial_state: on
   mode: queued
   max_exceeded: warn
   max: 100
@@ -161,13 +161,21 @@
       {% if event|lower != 'none' %}
         {{ event.camera }}
       {% else %}null{% endif %}
-    timestamp: >-
-      {% if event|lower != 'none' %}
-        {{ event.timestamp }}
+    duration: >-
+      {% if event|lower != 'null' %}
+        {% set s = event.timestamp.start|as_timestamp %}
+        {% set e = event.timestamp.end|as_timestamp %}
+        {{ e - s }}
+      {% else %}null{% endif %}
+    delay: >-
+      {% if event|lower != 'null' %}
+        {% set e = event.timestamp.end|as_timestamp %}
+        {% set p = event.timestamp.publish|as_timestamp %}
+        {{ p - e }}
       {% else %}null{% endif %}
     sensor: >-
       {% if camera|lower != 'null' and camera|lower != 'none' and camera|lower|length > 0 %}
-        {{ 'binary_sensor.motion_camera_' + camera|lower + '_detected' }}
+        {{ 'binary_sensor.motion_camera_' + camera|lower + '_detected_entity' }}
       {% else %}null{% endif %}
     state: >-
       {{ detected|lower != 'null' }}
@@ -178,7 +186,7 @@
         - condition: template
           value_template: >-
             {{ sensor|lower != 'null' }}
-    - alias: 'set binary_sensor.motion_camera_<camera>_detected'
+    - alias: 'set binary_sensor.motion_camera_<camera>_detected_entity'
       service: python_script.set_state
       data_template:
         allow_create: true
@@ -198,19 +206,25 @@
           {{ device }}
         camera: >-
           {{ camera }}
-        timestamp: >-
-          {{ timestamp }}
+        duration: >-
+          {{ duration }}
+        delay: >-
+          {{ delay }}
+        date: >-
+          {{ date }}
         state: >-
           {{ state }}
-    - alias: 'set binary_sensor.motion_cameras_detected'
+    - alias: 'set binary_sensor.motion_cameras_detected_entity'
       service: python_script.set_state
       data_template:
         allow_create: true
         entity_id: >-
-          {{ 'binary_sensor.motion_cameras_detected' }}
+          {{ 'binary_sensor.motion_cameras_detected_entity' }}
         sensor: >-
           {{ sensor }}
+        id: >-
+          {{ camera }}
         timestamp: >-
-          {{ timestamp }}
+          {{ utcnow().timestamp() }}
         state: >-
           {{ state }}
