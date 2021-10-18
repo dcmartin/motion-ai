@@ -177,25 +177,130 @@
       {% if camera|lower != 'null' and camera|lower != 'none' and camera|lower|length > 0 %}
         {{ 'binary_sensor.motion_camera_' + camera|lower + '_detected_entity' }}
       {% else %}null{% endif %}
+    config: >-
+      {% set s = state_attr('sensor.motion_addon_config','config') %}
+      {% if s|lower != 'none' and 'cameras' in s %}
+        {% set s = s.cameras|selectattr("name","==",camera)|first %}
+        {% if s|lower != 'null' and s|length > 0 %}
+          {{ s }}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
     state: >-
       {{ detected|lower != 'null' }}
+    animal: >-
+      {% if event|lower != 'null' and results|lower != 'null' %}
+        {% set option = states('input_select.motion_detect_animal') %}
+        {% if option|lower == 'all' or option|lower == 'animal' %}
+          {% set options = state_attr('input_select.motion_detect_animal','options') %}
+          {% if options|lower != 'none' and options|lower != 'unknown' and options|length > 0 %}
+            {% set l = results|selectattr('entity','in',options)|map(attribute='confidence')|list %}
+          {% endif %}
+        {% else %}
+          {% set l = results|selectattr('entity','==',option)|map(attribute='confidence')|list %}
+        {% endif %}
+        {% if l is defined and l is iterable and l|length > 0 %}
+          {% set p = l|list|max|int %}
+          {% if is_state('binary_sensor.motion_detected_animal_confirmed','on') %}
+            {{ p >= states('sensor.motion_detected_animal_threshold_confirmed')|int }}
+          {% else %}
+            {{ p >= states('sensor.motion_detected_animal_threshold')|int }}
+          {% endif %}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    entity: >-
+      {% if event|lower != 'null' and results|lower != 'null' %}
+        {% set option = states('input_select.motion_detect_entity') %}
+        {% if option|lower == 'all' or option|lower == 'entity' %}
+          {% set options = state_attr('input_select.motion_detect_entity','options') %}
+          {% if options|lower != 'none' and options|lower != 'unknown' and options|length > 0 %}
+            {% set l = results|selectattr('entity','in',options)|map(attribute='confidence')|list %}
+          {% endif %}
+        {% else %}
+          {% set l = results|selectattr('entity','==',option)|map(attribute='confidence')|list %}
+        {% endif %}
+        {% if l is defined and l is iterable and l|length > 0 %}
+          {% set p = l|list|max|int %}
+          {% if is_state('binary_sensor.motion_detected_entity_confirmed','on') %}
+            {{ p >= states('sensor.motion_detected_entity_threshold_confirmed')|int }}
+          {% else %}
+            {{ p >= states('sensor.motion_detected_entity_threshold')|int }}
+          {% endif %}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    person: >-
+      {% if event|lower != 'null' and results|lower != 'null' %}
+        {% set option = states('input_select.motion_detect_person') %}
+        {% if option|lower == 'all' or option|lower == 'person' %}
+          {% set options = state_attr('input_select.motion_detect_person','options') %}
+          {% if options|lower != 'none' and options|lower != 'unknown' and options|length > 0 %}
+            {% set l = results|selectattr('entity','in',options)|map(attribute='confidence')|list %}
+          {% endif %}
+        {% else %}
+          {% set l = results|selectattr('entity','==',option)|map(attribute='confidence')|list %}
+        {% endif %}
+        {% if l is defined and l is iterable and l|length > 0 %}
+          {% set p = l|list|max|int %}
+          {% if is_state('binary_sensor.motion_detected_person_confirmed','on') %}
+            {{ p >= states('sensor.motion_detected_person_threshold_confirmed')|int }}
+          {% else %}
+            {{ p >= states('sensor.motion_detected_person_threshold')|int }}
+          {% endif %}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    vehicle: >-
+      {% if event|lower != 'null' and results|lower != 'null' %}
+        {% set option = states('input_select.motion_detect_vehicle') %}
+        {% if option|lower == 'all' or option|lower == 'vehicle' %}
+          {% set options = state_attr('input_select.motion_detect_vehicle','options') %}
+          {% if options|lower != 'none' and options|lower != 'unknown' and options|length > 0 %}
+            {% set l = results|selectattr('entity','in',options)|map(attribute='confidence')|list %}
+          {% endif %}
+        {% else %}
+          {% set l = results|selectattr('entity','==',option)|map(attribute='confidence')|list %}
+        {% endif %}
+        {% if l is defined and l is iterable and l|length > 0 %}
+          {% set p = l|list|max|int %}
+          {% if is_state('binary_sensor.motion_detected_vehicle_confirmed','on') %}
+            {{ p >= states('sensor.motion_detected_vehicle_threshold_confirmed')|int }}
+          {% else %}
+            {{ p >= states('sensor.motion_detected_vehicle_threshold')|int }}
+          {% endif %}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
   action:
-    - alias: 'sensor good?'
+    - alias: 'test sensor and config?'
       condition: and
       conditions:
-        - condition: template
+        - alias: 'sensor good?'
+          condition: template
           value_template: >-
             {{ sensor|lower != 'null' }}
+        - alias: 'config good?'
+          condition: template
+          value_template: >-
+            {% if is_state('input_boolean.motion_status_camera_any','on') %}
+             {{ config|lower != 'null' }}
+            {% else %}true{% endif %}
     - alias: 'set binary_sensor.motion_camera_<camera>_detected_entity'
       service: python_script.set_state
       data_template:
         allow_create: true
         entity_id: >-
           {{ sensor }}
+        config: >-
+          {{ config }}
         event: >-
           {{ event }}
         detected: >-
           {{ detected }}
+        entity: >-
+          {{ entity }}
+        animal: >-
+          {{ animal }}
+        person: >-
+          {{ person }}
+        vehicle: >-
+          {{ vehicle }}
         count: >-
           {{ count }}
         results: >-
@@ -222,8 +327,6 @@
           {{ 'binary_sensor.motion_cameras_detected_entity' }}
         sensor: >-
           {{ sensor }}
-        id: >-
-          {{ camera }}
         timestamp: >-
           {{ utcnow().timestamp() }}
         state: >-
