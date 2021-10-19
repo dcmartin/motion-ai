@@ -356,16 +356,24 @@
           - variables:
               sensor: >-
                 {{ sensors[repeat.index-1] }}
+              now: >-
+                {{ utcnow().timestamp()|int  }}
               date: >-
                 {{ state_attr(sensor,'date') }}
               ago: >-
                 {% if date|lower != 'none' and date|lower != 'null' %}
-                  {{ utcnow().timestamp()|int - date|int }}
+                  {{ now - date|int }}
                 {% else %}null{% endif %}
-              expired: >-
-                {{ states('input_number.motion_detected_ago')|int }}
+              animal: >-
+                {% if is_state(sensor,'on') and now - state_attr(sensor,'animal')|int <= states('input_number.motion_detected_animal_ago')|int %}on{% else %}off{% endif %}
+              entity: >-
+                {% if is_state(sensor,'on') and now - state_attr(sensor,'entity')|int <= states('input_number.motion_detected_entity_ago')|int %}on{% else %}off{% endif %}
+              person: >-
+                {% if is_state(sensor,'on') and now - state_attr(sensor,'person')|int <= states('input_number.motion_detected_person_ago')|int %}on{% else %}off{% endif %}
+              vehicle: >-
+                {% if is_state(sensor,'on') and now - state_attr(sensor,'vehicle')|int <= states('input_number.motion_detected_vehicle_ago')|int %}on{% else %}off{% endif %}
               state: >-
-                {% if is_state(sensor,'on') and ago|lower != 'null' and ago <= expired %}on{% else %}off{% endif %}
+                {% if is_state(sensor,'on') and ago|lower != 'null' and ago <= states('input_number.motion_detected_ago')|int %}on{% else %}off{% endif %}
           - service: persistent_notification.create
             data_template:
               title: >-
@@ -373,7 +381,7 @@
               notification_id: >
                 {{- 'detected-entity-update-' + sensor|string }}
               message: >-
-                Setting detected entity sensor **{{- sensor -}}** to {{ state -}}; date: {{ date -}}; ago: {{ ago -}}; expired: {{ expired -}}
+                Setting entity sensor **{{- sensor -}}** to {{ state -}}; ago: {{ ago -}}; animal: {{ animal -}}; entity: {{ entity -}}; person: {{ person -}}; vehicle: {{ vehicle -}}
           - alias: 'set binary_sensor.motion_<camera>_detected_entity'
             service: python_script.set_state
             data_template:
