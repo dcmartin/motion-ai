@@ -1,0 +1,32 @@
+###
+# homeassistant/automation/motion/addon.yaml
+###
+
+- id: motion_addon_config_update
+  alias: motion_addon_config_update
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: time_pattern
+      minutes: '/1'
+    - platform: homeassistant
+      event: start
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ states('sensor.motion_addon_config')|lower != 'true' }}
+      - condition: template
+        value_template: >-
+          {% set s = state_attr('sensor.motion_addon_config','timestamp') -%}
+          {{ s|lower == 'none' or utcnow().timestamp() - s|as_timestamp > 1800 }}
+  action:
+    - alias: 'update sensor.motion_addon_config'
+      service: homeassistant.update_entity
+      entity_id: sensor.motion_addon_config
+    - alias: 'wait for addon configuration'
+      wait_for_trigger:
+        - platform: state
+          entity_id: sensor.motion_addon_config
+          for: 30

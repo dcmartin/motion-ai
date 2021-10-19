@@ -327,7 +327,30 @@
           {{ 'binary_sensor.motion_cameras_detected_entity' }}
         sensor: >-
           {{ sensor }}
+        status: >-
+          [{% for eid in states.binary_sensor|map(attribute='entity_id')|list if 'motion_camera_' in eid  -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {% if is_state(eid,'on') %}1{% else %}0{% endif %}
+          {%- endfor %}]
         timestamp: >-
           {{ utcnow().timestamp() }}
         state: >-
           {{ state }}
+    - alias: 'update group.motion_cameras'
+      service: python_script.set_state
+      data_template:
+        allow_create: true
+        entity_id: group.motion_cameras
+        friendly_name: 'All cameras'
+        entity_ids: >-
+          [{% for eid in states.binary_sensor|map(attribute='entity_id')|list if 'motion_camera_' in eid  -%}
+          {%- if not loop.first -%},{%- endif -%}
+          "{{- eid -}}"
+          {%- endfor %}]
+        state: >-
+          {%- set s = state_attr('binary_sensor.motion_cameras_detected_entity','status') -%}
+          [% if s|lower != 'none' and s is iterable and s|count > 0 and s|sum > 0 -}}
+            {{- 'on' -}}
+          {%- else -%}
+            {{- 'off' -}}
+          {%- endif -%}
