@@ -181,7 +181,7 @@
       {% set s = state_attr('sensor.motion_addon_config','config') %}
       {% if s|lower != 'none' and 'cameras' in s %}
         {% set s = s.cameras|selectattr("name","==",camera)|first %}
-        {% if s|lower != 'null' and s|length > 0 %}
+        {% if s|lower != 'none' and s|length > 0 %}
           {{ s }}
         {% else %}null{% endif %}
       {% else %}null{% endif %}
@@ -200,31 +200,13 @@
         {% endif %}
         {% if l is defined and l is iterable and l|length > 0 %}
           {% set p = l|list|max|int %}
-          {% if is_state('binary_sensor.motion_detected_animal_confirmed','on') %}
-            {{ p >= states('sensor.motion_detected_animal_threshold_confirmed')|int }}
-          {% else %}
-            {{ p >= states('sensor.motion_detected_animal_threshold')|int }}
+          {% if (is_state('binary_sensor.motion_detected_animal_confirmed','on') and p >= states('sensor.motion_detected_animal_threshold_confirmed')|int) or
+            (is_state('binary_sensor.motion_detected_animal_confirmed','off') and p >= states('sensor.motion_detected_animal_threshold')|int) %}
+            {% set t = date %}
           {% endif %}
-        {% else %}null{% endif %}
-      {% else %}null{% endif %}
-    entity: >-
-      {% if event|lower != 'null' and results|lower != 'null' %}
-        {% set option = states('input_select.motion_detect_entity') %}
-        {% if option|lower == 'all' or option|lower == 'entity' %}
-          {% set options = state_attr('input_select.motion_detect_entity','options') %}
-          {% if options|lower != 'none' and options|lower != 'unknown' and options|length > 0 %}
-            {% set l = results|selectattr('entity','in',options)|map(attribute='confidence')|list %}
-          {% endif %}
-        {% else %}
-          {% set l = results|selectattr('entity','==',option)|map(attribute='confidence')|list %}
         {% endif %}
-        {% if l is defined and l is iterable and l|length > 0 %}
-          {% set p = l|list|max|int %}
-          {% if is_state('binary_sensor.motion_detected_entity_confirmed','on') %}
-            {{ p >= states('sensor.motion_detected_entity_threshold_confirmed')|int }}
-          {% else %}
-            {{ p >= states('sensor.motion_detected_entity_threshold')|int }}
-          {% endif %}
+        {% if t is defined %}
+          {{ t|float }}
         {% else %}null{% endif %}
       {% else %}null{% endif %}
     person: >-
@@ -240,11 +222,13 @@
         {% endif %}
         {% if l is defined and l is iterable and l|length > 0 %}
           {% set p = l|list|max|int %}
-          {% if is_state('binary_sensor.motion_detected_person_confirmed','on') %}
-            {{ p >= states('sensor.motion_detected_person_threshold_confirmed')|int }}
-          {% else %}
-            {{ p >= states('sensor.motion_detected_person_threshold')|int }}
+          {% if (is_state('binary_sensor.motion_detected_person_confirmed','on') and p >= states('sensor.motion_detected_person_threshold_confirmed')|int) or
+            (is_state('binary_sensor.motion_detected_person_confirmed','off') and p >= states('sensor.motion_detected_person_threshold')|int) %}
+            {% set t = date %}
           {% endif %}
+        {% endif %}
+        {% if t is defined %}
+          {{ t|float }}
         {% else %}null{% endif %}
       {% else %}null{% endif %}
     vehicle: >-
@@ -260,11 +244,35 @@
         {% endif %}
         {% if l is defined and l is iterable and l|length > 0 %}
           {% set p = l|list|max|int %}
-          {% if is_state('binary_sensor.motion_detected_vehicle_confirmed','on') %}
-            {{ p >= states('sensor.motion_detected_vehicle_threshold_confirmed')|int }}
-          {% else %}
-            {{ p >= states('sensor.motion_detected_vehicle_threshold')|int }}
+          {% if (is_state('binary_sensor.motion_detected_vehicle_confirmed','on') and p >= states('sensor.motion_detected_vehicle_threshold_confirmed')|int) or
+            (is_state('binary_sensor.motion_detected_vehicle_confirmed','off') and p >= states('sensor.motion_detected_vehicle_threshold')|int) %}
+            {% set t = date %}
           {% endif %}
+        {% endif %}
+        {% if t is defined %}
+          {{ t|float }}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    entity: >-
+      {% if event|lower != 'null' and results|lower != 'null' %}
+        {% set option = states('input_select.motion_detect_entity') %}
+        {% if option|lower == 'all' or option|lower == 'entity' %}
+          {% set options = state_attr('input_select.motion_detect_entity','options') %}
+          {% if options|lower != 'none' and options|lower != 'unknown' and options|length > 0 %}
+            {% set l = results|selectattr('entity','in',options)|map(attribute='confidence')|list %}
+          {% endif %}
+        {% else %}
+          {% set l = results|selectattr('entity','==',option)|map(attribute='confidence')|list %}
+        {% endif %}
+        {% if l is defined and l is iterable and l|length > 0 %}
+          {% set p = l|list|max|int %}
+          {% if (is_state('binary_sensor.motion_detected_entity_confirmed','on') and p >= states('sensor.motion_detected_entity_threshold_confirmed')|int) or
+            (is_state('binary_sensor.motion_detected_entity_confirmed','off') and p >= states('sensor.motion_detected_entity_threshold')|int) %}
+            {% set t = date %}
+          {% endif %}
+        {% endif %}
+        {% if t is defined %}
+          {{ t|float }}
         {% else %}null{% endif %}
       {% else %}null{% endif %}
   action:
@@ -278,7 +286,7 @@
         - alias: 'config good?'
           condition: template
           value_template: >-
-            {% if is_state('input_boolean.motion_status_camera_any','on') %}
+            {% if is_state('input_boolean.motion_status_camera_any','off') %}
              {{ config|lower != 'null' }}
             {% else %}true{% endif %}
     - alias: 'set binary_sensor.motion_camera_<camera>_detected_entity'
@@ -354,3 +362,81 @@
           {%- else -%}
             {{- 'off' -}}
           {%- endif -%}
+
+- id: motion_cameras_detected_entity_update
+  alias: motion_cameras_detected_entity_update
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: time_pattern
+      minutes: '/1'
+  variables:
+    sensors: >-
+      [{% for eid in states.binary_sensor|map(attribute='entity_id')|list if 'motion_camera_' in eid  -%}
+      {%- if not loop.first -%},{%- endif -%}
+      "{{- eid -}}"
+      {%- endfor %}]
+  action:
+    - alias: 'update all cameras'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = sensors[repeat.index-1] %}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - variables:
+              sensor: >-
+                {{ 'binary_sensor.motion_' + sensors[repeat.index-1] + '_detected_entity' }}
+              date: >-
+                {{ state_attr(sensor,'date') }}
+              ago: >-
+                {% if date|lower != 'none' %}
+                  {{ utcnow().timestamp()|int - date|int }}
+                {% else %}null{% endif %}
+              expired: >-
+                {{ states('input_number.motion_person_detected_expired')|int * 60 }}
+              state: >-
+                {% if is_state(sensor,'on') and ago|lower != 'null' and ago <= expired %}on{% else %}off{% endif %}
+          - alias: 'set binary_sensor.motion_<camera>_detected_entity'
+            service: python_script.set_state
+            data_template:
+              entity_id: >-
+                {{ sensor }}
+              state: >-
+                {{ state }}
+    - variables:
+        entities: >-
+          [{% for eid in states.binary_sensor|map(attribute='entity_id')|list if 'motion_camera_' in eid  -%}
+          {%- if not loop.first -%},{%- endif -%}
+          "{{- eid -}}"
+          {%- endfor %}]
+        status: >-
+          [{% for eid in states.binary_sensor|map(attribute='entity_id')|list if 'motion_camera_' in eid  -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {% if is_state(eid,'on') %}1{% else %}0{% endif %}
+          {%- endfor %}]
+        state: >-
+          {% if status|lower != 'none' and s is iterable and status|count > 0 and status|sum > 0 -%}on{% else %}off{% endif %}
+    - alias: 'update binary_sensor.motion_cameras_detected_entity'
+      service: python_script.set_state
+      data_template:
+        allow_create: true
+        entity_id: >-
+          {{ 'binary_sensor.motion_cameras_detected_entity' }}
+        status: >-
+          {{ status }}
+        timestamp: >-
+          {{ utcnow().timestamp() }}
+        state: >-
+          {{ state }}
+    - alias: 'update group.motion_cameras_detected_entity'
+      service: python_script.set_state
+      data_template:
+        allow_create: true
+        entity_id: group.motion_cameras_detected_entity
+        friendly_name: 'All cameras'
+        entity_ids: >-
+          {{ entities }}
+        state: >-
+          {{ state }}
