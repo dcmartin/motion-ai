@@ -381,21 +381,34 @@
                 {% if now - state_attr(sensor,'vehicle')|int <= states('input_number.motion_detected_vehicle_ago')|int %}on{% else %}off{% endif %}
               state: >-
                 {% if is_state(sensor,'on') and ago|lower != 'null' and ago <= states('input_number.motion_detected_ago')|int %}on{% else %}off{% endif %}
-          - service: persistent_notification.create
-            data_template:
-              title: >-
-                DEBUG: Setting {{ state_attr(sensor,'camera') }} to {{ state }}
-              notification_id: >
-                {{- 'detected-entity-update-' + sensor|string }}
-              message: >-
-                Setting entity sensor **{{- sensor -}}** to {{ state -}}; ago: {{ ago -}}; animal: {{ animal -}}; entity: {{ entity -}}; person: {{ person -}}; vehicle: {{ vehicle -}}
-          - alias: 'set binary_sensor.motion_<camera>_detected_entity'
-            service: python_script.set_state
-            data_template:
-              entity_id: >-
-                {{ sensor }}
-              state: >-
-                {{ state }}
+          - choose:
+              - alias: 'condition: state changed?'
+                conditions:
+                  - condition: template
+                    value_template: >
+                      {{ state != states(sensor) }}
+                sequence:
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: >
+                              {{ is_state('input_select.motion_log_level','debug') }}
+                        sequence:
+                          - service: persistent_notification.create
+                            data_template:
+                              title: >-
+                                DEBUG: Setting {{ state_attr(sensor,'camera') }} to {{ state }}
+                              notification_id: >
+                                {{- 'detected-entity-update-' + sensor|string }}
+                              message: >-
+                                Setting entity sensor **{{- sensor -}}** to {{ state -}}; ago: {{ ago -}}; animal: {{ animal -}}; entity: {{ entity -}}; person: {{ person -}}; vehicle: {{ vehicle -}}
+                  - alias: 'set binary_sensor.motion_<camera>_detected_entity'
+                    service: python_script.set_state
+                    data_template:
+                      entity_id: >-
+                        {{ sensor }}
+                      state: >-
+                        {{ state }}
     - alias: 'update_all cameras'
       service: automation.trigger
       entity_id: automation.motion_cameras_detected_entity_update_all
