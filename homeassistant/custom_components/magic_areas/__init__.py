@@ -127,10 +127,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         area_registry = await hass.helpers.area_registry.async_get_registry()
         area = area_registry.async_get_area(area_id)
 
-        try:
-            magic_area = MagicArea(hass, area, config_entry)
-        except:
-            _LOGGER.info(f"Area {area_id} failed to create")
+        magic_area = MagicArea(hass, area, config_entry)
     else:
         magic_area = MagicMetaArea(hass, area_name, config_entry)
 
