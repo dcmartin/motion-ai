@@ -587,23 +587,23 @@
         - condition: template
           value_template: >
             {{ state == 'on' }}
-    - alias: 'choose: gps good or bad?'
+    - alias: 'choose: gps good? state on?'
       choose:
-        - alias: 'condition: gps bad?'
+        - alias: 'choose: condition: notify if gps bad'
           conditions:
             - condition: template
               value_template: >
                 {{ gps|lower != 'true' }}
           sequence:
-            - alias: 'motion_shellies_mqtt_status: notify invalid GPS'
+            - alias: 'sequence: notify invalid GPS'
               service: persistent_notification.create
               data_template:
                 title: >-
-                  WARN: Sensor {{ id -}}
+                  WARN: Sensor location
                 notification_id: >-
                   {{ sensor + '_gps_invalid' }}
                 message: >-
-                  Sensor **{{- sensor -}}** located outside of home; model: {{ model -}}; distance: {{ distance|int -}}m; GPS: {{ latitude,longitude }}
+                  Sensor **{{- id -}}** located outside of home; model: {{ model -}}; distance: {{ distance|int -}}m; GPS: {{ latitude,longitude }}
                   {{- '<br>' -}}
                   {%- if ip|lower != 'none' -%}
                     {{- '[![](https://img.shields.io/badge/location-reset-green.svg)]('
@@ -623,13 +623,13 @@
                     + 'https://www.google.com/maps/@'
                     + state_attr('zone.home','latitude')|string + ',' + state_attr('zone.home','longitude')|string + ',22z'
                     + ')' -}}
-        - alias: 'condition: gps good?'
+        - alias: 'choose: condition: state on?'
           conditions:
             - condition: template
               value_template: >-
-                {{ gps|lower == 'true' and state|lower == 'on' }}
+                {{ state|lower == 'on' }}
           sequence:
-            - alias: 'set_state: sensor.motion_shellies_<type>'
+            - alias: 'sequence: set_state: sensor.motion_shellies_<type>'
               service: python_script.set_state
               data_template:
                 allow_create: true
@@ -638,9 +638,9 @@
                 timestamp: >-
                   {{ timestamp }}
                 latitude: >-
-                  {{ latitude }}
+                  {% if gps|lower == 'true' %}{{ latitude }}{% else %}{{ state_attr('zone.home','latitude') }}{% endif %}
                 longitude: >-
-                  {{ longitude }}
+                  {% if gps|lower == 'true' %}{{ longitude }}{% else %}{{ state_attr('zone.home','longitude') }}{% endif %}
                 distance: >-
                   {{ distance }}
                 active: >-
