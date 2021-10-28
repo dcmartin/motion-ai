@@ -280,6 +280,7 @@
         {% else %}null{% endif %}
       {% else %}null{% endif %}
     status: >-
+      {% set v = trigger.payload_json|default(trigger.payload|string)|to_json %}
       {% if sensor|lower != 'null' %}
         {% set s = state_attr(sensor,'status') %}
         {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|length > 0 %}
@@ -287,12 +288,12 @@
           {% if attr in s %}
             {% set s = s|to_json %}
             {% set old = '"' + attr + '":[ ]*[^}^,]*' %}
-            {% set new = '"' + attr + '": ' + trigger.payload_json|to_json|string %}
+            {% set new = '"' + attr + '": ' + v|string %}
             {% set s = s|regex_replace(old,new) %}
           {% else %}
             {% set s = s|to_json %}
             {% set old = '}' %}
-            {% set new = ',"' + attr + '": ' + trigger.payload_json|to_json|string + '}' %}
+            {% set new = ',"' + attr + '": ' + v|string + '}' %}
             {% set s = s|regex_replace(old,new) %}
           {% endif %}
           {% set old = '"timestamp":[ ]*[^}^,]*' %}
@@ -303,7 +304,7 @@
       {% if p is defined %}
         {{ p }}
       {% else %}
-        {{- '{"' + attr + '":' + trigger.payload_json|to_json|string + ',"timestamp":' + timestamp|int|string + '}' -}}
+        {{- '{"' + attr + '":' + v|string + ',"timestamp":' + timestamp|int|string + '}' -}}
       {% endif %}
     state: >-
       {% if attr|lower == 'state' and ( trigger.payload_json|lower == 'on' or trigger.payload_json|lower == 'off' ) %}
@@ -1242,7 +1243,7 @@
         {% if info.lights.ison|lower == 'true' %}on{% else %}off{% endif %}
       {% elif 'flood' in info %}
         {% if info.flood|lower == 'true' %}on{% else %}off{% endif %}
-      {% else %}null{% endif %}
+      {% elif sensor|lower != 'null' %}{{ states(sensor) }}{% else %}null{% endif %}
   action:
     - alias: 'condition: sensor good?'
       condition: and
