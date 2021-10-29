@@ -185,6 +185,157 @@
         state: >-
           {{ state }}
 
+# shellies/david-button/input_event/0 {"event":"L","event_cnt":66}
+# shellies/david-button/input_event/0 {"event":"S","event_cnt":43}
+# shellies/david-button/input_event/0 {"event":"SS","event_cnt":65}
+# shellies/david-button/input_event/0 {"event":"SSS","event_cnt":69}
+
+- id: motion_shellies_mqtt_input_event
+  alias: motion_shellies_mqtt_input_event
+  initial_state: on
+  mode: queued
+  max_exceeded: warn
+  max: 100
+  trigger:
+    - platform: mqtt
+      topic: 'shellies/+/sensor/+'
+  variables:
+    topic: >-
+      {{ trigger.topic }}
+    attr: >-
+      {{ topic|regex_replace('shellies/[^/]*/input_event/','') }}
+    id: >-
+      {{ topic|replace('shellies/','')|replace('input_event/','')|replace('/' + attr,'') }}
+    event: >-
+      {{ trigger.payload_json|default(trigger.payload|string|to_json) }}
+    timestamp: >-
+      {{ utcnow().timestamp()|int }}
+    mac: >-
+      {% if id|lower != 'none' and id|lower != 'unavailable' and id|lower != 'unknown' and id|lower != 'null' and id|length > 0 %}
+        {% set s = states('group.motion_shellies') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+          {% set s = state_attr('group.motion_shellies','entity_id') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {% for i in s if state_attr(i,'id') == id %}
+              {% if loop.first %}{{ state_attr(i,'mac') }}{% endif %}
+            {% endfor %}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    type: >-
+      {% if mac|lower != 'none' and mac|lower != 'unavailable' and mac|lower != 'unknown' and mac|lower != 'null' and mac|length > 0 %}
+        {% set s = states('group.motion_shellies') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+          {% set s = state_attr('group.motion_shellies','entity_id') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {% for i in s if state_attr(i,'mac') == mac %}
+              {% if loop.first %}{{ state_attr(i,'type') }}{% endif %}
+            {% endfor %}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    sensor: >-
+      {% if mac|lower != 'null' and mac|length > 0 and type|lower != 'null' and type|length > 0 %}
+        {{ 'binary_sensor.motion_shelly_' + type|string + '_' + mac|string }}
+      {% else %}null{% endif %}
+    state: >-
+      {% if 'event' in event %}
+        {% if event.event|lower != 'null' %}on{% else %}off{% endif %}
+      {% else %}states(sensor){% endif %}
+  action:
+    - alias: 'set state'
+      choose:
+        - alias: 'sensor and state good?'
+          conditions:
+            - condition: template
+              value_template: >-
+                {{ sensor|lower != 'null' }}
+            - condition: template
+              value_template: >-
+                {{ state|lower != 'null' }}
+          sequence:
+            - alias: 'set_state: binary_sensor.motion_shelly_<type>_<mac>'
+              service: python_script.set_state
+              data_template:
+                allow_create: true
+                entity_id: >-
+                  {{ sensor }}
+                event: >-
+                  {{ event }}
+                updated: >-
+                  {{ timestamp }}
+                state: >-
+                  {{ state }}
+            - alias: 'set_state: binary_sensor.motion_shellies_<type>'
+              service: python_script.set_state
+              data_template:
+                allow_create: true
+                entity_id: >-
+                  {{ 'binary_sensor.motion_shellies_' + type|string }}
+                latitude: >-
+                  {{ latitude }}
+                longitude: >-
+                  {{ longitude }}
+                sensor: >-
+                  {{ sensor }}
+                updated: >-
+                  {{ timestamp }}
+                state: >-
+                  {{ state }}
+
+- id: motion_shellies_button_event
+  alias: motion_shellies_button_event
+  initial_state: on
+  mode: queued
+  max_exceeded: warn
+  max: 10
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_shellies_button
+      to: 'on'
+  variables:
+    sensor: >-
+      {{ state_attr('binary_sensor.motion_shellies_button', 'sensor') }}
+    id: >-
+      {{ state_attr(sensor, 'id') }}
+    updated: >-
+      {{ state_attr(sensor, 'updated') }}
+    event: >-
+      {{ state_attr(sensor, 'event') }}
+  action:
+    - alias: 'choose between events: S, SS, SSS, L'
+      choose:
+        - alias: 'condition S or L?'
+          conditions:
+            - condition: template
+              value_template: >
+                {{ event.event|upper != 'L' }}
+          sequence:
+            - alias: 'condition S: notify short button press'
+              service: persistent_notification.create
+              data_template:
+                title: >-
+                  INFO: Button press
+                notification_id: >-
+                  {{ sensor + '_button_press' }}
+                message: >-
+                  Button **{{- id -}}** short pressed; sequence: {{ event.event }}
+        - alias: 'condition S or L?'
+          conditions:
+            - condition: template
+              value_template: >
+                {{ event.event|upper == 'L' }}
+          sequence:
+            - alias: 'condition L: notify long button press'
+              service: persistent_notification.create
+              data_template:
+                title: >-
+                  INFO: Button press
+                notification_id: >-
+                  {{ sensor + '_button_press' }}
+                message: >-
+                  Button **{{- id -}}** long pressed; sequence: {{ event.event }}
+
 # flood
 # shellies/bathroom-flood/sensor/temperature 73.85
 # shellies/bathroom-flood/sensor/flood false
@@ -214,12 +365,10 @@
 # shellies/david-button/sensor/error 0
 # shellies/david-button/sensor/act_reasons ["button"]
 
-# shellies/david-button/input_event/0 {"event":"S","event_cnt":43}
-
 - id: motion_shellies_mqtt_sensor
   alias: motion_shellies_mqtt_sensor
   initial_state: on
-  mode: parallel
+  mode: queued
   max_exceeded: warn
   max: 100
   trigger:
@@ -281,7 +430,7 @@
         {% else %}null{% endif %}
       {% else %}null{% endif %}
     status: >-
-      {% set v = trigger.payload_json|default(trigger.payload|string)|to_json %}
+      {% set v = trigger.payload_json|default(trigger.payload|string|to_json) %}
       {% if sensor|lower != 'null' %}
         {% set s = state_attr(sensor,'status') %}
         {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|length > 0 %}
@@ -320,48 +469,45 @@
         {{ states(sensor) }}
       {% else %}null{% endif %}
   action:
-    - alias: 'condition: sensor defined?'
-      condition: and
-      conditions:
-        - condition: template
-          value_template: >-
-            {{ sensor|lower != 'null' }}
-    - alias: 'condition: state defined?'
-      condition: and
-      conditions:
-        - condition: template
-          value_template: >-
-            {{ state|lower != 'null' }}
-    - alias: 'set_state: binary_sensor.motion_shelly_<type>_<mac>'
-      service: python_script.set_state
-      data_template:
-        allow_create: true
-        entity_id: >-
-          {{ sensor }}
-        status: >-
-          {{ status }}
-        updated: >-
-          {{ timestamp }}
-        state: >-
-          {{ state }}
-    - alias: 'set_state: binary_sensor.motion_shellies_<type>'
-      service: python_script.set_state
-      data_template:
-        allow_create: true
-        entity_id: >-
-          {{ 'binary_sensor.motion_shellies_' + type|string }}
-        latitude: >-
-          {{ latitude }}
-        longitude: >-
-          {{ longitude }}
-        sensor: >-
-          {{ sensor }}
-        status: >-
-          {{ status }}
-        updated: >-
-          {{ timestamp }}
-        state: >-
-          {{ state }}
+    - alias: 'set state'
+      choose:
+        - alias: 'sensor and state good?'
+          conditions:
+            - condition: template
+              value_template: >-
+                {{ sensor|lower != 'null' }}
+            - condition: template
+              value_template: >-
+                {{ state|lower != 'null' }}
+          sequence:
+            - alias: 'set_state: binary_sensor.motion_shelly_<type>_<mac>'
+              service: python_script.set_state
+              data_template:
+                allow_create: true
+                entity_id: >-
+                  {{ sensor }}
+                status: >-
+                  {{ status }}
+                updated: >-
+                  {{ timestamp }}
+                state: >-
+                  {{ state }}
+            - alias: 'set_state: binary_sensor.motion_shellies_<type>'
+              service: python_script.set_state
+              data_template:
+                allow_create: true
+                entity_id: >-
+                  {{ 'binary_sensor.motion_shellies_' + type|string }}
+                latitude: >-
+                  {{ latitude }}
+                longitude: >-
+                  {{ longitude }}
+                sensor: >-
+                  {{ sensor }}
+                updated: >-
+                  {{ timestamp }}
+                state: >-
+                  {{ state }}
 
 # motion and lightbulbs
 
