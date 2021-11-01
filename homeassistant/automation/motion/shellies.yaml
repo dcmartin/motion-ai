@@ -198,16 +198,16 @@
   max: 100
   trigger:
     - platform: mqtt
-      topic: 'shellies/+/sensor/+'
+      topic: 'shellies/+/input_event/+'
   variables:
     topic: >-
       {{ trigger.topic }}
     attr: >-
       {{ topic|regex_replace('shellies/[^/]*/input_event/','') }}
     id: >-
-      {{ topic|replace('shellies/','')|replace('input_event/','')|replace('/' + attr,'') }}
+      {{ topic|replace('shellies/','')|replace('input_event/','')|replace('/' + attr|string,'') }}
     event: >-
-      {{ trigger.payload_json|default(trigger.payload|string|to_json) }}
+      {{ trigger.payload_json }}
     timestamp: >-
       {{ utcnow().timestamp()|int }}
     mac: >-
@@ -239,11 +239,20 @@
         {{ 'binary_sensor.motion_shelly_' + type|string + '_' + mac|string }}
       {% else %}null{% endif %}
     state: >-
-      {% if 'event' in event %}
-        {% if event.event|lower != 'null' %}on{% else %}off{% endif %}
-      {% else %}states(sensor){% endif %}
+      {% if event is iterable and 'event' in event %}
+        {% if event.event|lower != 'null' %}
+          {% set p = 'on' %}
+        {% else %}
+          {% set p = 'off' %}
+        {% endif %}
+      {% endif %}
+      {% if p is defined %}
+        {{ p }}
+      {% elif sensor|lower != 'null' %}
+        {{ states(sensor) }}
+      {% else %}on{% endif %}
   action:
-    - alias: 'set state'
+    - alias: 'choose whether to process input_event'
       choose:
         - alias: 'sensor and state good?'
           conditions:
@@ -282,6 +291,23 @@
                   {{ timestamp }}
                 state: >-
                   {{ state }}
+    - alias: 'choose: debug notification'
+      choose:
+        - alias: 'condition: debug level?'
+          conditions:
+            - condition: template
+              value_template: >
+                {{ is_state('input_select.motion_log_level','debug') }}
+          sequence:
+            - alias: 'sequence: create debug notification'
+              service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: input event
+                notification_id: >-
+                  {{ 'input_event' }}
+                message: >-
+                  MQTT: topic: {{ topic }}; payload: {{ trigger.payload -}}; id: {{ id -}}; sensor: {{ sensor -}}; event: {{ event -}}; state: {{ state -}}
 
 - id: motion_shellies_button_event
   alias: motion_shellies_button_event
@@ -305,7 +331,7 @@
   action:
     - alias: 'choose between events: S, SS, SSS, L'
       choose:
-        - alias: 'condition S or L?'
+        - alias: 'condition S?'
           conditions:
             - condition: template
               value_template: >
@@ -320,7 +346,7 @@
                   {{ sensor + '_button_press' }}
                 message: >-
                   Button **{{- id -}}** short pressed; sequence: {{ event.event }}
-        - alias: 'condition S or L?'
+        - alias: 'condition L?'
           conditions:
             - condition: template
               value_template: >
@@ -380,7 +406,7 @@
     attr: >-
       {{ topic|regex_replace('shellies/[^/]*/sensor/','') }}
     id: >-
-      {{ topic|replace('shellies/','')|replace('sensor/','')|replace('/' + attr,'') }}
+      {{ topic|replace('shellies/','')|replace('sensor/','')|replace('/' + attr|string,'') }}
     timestamp: >-
       {{ utcnow().timestamp()|int }}
     mac: >-
@@ -437,13 +463,13 @@
           {% if s is string %}{% set s = s|replace('\'','"')|from_json %}{% endif %}
           {% if attr in s %}
             {% set s = s|to_json %}
-            {% set old = '"' + attr + '":[ ]*[^}^,]*' %}
-            {% set new = '"' + attr + '": ' + v|string %}
+            {% set old = '"' + attr|string + '":[ ]*[^}^,]*' %}
+            {% set new = '"' + attr|string + '": ' + v|string %}
             {% set s = s|regex_replace(old,new) %}
           {% else %}
             {% set s = s|to_json %}
             {% set old = '}' %}
-            {% set new = ',"' + attr + '": ' + v|string + '}' %}
+            {% set new = ',"' + attr|string + '": ' + v|string + '}' %}
             {% set s = s|regex_replace(old,new) %}
           {% endif %}
           {% set old = '"timestamp":[ ]*[^}^,]*' %}
@@ -454,7 +480,8 @@
       {% if p is defined %}
         {{ p }}
       {% else %}
-        {{- '{"' + attr + '":' + v|string + ',"timestamp":' + timestamp|int|string + '}' -}}
+        {% set s = '{"' + attr|string + '":' + v|to_json|string + ',"timestamp":' + timestamp|int|string + '}' %}
+        {{ s|from_json }}
       {% endif %}
     state: >-
       {% if 'ison' in status %}
@@ -749,7 +776,7 @@
                 message: >-
                   Sensor **{{- id -}}** located outside of home; model: {{ model -}}; distance: {{ distance|int -}}m; GPS: {{ latitude,longitude }}
                   {{- '<br>' -}}
-                  {%- if ip|lower != 'none' -%}
+                  {%- if ip|lower != 'none' and ip|lower != 'null' -%}
                     {{- '[![](https://img.shields.io/badge/location-reset-green.svg)]('
                     + 'http://' + states('input_text.motion_shellies_username')
                     + ':'
@@ -1079,7 +1106,7 @@
         {{ 'binary_sensor.motion_shelly_' + type|string + '_' + mac|string }}
       {% else %}null{% endif %}
     state: >-
-      {% if sensor|lower != 'none' and sensor|lower != 'unavailable' and sensor|lower != 'unknown' and sensor|lower != 'null' %}
+      {% if sensor|lower != 'null' %}
         {% if is_state(sensor,'on') -%}on{% else %}off{% endif %}
       {% else %}null{% endif %}
   action:
