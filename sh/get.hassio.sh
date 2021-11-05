@@ -158,13 +158,9 @@ echo 'Updating ...' &> /dev/stderr \
   && apt update -qq -y 2>&1 >> install.log \
   && echo 'Installing pre-requisite packages ...' &> /dev/stderr \
   && DEBIAN_FRONTEND=noninteractive apt install -qq -y --no-install-recommends \
-    network-manager \
     software-properties-common \
-    apparmor-utils \
     apt-transport-https \
-    avahi-daemon \
     ca-certificates \
-    dbus \
     make \
     mosquitto-clients \
     socat \
@@ -193,22 +189,6 @@ echo 'Disabling ModemManager' \
   && systemctl status ModemManager &> /dev/null \
   && systemctl stop ModemManager \
   && systemctl disable ModemManager
-
-if [ ! -e "${0%/*}/hassio-install.sh" ]; then
-  echo "Downloading ${0%/*}/hassio-install.sh"
-  curl -sSL https://raw.githubusercontent.com/dcmartin/supervised-installer/master/installer.sh -o /tmp/hassio-install.sh \
-    && \
-    mv -f /tmp/hassio-install.sh ${0%/*}/hassio-install.sh \
-    && \
-    chmod 755 ${0%/*}/hassio-install.sh
-fi
-if [ ! -e "${0%/*}/hassio-install.sh" ]; then
-  echo "No Home Assistant installer found; exiting" &> /dev/stderr
-  exit 1
-fi
-echo "Installing using ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine)" \
-    && yes | ${0%/*}/hassio-install.sh -d $(pwd -P) $(machine) \
-    || echo 'Problem installing Home Assistant; check with "ha core info" command' &> /dev/stderr
 
 # download AI containers and models
 if [ "${0##*/}" == 'get.motion-ai.sh' ]; then
