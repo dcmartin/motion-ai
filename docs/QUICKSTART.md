@@ -202,7 +202,7 @@ require_certificate: false
 ### B. Motion Classic
 The [Motion Classic](https://github.com/motion-ai/addons/blob/master/motion-video0/README.md) _add-on_ is cataloged in the repository [`http://github.com/dcmartin/hassio-addons`](http://github.com/dcmartin/hassio-addons) which must be added in the Home Assistant Add-On Store.
 
-The add-on's [configuration](https://github.com/dcmartin/hassio-addons/blob/master/motion-video0/DOCS.md) default configuration includes _secrets_, but may use literal values; for example:
+The add-on's default [configuration](https://github.com/dcmartin/hassio-addons/blob/master/motion-video0/DOCS.md) includes _secrets_, but may override with literal values; for example:
 
 ```
 group: motion
