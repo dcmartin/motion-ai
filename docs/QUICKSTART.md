@@ -92,8 +92,8 @@ ssh <ip> -l ubuntu
 Update software repositories and install base programs (as **root**).
 
 ```
-apt update -qq -y
-apt install -qq -y curl wget jq sudo git make gettext
+sudo apt update -qq -y
+sudo apt install -qq -y curl wget jq sudo git make gettext
 ```
 
 ### E. Setup WiFi connectivity (optional)
@@ -202,6 +202,14 @@ require_certificate: false
 ### B. Motion Classic
 The [Motion Classic](https://github.com/motion-ai/addons/blob/master/motion-video0/README.md) _add-on_ is cataloged in the repository [`http://github.com/dcmartin/hassio-addons`](http://github.com/dcmartin/hassio-addons) which must be added in the Home Assistant Add-On Store.
 
+MQTT topics are specified as _group_, _device_, and _camera-name_ with corresponding sub-topics for sources, including AI services:
+
++ `event`
++ `image`
++ `annotated`
++ `face`
++ `alpr`
+
 The add-on's default [configuration](https://github.com/dcmartin/hassio-addons/blob/master/motion-video0/DOCS.md) includes _secrets_, but may override with literal values; for example:
 
 ```
@@ -222,7 +230,6 @@ mqtt:
   username: username
 ```
 
-MQTT topics are specified as _group_, _device_, and _camera-name_ with corresponding sub-topics for `event`, `image`, and `annotated`,`face`, and `alpr` AI services.
 
 ### C. FTP (optional)
 A basic FTP server is provided in the built-in community add-on catalog.  Visit the **Supervisor** panel item and view the app store.
@@ -280,12 +287,52 @@ When the script has completed there will now be three additional containers runn
 For example:
 
 ```
-curl http://192.168.1.122:4662/
+curl http://localhost:4662/
 ```
 
-### D. Restart
+# TL/DR
+
+Automated installation on a RaspberryPi 3B+; additional steps are required to setup the add-ons.
+
+## Home Assistant
+From a system installation flashed with Rasbian 32bit.
+
+```
+sudo apt update -qq -y
+sudo apt install -qq -y curl wget jq sudo git make gettext
+curl -fsSL get.docker.com | sh
+sudo apt install -qq -y --no-install-recommends udisks2 libglib2.0-bin dbus apparmor 
+sudo -s
+mkdir -p /etc/NetworkManager/conf.d
+echo '[connection]' > /etc/NetworkManager/conf.d/100-disable-wifi-mac-randomization.conf
+echo 'wifi.mac-address-randomization=1' >> /etc/NetworkManager/conf.d/100-disable-wifi-mac-randomization.conf
+echo '[device]' >> /etc/NetworkManager/conf.d/100-disable-wifi-mac-randomization.conf
+echo 'wifi.scan-rand-mac-address=no' >> /etc/NetworkManager/conf.d/100-disable-wifi-mac-randomization.conf
+exit
+sudo apt install -qq -y --no-install-recommends network-manager
+wget https://github.com/home-assistant/os-agent/releases/download/1.2.2/os-agent_1.2.2_linux_armv7.deb
+sudo dpkg -i os-agent_1.2.2_linux_armv7.deb
+wget https://github.com/home-assistant/supervised-installer/releases/latest/download/homeassistant-supervised.deb
+sudo dpkg -i homeassistant-supervised.deb
+```
+After successful completion of these steps the generic Home Assistant service should be available on port 8123.
+
+## Motion Ã👁
+Once Home Assistant has been installed, configured, and is operational these steps may be peformed.
 
 
+```
+git clone http://github.com/dcmartin/motion-ai /tmp/motion-ai
+cd /tmp/motion-ai
+tar cvf - . | ( cd /usr/share/hassio ; sudo tar xvf - )
+ln -s /usr/share/hassio ~/motion-ai
+rm -fr /tmp/motion-ai
+cd /usr/share/hassio
+sudo ./sh/get.motion-ai.sh
+sudo docker restart homeassistant
+```
+
+After successful completion of these steps the Motion Ã👁 service will now be available on port 80.  
 
 
 
