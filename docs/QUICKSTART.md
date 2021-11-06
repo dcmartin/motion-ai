@@ -176,14 +176,33 @@ sudo dpkg -i homeassistant-supervised.deb
 Installation may be verified by visiting the Home Assistant server on the [host at port 8123](http://localhost:8123/).
 
 ## Step 4: Install Add-Ons
-Additional Home Assistant _add-ons_ are utilized for handling cameras, routing messages, and capturing uploaded files.
+Additional Home Assistant _add-ons_ are utilized for cameras, messaging, and uploading; these services should be installed and started prior to the next step.
 
-### A. Motion Classic
-The ([Motion Classic](https://github.com/motion-ai/addons/blob/master/motion-video0/README.md)) _add-on_ is in an external [catalog](http://github.com/dcmartin/hassio-addons) that must be added as a new **repository** in the app store.
+#### &#9937; Parameters (FYI)
 
-The add-on [configuration parameters](https://github.com/dcmartin/hassio-addons/blob/master/motion-video0/DOCS.md) by default are inherited from Home Assistant _secrets_.
++ The _username_ and _password_ defaults are `username` and `password` and have corresponding [_options_](OPTIONS.md).
++ The MQTT add-on is named `core-mosquitto`, but only for Home Assistant and add-ons; the AI services require the device's host IP address (e.g. `192.168.1.22`).
++ Any _secret_ **must** be enclosed in quotations, but literal values do not.
 
-The add-on's configuration parameters may be modified to include both default as well as literal values; for example:
+### A. MQTT
+The standard _add-on_ is available in built-in catalog.  Visit the **Supervisor** panel item and view the app store.  Credentials for at least one user must be provided; for example:
+
+```
+logins:
+  - username: username
+    password: password
+customize:
+  active: false
+  folder: mosquitto
+certfile: fullchain.pem
+keyfile: privkey.pem
+require_certificate: false
+```
+
+### B. Motion Classic
+The [Motion Classic](https://github.com/motion-ai/addons/blob/master/motion-video0/README.md) _add-on_ is cataloged in the repository [`http://github.com/dcmartin/hassio-addons`](http://github.com/dcmartin/hassio-addons) which must be added in the Home Assistant Add-On Store.
+
+The add-on's [configuration](https://github.com/dcmartin/hassio-addons/blob/master/motion-video0/DOCS.md) default configuration includes _secrets_, but may use literal values; for example:
 
 ```
 group: motion
@@ -201,27 +220,6 @@ mqtt:
   password: password
   port: 1883
   username: username
-```
-
-#### &#9937; Parameters (FYI)
-
-+ The _username_ and _password_ defaults are `username` and `password` and have corresponding [_options_](OPTIONS.md).
-+ The MQTT add-on is named `core-mosquitto`, but only for Home Assistant and add-ons; the AI services require the device's host IP address (e.g. `192.168.1.22`).
-+ Any _secret_ **must** be enclosed in quotations, but literal values do not.
-
-### B. MQTT
-The standard _add-on_ is available in built-in catalog.  Visit the **Supervisor** panel item and view the app store.  Credentials for at least one user must be provided; for example:
-
-```
-logins:
-  - username: username
-    password: password
-customize:
-  active: false
-  folder: mosquitto
-certfile: fullchain.pem
-keyfile: privkey.pem
-require_certificate: false
 ```
 
 MQTT topics are specified as _group_, _device_, and _camera-name_ with corresponding sub-topics for `event`, `image`, and `annotated`,`face`, and `alpr` AI services.
