@@ -45,6 +45,12 @@ network={
 }
 ```
 
+Create a zero-length file called `/ssh` on the flashed media to enable remote access; for example:
+
+```
+touch /Volumes/boot/ssh
+```
+
 #### Debian 11
 
 Specify a hostname and a public `ssh` key to enable remote, headless, access to the device.  The file is typically mounted at `/Volumes/RASPIFIRM/sysconf.txt`
@@ -97,36 +103,37 @@ PSK=<yourwifi-password>
 nmcli dev wifi connect ${SSID} password ${PSK}
 ```
 
-## Step 2: Copy repository
-Clone the repository into the target Home Assistant directory, for example:
-
-```
-git clone http://github.com/dcmartin/motion-ai /usr/share/hassio
-ln -s /usr/share/hassio ~/motion-ai
-cd motion-ai
-```
-
-## Step 3: Install Docker
+## Step 2: Install Docker
 Install Docker-CE (community edition) with the following command:
 
 ```
 curl -fsSL get.docker.com | sh
 ```
 
-## Step 4: Install Home Assistant
+## Step 3: Install Home Assistant
 See the [instructions](https://github.com/home-assistant/supervised-installer) to install Home Assistant in a supervised configuration; TL/DR, do the following:
 
 ### A. Pre-requisite software
 To install Home Assistant there are a number of prerequisite software packages; install using the following:
 
 ```
-apt install -qq -y udisks2 libglib2.0-bin dbus apparmor apparmor-utils network-manager
+sudo apt install -qq -y --no-install-recommends udisks2 libglib2.0-bin dbus apparmor 
 ```
 
-Then modify the LINUX `/boot/cmdline.txt` file to include AppArmor parameters; for example:
+**WARNING** Before installing `network-manager` specify that MAC address randomization should be turned off, otherwise the device will need to be power-cycled; for example (as **root**, _n.b._ `sudo -s`):
 
 ```
-console=tty1 <deleted> apparmor=1 security=apparmor lsm=apparmor
+mkdir -p /etc/NetworkManager/conf.d
+echo '[connection]' > /etc/NetworkManager/conf.d/100-disable-wifi-mac-randomization.conf
+echo 'wifi.mac-address-randomization=1' >> /etc/NetworkManager/conf.d/100-disable-wifi-mac-randomization.conf
+echo '[device]' >> /etc/NetworkManager/conf.d/100-disable-wifi-mac-randomization.conf
+echo 'wifi.scan-rand-mac-address=no' >> /etc/NetworkManager/conf.d/100-disable-wifi-mac-randomization.conf
+```
+
+Then install `network-manager`; for example:
+
+```
+sudo apt install -qq -y --no-install-recommends network-manager
 ```
 
 ### B. OS Agent
@@ -138,14 +145,14 @@ For example for `aarch64` (i.e. RaspberryPi 64bit on Debian 11 or Rpi4 on Rasbia
 
 ```
 wget https://github.com/home-assistant/os-agent/releases/download/1.2.2/os-agent_1.2.2_linux_aarch64.deb
-dpkg -i os-agent_1.2.2_linux_aarch64.deb
+sudo dpkg -i os-agent_1.2.2_linux_aarch64.deb
 ```
 
-Or `armv7` (_aka_ `armhf`, i.e. RaspberryPi3B+ on Rasbian 32bit):
+Or `armv7` (_aka_ `armhf`, e.g. Rasbian 32bit):
 
 ```
 wget https://github.com/home-assistant/os-agent/releases/download/1.2.2/os-agent_1.2.2_linux_armv7.deb
-dpkg -i os-agent_1.2.2_linux_armv7.deb
+sudo dpkg -i os-agent_1.2.2_linux_armv7.deb
 ```
 
 The installation will prompt for end-user specification of architecture (DAMW)
@@ -155,39 +162,49 @@ Install the supervised version of Home Assistant with all its friends using the 
 
 ```
 wget https://github.com/home-assistant/supervised-installer/releases/latest/download/homeassistant-supervised.deb
-dpkg -i homeassistant-supervised.deb
+sudo dpkg -i homeassistant-supervised.deb
 ```
 
-Installation may be verified by visiting the server on the [host at port 8123](http://localhost:8123/).
+Installation may be verified by visiting the Home Assistant server on the [host at port 8123](http://localhost:8123/).
 
-## Step 5: Install Add-Ons
-Additional Home Assistant _add-ons_ are utilized for handling cameras ([Motion Classic](https://github.com/motion-ai/addons/blob/master/motion-video0/README.md)), routing messages ([MQTT]()), and capturing uploaded files ([FTP]()).
+## Step 4: Install Add-Ons
+Additional Home Assistant _add-ons_ are utilized for handling cameras, routing messages, and capturing uploaded files.
 
-### A. MQTT
+### A. Motion Classic
+The ([Motion Classic](https://github.com/motion-ai/addons/blob/master/motion-video0/README.md)) _add-on_ is in an external [catalog](http://github.com/dcmartin/hassio-addons) that must be added as a new **repository** in the app store.
+
+### B. MQTT
 The standard _add-on_ is available in built-in catalog.  Visit the **Supervisor** panel item and view the app store.
-
-### B. Motion Classic
-This _add-on_ is in an external [catalog](http://github.com/dcmartin/hassio-addons) that must be added as a new **repository** in the app store.
 
 ### C. FTP (optional)
 A basic FTP server is provided in the built-in community add-on catalog.  Visit the **Supervisor** panel item and view the app store.
 
 ## Step 6: Configure Motion Ã👁
 
-### A. Configure
-
-Configuration [options](OPTIONS.md) are specified through environment variables and/or local files with the same name.  There is a sample script [`config.sh`](../config.sh) which can be changed to meet local conditions.  Configuration may also be specified manually, for example some important ones include:
+### A: Copy repository
+Clone the repository into the target Home Assistant directory, for example:
 
 ```
-echo 80 > HOST_PORT
-echo username > MOTIONCAM_USERNAME
-echo password > MOTIONCAM_PASSWORD
-echo username > NETCAM_USERNAME
-echo password > NETCAM_PASSWORD
-echo 192.168.1.50 > MQTT_HOST
+git clone http://github.com/dcmartin/motion-ai /tmp/motion-ai
+cd /tmp/motion-ai
+tar cvf - . | ( cd /usr/share/hassio ; sudo tar xvf - )
+ln -s /usr/share/hassio ~/motion-ai
+rm -fr /tmp/motion-ai
 ```
 
-### B. Install
+### B. Configure
+
+Configuration is automatic, however [options](OPTIONS.md) are specified through environment variables and/or local files with the same name.  There is a sample script [`config.sh`](../config.sh) which can be changed to meet local conditions.  Once configured, run the `make` command to buid the initial YAML and JSON; for example:
+
+```
+cd /usr/share/hassio
+make
+sudo docker restart homeassistant
+```
+
+When the server restarts the Motion-AI site will be on port `80`, not port `8123`; access the server on the device, e.g. `http://<hostname>/`.
+
+### C. Install
 
 Run the installation script; it will download additional containers for the entity, face, and license plate AI's as well as model weights where appropriate.
 
