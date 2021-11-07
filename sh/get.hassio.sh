@@ -129,7 +129,7 @@ fi
 
 echo 'Updating ...' &> /dev/stderr \
   && DEBIAN_FRONTEND=noninteractive apt update -qq -y 2>&1 >> install.log \
-  || echo 'Failed to update software catalog' &> /dev/stderr; exit 1
+  || echo 'Failed to update software catalog' &> /dev/stderr
 
 echo 'Installing pre-requisite packages ...' &> /dev/stderr \
   && DEBIAN_FRONTEND=noninteractive apt install -qq -y --no-install-recommends \
@@ -146,7 +146,7 @@ echo 'Installing pre-requisite packages ...' &> /dev/stderr \
     build-essential \
     gettext \
     netdata 2>&1 >> install.log \
-  || echo 'Failed to install pre-requisite software' &> /dev/stderr; exit 1
+  || echo 'Failed to install pre-requisite software' &> /dev/stderr
 
 ## DOCKER
 
@@ -155,7 +155,7 @@ if [ -z "$(command -v docker)" ]; then
     && curl -sSL -o get.docker.sh 'get.docker.com' \
     && echo 'Installing Docker ..' &> /dev/stderr \
     && bash ./get.docker.sh \
-    || echo 'Failed to install Docker' &> /dev/stderr; exit 1
+    || echo 'Failed to install Docker' &> /dev/stderr
 fi
 
 docker_update "/etc/docker/daemon.json"
@@ -171,7 +171,7 @@ if [ ! -e /etc/NetworkManager/conf.d/100-disable-wifi-mac-randomization.conf ]; 
   && echo 'wifi.scan-rand-mac-address=no' >> /etc/NetworkManager/conf.d/100-disable-wifi-mac-randomization.conf \
   && echo 'Restarting network-manager' \
   && systemctl restart network-manager\
-  || echo 'Failed to modify NetworkManager.conf' &> /dev/stderr; exit 1
+  || echo 'Failed to modify NetworkManager.conf' &> /dev/stderr
 fi
 
 echo 'Modifying NetData to enable access from any host' \
