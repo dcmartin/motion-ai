@@ -269,6 +269,8 @@ Run the installation script; it will download additional containers for the enti
 **This process will take a long time.**
 
 ```
+cd /usr/share/hassio
+make
 ./sh/get.motion-ai.sh
 ```
 When the script has completed there will now be three additional containers running; each listens for REST API calls with the default returning service status
