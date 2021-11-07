@@ -339,8 +339,7 @@ sudo dpkg -i homeassistant-supervised.deb
 After successful completion of these steps the generic Home Assistant web UI will be available on port [8123](http://raspberrypi.local:8123/).
 
 ## Motion Ã👁
-Once Home Assistant has been installed, configured, and is operational these steps may be peformed; in addition to these commands, the _add-ons_ must be installed, configured, and started.
-
+These steps may be peformed once Home Assistant has been installed, configured, and is operational; in addition to these commands, the _add-ons_ must be installed, configured, and started.
 
 ```
 git clone http://github.com/dcmartin/motion-ai /tmp/motion-ai
@@ -353,7 +352,7 @@ sudo ./sh/get.motion-ai.sh
 sudo docker restart homeassistant
 ```
 
-The Motion Ã👁 setup script replaces the default Home Assistant interface on port 8123; the Web UI will now be available on port [80](http://raspberrypi.local/).  Reboot is recommended after everything is installed, configured, and started.
+The Motion Ã👁 setup script downloads and starts the AI's and replaces the default Home Assistant interface on port 8123; the Web UI will now be available on port [80](http://raspberrypi.local/).  **Reboot is recommended** after the AI's and _add-ons_ are installed, configured, and started.
 
 
 
