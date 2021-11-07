@@ -1,4 +1,4 @@
-# `QUICKSTART.md`
+ `QUICKSTART.md`
 This _quick start_ is suitable for the following:
 
 + Rasbian Buster on `armv7` (e.g. RaspberryPi models 3 & 4).
@@ -191,7 +191,7 @@ Additional Home Assistant _add-ons_ are utilized for cameras, messaging, and upl
 + Any _secret_ **must** be enclosed in quotations, but literal values do not.
 
 ### A. MQTT
-The standard _add-on_ is in the built-in App Store catalog.  Visit the **Supervisor** panel item and view the App Store.  MQTT credentials for at least one user must be provided; there is no anonymous MQTT support. For example:
+The standard _add-on_ is in the built-in Add-On Store catalog.  Visit the **Supervisor** panel item and view the Add-on Store.  MQTT credentials for at least one user must be provided; there is no anonymous MQTT support. For example:
 
 ```
 logins:
@@ -238,7 +238,7 @@ mqtt:
 
 
 ### C. FTP (optional)
-A basic FTP server is provided in the built-in community add-on catalog.  Visit the **Supervisor** panel item and view the app store.
+A basic FTP server is provided in the built-in community add-on catalog.  Visit the **Supervisor** panel item and view the Add-on Store.
 
 ## Step 6: Install Motion Ã👁
 
