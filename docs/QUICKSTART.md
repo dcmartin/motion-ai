@@ -319,20 +319,33 @@ Automated installation on a RaspberryPi 3B+; additional steps are required to se
 For a system installation flashed with Rasbian 32bit.
 
 ```
-sudo apt update -qq -y
-sudo apt install -qq -y curl wget jq sudo git make gettext
+# turn off wifi mac randomization
+sudo mkdir -p /etc/NetworkManager/conf.d
+sudo cat > /etc/NetworkManager/conf.d/100-disable-wifi-mac-randomization.conf << EOF
+[connection]
+wifi.mac-address-randomization=1
+[device]
+wifi.scan-rand-mac-address=no
+EOF
+```
+```
+# get docker
 curl -fsSL get.docker.com | sh
-sudo apt install -qq -y --no-install-recommends udisks2 libglib2.0-bin dbus apparmor 
-sudo -s
-mkdir -p /etc/NetworkManager/conf.d
-echo '[connection]' > /etc/NetworkManager/conf.d/100-disable-wifi-mac-randomization.conf
-echo 'wifi.mac-address-randomization=1' >> /etc/NetworkManager/conf.d/100-disable-wifi-mac-randomization.conf
-echo '[device]' >> /etc/NetworkManager/conf.d/100-disable-wifi-mac-randomization.conf
-echo 'wifi.scan-rand-mac-address=no' >> /etc/NetworkManager/conf.d/100-disable-wifi-mac-randomization.conf
-exit
-sudo apt install -qq -y --no-install-recommends network-manager
+```
+```
+# update and install prerequisites
+sudo apt update -qq -y
+sudo apt install -qq -y --no-install-recommends \
+  curl wget jq sudo git make gettext \
+  udisks2 libglib2.0-bin dbus apparmor network-manager
+```
+```
+# install home assistant OS agent (architecture dependent)
 wget https://github.com/home-assistant/os-agent/releases/download/1.2.2/os-agent_1.2.2_linux_armv7.deb
 sudo dpkg -i os-agent_1.2.2_linux_armv7.deb
+```
+```
+# install home assistant supervised container stack
 wget https://github.com/home-assistant/supervised-installer/releases/latest/download/homeassistant-supervised.deb
 sudo dpkg -i homeassistant-supervised.deb
 ```
@@ -347,6 +360,8 @@ cd /tmp/motion-ai
 tar cvf - . | ( cd /usr/share/hassio ; sudo tar xvf - )
 ln -s /usr/share/hassio ~/motion-ai
 rm -fr /tmp/motion-ai
+```
+```
 cd /usr/share/hassio
 sudo ./sh/get.motion-ai.sh
 sudo docker restart homeassistant
