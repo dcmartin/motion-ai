@@ -357,7 +357,7 @@ These steps may be peformed once Home Assistant has been installed, configured, 
 ```
 git clone http://github.com/dcmartin/motion-ai /tmp/motion-ai
 cd /tmp/motion-ai
-tar cvf - . | ( cd /usr/share/hassio ; sudo tar xvf - )
+tar cf - . | ( cd /usr/share/hassio ; sudo tar xf - )
 ln -s /usr/share/hassio ~/motion-ai
 rm -fr /tmp/motion-ai
 ```
