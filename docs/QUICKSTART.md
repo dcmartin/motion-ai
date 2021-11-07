@@ -365,7 +365,9 @@ rm -fr /tmp/motion-ai
 ```
 ```
 cd /usr/share/hassio
-sudo ./sh/get.motion-ai.sh
+make
+sudo ./sh/get.weights.sh
+for i in yolo face alpr; do ./sh/${i}4motion.sh; done
 sudo docker restart homeassistant
 ```
 
