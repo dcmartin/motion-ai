@@ -283,19 +283,20 @@ For example:
 curl http://localhost:4662/
 ```
 
-## &#9937; Recovery, Rebuild, and Restart (FYI)
+<hr>
+
+# &#9937; Recovery, Rebuild, and Restart (FYI)
 Manual rebuilding of the YAML and JSON may be performed; there are two options:
 
-+ **Recovery** - run `make` in the `/usr/share/hassio`; this will utilize the _options_ specified or defaults.
-+ **Rebuild** - run `make` in the `/usr/share/hassio/homeassistant`; this will utilize the specifications in the file `/usr/share/hassio/homeassistant/setup.json`
++ **Recovery** - run `make` in the directory `/usr/share/hassio/`; this will utilize the _options_ specified or defaults.
++ **Rebuild** - run `make` in the directory `/usr/share/hassio/homeassistant/`; this will utilize the current specifications; stored in the file `/usr/share/hassio/homeassistant/setup.json`
 
-After recovery or rebuild the `homeassistant` container must be restarted or the device rebooted; for example:
+After recovery or rebuild the `homeassistant` container must be restarted or the device rebooted; for example to rebuild the YAML and JSON using current specification:
 
 ```
 cd /usr/share/hassio/homeassistant
 make
 docker restart homeassistant
-sudo reboot
 ```
 
 Servies may also be started manually from the installation directory; scripts use the _options_ specified or defaults, notably for MQTT, including:
@@ -310,8 +311,8 @@ Each AI service has it's own start-up script which should be executed from the H
 + License plate - `./sh/alpr4motion.sh`
 
 <hr>
-# TL/DR
 
+# TL/DR
 Automated installation on a RaspberryPi 3B+; additional steps are required to setup the add-ons.
 
 ## Home Assistant (supervised)
@@ -335,10 +336,10 @@ sudo dpkg -i os-agent_1.2.2_linux_armv7.deb
 wget https://github.com/home-assistant/supervised-installer/releases/latest/download/homeassistant-supervised.deb
 sudo dpkg -i homeassistant-supervised.deb
 ```
-After successful completion of these steps the generic Home Assistant web UI will be available on port 8123.
+After successful completion of these steps the generic Home Assistant web UI will be available on port [8123](http://raspberrypi.local:8123/).
 
 ## Motion Ã👁
-Once Home Assistant has been installed, configured, and is operational these steps may be peformed.
+Once Home Assistant has been installed, configured, and is operational these steps may be peformed; in addition to these commands, the _add-ons_ must be installed, configured, and started.
 
 
 ```
@@ -352,8 +353,7 @@ sudo ./sh/get.motion-ai.sh
 sudo docker restart homeassistant
 ```
 
-The Motion Ã👁 setup script replaces the default Home Assistant interface on port 8123; the Web UI will now be available on port 80.  In addition, a reboot of the system is recommended; `sudo reboot`
-
+The Motion Ã👁 setup script replaces the default Home Assistant interface on port 8123; the Web UI will now be available on port [80](http://raspberrypi.local/).  Reboot is recommended after everything is installed, configured, and started.
 
 
 
