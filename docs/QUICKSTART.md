@@ -1,25 +1,11 @@
 # `QUICKSTART.md`
 This _quick start_ is suitable for the following:
 
-+ Ubuntu 18.04 systems on `amd64` and `aarch64` (e.g. nVidia Jetson Nano)
 + Rasbian Buster on `armv7` (e.g. RaspberryPi models 3 & 4).
-
-## Step 1: Setup device
-Download OS image and flash SD card using [Balena Etcher](https://www.balena.io/etcher/)
-
-### A. Operating Systems
-These installation instructions have only been tested on the following.
-
-+ Raspberry Pi OS [armhf-32bit](https://downloads.raspberrypi.org/raspios_lite_armhf/images/raspios_lite_armhf-2021-05-28/2021-05-07-raspios-buster-armhf-lite.zip)
-
-Future:
-
-+ Raspberry Pi OS [aarch-64bit](http://downloads.raspberrypi.org/raspios_arm64/images/raspios_arm64-2021-05-28/2021-05-07-raspios-buster-arm64.zip)
-+ Debian 11 (Bullseye) [armhf-64bit](https://raspi.debian.net/tested/20210823_raspi_3_bullseye.img.xz)
-+ Ubuntu 20.04.03 LTS [aarch-64-bit](https://cdimage.ubuntu.com/releases/20.04.3/release/ubuntu-20.04.3-preinstalled-server-arm64+raspi.img.xz)
++ Ubuntu 18.04 systems on `amd64` and `aarch64` (e.g. nVidia Jetson Nano)
 
 ##### Home Assistant requirements
-Not all capabilities of Home Assistant are supported on any platform other than as specified below.  These instructions are indended to provide guidance for installation on additional platforms, notably Rasbian and Ubuntu.
+Not all capabilities of Home Assistant are supported on any platform other than as specified below.
 
 ```
     Docker CE >= 19.03
@@ -28,8 +14,29 @@ Not all capabilities of Home Assistant are supported on any platform other than 
     AppArmor == 2.13.x (built into the kernel)
     Debian Linux Debian 11 aka Bullseye (no derivatives)
     Home Assistant OS-Agent (Only the latest release is supported)
-
 ```
+
+These instructions are indended to provide guidance for installation on additional platforms, notably Rasbian, Ubuntu, and the nVidia Jetson Jetpack distributions (Ubuntu-based).
+
+&#127919; **TL/DR** Commands to be executed for installation; see end of document for summary.
+
++ Home Assistant (supervised)
++ Motion Ã👁 with three (3) AI's
+
+## Step 1: Setup device
+Download OS image and flash SD card using [Balena Etcher](https://www.balena.io/etcher/)
+
+### A. Operating Systems
+These installation instructions have only been tested on the following.
+
++ Raspberry Pi OS [armhf-32bit](https://downloads.raspberrypi.org/raspios_lite_armhf/images/raspios_lite_armhf-2021-05-28/2021-05-07-raspios-buster-armhf-lite.zip)
++ Ubuntu 18.04 [`amd64`](https://releases.ubuntu.com/18.04/ubuntu-18.04.6-desktop-amd64.iso) [`aarch64`](https://cdimage.ubuntu.com/releases/18.04/release/ubuntu-18.04.6-server-arm64.iso)
+
+Future:
+
++ Raspberry Pi OS [aarch-64bit](http://downloads.raspberrypi.org/raspios_arm64/images/raspios_arm64-2021-05-28/2021-05-07-raspios-buster-arm64.zip)
++ Debian 11 (Bullseye) [armhf-64bit](https://raspi.debian.net/tested/20210823_raspi_3_bullseye.img.xz)
++ Ubuntu 20.04.03 LTS [aarch-64-bit](https://cdimage.ubuntu.com/releases/20.04.3/release/ubuntu-20.04.3-preinstalled-server-arm64+raspi.img.xz)
 
 ### B. Image modifications
 Modify the flashed file-system image as appropriate to the platform; not all options are available for all platforms.
@@ -178,14 +185,13 @@ Installation may be verified by visiting the Home Assistant server on the [host 
 ## Step 4: Install Add-Ons
 Additional Home Assistant _add-ons_ are utilized for cameras, messaging, and uploading; these services should be installed and started prior to the next step.
 
-#### &#9937; Parameters (FYI)
+#### &#9995; Parameters (FYI)
 
 + The _username_ and _password_ defaults are `username` and `password` and have corresponding [_options_](OPTIONS.md).
-+ The MQTT add-on is named `core-mosquitto`, but only for Home Assistant and add-ons; the AI services require the device's host IP address (e.g. `192.168.1.22`).
 + Any _secret_ **must** be enclosed in quotations, but literal values do not.
 
 ### A. MQTT
-The standard _add-on_ is available in built-in catalog.  Visit the **Supervisor** panel item and view the app store.  Credentials for at least one user must be provided; for example:
+The standard _add-on_ is in the built-in App Store catalog.  Visit the **Supervisor** panel item and view the App Store.  MQTT credentials for at least one user must be provided; there is no anonymous MQTT support. For example:
 
 ```
 logins:
@@ -199,16 +205,16 @@ keyfile: privkey.pem
 require_certificate: false
 ```
 
-### B. Motion Classic
-The [Motion Classic](https://github.com/motion-ai/addons/blob/master/motion-video0/README.md) _add-on_ is cataloged in the repository [`http://github.com/dcmartin/hassio-addons`](http://github.com/dcmartin/hassio-addons) which must be added in the Home Assistant Add-On Store.
+MQTT topics are specified as _group_, _device_, and _camera_ with corresponding sub-topics, including AI services; example: any _group, device, and camera_ (`+`) end events with any annotation: `+/+/+/event/end/+`.
 
-MQTT topics are specified as _group_, _device_, and _camera-name_ with corresponding sub-topics for sources, including AI services:
-
-+ `event`
++ `end`
 + `image`
 + `annotated`
 + `face`
 + `alpr`
+
+### B. Motion Classic
+The [Motion Classic](https://github.com/motion-ai/addons/blob/master/motion-video0/README.md) _add-on_ is cataloged in the repository [`http://github.com/dcmartin/hassio-addons`](http://github.com/dcmartin/hassio-addons) which must be added in the Home Assistant Add-On Store.
 
 The add-on's default [configuration](https://github.com/dcmartin/hassio-addons/blob/master/motion-video0/DOCS.md) includes _secrets_, but may override with literal values; for example:
 
@@ -237,7 +243,7 @@ A basic FTP server is provided in the built-in community add-on catalog.  Visit 
 ## Step 6: Install Motion Ã👁
 
 ### A: Copy repository
-Clone the repository and copy into the Home Assistant directory, for example:
+Clone the repository and copy into the Home Assistant installation directory, for example:
 
 ```
 git clone http://github.com/dcmartin/motion-ai /tmp/motion-ai
@@ -253,21 +259,8 @@ Setup is automatic, however [**options**](OPTIONS.md) are specified through envi
 
 Configurations for both Home Assistant and the Motion Classic add-on parameters are calculated from the **options**, but may be overruled in the add-on configuration, e.g. _timezone_, _latitude_, _longitude_, etc... See the [documentation](https://github.com/dcmartin/hassio-addons/blob/master/motion-video0/DOCS.md) for more information.
 
-Home Assistant _secrets_ (e.g. `!secret motioncam-username`) are only evaluated at start-up; consequently changes in the Motion Classic add-on may require restart.
-
-#### &#9937; Recovery, Rebuild, and Restart (FYI)
-Manual rebuilding of the YAML and JSON may be performed; there are two options:
-
-+ **Recovery** - run `make` in the `/usr/share/hassio`; this will utilize the _options_ specified or defaults.
-+ **Rebuild** - run `make` in the `/usr/share/hassio/homeassistant`; this will utilize the specifications in the file `/usr/share/hassio/homeassistant/setup.json`
-
-After recovery or rebuild the `homeassistant` container must be restarted; for example:
-
-```
-cd /usr/share/hassio/homeassistant
-make
-docker restart homeassistant
-```
+#### &#9995; Home Assistant _secrets_
+Secrets (e.g. `!secret motioncam-username`) are only evaluated when HA is started; consequently changes in the Motion Classic add-on may require HA restart.
 
 ### C. Start AI services
 
@@ -290,12 +283,39 @@ For example:
 curl http://localhost:4662/
 ```
 
+## &#9937; Recovery, Rebuild, and Restart (FYI)
+Manual rebuilding of the YAML and JSON may be performed; there are two options:
+
++ **Recovery** - run `make` in the `/usr/share/hassio`; this will utilize the _options_ specified or defaults.
++ **Rebuild** - run `make` in the `/usr/share/hassio/homeassistant`; this will utilize the specifications in the file `/usr/share/hassio/homeassistant/setup.json`
+
+After recovery or rebuild the `homeassistant` container must be restarted or the device rebooted; for example:
+
+```
+cd /usr/share/hassio/homeassistant
+make
+docker restart homeassistant
+sudo reboot
+```
+
+Servies may also be started manually from the installation directory; scripts use the _options_ specified or defaults, notably for MQTT, including:
+
++ `MQTT_HOST`, `MQTT_USERNAME`,`MQTT_PASSWORD`
++ `MOTION_GROUP`, `MOTTION_DEVICE`, `MOTION_CLIENT`
+
+Each AI service has it's own start-up script which should be executed from the HA installation directory (n.b. `/usr/share/hassio`)
+
++ Entity - `./sh/yolo4motion.sh`
++ Face  - `./sh/face4motion.sh`
++ License plate - `./sh/alpr4motion.sh`
+
+<hr>
 # TL/DR
 
 Automated installation on a RaspberryPi 3B+; additional steps are required to setup the add-ons.
 
-## Home Assistant
-From a system installation flashed with Rasbian 32bit.
+## Home Assistant (supervised)
+For a system installation flashed with Rasbian 32bit.
 
 ```
 sudo apt update -qq -y
@@ -315,7 +335,7 @@ sudo dpkg -i os-agent_1.2.2_linux_armv7.deb
 wget https://github.com/home-assistant/supervised-installer/releases/latest/download/homeassistant-supervised.deb
 sudo dpkg -i homeassistant-supervised.deb
 ```
-After successful completion of these steps the generic Home Assistant service should be available on port 8123.
+After successful completion of these steps the generic Home Assistant web UI will be available on port 8123.
 
 ## Motion Ã👁
 Once Home Assistant has been installed, configured, and is operational these steps may be peformed.
@@ -332,7 +352,7 @@ sudo ./sh/get.motion-ai.sh
 sudo docker restart homeassistant
 ```
 
-After successful completion of these steps the Motion Ã👁 service will now be available on port 80.  
+The Motion Ã👁 setup script replaces the default Home Assistant interface on port 8123; the Web UI will now be available on port 80.  In addition, a reboot of the system is recommended; `sudo reboot`
 
 
 
