@@ -331,15 +331,15 @@ wifi.scan-rand-mac-address=no
 EOF
 ```
 ```
-# get docker
-curl -fsSL get.docker.com | sh
-```
-```
 # update and install prerequisites
 sudo apt update -qq -y
 sudo apt install -qq -y --no-install-recommends \
   curl wget jq sudo git make gettext \
   udisks2 libglib2.0-bin dbus apparmor network-manager
+```
+```
+# get docker
+curl -fsSL get.docker.com | sh
 ```
 ```
 # install home assistant OS agent (architecture dependent)
