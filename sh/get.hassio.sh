@@ -103,32 +103,19 @@ function docker_update()
   fi
 }
 
-
 ###
 ### MAIN
 ###
 
 if [ $(uname -s) != 'Linux' ]; then
-  echo 'Only for Ubuntu18, Rasbian Buster, or Debian 10' &> /dev/stderr
+  echo 'Only for LINUX' &> /dev/stderr
   exit 1
 fi
-
-export DEBIAN_FRONTEND=noninteractive
 
 if [ "${USER:-null}" != 'root' ]; then
   echo "Please run as root; sudo ${0} ${*}" &> /dev/stderr
   exit 1
 fi
-
-## PREREQS
-DEBIAN_FRONTEND=noninteractive \
-  apt install -qq -y \
-    jq \
-    curl \
-    git \
-    build-essential \
-    gettext \
-    || echo 'Failed to install pre-requisites' &> /dev/stderr
 
 # test network
 
@@ -137,6 +124,29 @@ if [ "${alive:-}" != '200' ]; then
   echo 'Unable to contact "https://version.home-assistant.io/stable.json"; is your DNS configured properly?' &> /dev/stderr
   exit 1
 fi
+
+## UPDATE, UPGRADE, PACKAGES
+
+echo 'Updating ...' &> /dev/stderr \
+  && DEBIAN_FRONTEND=noninteractive apt update -qq -y 2>&1 >> install.log \
+  || echo 'Failed to update software catalog' &> /dev/stderr
+
+echo 'Installing pre-requisite packages ...' &> /dev/stderr \
+  && DEBIAN_FRONTEND=noninteractive apt install -qq -y --no-install-recommends \
+    software-properties-common \
+    apt-transport-https \
+    ca-certificates \
+    make \
+    mosquitto-clients \
+    socat \
+    iperf3 \
+    jq \
+    curl \
+    git \
+    build-essential \
+    gettext \
+    netdata 2>&1 >> install.log \
+  || echo 'Failed to install pre-requisite software' &> /dev/stderr
 
 ## DOCKER
 
@@ -152,23 +162,8 @@ docker_update "/etc/docker/daemon.json"
 
 addgroup ${SUDO_USER:-${USER}} docker
 
-## UPDATE, UPGRADE, PACKAGES
-
-echo 'Updating ...' &> /dev/stderr \
-  && apt update -qq -y 2>&1 >> install.log \
-  && echo 'Installing pre-requisite packages ...' &> /dev/stderr \
-  && DEBIAN_FRONTEND=noninteractive apt install -qq -y --no-install-recommends \
-    software-properties-common \
-    apt-transport-https \
-    ca-certificates \
-    make \
-    mosquitto-clients \
-    socat \
-    iperf3 \
-    netdata 2>&1 >> install.log \
-  || echo 'Failed to install pre-requisite software' &> /dev/stderr
-
-echo 'Modifying NetworkManager to disable WiFi MAC randomization' \
+if [ ! -e /etc/NetworkManager/conf.d/100-disable-wifi-mac-randomization.conf ]; then
+  echo 'Modifying NetworkManager to disable WiFi MAC randomization' \
   && mkdir -p /etc/NetworkManager/conf.d \
   && echo '[connection]' > /etc/NetworkManager/conf.d/100-disable-wifi-mac-randomization.conf \
   && echo 'wifi.mac-address-randomization=1' >> /etc/NetworkManager/conf.d/100-disable-wifi-mac-randomization.conf \
@@ -177,6 +172,7 @@ echo 'Modifying NetworkManager to disable WiFi MAC randomization' \
   && echo 'Restarting network-manager' \
   && systemctl restart network-manager\
   || echo 'Failed to modify NetworkManager.conf' &> /dev/stderr
+fi
 
 echo 'Modifying NetData to enable access from any host' \
   && sed -i 's/127.0.0.1/\*/' /etc/netdata/netdata.conf \
@@ -184,11 +180,6 @@ echo 'Modifying NetData to enable access from any host' \
   && echo 'Restarting netdata' \
   && systemctl restart netdata \
   || echo 'Failed to modify netdata.conf' &> /dev/stderr
-
-echo 'Disabling ModemManager' \
-  && systemctl status ModemManager &> /dev/null \
-  && systemctl stop ModemManager \
-  && systemctl disable ModemManager
 
 # download AI containers and models
 if [ "${0##*/}" == 'get.motion-ai.sh' ]; then
