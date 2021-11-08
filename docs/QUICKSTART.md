@@ -321,6 +321,11 @@ Automated installation on a RaspberryPi 3B+; additional steps are required to se
 For a system installation flashed with Rasbian 32bit.
 
 ```
+# turn off prompt for sudo command
+echo "${USER} ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/010_${USER}-nopasswd
+```
+
+```
 # turn off wifi mac randomization
 sudo mkdir -p /etc/NetworkManager/conf.d
 sudo cat > /etc/NetworkManager/conf.d/100-disable-wifi-mac-randomization.conf << EOF
