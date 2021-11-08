@@ -356,7 +356,7 @@ sudo dpkg -i os-agent_1.2.2_linux_armv7.deb
 wget https://github.com/home-assistant/supervised-installer/releases/latest/download/homeassistant-supervised.deb
 sudo dpkg -i homeassistant-supervised.deb
 ```
-After successful completion of these steps the generic Home Assistant web UI will be available on port [8123](http://raspberrypi.local:8123/).
+After successful completion of these steps the generic Home Assistant web UI will be available on port [8123](http://raspberrypi.local:8123/); please wait 10-15 minutes.  The _add-ons_ for MQTT and Motion Classic can be added after Home Assistant completes initial setup.
 
 ## Motion Ã👁
 These steps may be peformed once Home Assistant has been installed, configured, and is operational; in addition to these commands, the _add-ons_ must be installed, configured, and started.
