@@ -100,7 +100,7 @@ Update software repositories and install base programs (as **root**).
 
 ```
 sudo apt update -qq -y
-sudo apt install -qq -y curl wget jq sudo git make gettext
+sudo apt install -qq -y curl wget jq sudo git make gettext ssh
 ```
 
 ### E. Setup WiFi connectivity (optional)
@@ -180,7 +180,7 @@ wget https://github.com/home-assistant/supervised-installer/releases/latest/down
 sudo dpkg -i homeassistant-supervised.deb
 ```
 
-Installation may be verified by visiting the Home Assistant server on the [host at port 8123](http://localhost:8123/).
+Installation may be verified by visiting the Home Assistant server on the [host at port 8123](http://localhost:8123/).  If **AppArmor** is not enabled per the supervisor, please refer to these [instructions](https://www.home-assistant.io/more-info/unsupported/apparmor).
 
 ## Step 4: Install Add-Ons
 Additional Home Assistant _add-ons_ are utilized for cameras, messaging, and uploading; these services should be installed and started prior to the next step.
