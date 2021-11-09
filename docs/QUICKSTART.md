@@ -339,7 +339,7 @@ EOF
 # update and install prerequisites
 sudo apt update -qq -y
 sudo apt install -qq -y --no-install-recommends \
-  curl wget jq sudo git make gettext \
+  curl wget jq sudo git make gettext ssh \
   udisks2 libglib2.0-bin dbus apparmor network-manager
 ```
 ```
