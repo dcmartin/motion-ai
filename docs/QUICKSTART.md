@@ -367,6 +367,12 @@ After successful completion of these steps the generic Home Assistant web UI wil
 apparmor=1 security=apparmor
 ```
 
+**HACS** (Home Assistant Community Store) can be installed using the following:
+
+```
+wget -O - https://get.hacs.xyz | sudo bash -
+```
+
 ## Motion Ã👁
 These steps may be peformed once Home Assistant has been installed, configured, and is operational; in addition to these commands, the _add-ons_ must be installed, configured, and started.
 
