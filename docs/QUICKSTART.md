@@ -347,6 +347,7 @@ sudo apt install -qq -y --no-install-recommends \
 ```
 # get docker
 curl -fsSL get.docker.com | sh
+sudo addgroup ${USER} docker
 ```
 ```
 # install home assistant OS agent (architecture dependent)
