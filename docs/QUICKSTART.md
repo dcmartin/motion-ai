@@ -326,9 +326,11 @@ echo "${USER} ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/010_${USER}-nop
 ```
 
 ```
+# become root
+sudo -s
 # turn off wifi mac randomization
-sudo mkdir -p /etc/NetworkManager/conf.d
-sudo cat > /etc/NetworkManager/conf.d/100-disable-wifi-mac-randomization.conf << EOF
+mkdir -p /etc/NetworkManager/conf.d
+cat > /etc/NetworkManager/conf.d/100-disable-wifi-mac-randomization.conf << EOF
 [connection]
 wifi.mac-address-randomization=1
 [device]
@@ -345,6 +347,7 @@ sudo apt install -qq -y --no-install-recommends \
 ```
 # get docker
 curl -fsSL get.docker.com | sh
+sudo addgroup ${USER} docker
 ```
 ```
 # install home assistant OS agent (architecture dependent)
@@ -357,6 +360,18 @@ wget https://github.com/home-assistant/supervised-installer/releases/latest/down
 sudo dpkg -i homeassistant-supervised.deb
 ```
 After successful completion of these steps the generic Home Assistant web UI will be available on port [8123](http://raspberrypi.local:8123/); please wait 10-15 minutes.  The _add-ons_ for MQTT and Motion Classic can be added after Home Assistant completes initial setup.
+
+**AppArmor** may require the following to be added `/boot/cmdline.txt` file; add to the end of the first, and only, line.
+
+```
+apparmor=1 security=apparmor
+```
+
+**HACS** (Home Assistant Community Store) can be installed using the following:
+
+```
+wget -O - https://get.hacs.xyz | sudo bash -
+```
 
 ## Motion Ã👁
 These steps may be peformed once Home Assistant has been installed, configured, and is operational; in addition to these commands, the _add-ons_ must be installed, configured, and started.
