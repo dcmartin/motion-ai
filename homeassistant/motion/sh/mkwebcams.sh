@@ -59,4 +59,4 @@ if [ $(echo "${config:-null}" | jq '.|length') -gt 0 ]; then
 else
   echo '[]' >> ${out}
 fi
-jq '.|sort_by(.name)' ${out} && rm -f ${out}
+jq -Sc '.|sort_by(.name)' ${out} && rm -f ${out}
