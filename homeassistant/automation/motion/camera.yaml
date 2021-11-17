@@ -185,8 +185,6 @@
           {{ s }}
         {% else %}null{% endif %}
       {% else %}null{% endif %}
-    state: >-
-      {% if detected|lower != 'null' %}{{ 'on' }}{% else %}{{ 'off' }}{% endif %}
     animal: >-
       {% if event|lower != 'null' and results|lower != 'null' %}
         {% set option = states('input_select.motion_detect_animal') %}
@@ -202,7 +200,7 @@
           {% set p = l|list|max|int %}
           {% if (is_state('binary_sensor.motion_detected_animal_confirmed','on') and p >= states('sensor.motion_detected_animal_threshold_confirmed')|int) or
             (is_state('binary_sensor.motion_detected_animal_confirmed','off') and p >= states('sensor.motion_detected_animal_threshold')|int) %}
-            {% set t = date %}
+            {% set t = date|default(utcnow().timestamp()) %}
           {% endif %}
         {% endif %}
         {% if t is defined %}
@@ -224,7 +222,7 @@
           {% set p = l|list|max|int %}
           {% if (is_state('binary_sensor.motion_detected_person_confirmed','on') and p >= states('sensor.motion_detected_person_threshold_confirmed')|int) or
             (is_state('binary_sensor.motion_detected_person_confirmed','off') and p >= states('sensor.motion_detected_person_threshold')|int) %}
-            {% set t = date %}
+            {% set t = date|default(utcnow().timestamp()) %}
           {% endif %}
         {% endif %}
         {% if t is defined %}
@@ -246,7 +244,7 @@
           {% set p = l|list|max|int %}
           {% if (is_state('binary_sensor.motion_detected_vehicle_confirmed','on') and p >= states('sensor.motion_detected_vehicle_threshold_confirmed')|int) or
             (is_state('binary_sensor.motion_detected_vehicle_confirmed','off') and p >= states('sensor.motion_detected_vehicle_threshold')|int) %}
-            {% set t = date %}
+            {% set t = date|default(utcnow().timestamp()) %}
           {% endif %}
         {% endif %}
         {% if t is defined %}
@@ -268,7 +266,7 @@
           {% set p = l|list|max|int %}
           {% if (is_state('binary_sensor.motion_detected_entity_confirmed','on') and p >= states('sensor.motion_detected_entity_threshold_confirmed')|int) or
             (is_state('binary_sensor.motion_detected_entity_confirmed','off') and p >= states('sensor.motion_detected_entity_threshold')|int) %}
-            {% set t = date %}
+            {% set t = date|default(utcnow().timestamp()) %}
           {% endif %}
         {% endif %}
         {% if t is defined %}
@@ -304,7 +302,7 @@
              {{ config|lower != 'null' }}
             {% else %}true{% endif %}
     - choose:
-        - alias: 'condition: state changed?'
+        - alias: 'condition: location changed?'
           conditions:
             - condition: template
               value_template: >
@@ -323,7 +321,7 @@
             - alias: 'update sensor.motion_webcams_camera'
               service: homeassistant.update_entity 
               entity_id: sensor.motion_webcams_camera
-    - alias: 'variable'
+    - alias: 'variables'
       variables:
         latitude: >-
           {% set s = state_attr(sensor,'latitude') %}
@@ -396,21 +394,88 @@
         date: >-
           {{ date }}
         state: >-
-          {{ state }}
-    - alias: 'set binary_sensor.motion_cameras_detected_entity'
-      service: python_script.set_state
-      data_template:
-        allow_create: true
-        entity_id: >-
-          {{ 'binary_sensor.motion_cameras_detected_entity' }}
-        id: >-
-          {{ id }}
-        latitude: >-
-          {{ latitude }}
-        longitude: >-
-          {{ longitude }}
-        state: >-
-          {{ state }}
+          {% if detected|lower != 'null' %}{{ 'on' }}{% else %}{{ 'off' }}{% endif %}
+    - choose:
+        - alias: 'condition: anything detected?'
+          conditions:
+            - condition: template
+              value_template: >
+                {{ detected|lower != 'null' }}
+          sequence:
+            - alias: 'set binary_sensor.motion_cameras_detected_entity'
+              service: python_script.set_state
+              data_template:
+                allow_create: true
+                entity_id: >-
+                  {{ 'binary_sensor.motion_cameras_detected_entity' }}
+                id: >-
+                  {{ id }}
+                latitude: >-
+                  {{ latitude }}
+                longitude: >-
+                  {{ longitude }}
+                state: >-
+                  {{ detected|lower != 'null' }}
+        - alias: 'condition: animal detected?'
+          conditions:
+            - condition: template
+              value_template: >
+                {{ animal|lower != 'null' }}
+          sequence:
+            - alias: 'set binary_sensor.motion_cameras_detected_animal'
+              service: python_script.set_state
+              data_template:
+                allow_create: true
+                entity_id: >-
+                  {{ 'binary_sensor.motion_cameras_detected_animal' }}
+                id: >-
+                  {{ id }}
+                latitude: >-
+                  {{ latitude }}
+                longitude: >-
+                  {{ longitude }}
+                state: >-
+                  {{ animal|lower != 'null' }}
+        - alias: 'condition: vehicle detected?'
+          conditions:
+            - condition: template
+              value_template: >
+                {{ vehicle|lower != 'null' }}
+          sequence:
+            - alias: 'set binary_sensor.motion_cameras_detected_vehicle'
+              service: python_script.set_state
+              data_template:
+                allow_create: true
+                entity_id: >-
+                  {{ 'binary_sensor.motion_cameras_detected_vehicle' }}
+                id: >-
+                  {{ id }}
+                latitude: >-
+                  {{ latitude }}
+                longitude: >-
+                  {{ longitude }}
+                state: >-
+                  {{ vehicle|lower != 'null' }}
+        - alias: 'condition: person detected?'
+          conditions:
+            - condition: template
+              value_template: >
+                {{ person|lower != 'null' }}
+          sequence:
+            - alias: 'set binary_sensor.motion_cameras_detected_person'
+              service: python_script.set_state
+              data_template:
+                allow_create: true
+                entity_id: >-
+                  {{ 'binary_sensor.motion_cameras_detected_person' }}
+                id: >-
+                  {{ id }}
+                latitude: >-
+                  {{ latitude }}
+                longitude: >-
+                  {{ longitude }}
+                state: >-
+                  {{ person|lower != 'null' }}
     - alias: 'update_all cameras'
       service: automation.trigger
       entity_id: automation.motion_cameras_detected_entity_update_all
