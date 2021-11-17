@@ -157,7 +157,7 @@
       {% if event|lower != 'none' %}
         {{ event.device }}
       {% else %}null{% endif %}
-    camera: >-
+    id: >-
       {% if event|lower != 'none' %}
         {{ event.camera }}
       {% else %}null{% endif %}
@@ -174,13 +174,13 @@
         {{ p|int - e|int }}
       {% else %}null{% endif %}
     sensor: >-
-      {% if camera|lower != 'null' and camera|lower != 'none' and camera|lower|length > 0 %}
-        {{ 'binary_sensor.motion_camera_' + camera|lower + '_detected_entity' }}
+      {% if id|lower != 'null' and id|lower != 'none' and id|lower|length > 0 %}
+        {{ 'binary_sensor.motion_camera_' + id|lower + '_detected_entity' }}
       {% else %}null{% endif %}
     config: >-
       {% set s = state_attr('sensor.motion_addon_config','config') %}
       {% if s|lower != 'none' and 'cameras' in s %}
-        {% set s = s.cameras|selectattr("name","==",camera)|first %}
+        {% set s = s.cameras|selectattr("name","==",id)|first %}
         {% if s|lower != 'none' and s|length > 0 %}
           {{ s }}
         {% else %}null{% endif %}
@@ -287,27 +287,58 @@
           condition: template
           value_template: >-
             {{ client == states('input_text.motion_client') or states('input_text.motion_client') == '+' }}
-    - alias: 'test sensor and config?'
+    - alias: 'test sensor'
       condition: and
       conditions:
         - alias: 'sensor good?'
           condition: template
           value_template: >-
             {{ sensor|lower != 'null' }}
+    - alias: 'test config'
+      condition: and
+      conditions:
         - alias: 'config good?'
           condition: template
           value_template: >-
             {% if is_state('input_boolean.motion_status_camera_any','off') %}
              {{ config|lower != 'null' }}
             {% else %}true{% endif %}
+    - alias: ''
+      service: python_script.set_state
+      data_template:
+        allow_create: true
+        entity_id: >-
+          {{ 'sensor.motion_cameras_webcam' }}
+        state: >-
+          {{ id }}
+    - alias: 'update sensor.motion_webcams_camera'
+      service: homeassistant.update_entity 
+      entity_id: sensor.motion_webcams_camera
+#    - alias: 'wait for addon configuration'
+#      wait_for_trigger:
+#        - platform: state
+#          entity_id: sensor.motion_webcams_camera
+#          for: 1
     - alias: 'set binary_sensor.motion_camera_<camera>_detected_entity'
       service: python_script.set_state
       data_template:
         allow_create: true
         entity_id: >-
           {{ sensor }}
+        id: >-
+          {{ id }}
         config: >-
           {{ config }}
+        latitude: >-
+          {% set s = states('sensor.motion_webcams_camera') %}
+          {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+            {{ s.latitude }}
+          {% else %}null{% endif %}
+        longitude: >-
+          {% set s = states('sensor.motion_webcams_camera') %}
+          {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+            {{ s.longitude }}
+          {% else %}null{% endif %}
         event: >-
           {{ event }}
         detected: >-
@@ -397,7 +428,7 @@
                           - service: persistent_notification.create
                             data_template:
                               title: >-
-                                DEBUG: Setting {{ state_attr(sensor,'camera') }} to {{ state }}
+                                DEBUG: Setting camera {{ state_attr(sensor,'id') }} to {{ state }}
                               notification_id: >
                                 {{- 'detected-entity-update-' + sensor|string }}
                               message: >-
