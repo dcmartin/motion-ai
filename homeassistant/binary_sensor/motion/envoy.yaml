@@ -1,0 +1,65 @@
+###
+# homeassistant/binary_sensor/envoy.yaml
+###
+
+- platform: template
+  sensors:
+    motion_envoy:
+      unique_id: motion_envoy
+      friendly_name: Powerwall
+      device_class: 'connectivity'
+      attribute_templates:
+        ids: >-
+          [{%- for state in states.sensor if 'envoy_' in state.entity_id and '_lifetime_energy_production' in state.entity_id -%}
+            {%- if not loop.first -%},{% endif -%}
+            "{{- state.entity_id|replace('sensor.envoy_','')|replace('_lifetime_energy_production','') -}}"
+          {%- endfor -%}]
+        total: >-
+          {% set s = state_attr('binary_sensor.motion_envoy','ids') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+            {{ s|count }}
+          {%- else -%}0{%- endif %}
+        sensors: >-
+          {% set s = state_attr('binary_sensor.motion_envoy','ids') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+            [{%- for i in s -%}
+              {%- set o = loop -%}
+              {%- for state in states.sensor if 'sensor.envoy_' + i + '_' in state.entity_id and state.state|lower != 'unknown' -%}
+                {%- if not o.first or not loop.first -%},{%- endif -%}
+                {"id":"{{- state.entity_id|replace('switch.','') -}}","state":{% if not state is number %}"{{- state.state -}}"{%- else -%}{{- state.state -}}{%- endif -%},"attributes":{{- state.attributes|replace('\'','"') -}}}
+              {%- endfor -%}
+            {%- endfor -%}]
+          {%- else -%}null{%- endif %}
+        measurement: >-
+          {% set s = state_attr('binary_sensor.motion_envoy','ids') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+            [{%- for i in s -%}
+              {% set o = loop %}
+              {%- for state in states.sensor if 'sensor.envoy_' + i + '_' in state.entity_id and state.state|lower != 'unknown' and state.attributes.device_class|lower != 'none' %}
+                {%- if not o.first or not loop.first -%},{%- endif -%}
+                {%- set v = state.state -%}
+                {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","state":"{{- v -}}"}
+              {%- endfor -%}
+            {%- endfor -%}]
+          {%- else -%}null{%- endif %}
+        energy: >-
+          {% set s = state_attr('binary_sensor.motion_envoy','measurement') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+            {%- for i in s if state_attr(i.entity_id,'device_class')|lower == 'energy' -%}
+              {%- if not loop.first -%}{{- '; ' -}}{%- endif -%}
+              {{- state_attr(i.entity_id,'friendly_name') + ': ' + states(i.entity_id)|float|string + ' ' + state_attr(i.entity_id,'unit_of_measurement') -}}
+            {%- endfor -%}
+          {%- else -%}null{%- endif %}
+        power: >-
+          {% set s = state_attr('binary_sensor.motion_envoy','measurement') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+            {%- for i in s if state_attr(i.entity_id,'device_class')|lower == 'power' -%}
+              {%- if not loop.first -%}{{- '; ' -}}{%- endif -%}
+              {{- state_attr(i.entity_id,'friendly_name') + ': ' + states(i.entity_id)|float|string + ' ' + state_attr(i.entity_id,'unit_of_measurement') -}}
+            {%- endfor -%}
+          {%- else -%}null{%- endif %}
+      value_template: >-
+        {% set s = state_attr('binary_sensor.motion_envoy','total') %}
+        {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
+          {{ s|int > 0 }}
+        {% else %}null{% endif %}
