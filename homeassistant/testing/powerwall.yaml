@@ -1,83 +1,41 @@
-----
-SET IDS
-          [{%- for state in states.binary_sensor if 'connected_to_tesla' in state.entity_id -%}
+          [{%- for state in states.sensor|list + states.binary_sensor|list if 'sensor.motion_powerwall' in state.entity_id -%}
             {%- if not loop.first -%},{% endif -%}
-            "{{- state.entity_id|replace('binary_sensor.','')|replace('_connected_to_tesla','') -}}"
+            {{- state.entity_id, states(state.entity_id), state_attr(state.entity_id,'unit_of_measurement'),state_attr(state.entity_id,'state_class') -}}
           {%- endfor -%}]
-{% set s = ["powerwall"] %}
 --
-LOAD_NOW: {%- for i in s -%}
-              {% set o = loop %}
-              {%- for state in states.sensor if 'sensor.' + i + '_load_now' in state.entity_id and state.state|lower != 'unknown' and state.attributes.device_class|lower != 'none' %}
-                {%- if not o.first or not loop.first -%}{% else %}{{ state.state }}{%- endif -%}
-              {%- endfor -%}
-            {%- endfor %}
+{% set battery = (states('sensor.powerwall_battery_import')|float,
+                  states('sensor.powerwall_battery_export')|float) %}
+{% set load = (states('sensor.powerwall_solar_import')|float|abs,
+               states('sensor.powerwall_site_import')|float) %}
+{% set solar = (states('sensor.powerwall_load_export')|float,
+                states('sensor.powerwall_solar_export')|float) %}
+{% set site = (states('sensor.powerwall_load_import')|float|abs,
+              states('sensor.powerwall_site_export')|float) %}
 --
-LOAD_EXPORT: {% set n = 'load_export' -%}
-            {%- for i in s -%}
-              {% set o = loop %}
-              {%- for e in states.sensor if 'sensor.' + i + '_' + n in e.entity_id and e.state|lower != 'unknown' and e.attributes.device_class|lower != 'none' %}
-                {%- if not o.first or not loop.first -%}{% else %}{{ e.state }}{%- endif -%}
-              {%- endfor -%}
-            {%- endfor %}
+BATTERY: {{ battery }}
+LOAD: {{ load }}
+SOLAR: {{ solar }}
+SITE: {{ site }}
 --
-SITE_NOW: {% set n = 'site_now' -%}
-            {%- for i in s -%}
-              {% set o = loop %}
-              {%- for e in states.sensor if 'sensor.' + i + '_' + n in e.entity_id and e.state|lower != 'unknown' and e.attributes.device_class|lower != 'none' %}
-                {%- if not o.first or not loop.first -%}{% else %}{{ e.state }}{%- endif -%}
-              {%- endfor -%}
-            {%- endfor %}
+IN: {% set in = site[0] + solar[1] + battery[1] + load[1] %}{{ in }}
+OUT: {% set out = site[1] + solar[0] + battery[0] + load[0] %}{{ out }}
+DELTA: {{ in - out }}
+------
 --
-SENSORS: [{%- for i in s -%}
-              {%- set o = loop -%}
-              {%- for state in states.sensor if 'sensor.' + i + '_' in state.entity_id and state.state|lower != 'unknown' -%}
-                {%- if not o.first or not loop.first -%},{%- endif -%}
-                {"id":"{{- state.entity_id|replace('switch.','') -}}","state":{% if not state is number %}"{{- state.state -}}"{%- else -%}{{- state.state -}}{%- endif -%},"attributes":{{- state.attributes|replace('\'','"') -}}}
-              {%- endfor -%}
-            {%- endfor -%}]
+{% set battery = (states('sensor.motion_powerwall_battery_import')|float,
+                  states('sensor.motion_powerwall_battery_export')|float) %}
+{% set load = (states('sensor.motion_powerwall_load_import')|float|abs,
+               states('sensor.motion_powerwall_load_export')|float) %}
+{% set solar = (states('sensor.motion_powerwall_solar_import')|float,
+                states('sensor.motion_powerwall_solar_export')|float) %}
+{% set site = (states('sensor.motion_powerwall_site_import')|float|abs,
+              states('sensor.motion_powerwall_site_export')|float) %}
 --
-MEASUREMENT:             [{%- for i in s -%}
-              {% set o = loop %}
-              {%- for state in states.sensor if 'sensor.' + i + '_' in state.entity_id and state.state|lower != 'unknown' and state.attributes.device_class|lower != 'none' %}
-                {%- if not o.first or not loop.first -%},{%- endif -%}
-                {%- set v = state.state -%}
-                {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","state":"{{- v -}}"}
-              {%- endfor -%}
-            {%- endfor -%}]
+BATTERY: {{ battery }}
+LOAD: {{ load }}
+SOLAR: {{ solar }}
+SITE: {{ site }}
 --
-STATUS:
-[{%- for i in s -%}
-              {% set o = loop %}
-              {%- for state in states.binary_sensor if 'binary_sensor.' + i + '_' in state.entity_id and state.state|lower != 'unknown' %}
-                {%- if not o.first or not loop.first -%},{%- endif -%}
-                {%- set v = state.state -%}
-                {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","state":"{{- v -}}"}
-              {%- endfor -%}
-            {%- endfor -%}]
-----
-SET TO STATUS
-{% set s = [{"id":"powerwall","entity_id":"binary_sensor.powerwall_charging","state":"off"},{"id":"powerwall","entity_id":"binary_sensor.powerwall_connected_to_tesla","state":"on"},{"id":"powerwall","entity_id":"binary_sensor.powerwall_status","state":"on"}] %}
-CONTROL:
-
-            {% for i in s -%}
-              {%- if not loop.first -%}{{- '; ' -}}{%- endif -%}
-              {{- state_attr(i.entity_id,'friendly_name') + ': ' + states(i.entity_id) -}}
-            {%- endfor %}
----
-SET TO MEASUREMENT
-{% set s = [{"id":"powerwall","entity_id":"sensor.powerwall_battery_export","state":"1.9"},{"id":"powerwall","entity_id":"sensor.powerwall_battery_import","state":"37.3"},{"id":"powerwall","entity_id":"sensor.powerwall_battery_now","state":"-0.03"},{"id":"powerwall","entity_id":"sensor.powerwall_charge","state":"100"},{"id":"powerwall","entity_id":"sensor.powerwall_load_export","state":"0.0"},{"id":"powerwall","entity_id":"sensor.powerwall_load_import","state":"-62.0"},{"id":"powerwall","entity_id":"sensor.powerwall_load_now","state":"-2.682"},{"id":"powerwall","entity_id":"sensor.powerwall_site_export","state":"26.5"},{"id":"powerwall","entity_id":"sensor.powerwall_site_import","state":"0.0"},{"id":"powerwall","entity_id":"sensor.powerwall_site_now","state":"-2.663"}]%}
---
-ENERGY:
-            {%- for i in s if state_attr(i.entity_id,'device_class')|lower == 'energy' -%}
-              {%- if not loop.first -%}{{- '; ' -}}{%- endif -%}
-              {{- state_attr(i.entity_id,'friendly_name') + ': ' + states(i.entity_id)|float|string + ' ' + state_attr(i.entity_id,'unit_of_measurement') -}}
-            {%- endfor -%}
---
-POWER:
-            {%- for i in s if state_attr(i.entity_id,'device_class')|lower == 'power' -%}
-              {%- if not loop.first -%}{{- '; ' -}}{%- endif -%}
-              {{- state_attr(i.entity_id,'friendly_name') + ': ' + states(i.entity_id)|float|string + ' ' + state_attr(i.entity_id,'unit_of_measurement') -}}
-            {%- endfor -%}
---
-
+IN: {% set in = site[0] + solar[1] + battery[1] + load[1] %}{{ in }}
+OUT: {% set out = site[1] + solar[0] + battery[0] + load[0] %}{{ out }}
+DELTA: {{ in - out }}
