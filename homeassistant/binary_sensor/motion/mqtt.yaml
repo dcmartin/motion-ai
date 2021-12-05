@@ -4,67 +4,69 @@
 
 - platform: template
   sensors:
-    motion_status_mqtt:
-      friendly_name: MQTT status
-      device_class: connectivity
+    motion_mqtt:
+      friendly_name: 'MQTT'
+      icon_template: >-
+          {% if is_state('binary_sensor.motion_mqtt','on') %}
+            mdi:message-processing
+          {% else %}
+            mdi:message-alert
+          {% endif %}
+      attribute_templates:
+        status: >-
+          {% set s = states('binary_sensor.motion_status_mqtt') %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+            {% if is_state('binary_sensor.motion_status_mqtt','on') %}Active
+            {% elif is_state('binary_sensor.motion_status_mqtt_broker','off') %}
+              {% set it = states('input_text.motion_mqtt_broker') %}
+              {% set ha = states('sensor.motion_mqtt_broker') %}
+              {% set addon = states('sensor.motion_addon_config_mqtt_broker') %}
+              {% if it|lower != ha|lower %}Core MQTT: {{ it, ha }}
+              {% elif it|lower != addon|lower %}Add-on MQTT: {{ addon }}
+              {% else %}Broker off{% endif %}
+            {% elif is_state('binary_sensor.motion_status_mqtt_port','off') %}Port unspecified
+            {% elif is_state('binary_sensor.motion_status_mqtt_active','off') %}MQTT in-active
+            {% else %}Failure{% endif %}
+          {% else %}Pending{% endif %}
+        timeout: >-
+          {{ states('input_number.motion_status_mqtt_ago')|int }}
+        ago: >-
+          {% set s = states('sensor.motion_mqtt_load_messages_received_1min') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+            {{ utcnow().timestamp()|int - as_timestamp(states.sensor.motion_mqtt_load_messages_received_1min.last_updated)|int }}
+          {% else %}null{% endif %}
+        broker: >-
+          {% set it = states('input_text.motion_mqtt_broker') %}
+          {% set ha = states('sensor.motion_mqtt_broker') %}
+          {% set addon = states('sensor.motion_addon_config_mqtt_broker') %}
+          {% if it|lower != 'none' and it|lower != 'unknown' and it|lower != 'unavailable' and it|lower != 'null' %}
+            {{ it|lower == ha|lower and it|lower == addon|lower }}
+          {% else %}null{% endif %}
+        port: >-
+          {% set it = states('input_text.motion_mqtt_port') %}
+          {% set ha = states('sensor.motion_mqtt_port') %}
+          {% set addon = states('sensor.motion_addon_config_mqtt_port') %}
+          {% if it|lower != 'none' and it|lower != 'unknown' and it|lower != 'unavailable' and it|lower != 'null' %}
+            {{ it|lower == ha|lower and it|lower == addon|lower }}
+          {% else %}null{% endif %}
+        active: >-
+          {% set m = state_attr('binary_sensor.motion_mqtt','ago') %}
+          {% if m|lower != 'none' and m|lower != 'unknown' and m|lower != 'unavailable' and m != null %}
+            {{ m|int <= state_attr('binary_sensor.motion_mqtt','timeout')|int }}
+          {% else %}null{% endif %}
+        yolo: >-
+          {{ states('sensor.motion_service_yolo')|lower == 'true' }}
+        face: >-
+          {{ states('sensor.motion_service_face')|lower == 'true' }}
+        alpr: >-
+          {{ states('sensor.motion_service_alpr')|lower == 'true' }}
+        pose: >-
+          {{ states('sensor.motion_service_pose')|lower == 'true' }}
+        ai: >-
+          {{ is_state_attr('binary_sensor.motion_mqtt','yolo',true) and
+             is_state_attr('binary_sensor.motion_mqtt','face',true) and
+             is_state_attr('binary_sensor.motion_mqtt','alpr',true) }}
       value_template: >-
-        {{
-          is_state('binary_sensor.motion_status_mqtt_active','on') and
-          is_state('binary_sensor.motion_status_mqtt_broker','on') and
-          is_state('binary_sensor.motion_status_mqtt_port','on') 
-        }}
-    motion_status_mqtt_active:
-      friendly_name: MQTT active
-      device_class: connectivity
-      value_template: >-
-        {% set m = states('sensor.motion_status_mqtt_ago') %}
-        {% if m|lower != 'none' and m|lower != 'unknown' and m|lower != 'unavailable' and m != null %}
-          {{ m|int <= states('input_number.motion_status_mqtt_ago')|int }}
-        {% else %}null{% endif %}
-    motion_status_mqtt_broker:
-      friendly_name: Broker match
-      device_class: connectivity
-      value_template: >-
-        {% set it = states('input_text.motion_mqtt_broker') %}
-        {% set ha = states('sensor.motion_mqtt_broker') %}
-        {% set addon = states('sensor.motion_addon_config_mqtt_broker') %}
-        {% if it|lower != 'none' and it|lower != 'unknown' and it|lower != 'unavailable' and it|lower != 'null' %}
-          {{ it|lower == ha|lower and it|lower == addon|lower }}
-        {% else %}null{% endif %}
-    motion_status_mqtt_port:
-      friendly_name: Port match
-      device_class: connectivity
-      value_template: >-
-        {% set it = states('input_text.motion_mqtt_port') %}
-        {% set ha = states('sensor.motion_mqtt_port') %}
-        {% set addon = states('sensor.motion_addon_config_mqtt_port') %}
-        {% if it|lower != 'none' and it|lower != 'unknown' and it|lower != 'unavailable' and it|lower != 'null' %}
-          {{ it|lower == ha|lower and it|lower == addon|lower }}
-        {% else %}null{% endif %}
-    motion_status_mqtt_ai:
-      friendly_name: MQTT AI
-      device_class: connectivity
-      value_template: >-
-        {{ is_state('binary_sensor.motion_status_mqtt_yolo','on') and
-           is_state('binary_sensor.motion_status_mqtt_face','on') and
-           is_state('binary_sensor.motion_status_mqtt_alpr','on') }}
-    motion_status_mqtt_yolo:
-      friendly_name: MQTT yolo
-      device_class: connectivity
-      value_template: >-
-        {{ states('sensor.motion_service_yolo')|lower == 'true' }}
-    motion_status_mqtt_face:
-      friendly_name: MQTT face
-      device_class: connectivity
-      value_template: >-
-        {{ states('sensor.motion_service_face')|lower == 'true' }}
-    motion_status_mqtt_alpr:
-      friendly_name: MQTT alpr
-      device_class: connectivity
-      value_template: >-
-        {{ states('sensor.motion_service_alpr')|lower == 'true' }}
-    motion_status_mqtt_pose:
-      friendly_name: MQTT pose
-      device_class: connectivity
-      value_template: >-
-        {{ states('sensor.motion_service_pose')|lower == 'true' }}
+        {{ is_state_attr('binary_sensor.motion_mqtt','active',true)
+           and is_state_attr('binary_sensor.motion_mqtt','broker',true) 
+           and is_state_attr('binary_sensor.motion_mqtt','port',true) }}
