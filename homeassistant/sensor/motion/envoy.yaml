@@ -1,0 +1,59 @@
+###
+## homeassistant/sensor/motion/envoy.yaml
+###
+
+# template
+
+- platform: template
+  sensors:
+    motion_envoy_inverters_total:
+      value_template: >-
+        {% if is_state('binary_sensor.motion_envoy','on') %}
+          {{ state_attr('binary_sensor.motion_envoy','inverters') }}
+        {%- else -%}null{%- endif -%}
+    motion_envoy_inverters_reporting:
+      value_template: >-
+        {% if is_state('binary_sensor.motion_envoy','on') %}
+          {{ state_attr('binary_sensor.motion_envoy','reporting') }}
+        {%- else -%}null{%- endif -%}
+    motion_envoy_inverters_percent:
+      friendly_name: Inverters on-line
+      icon_template: 'mdi:percent'
+      unit_of_measurement: '%'
+      value_template: >-
+        {% if is_state('binary_sensor.motion_envoy','on') %}
+          {% set r = state_attr('binary_sensor.motion_envoy','reporting') %}
+          {% set t = state_attr('binary_sensor.motion_envoy','inverters') %}
+          {%- if r|lower != 'none' and t|lower != 'none' and r|lower != 'null' and t|lower != 'null' %}
+            {{ '%0.2f' | format(r|float /  t|float * 100.0) }}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+    motion_envoy_inverters_command:
+      value_template: >-
+        {%- set s = states('input_text.envoy_gateway') -%}
+        {%- if s is none or s|lower == 'unknown' -%}
+          {%- set s = '192.168.1.15' -%}
+        {%- endif -%}
+        curl -k -L {{ s -}}/home| egrep -A2 "Number of Microinverters"|egrep -v '<tr>'|sed 's@.*<td>\([0-9]*\)</td>.*@\1@'|while read;do echo -n "${REPLY} ";done|awk '{printf("{\"total\":%d,\"reporting\":%d}",$1,$2)}'
+
+# command_line
+
+- platform: command_line
+  name: motion_envoy_inverters
+  scan_interval: 1800
+  command_timeout: 60
+  command: "eval {{- states('sensor.motion_envoy_inverters_command') -}}"
+  json_attributes:
+    - total
+    - reporting
+  value_template: >
+    {%- if value_json is defined -%}True{%- else -%}False{%- endif -%}
+
+# statistics
+
+- platform: statistics
+  name: motion_envoy_inverters_percent_statistics
+  entity_id: sensor.motion_envoy_inverters_percent
+  sampling_size: 100
+  max_age:
+    days: 30
