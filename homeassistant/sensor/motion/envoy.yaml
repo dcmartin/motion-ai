@@ -10,18 +10,12 @@
       value_template: >-
         {% if is_state('binary_sensor.motion_envoy','on') %}
           {{ state_attr('binary_sensor.motion_envoy','inverters') }}
-        {%- else -%}null{%- endif -%}
+        {%- else -%}Pending{%- endif -%}
     motion_envoy_inverters_reporting:
       value_template: >-
         {% if is_state('binary_sensor.motion_envoy','on') %}
           {{ state_attr('binary_sensor.motion_envoy','reporting') }}
-        {%- else -%}null{%- endif -%}
-    motion_envoy_inverters_online:
-      friendly_name: 'Inverters on-line'
-      icon_template: 'mdi:percent'
-      unit_of_measurement: '%'
-      value_template: >-
-        {{ 'null' }}
+        {%- else -%}Pending{%- endif -%}
     motion_envoy_inverters_command:
       value_template: >-
         {% if is_state('binary_sensor.motion_envoy','on') %}
@@ -30,6 +24,21 @@
             curl -k -sSL {{ s -}}/home| egrep -A2 "Number of Microinverters"|egrep -v '<tr>'|sed 's@.*<td>\([0-9]*\)</td>.*@\1@'|while read;do echo -n "${REPLY} ";done|awk '{printf("{\"total\":%d,\"reporting\":%d}",$1,$2)}'
           {%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif %}
+
+# friendly representation of measurement
+
+- platform: template
+  sensors:
+    motion_envoy_inverters_online:
+      unique_id: motion_envoy_inverters_online
+      friendly_name: 'Inverters on-line'
+      icon_template: 'mdi:percent'
+      unit_of_measurement: '%'
+      value_template: >-
+        {%- set s = states('sensor.motion_envoy_inverters_online_measurement') -%}
+        {%- if s|lower != 'null' and s|lower != 'none' and s|lower != 'unavailabe' and s|lower != 'unknown' -%}
+          {{ '%0.2f'|format(s|float) }}
+        {%- else -%}Pending{%- endif %}
 
 # command_line
 
@@ -48,7 +57,7 @@
 
 - platform: statistics
   name: motion_envoy_inverters_online_statistics
-  entity_id: sensor.motion_envoy_inverters_online
+  entity_id: sensor.motion_envoy_inverters_online_measurement
   sampling_size: 100
   max_age:
     days: 30
