@@ -16,25 +16,20 @@
         {% if is_state('binary_sensor.motion_envoy','on') %}
           {{ state_attr('binary_sensor.motion_envoy','reporting') }}
         {%- else -%}null{%- endif -%}
-    motion_envoy_inverters_percent:
-      friendly_name: Inverters on-line
+    motion_envoy_inverters_online:
+      friendly_name: 'Inverters on-line'
       icon_template: 'mdi:percent'
       unit_of_measurement: '%'
       value_template: >-
-        {% if is_state('binary_sensor.motion_envoy','on') %}
-          {% set r = state_attr('binary_sensor.motion_envoy','reporting') %}
-          {% set t = state_attr('binary_sensor.motion_envoy','inverters') %}
-          {%- if r|lower != 'none' and t|lower != 'none' and r|lower != 'null' and t|lower != 'null' %}
-            {{ '%0.2f' | format(r|float /  t|float * 100.0) }}
-          {%- else -%}null{%- endif -%}
-        {%- else -%}null{%- endif -%}
+        {{ 'null' }}
     motion_envoy_inverters_command:
       value_template: >-
-        {%- set s = states('input_text.envoy_gateway') -%}
-        {%- if s is none or s|lower == 'unknown' -%}
-          {%- set s = '192.168.1.15' -%}
-        {%- endif -%}
-        curl -k -L {{ s -}}/home| egrep -A2 "Number of Microinverters"|egrep -v '<tr>'|sed 's@.*<td>\([0-9]*\)</td>.*@\1@'|while read;do echo -n "${REPLY} ";done|awk '{printf("{\"total\":%d,\"reporting\":%d}",$1,$2)}'
+        {% if is_state('binary_sensor.motion_envoy','on') %}
+          {%- set s = state_attr('binary_sensor.motion_envoy','gateway') -%}
+          {%- if s|lower != 'null' and s|lower != 'none' and s|lower != 'unavailabe' and s|lower != 'unknown' -%}
+            curl -k -L {{ s -}}/home| egrep -A2 "Number of Microinverters"|egrep -v '<tr>'|sed 's@.*<td>\([0-9]*\)</td>.*@\1@'|while read;do echo -n "${REPLY} ";done|awk '{printf("{\"total\":%d,\"reporting\":%d}",$1,$2)}'
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif %}
 
 # command_line
 
@@ -52,8 +47,8 @@
 # statistics
 
 - platform: statistics
-  name: motion_envoy_inverters_percent_statistics
-  entity_id: sensor.motion_envoy_inverters_percent
+  name: motion_envoy_inverters_online_statistics
+  entity_id: sensor.motion_envoy_inverters_online
   sampling_size: 100
   max_age:
     days: 30
