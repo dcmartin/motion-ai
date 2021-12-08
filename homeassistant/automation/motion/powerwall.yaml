@@ -18,11 +18,12 @@
         value_template: >-
           {{ is_state('binary_sensor.motion_powerwall','on') }}
   action:
-    - alias: 'powerwall spike begin''
+    - alias: 'powerwall spike begin'
       service: python_script.set_state
       data_template:
         allow_create: true
-        entity_id: 'binary_sensor.motion_powerwall_load_spike'
+        entity_id: >-
+          {{ 'binary_sensor.motion_powerwall_load_spike' }}
         start: >-
           {{ utcnow().timestamp() }}
         load: >-
@@ -45,14 +46,32 @@
       - condition: template
         value_template: >-
           {{ is_state('binary_sensor.motion_powerwall','on') }}
+  variables:
+    load: >-
+      {% set s = state_attr('binary_sensor.motion_powerwall_load_spike','load') %}
+      {% if s|lower != 'none' %}
+        {{ s|float }}
+      {% else %}null{% endif %}
+    start: >-
+      {% set s = state_attr('binary_sensor.motion_powerwall_load_spike','start') %}
+      {% if s|lower != 'none' %}
+        {{ s|float }}
+      {% else %}null{% endif %}
+    duration: >-
+      {% if start|lower != 'null' %}
+        {{ utcnow().timestamp() - start|float }}
+      {% else %}null{% endif %}
   action:
-    - alias: 'powerwall spike end''
+    - alias: 'powerwall spike end'
       service: python_script.set_state
       data_template:
         allow_create: true
-        entity_id: 'binary_sensor.motion_powerwall_load_spike'
+        entity_id: >-
+          {{ 'binary_sensor.motion_powerwall_load_spike' }}
+        end: >-
+          {{ utcnow().timestamp() }}
         duration: >-
-          {{ utcnow().timestamp() - state_attr('binary_sensor.motion_powerwall_load_spike','start')|float }}
+          {{ duration }}
     - alias: 'powerwall spike notification'
       service: persistent_notification.create
       data_template:
@@ -61,9 +80,8 @@
         notification_id: >
           {{ 'load_spike' }}
         message: >-
-          Power load spiked to {{ state_attr('binary_sensor.motion_powerwall_load_spike','load') }} at
-          {{ state_attr('sensor.motion_powerwall_load_now_statistics','start)|int|timestamp_custom("%a %b %d @ %I:%M %p") | default(null) -}};
-          duration: {{ utcnow().timestamp()|int - state_attr('sensor.motion_powerwall_load_now_statistics','start)|int -}}s;
+          Power load spiked to {{ load }} at {{ start|int|timestamp_custom("%a %b %d @ %I:%M %p") -}};
+          duration: {{ duration -}}s;
           average: {{ state_attr('sensor.motion_powerwall_load_now_statistics','mean') -}} kW;
           max: {{ state_attr('sensor.motion_powerwall_load_now_statistics','max') -}}
 
