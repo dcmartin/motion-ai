@@ -9,7 +9,7 @@
   max_exceeded: silent
   trigger:
     - platform: state
-      entity_id: binary_sensor.motion_powerwall_load_spike
+      entity_id: binary_sensor.motion_powerwall_load_spike_problem
       to: 'on'
   condition:
     condition: and
@@ -30,6 +30,8 @@
           {{ states('sensor.motion_powerwall_load_now') }}
         duration: >-
           {{ 'null' }}
+        state: >-
+          {{ 'on' }}
 
 - id: motion_powerwall_load_spike_end
   alias: motion_powerwall_load_spike_end
@@ -38,7 +40,7 @@
   max_exceeded: silent
   trigger:
     - platform: state
-      entity_id: binary_sensor.motion_powerwall_load_spike
+      entity_id: binary_sensor.motion_powerwall_load_spike_problem
       to: 'off'
   condition:
     condition: and
@@ -59,7 +61,7 @@
       {% else %}null{% endif %}
     duration: >-
       {% if start|lower != 'null' %}
-        {{ utcnow().timestamp() - start|float }}
+        {{ '%0.2f'|format(utcnow().timestamp() - start|float) }}
       {% else %}null{% endif %}
   action:
     - alias: 'powerwall spike end'
@@ -72,16 +74,18 @@
           {{ utcnow().timestamp() }}
         duration: >-
           {{ duration }}
+        state: >-
+          {{ 'off' }}
     - alias: 'powerwall spike notification'
       service: persistent_notification.create
       data_template:
         title: >
-          PROBLEM: Powerwall load spiked
+          PROBLEM: Powerwall load spike
         notification_id: >
           {{ 'load_spike' }}
         message: >-
-          Power load spiked to {{ load }} at {{ start|int|timestamp_custom("%a %b %d @ %I:%M %p") -}};
+          Load power spiked to {{ load }} kW at {{ start|int|timestamp_custom("%a %b %d @ %I:%M %p") -}};
           duration: {{ duration -}}s;
           average: {{ state_attr('sensor.motion_powerwall_load_now_statistics','mean') -}} kW;
-          max: {{ state_attr('sensor.motion_powerwall_load_now_statistics','max') -}}
+          max: {{ state_attr('sensor.motion_powerwall_load_now_statistics','max_value') -}}
 
