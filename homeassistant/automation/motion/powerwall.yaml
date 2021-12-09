@@ -1,0 +1,91 @@
+###
+# homeassistant/automation/motion/powerwall.yaml
+###
+
+- id: motion_powerwall_load_spike_begin
+  alias: motion_powerwall_load_spike_begin
+  initial_state: on
+  mode: single
+  max_exceeded: silent
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_powerwall_load_spike_problem
+      to: 'on'
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_powerwall','on') }}
+  action:
+    - alias: 'powerwall spike begin'
+      service: python_script.set_state
+      data_template:
+        allow_create: true
+        entity_id: >-
+          {{ 'binary_sensor.motion_powerwall_load_spike' }}
+        start: >-
+          {{ utcnow().timestamp() }}
+        load: >-
+          {{ states('sensor.motion_powerwall_load_now') }}
+        duration: >-
+          {{ 'null' }}
+        state: >-
+          {{ 'on' }}
+
+- id: motion_powerwall_load_spike_end
+  alias: motion_powerwall_load_spike_end
+  initial_state: on
+  mode: single
+  max_exceeded: silent
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_powerwall_load_spike_problem
+      to: 'off'
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_powerwall','on') }}
+  variables:
+    load: >-
+      {% set s = state_attr('binary_sensor.motion_powerwall_load_spike','load') %}
+      {% if s|lower != 'none' %}
+        {{ s|float }}
+      {% else %}null{% endif %}
+    start: >-
+      {% set s = state_attr('binary_sensor.motion_powerwall_load_spike','start') %}
+      {% if s|lower != 'none' %}
+        {{ s|float }}
+      {% else %}null{% endif %}
+    duration: >-
+      {% if start|lower != 'null' %}
+        {{ '%0.2f'|format(utcnow().timestamp() - start|float) }}
+      {% else %}null{% endif %}
+  action:
+    - alias: 'powerwall spike end'
+      service: python_script.set_state
+      data_template:
+        allow_create: true
+        entity_id: >-
+          {{ 'binary_sensor.motion_powerwall_load_spike' }}
+        end: >-
+          {{ utcnow().timestamp() }}
+        duration: >-
+          {{ duration }}
+        state: >-
+          {{ 'off' }}
+    - alias: 'powerwall spike notification'
+      service: persistent_notification.create
+      data_template:
+        title: >
+          PROBLEM: Powerwall load spike
+        notification_id: >
+          {{ 'load_spike' }}
+        message: >-
+          Load power spiked to {{ load }} kW at {{ start|int|timestamp_custom("%a %b %d @ %I:%M %p") -}};
+          duration: {{ duration -}}s;
+          average: {{ state_attr('sensor.motion_powerwall_load_now_statistics','mean') -}} kW;
+          max: {{ state_attr('sensor.motion_powerwall_load_now_statistics','max_value') -}}
+
