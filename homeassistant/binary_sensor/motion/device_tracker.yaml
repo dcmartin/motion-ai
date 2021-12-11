@@ -1,0 +1,55 @@
+###
+# homeassistant/binary_sensor/motion/device_tracker.yaml
+###
+
+- platform: template
+  sensors:
+    motion_device_tracker:
+      friendly_name: 'Network devices'
+      icon_template: 'mdi:lan'
+      attribute_values:
+        entities: >-
+          [{%- for state in states.device_tracker -%}
+            {%- if not loop.first -%},{%- endif -%}
+            "{{- state.entity_id|replace('device_tracker.','') -}}"
+          {%- endfor -%}]
+        known: >-
+          [{%- for state in states.device_tracker if state.name|lower != state.attributes.mac|lower -%}
+            {%- if not loop.first -%},{%- endif -%}
+            {"name":"{{- state.attributes.host_name -}}","mac":"{{- state.attributes.mac -}}","ipv4":"{{- state.attributes.ip -}}"}
+          {%- endfor -%}]
+        trackers: >-
+          {% set entities = state_attr('binary_sensor.motion_device_tracker','entities') %}
+          {% if entities|lower != 'none'  and entities is iterable and entities|count > 0 %}
+            [{%- for s in entities if state_attr('device_tracker.' + s,'source_type')|lower == 'gps' -%}
+              {%- if not loop.first -%},{%- endif -%}
+              "{{- s -}}"
+            {%- endfor -%}]
+          {% else %}null{% endif %}
+        array: >-
+          {% set entities = state_attr('binary_sensor.motion_device_tracker','entities') %}
+          {% if entities|lower != 'none'  and entities is iterable and entities|count > 0 %}
+            [{%- for e in entities -%}
+              {%- if loop.first -%}{%- else -%},{%- endif -%}
+              {%- set s = states('device_tracker.' + e) -%}
+              {%- if s == 'home' or s == 'not_home' -%}1{%- else -%}0{%- endif -%}
+            {%- endfor -%}]
+          {% else %}null{% endif %}
+        status: >-
+          {% set c = state_attr('binary_sensor.motion_device_tracker','online') -%}
+          {% set t = state_attr('binary_sensor.motion_device_tracker','total') %}
+          {%- if c is number and t is number and c|int > 0 and t|int > 0 %}
+            {{ c -}}/{{- t }}📱; {{ '%0.2f'|format(c|float/t|float) -}}%
+          {% else %}Pending{% endif %}
+        total: >-
+          {% set s = state_attr('binary_sensor.motion_device_tracker','array') %}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+            {{ s|length }}
+          {% else %}null{% endif %}
+        online: >-
+          {% set s = state_attr('binary_sensor.motion_device_tracker','array') %}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+            {{ s|sum }}
+          {% else %}null{% endif %}
+      value_template: >-
+        {{ state_attr('binary_sensor.motion_device_tracker','total')|int > 0 }}
