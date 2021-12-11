@@ -58,10 +58,25 @@
         {{ s|float }}
       {% else %}null{% endif %}
     end: >-
+      {% set s = state_attr('binary_sensor.motion_powerwall_load_spike','end') %}
+      {% if s|lower != 'none' %}
+        {{ s|float }}
+      {% else %}null{% endif %}
+    now: >-
       {{ utcnow().timestamp() }}
+    ago: >-
+      {% if start|lower != 'null' %}
+        {{ '%0.2f'|format(now - end|float) }}
+      {% else %}null{% endif %}
     duration: >-
       {% if start|lower != 'null' %}
-        {{ '%0.2f'|format(end|float - start|float) }}
+        {{ now - start|float }}
+      {% else %}null{% endif %}
+    mean: >-
+      {{ state_attr('sensor.motion_powerwall_load_now_statistics','mean') }}
+    energy: >-
+      {% if duration|lower != 'null' and mean|lower != 'none' %}
+        {{ (load|float - mean|float) * duration|float / 3600 }}
       {% else %}null{% endif %}
   action:
     - alias: 'powerwall spike end'
@@ -71,9 +86,13 @@
         entity_id: >-
           {{ 'binary_sensor.motion_powerwall_load_spike' }}
         end: >-
-          {{ end }}
+          {{ now }}
+        ago: >-
+          {{ ago }}
         duration: >-
           {{ duration }}
+        energy: >-
+          {{ energy }}
         state: >-
           {{ 'off' }}
     - alias: 'powerwall spike notification'
@@ -84,8 +103,7 @@
         notification_id: >
           {{ 'load_spike' }}
         message: >-
-          Load power spiked to {{ load }} kW at {{ start|int|timestamp_custom("%a %b %d @ %I:%M %p") -}};
-          duration: {{ duration -}}s;
-          average: {{ state_attr('sensor.motion_powerwall_load_now_statistics','mean') -}} kW;
-          max: {{ state_attr('sensor.motion_powerwall_load_now_statistics','max_value') -}}
+          Load power spiked  to {{ load }} kW; mean: {{ mean -}}; {{ start|int|timestamp_custom("%a %b %d @ %I:%M %p") -}};
+          duration: {{ '%0.2f'|format(duration) -}}s;
+          energy: {{ '%0.2f'|format(energy) -}} kWh
 
