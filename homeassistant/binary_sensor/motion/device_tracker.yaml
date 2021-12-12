@@ -8,7 +8,7 @@
       friendly_name: 'Network devices'
       icon_template: 'mdi:lan'
       attribute_templates:
-        all: >-
+        ids: >-
           [{%- for state in states.device_tracker -%}
             {%- if not loop.first -%},{%- endif -%}
             {"id":"{{- state.entity_id|replace('device_tracker.','') -}}",
@@ -19,26 +19,28 @@
              "ipv4":"{{- state.attributes.ip -}}"}
           {%- endfor -%}]
         known: >-
-          {% set all = state_attr('binary_sensor.motion_device_tracker','all') %}
-          {% if all|lower != 'none'  and all is iterable and all|count > 0 %}
+          {% set ids = state_attr('binary_sensor.motion_device_tracker','ids') %}
+          {% if ids|lower != 'none' and ids is iterable and ids|count > 0 %}
             {% set now = utcnow().timestamp() %}
-            [{%- for s in all|sort(attribute='timestamp')|list if s.name|lower != s.mac|lower -%}
+            [{%- for s in ids|sort(attribute='timestamp')|list if s.name|lower != s.mac|lower -%}
               {%- if not loop.first -%},{%- endif -%}
-              "{{- s.id-}}"
+              {"id":"{{- s.id -}}","ago":{{ now - s.timestamp|float }}}
             {%- endfor -%}]
           {% else %}null{% endif %}
         trackers: >-
-          {% set all = state_attr('binary_sensor.motion_device_tracker','all') %}
-          {% if all|lower != 'none'  and all is iterable and all|count > 0 %}
-            [{%- for s in all if s.gps|lower == 'true' -%}
+          {% set ids = state_attr('binary_sensor.motion_device_tracker','ids') %}
+          {% if ids|lower != 'none' and ids is iterable and ids|count > 0 %}
+            [{%- for s in ids if s.gps|lower == 'true' -%}
               {%- if not loop.first -%},{%- endif -%}
-              "{{- s.id -}}"
+              {% set lat =  state_attr('device_tracker.' + s.id,'latitude') %}
+              {% set lng =  state_attr('device_tracker.' + s.id,'longitude') %}
+              {"id":"{{- s.id -}}", "latitude":{{ lat }},"longitude":{{ lng }}}
             {%- endfor -%}]
           {% else %}null{% endif %}
         array: >-
-          {% set all = state_attr('binary_sensor.motion_device_tracker','all') %}
-          {% if all|lower != 'none'  and all is iterable and all|count > 0 %}
-            [{%- for e in all -%}
+          {% set ids = state_attr('binary_sensor.motion_device_tracker','ids') %}
+          {% if ids|lower != 'none' and ids is iterable and ids|count > 0 %}
+            [{%- for e in ids -%}
               {%- if loop.first -%}{%- else -%},{%- endif -%}
               {%- set s = states('device_tracker.' + e.id) -%}
               {%- if s == 'home' or s == 'not_home' -%}1{%- else -%}0{%- endif -%}
