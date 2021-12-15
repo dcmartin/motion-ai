@@ -56,8 +56,8 @@ WEBCAM_YAML := \
 ##
 
 # entity's items to track
-HIGHLOW_ENTITYS := annotated # detected_person # detected # detected_entity # detected_vehicle detected_animal # image end annotated 
-HIGHLOW_ITEMS := count ago
+HIGHLOW_ENTITYS := # annotated # detected_person # detected # detected_entity # detected_vehicle detected_animal # image end annotated 
+HIGHLOW_ITEMS := # count ago
 
 # HIGHLOW templates
 HIGHLOW_BINARY_SENSOR_TEMPLATE := binary_sensor.highlow.yaml.tmpl
