@@ -400,27 +400,24 @@
 
 - platform: template
   sensors:
-    motion_detected_vehicle_count_array:
-      value_template: >-
-        {%- set s = state_attr('input_select.motion_camera_name','options') -%}
-        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|length > 0 -%}
-          [{%- for i in s -%}
-            {%- set j = states('sensor.motion_' + i + '_detected_vehicle_count') -%}
-            {%- if not loop.first -%},{%- endif -%}
-            {%- if j|lower != 'none' and j|lower != 'unknown' and j|lower != 'unavailable' and j|lower != 'null' -%}
-              {%- if j|int > 0 -%}{{- j|int -}}{%- else -%}0{%- endif -%}
-            {%- else -%}null{%- endif -%}
-          {%- endfor -%}]
-        {%- else -%}null{%- endif -%}
-
-- platform: template
-  sensors:
     motion_detected_vehicle_counts:
       friendly_name: '🚚 sum ∀Σ'
       icon_template: 'mdi:truck'
       unit_of_measurement: '🚚'
+      attribute_templates:
+        array: >-
+          {%- set s = state_attr('input_select.motion_camera_name','options') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|length > 0 -%}
+            [{%- for i in s -%}
+              {%- set j = states('sensor.motion_' + i + '_detected_vehicle_count') -%}
+              {%- if not loop.first -%},{%- endif -%}
+              {%- if j|lower != 'none' and j|lower != 'unknown' and j|lower != 'unavailable' and j|lower != 'null' -%}
+                {%- if j|int > 0 -%}{{- j|int -}}{%- else -%}0{%- endif -%}
+              {%- else -%}null{%- endif -%}
+            {%- endfor -%}]
+          {%- else -%}null{%- endif -%}
       value_template: >-
-        {% set s = states('sensor.motion_detected_vehicle_count_array') %}
+        {% set s = state_attr('sensor.motion_detected_vehicle_counts','array') %}
         {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
           {% set s = s|from_json %}
           {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s is iterable -%}
@@ -431,26 +428,6 @@
               {{- list|sum|int -}}
             {%- else -%}null{%- endif -%}
           {%- else -%}null{%- endif -%}
-        {%- else -%}null{%- endif -%}
-
-# 24h
-- platform: statistics
-  name: motion_detected_vehicle_counts_24h
-  entity_id: sensor.motion_detected_vehicle_counts
-  state_characteristic: mean
-  sampling_size: 1200
-  max_age:
-    hours: 24
-
-- platform: template
-  sensors:
-    motion_detected_vehicle_counts_24h_mean:
-      friendly_name: '🚚 ∀Σ μ 24h'
-      icon_template: 'mdi:truck'
-      unit_of_measurement: '🚚'
-      value_template: >-
-        {% if states('sensor.motion_detected_vehicle_counts_24h') != 'none' %}
-          {{ states('sensor.motion_detected_vehicle_counts_24h')|float }}
         {%- else -%}null{%- endif -%}
 
 # 1m
@@ -514,7 +491,6 @@
         {%- else -%}null{%- endif -%}
 
 # 30m
-
 - platform: statistics
   name: motion_detected_vehicle_counts_30m
   entity_id: sensor.motion_detected_vehicle_counts
@@ -534,8 +510,29 @@
           {{ states('sensor.motion_detected_vehicle_counts_30m')|float }}
         {%- else -%}null{%- endif -%}
 
+# 24h
+- platform: statistics
+  name: motion_detected_vehicle_counts_24h
+  entity_id: sensor.motion_detected_vehicle_counts
+  state_characteristic: mean
+  sampling_size: 1200
+  max_age:
+    days: 1
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_counts_24h_mean:
+      friendly_name: '🚚 ∀Σ μ 24h'
+      icon_template: 'mdi:truck'
+      unit_of_measurement: '🚚'
+      value_template: >-
+        {% if states('sensor.motion_detected_vehicle_counts_24h') != 'none' %}
+          {{ states('sensor.motion_detected_vehicle_counts_24h')|float }}
+        {%- else -%}null{%- endif -%}
+
 ## DELTA
 
+# 1m
 - platform: template
   sensors:
     motion_detected_vehicle_counts_1m_delta:
@@ -550,24 +547,14 @@
         {%- else -%}null{%- endif %}
 
 - platform: statistics
-  name: motion_detected_vehicle_counts_1m_delta_statistics
+  name: motion_detected_vehicle_counts_1m_delta_mean
   entity_id: sensor.motion_detected_vehicle_counts_1m_delta
   state_characteristic: mean
   sampling_size: 100
   max_age:
-    minutes: 5
+    minutes: 1
 
-- platform: template
-  sensors:
-    motion_detected_vehicle_counts_1m_delta_mean:
-      friendly_name: '🚚 ∀Σ 1m Δμ'
-      icon_template: 'mdi:truck'
-      unit_of_measurement: '🚚'
-      value_template: >-
-        {% if states('sensor.motion_detected_vehicle_counts_1m_delta_statistics')|lower != 'unknown' %}
-          {{ states('sensor.motion_detected_vehicle_counts_1m_delta_statistics')|float }}
-        {%- else -%}null{%- endif -%}
-
+# 5m
 - platform: template
   sensors:
     motion_detected_vehicle_counts_5m_delta:
@@ -582,24 +569,14 @@
         {%- else -%}null{%- endif %}
 
 - platform: statistics
-  name: motion_detected_vehicle_counts_5m_delta_statistics
+  name: motion_detected_vehicle_counts_5m_delta_mean
   entity_id: sensor.motion_detected_vehicle_counts_5m_delta
   state_characteristic: mean
   sampling_size: 100
   max_age:
-    minutes: 30
+    minutes: 5
 
-- platform: template
-  sensors:
-    motion_detected_vehicle_counts_5m_delta_mean:
-      friendly_name: '🚚 ∀Σ 5m Δμ'
-      icon_template: 'mdi:truck'
-      unit_of_measurement: '🚚'
-      value_template: >-
-        {% if states('sensor.motion_detected_vehicle_counts_5m_delta_statistics')|lower != 'unknown' %}
-          {{ states('sensor.motion_detected_vehicle_counts_5m_delta_statistics')|float }}
-        {%- else -%}null{%- endif -%}
-
+# 15m
 - platform: template
   sensors:
     motion_detected_vehicle_counts_15m_delta:
@@ -614,24 +591,14 @@
         {%- else -%}null{%- endif %}
 
 - platform: statistics
-  name: motion_detected_vehicle_counts_15m_delta_statistics
+  name: motion_detected_vehicle_counts_15m_delta_mean
   entity_id: sensor.motion_detected_vehicle_counts_15m_delta
   state_characteristic: mean
   sampling_size: 100
   max_age:
-    minutes: 90
+    minutes: 15
 
-- platform: template
-  sensors:
-    motion_detected_vehicle_counts_15m_delta_mean:
-      friendly_name: '🚚 ∀Σ 15m Δμ'
-      icon_template: 'mdi:truck'
-      unit_of_measurement: '🚚'
-      value_template: >-
-        {% if states('sensor.motion_detected_vehicle_counts_15m_delta_statistics')|lower != 'unknown' %}
-          {{ states('sensor.motion_detected_vehicle_counts_15m_delta_statistics')|float }}
-        {%- else -%}null{%- endif -%}
-
+# 30m
 - platform: template
   sensors:
     motion_detected_vehicle_counts_30m_delta:
@@ -646,23 +613,12 @@
         {%- else -%}null{%- endif %}
 
 - platform: statistics
-  name: motion_detected_vehicle_counts_30m_delta_statistics
+  name: motion_detected_vehicle_counts_30m_delta_mean
   entity_id: sensor.motion_detected_vehicle_counts_30m_delta
   state_characteristic: mean
   sampling_size: 100
   max_age:
-    minutes: 180
-
-- platform: template
-  sensors:
-    motion_detected_vehicle_counts_30m_delta_mean:
-      friendly_name: '🚚 ∀Σ 30m Δμ'
-      icon_template: 'mdi:truck'
-      unit_of_measurement: '🚚'
-      value_template: >-
-        {% if states('sensor.motion_detected_vehicle_counts_30m_delta_statistics')|lower != 'unknown' %}
-          {{ states('sensor.motion_detected_vehicle_counts_30m_delta_statistics')|float }}
-        {%- else -%}null{%- endif -%}
+    minutes: 30
 
 # logical
 
@@ -673,7 +629,7 @@
       icon_template: 'mdi:truck'
       unit_of_measurement: '🚚'
       value_template: >-
-        {% set s = states('sensor.motion_detected_vehicle_count_array') %}
+        {% set s = state_attr('sensor.motion_detected_vehicle_counts','array') %}
         {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
           {% set s = s|from_json %}
           {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s is iterable and s|length > 0 %}
@@ -692,7 +648,7 @@
       unit_of_measurement: '%'
       value_template: >-
         {% set n = states('sensor.motion_detected_vehicle_counts') %}
-        {% set s = states('sensor.motion_detected_vehicle_count_array') %}
+        {% set s = state_attr('sensor.motion_detected_vehicle_counts','array') %}
         {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
           {% set s = s|from_json %}
           {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable %}
@@ -724,7 +680,7 @@
       friendly_name: '🚚 most cameras'
       icon_template: 'mdi:truck'
       value_template: >-
-        {%- set s = states('sensor.motion_detected_vehicle_count_array') -%}
+        {%- set s = state_attr('sensor.motion_detected_vehicle_counts','array') -%}
         {%- set m = states('sensor.motion_detected_vehicle_most') -%}
         {%- set o = state_attr('input_select.motion_camera_name','options') -%}
         {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null'
@@ -744,24 +700,27 @@
 
 - platform: template
   sensors:
-    motion_detected_vehicle_ago_array:
+    motion_detected_vehicle_agos:
+      attribute_templates:
+        array: >-
+          {%- set s = state_attr('input_select.motion_camera_name','options') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|length > 0 -%}
+            [{%- for i in s -%}
+              {%- set j = states('sensor.motion_' + i + '_detected_vehicle_ago') -%}
+              {%- if not loop.first -%},{%- endif -%}
+              {%- if j|lower != 'none' and j|lower != 'unknown' and j|lower != 'unavailable' -%}
+                {%- if j|lower != 'null' and j|int >= 0 and j|int < 86400 -%}{{- j|int -}}{%- else -%}null{%- endif -%}
+              {%- else -%}null{%- endif -%}
+            {%- endfor -%}]
+          {%- else -%}null{%- endif -%}
       value_template: >-
-        {%- set s = state_attr('input_select.motion_camera_name','options') -%}
-        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|length > 0 -%}
-          [{%- for i in s -%}
-            {%- set j = states('sensor.motion_' + i + '_detected_vehicle_ago') -%}
-            {%- if not loop.first -%},{%- endif -%}
-            {%- if j|lower != 'none' and j|lower != 'unknown' and j|lower != 'unavailable' -%}
-              {%- if j|lower != 'null' and j|int >= 0 and j|int < 86400 -%}{{- j|int -}}{%- else -%}null{%- endif -%}
-            {%- else -%}null{%- endif -%}
-          {%- endfor -%}]
-        {%- else -%}null{%- endif -%}
+        {{ states('sensor.motion_detected_vehicle_agos_min'), states('sensor.motion_detected_vehicle_agos_mean'), states('sensor.motion_detected_vehicle_agos_max') }}
     motion_detected_vehicle_agos_mean:
       friendly_name: '🚚 mean ∀⧖'
       icon_template: 'mdi:truck'
       unit_of_measurement: 's'
       value_template: >-
-        {%- set s = states('sensor.motion_detected_vehicle_ago_array') -%}
+        {%- set s = state_attr('sensor.motion_detected_vehicle_agos','array') -%}
         {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
           {%- set s = s|from_json -%}
           {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s is iterable -%}
@@ -778,7 +737,7 @@
       icon_template: 'mdi:truck'
       unit_of_measurement: 's'
       value_template: >-
-        {%- set s = states('sensor.motion_detected_vehicle_ago_array') -%}
+        {%- set s = state_attr('sensor.motion_detected_vehicle_agos','array') -%}
         {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
           {%- set s = s|from_json -%}
           {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s is iterable -%}
@@ -793,7 +752,7 @@
       icon_template: 'mdi:truck'
       unit_of_measurement: 's'
       value_template: >-
-        {%- set s = states('sensor.motion_detected_vehicle_ago_array') -%}
+        {%- set s = state_attr('sensor.motion_detected_vehicle_agos','array') -%}
         {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
           {%- set s = s|from_json -%}
           {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s is iterable -%}
@@ -804,109 +763,55 @@
           {%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif -%}
 
-# 24h
-- platform: statistics
-  name: motion_detected_vehicle_agos_24h
-  entity_id: sensor.motion_detected_vehicle_agos_min
-  state_characteristic: mean
-  sampling_size: 1200
-  max_age:
-    hours: 24
-
-- platform: template
-  sensors:
-    motion_detected_vehicle_agos_24h_mean:
-      friendly_name: '🚚 ∀⧖ μ 24h'
-      icon_template: 'mdi:truck'
-      unit_of_measurement: 's'
-      value_template: >-
-        {% if states('sensor.motion_detected_vehicle_agos_24h') != 'none' %}
-          {{ states('sensor.motion_detected_vehicle_agos_24h')|float }}
-        {%- else -%}null{%- endif -%}
-
 # 1m
 - platform: statistics
-  name: motion_detected_vehicle_agos_1m
+  name: motion_detected_vehicle_agos_1m_mean
   entity_id: sensor.motion_detected_vehicle_agos_min
   state_characteristic: mean
   sampling_size: 20
   max_age:
     minutes: 1
 
-- platform: template
-  sensors:
-    motion_detected_vehicle_agos_1m_mean:
-      friendly_name: '🚚 ∀⧖ μ 1m'
-      icon_template: 'mdi:truck'
-      unit_of_measurement: 's'
-      value_template: >-
-        {% if states('sensor.motion_detected_vehicle_agos_1m') != 'none' %}
-          {{ states('sensor.motion_detected_vehicle_agos_1m')|float }}
-        {%- else -%}null{%- endif -%}
-
 # 5m
 - platform: statistics
-  name: motion_detected_vehicle_agos_5m
+  name: motion_detected_vehicle_agos_5m_mean
   entity_id: sensor.motion_detected_vehicle_agos_min
   state_characteristic: mean
   sampling_size: 100
   max_age:
     minutes: 5
 
-- platform: template
-  sensors:
-    motion_detected_vehicle_agos_5m_mean:
-      friendly_name: '🚚 ∀⧖ μ 5m'
-      icon_template: 'mdi:truck'
-      unit_of_measurement: 's'
-      value_template: >-
-        {% if states('sensor.motion_detected_vehicle_agos_5m') != 'none' %}
-          {{ states('sensor.motion_detected_vehicle_agos_5m')|float }}
-        {%- else -%}null{%- endif -%}
-
 # 15m
 - platform: statistics
-  name: motion_detected_vehicle_agos_15m
+  name: motion_detected_vehicle_agos_15m_mean
   entity_id: sensor.motion_detected_vehicle_agos_min
   state_characteristic: mean
   sampling_size: 300
   max_age:
     minutes: 15
 
-- platform: template
-  sensors:
-    motion_detected_vehicle_agos_15m_mean:
-      friendly_name: '🚚 ∀⧖ μ 15m'
-      icon_template: 'mdi:truck'
-      unit_of_measurement: 's'
-      value_template: >-
-        {% if states('sensor.motion_detected_vehicle_agos_15m') != 'none' %}
-          {{ states('sensor.motion_detected_vehicle_agos_15m')|float }}
-        {%- else -%}null{%- endif -%}
-
 # 30m
-
 - platform: statistics
-  name: motion_detected_vehicle_agos_30m
+  name: motion_detected_vehicle_agos_30m_mean
   entity_id: sensor.motion_detected_vehicle_agos_min
   state_characteristic: mean
   sampling_size: 60
   max_age:
     minutes: 30
 
-- platform: template
-  sensors:
-    motion_detected_vehicle_agos_30m_mean:
-      friendly_name: '🚚 ∀⧖ μ 30m'
-      icon_template: 'mdi:truck'
-      unit_of_measurement: 's'
-      value_template: >-
-        {% if states('sensor.motion_detected_vehicle_agos_30m') != 'none' %}
-          {{ states('sensor.motion_detected_vehicle_agos_30m')|float }}
-        {%- else -%}null{%- endif -%}
+# 24h
+- platform: statistics
+  name: motion_detected_vehicle_agos_24h_mean
+  entity_id: sensor.motion_detected_vehicle_agos_min
+  state_characteristic: mean
+  sampling_size: 1200
+  max_age:
+    days: 1
+
 
 ## DELTA
 
+# 1m
 - platform: template
   sensors:
     motion_detected_vehicle_agos_1m_delta:
@@ -921,24 +826,14 @@
         {%- else -%}null{%- endif %}
 
 - platform: statistics
-  name: motion_detected_vehicle_agos_1m_delta_statistics
-  state_characteristic: mean
+  name: motion_detected_vehicle_agos_1m_delta_mean
   entity_id: sensor.motion_detected_vehicle_agos_1m_delta
+  state_characteristic: mean
   sampling_size: 100
   max_age:
-    minutes: 5
+    minutes: 1
 
-- platform: template
-  sensors:
-    motion_detected_vehicle_agos_1m_delta_mean:
-      friendly_name: '🚚 ∀⧖ 1m Δμ'
-      icon_template: 'mdi:truck'
-      unit_of_measurement: 's'
-      value_template: >-
-        {% if states('sensor.motion_detected_vehicle_agos_1m_delta_statistics')|lower != 'unknown' %}
-          {{ states('sensor.motion_detected_vehicle_agos_1m_delta_statistics')|float }}
-        {%- else -%}null{%- endif -%}
-
+# 5m
 - platform: template
   sensors:
     motion_detected_vehicle_agos_5m_delta:
@@ -953,24 +848,14 @@
         {%- else -%}null{%- endif %}
 
 - platform: statistics
-  name: motion_detected_vehicle_agos_5m_delta_statistics
+  name: motion_detected_vehicle_agos_5m_delta_mean
   entity_id: sensor.motion_detected_vehicle_agos_5m_delta
   state_characteristic: mean
   sampling_size: 100
   max_age:
-    minutes: 30
+    minutes: 5
 
-- platform: template
-  sensors:
-    motion_detected_vehicle_agos_5m_delta_mean:
-      friendly_name: '🚚 ∀⧖ 5m Δμ'
-      icon_template: 'mdi:truck'
-      unit_of_measurement: 's'
-      value_template: >-
-        {% if states('sensor.motion_detected_vehicle_agos_5m_delta_statistics')|lower != 'unknown' %}
-          {{ states('sensor.motion_detected_vehicle_agos_5m_delta_statistics')|float }}
-        {%- else -%}null{%- endif -%}
-
+# 15m
 - platform: template
   sensors:
     motion_detected_vehicle_agos_15m_delta:
@@ -985,24 +870,14 @@
         {%- else -%}null{%- endif %}
 
 - platform: statistics
-  name: motion_detected_vehicle_agos_15m_delta_statistics
+  name: motion_detected_vehicle_agos_15m_delta_mean
   entity_id: sensor.motion_detected_vehicle_agos_15m_delta
   state_characteristic: mean
   sampling_size: 100
   max_age:
-    minutes: 90
+    minutes: 15
 
-- platform: template
-  sensors:
-    motion_detected_vehicle_agos_15m_delta_mean:
-      friendly_name: '🚚 ∀⧖ 15m Δμ'
-      icon_template: 'mdi:truck'
-      unit_of_measurement: 's'
-      value_template: >-
-        {% if states('sensor.motion_detected_vehicle_agos_15m_delta_statistics')|lower != 'unknown' %}
-          {{ states('sensor.motion_detected_vehicle_agos_15m_delta_statistics')|float }}
-        {%- else -%}null{%- endif -%}
-
+# 30m
 - platform: template
   sensors:
     motion_detected_vehicle_agos_30m_delta:
@@ -1017,23 +892,12 @@
         {%- else -%}null{%- endif %}
 
 - platform: statistics
-  name: motion_detected_vehicle_agos_30m_delta_statistics
+  name: motion_detected_vehicle_agos_30m_delta_mean
   entity_id: sensor.motion_detected_vehicle_agos_30m_delta
   state_characteristic: mean
   sampling_size: 100
   max_age:
-    minutes: 180
-
-- platform: template
-  sensors:
-    motion_detected_vehicle_agos_30m_delta_mean:
-      friendly_name: '🚚 ∀⧖ 30m Δμ'
-      icon_template: 'mdi:truck'
-      unit_of_measurement: 's'
-      value_template: >-
-        {% if states('sensor.motion_detected_vehicle_agos_30m_delta_statistics')|lower != 'unknown' %}
-          {{ states('sensor.motion_detected_vehicle_agos_30m_delta_statistics')|float }}
-        {%- else -%}null{%- endif -%}
+    minutes: 30
 
 ## counters
 
@@ -1098,7 +962,7 @@
       friendly_name: '🚚 min mean ago'
       icon_template: 'mdi:percent'
       value_template: >-
-        {% set s = states('sensor.motion_detected_vehicle_ago_array') %}
+        {% set s = state_attr('sensor.motion_detected_vehicle_agos','array') %}
         {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
           {% set s = s|from_json %}
           {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s is iterable and s|length > 0 %}
@@ -1327,20 +1191,6 @@
         {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
           {{ s }}
         {% else %}Pending{% endif %}
-#        {% if is_state('binary_sensor.motion_detected_vehicle','on') %}
-#          {% set s = states('sensor.motion_detected_date') %}
-#          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
-#            {% set p = s %}
-#          {% endif %}
-#        {% endif %}
-#        {% if p is defined %}
-#          {{ p }}
-#        {% else %}
-#          {% set s = states.sensor.motion_detected_vehicle_date.state %}
-#          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
-#            {{ s }}
-#          {% else %}null{% endif %}
-#        {% endif %}
 
 - platform: template
   sensors:
@@ -1352,20 +1202,6 @@
         {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
           {{ s }}
         {% else %}Pending{% endif %}
-#        {% if is_state('binary_sensor.motion_detected_vehicle','on') %}
-#          {% set s = states('sensor.motion_detected_vehicle_camera') %}
-#          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-#            {% set p = s %}
-#          {% endif %}
-#        {% endif %}
-#        {% if p is defined %}
-#          {{ p }}
-#        {% else %}
-#          {% set s = states('sensor.motion_detected_vehicle_where') %}
-#          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
-#            {{ s }}
-#          {% else %}Pending{% endif %}
-#        {% endif %}
 
 - platform: template
   sensors:
@@ -1377,20 +1213,6 @@
         {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
           {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") }}
         {% else %}Pending{% endif %}
-#        {% if is_state('binary_sensor.motion_detected_vehicle','on') %}
-#          {% set s = states('sensor.motion_detected_vehicle_date') %}
-#          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-#            {% set p = s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
-#          {% endif %}
-#        {% endif %}
-#        {% if p is defined %}
-#          {{ p }}
-#        {% else %}
-#          {% set s = states('sensor.motion_detected_vehicle_when') %}
-#          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
-#            {{ s }}
-#          {% else %}Pending{% endif %}
-#        {% endif %}
 
 ## live camera
 
@@ -1492,40 +1314,34 @@
 
 - platform: template
   sensors:
-    motion_detected_vehicle_array:
-      value_template: >-
-        {%- set options = state_attr('input_select.motion_detect_vehicle','options') -%}
-        {%- if options|lower != 'none' and options|lower != 'unknown' and options is iterable -%}
-          {%- set option = states('input_select.motion_detect_vehicle') -%}
-          {%- set array = state_attr('sensor.motion_event_annotated','results') -%}
-          {%- if array|lower != 'none' and array|lower != 'unknown' and array is iterable -%}
-            {%- set t = states('sensor.motion_detected_vehicle_threshold') -%}
-            {%- if t|lower != 'none' and t|lower != 'unknown' and t|lower != 'null' -%}
-              {%- for results in array -%}
-                {%- if loop.first -%}[{%- else -%},{%- endif -%}
-                {%- set e = results.entity -%}
-                {%- if e|lower != 'none' and e|lower != 'unknown' and e|lower != 'null' -%}
-                  {%- set c = results.confidence -%}
-                  {%- if ( e in options ) and c|float >= t|float -%}
-                    1
-                  {%- else -%}
-                    0
-                  {%- endif -%}
-                {%- else -%}
-                  0
-                {%- endif -%}
-                {%- if loop.last -%}]{%- endif -%}
-              {%- endfor -%}
-            {%- else -%}null{%- endif -%}
-          {%- else -%}null{%- endif -%}
-        {%- else -%}null{%- endif -%}
     motion_detected_vehicle_count:
       friendly_name: '🚚 Count (Σ)'
       unit_of_measurement: '🚚'
       icon_template: 'mdi:truck'
+      attribute_templates:
+        array: >-
+          {%- set options = state_attr('input_select.motion_detect_vehicle','options') -%}
+          {%- if options|lower != 'none' and options|lower != 'unknown' and options is iterable -%}
+            {%- set option = states('input_select.motion_detect_vehicle') -%}
+            {%- set array = state_attr('sensor.motion_event_annotated','results') -%}
+            {%- if array|lower != 'none' and array|lower != 'unknown' and array is iterable -%}
+              {%- set t = states('sensor.motion_detected_vehicle_threshold') -%}
+              {%- if t|lower != 'none' and t|lower != 'unknown' and t|lower != 'null' -%}
+                {%- for results in array -%}
+                  {%- if loop.first -%}[{%- else -%},{%- endif -%}
+                  {%- set e = results.entity -%}
+                  {%- if e|lower != 'none' and e|lower != 'unknown' and e|lower != 'null' -%}
+                    {%- set c = results.confidence -%}
+                    {%- if ( e in options ) and c|float >= t|float -%}1{%- else -%}0{%- endif -%}
+                  {%- else -%}0{%- endif -%}
+                  {%- if loop.last -%}]{%- endif -%}
+                {%- endfor -%}
+              {%- else -%}null{%- endif -%}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
       value_template: >
         {% if is_state('binary_sensor.motion_detected','on') %}
-          {% set s = states('sensor.motion_detected_vehicle_array') %}
+          {% set s = state_attr('sensor.motion_detected_vehicle_count','array') %}
           {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|length > 0 %}
             {% set s = s|from_json %}
             {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s is iterable %}
@@ -1543,117 +1359,12 @@
         {% else %}null{% endif %}
 
 - platform: statistics
-  name: motion_detected_vehicle_count_statistics
+  name: motion_detected_vehicle_count_mean
   entity_id: sensor.motion_detected_vehicle_count
   state_characteristic: mean
   sampling_size: 100
   max_age:
     hours: 8
-
-- platform: template
-  sensors:
-    motion_detected_vehicle_count_mean:
-      friendly_name: '🚚 Σ μ'
-      unit_of_measurement: '🚚'
-      icon_template: 'mdi:truck'
-      value_template: >-
-        {% if states('sensor.motion_detected_vehicle_count_statistics')|lower != 'unknown' %}
-          {{ states('sensor.motion_detected_vehicle_count_statistics')|float }}
-        {%- else -%}null{%- endif -%}
-#    motion_detected_vehicle_count_min:
-#      friendly_name: '🚚 Σ min'
-#      unit_of_measurement: '🚚'
-#      icon_template: 'mdi:truck'
-#      value_template: >-
-#        {% if states('sensor.motion_detected_vehicle_count_statistics')|lower != 'unknown' %}
-#          {{ state_attr('sensor.motion_detected_vehicle_count_statistics','min_value')|int }}
-#        {%- else -%}null{%- endif -%}
-#    motion_detected_vehicle_count_max:
-#      friendly_name: '🚚 Σ max'
-#      unit_of_measurement: '🚚'
-#      icon_template: 'mdi:truck'
-#      value_template: >-
-#        {% if states('sensor.motion_detected_vehicle_count_statistics')|lower != 'unknown' %}
-#          {{ state_attr('sensor.motion_detected_vehicle_count_statistics','max_value')|int }}
-#        {%- else -%}null{%- endif -%}
-#    motion_detected_vehicle_count_stdev:
-#      friendly_name: '🚚 Σ σ'
-#      unit_of_measurement: '🚚'
-#      icon_template: 'mdi:truck'
-#      value_template: >
-#        {% if states('sensor.motion_detected_vehicle_count_statistics')|lower != 'unknown' %}
-#          {{ state_attr('sensor.motion_detected_vehicle_count_statistics','standard_deviation')|float }}
-#        {%- else -%}null{%- endif -%}
-#    motion_detected_vehicle_count_change:
-#      friendly_name: '🚚 Σ Δ'
-#      unit_of_measurement: '🚚'
-#      icon_template: 'mdi:truck'
-#      value_template: >
-#        {% if states('sensor.motion_detected_vehicle_count_statistics')|lower != 'unknown' %}
-#          {{ state_attr('sensor.motion_detected_vehicle_count_statistics','change')|float }}
-#        {%- else -%}null{%- endif -%}
-
-#- platform: statistics
-#  name: motion_detected_vehicle_count_stdev_statistics
-#  entity_id: sensor.motion_detected_vehicle_count_stdev
-#  sampling_size: 100
-#  max_age:
-#    hours: 24
-
-#- platform: template
-#  sensors:
-#    motion_detected_vehicle_count_stdev_mean:
-#      friendly_name: '🚚 Σ σ μ'
-#      unit_of_measurement: '🚚'
-#      value_template: >
-#        {% if states.sensor.motion_detected_vehicle_count_stdev_statistics|lower != 'unknown' %}
-#          {{ states('sensor.motion_detected_vehicle_count_stdev_statistics')|float }}
-#        {%- else -%}null{%- endif -%}
-#    motion_detected_vehicle_count_stdev_change:
-#      friendly_name: '🚚 Σ σ Δ'
-#      unit_of_measurement: '🚚'
-#      value_template: >
-#        {% if states.sensor.motion_detected_vehicle_count_stdev_statistics|lower != 'unknown' %}
-#          {{ state_attr('sensor.motion_detected_vehicle_count_stdev_statistics','change')|float }}
-#        {%- else -%}null{%- endif -%}
-#    motion_detected_vehicle_count_stdev_stdev:
-#      friendly_name: '🚚 Σ σ σ'
-#      unit_of_measurement: '🚚'
-#      value_template: >
-#        {% if states.sensor.motion_detected_vehicle_count_stdev_statistics|lower != 'unknown' %}
-#          {{ state_attr('sensor.motion_detected_vehicle_count_stdev_statistics','standard_deviation')|float }}
-#        {%- else -%}null{%- endif -%}
-
-#- platform: statistics
-#  name: motion_detected_vehicle_count_change_statistics
-#  entity_id: sensor.motion_detected_vehicle_count_change
-#  sampling_size: 100
-#  max_age:
-#    hours: 24
-
-#- platform: template
-#  sensors:
-#    motion_detected_vehicle_count_change_mean:
-#      friendly_name: '🚚 Σ Δ μ'
-#      unit_of_measurement: '🚚'
-#      value_template: >
-#        {% if states.sensor.motion_detected_vehicle_count_change_statistics|lower != 'unknown' %}
-#          {{ states('sensor.motion_detected_vehicle_count_change_statistics')|float }}
-#        {%- else -%}null{%- endif -%}
-#    motion_detected_vehicle_count_change_stdev:
-#      friendly_name: '🚚 Σ Δ σ'
-#      unit_of_measurement: '🚚'
-#      value_template: >
-#        {% if states.sensor.motion_detected_vehicle_count_change_statistics|lower != 'unknown' %}
-#          {{ state_attr('sensor.motion_detected_vehicle_count_change_statistics','standard_deviation')|float }}
-#        {%- else -%}null{%- endif -%}
-#    motion_detected_vehicle_count_change_change:
-#      friendly_name: '🚚 Σ Δ Δ'
-#      unit_of_measurement: '🚚'
-#      value_template: >
-#        {% if states.sensor.motion_detected_vehicle_count_change_statistics|lower != 'unknown' %}
-#          {{ state_attr('sensor.motion_detected_vehicle_count_change_statistics','change')|float }}
-#        {%- else -%}null{%- endif -%}
 
 ## confidence
 
@@ -1718,106 +1429,20 @@
         {% else %}null{% endif %}
 
 - platform: statistics
-  name: motion_detected_vehicle_confirmed_percent_statistics
+  name: motion_detected_vehicle_confirmed_percent_mean
   entity_id: sensor.motion_detected_vehicle_confirmed_percent
   state_characteristic: mean
   sampling_size: 1000
   max_age:
     hours: 72
 
-- platform: template
-  sensors:
-#    motion_detected_vehicle_confirmed_percent_count:
-#      friendly_name: '🚚✅ % Σ'
-#      unit_of_measurement: '%'
-#      icon_template: 'mdi:truck'
-#      value_template: >-
-#        {% if states('sensor.motion_detected_vehicle_confidence_statistics')|lower != 'unknown' %}
-#          {{ state_attr('sensor.motion_detected_vehicle_confirmed_percent_statistics','count')|int }}
-#        {%- else -%}null{%- endif -%}
-    motion_detected_vehicle_confirmed_percent_mean:
-      friendly_name: '🚚✅ % μ'
-      icon_template: 'mdi:truck'
-      unit_of_measurement: '%'
-      value_template: >-
-        {% if states('sensor.motion_detected_vehicle_confirmed_percent_statistics')|lower != 'unknown' %}
-          {{ states('sensor.motion_detected_vehicle_confirmed_percent_statistics')|float }}
-        {%- else -%}null{%- endif -%}
-#    motion_detected_vehicle_confirmed_percent_min:
-#      friendly_name: '🚚✅ % min'
-#      unit_of_measurement: '%'
-#      icon_template: 'mdi:truck'
-#      value_template: >-
-#        {% if states('sensor.motion_detected_vehicle_confirmed_percent_statistics')|lower != 'unknown' %}
-#          {{ state_attr('sensor.motion_detected_vehicle_confirmed_percent_statistics','min_value')|int }}
-#        {%- else -%}null{%- endif -%}
-#    motion_detected_vehicle_confirmed_percent_max:
-#      friendly_name: '🚚✅ % max'
-#      unit_of_measurement: '%'
-#      icon_template: 'mdi:truck'
-#      value_template: >-
-#        {% if states('sensor.motion_detected_vehicle_confirmed_percent_statistics')|lower != 'unknown' %}
-#          {{ state_attr('sensor.motion_detected_vehicle_confirmed_percent_statistics','max_value')|int }}
-#        {%- else -%}null{%- endif -%}
-#    motion_detected_vehicle_confirmed_percent_stdev:
-#      friendly_name: '🚚✅ % σ'
-#      unit_of_measurement: '%'
-#      icon_template: 'mdi:truck'
-#      value_template: >
-#        {% if states('sensor.motion_detected_vehicle_confirmed_percent_statistics')|lower != 'unknown' %}
-#          {{ state_attr('sensor.motion_detected_vehicle_confirmed_percent_statistics','standard_deviation')|float }}
-#        {%- else -%}null{%- endif -%}
-
 - platform: statistics
-  name: motion_detected_vehicle_confidence_confirmed_statistics
+  name: motion_detected_vehicle_confidence_confirmed_mean
   entity_id: sensor.motion_detected_vehicle_confidence_confirmed
   state_characteristic: mean
   sampling_size: 1000
   max_age:
     hours: 72
-
-- platform: template
-  sensors:
-#    motion_detected_vehicle_confidence_confirmed_count:
-#      friendly_name: '🚚✅ β Σ'
-#      unit_of_measurement: 'β'
-#      icon_template: 'mdi:truck'
-#      value_template: >-
-#        {% if states('sensor.motion_detected_vehicle_confidence_confirmed_statistics')|lower != 'unknown' %}
-#          {{ state_attr('sensor.motion_detected_vehicle_confidence_confirmed_statistics','count')|int }}
-#        {%- else -%}null{%- endif -%}
-    motion_detected_vehicle_confidence_confirmed_mean:
-      friendly_name: '🚚✅ β μ'
-      icon_template: 'mdi:truck'
-      unit_of_measurement: 'β'
-      value_template: >-
-        {% if states('sensor.motion_detected_vehicle_confidence_confirmed_statistics')|lower != 'unknown' %}
-          {{ states('sensor.motion_detected_vehicle_confidence_confirmed_statistics')|float }}
-        {%- else -%}null{%- endif -%}
-#    motion_detected_vehicle_confidence_confirmed_min:
-#      friendly_name: '🚚✅ β min'
-#      unit_of_measurement: 'β'
-#      icon_template: 'mdi:truck'
-
-#        {% if states('sensor.motion_detected_vehicle_confidence_confirmed_statistics')|lower != 'unknown' %}
-#          {{ state_attr('sensor.motion_detected_vehicle_confidence_confirmed_statistics','min_value')|int }}
-#        {%- else -%}null{%- endif -%}
-#    motion_detected_vehicle_confidence_confirmed_max:
-#      friendly_name: '🚚✅ β max'
-#      unit_of_measurement: 'β'
-#      icon_template: 'mdi:truck'
-#      value_template: >-
-#        {% if states('sensor.motion_detected_vehicle_confidence_confirmed_statistics')|lower != 'unknown' %}
-#          {{ state_attr('sensor.motion_detected_vehicle_confidence_confirmed_statistics','max_value')|int }}
-#        {%- else -%}null{%- endif -%}
-#    motion_detected_vehicle_confidence_confirmed_stdev:
-#      friendly_name: '🚚✅ β σ'
-#      unit_of_measurement: 'β'
-#      icon_template: 'mdi:truck'
-#      value_template: >
-#        {% if states('sensor.motion_detected_vehicle_confidence_confirmed_statistics')|lower != 'unknown' %}
-#          {{ state_attr('sensor.motion_detected_vehicle_confidence_confirmed_statistics','standard_deviation')|float }}
-#        {%- else -%}null{%- endif -%}
 
 - platform: statistics
   name: motion_detected_vehicle_confidence_mean
@@ -1850,119 +1475,6 @@
   sampling_size: 1000
   max_age:
     hours: 72
-
-#- platform: template
-#  sensors:
-#    motion_detected_vehicle_confidence_count:
-#      friendly_name: '🚚 β Σ'
-#      icon_template: 'mdi:counter'
-#      unit_of_measurement: '🚚β'
-#      value_template: >-
-#        {% if states('sensor.motion_detected_vehicle_confidence_statistics')|lower != 'unknown' %}
-#          {{ state_attr('sensor.motion_detected_vehicle_confidence_statistics','count')|int }}
-#        {%- else -%}null{%- endif -%}
-#    motion_detected_vehicle_confidence_mean:
-#      friendly_name: '🚚 β μ'
-#      icon_template: 'mdi:truck'
-#      unit_of_measurement: 'β'
-#      value_template: >-
-#        {% if states('sensor.motion_detected_vehicle_confidence_statistics')|lower != 'unknown' %}
-#          {{ states('sensor.motion_detected_vehicle_confidence_statistics')|float }}
-#        {%- else -%}null{%- endif -%}
-#    motion_detected_vehicle_confidence_min:
-#      friendly_name: '🚚 β min'
-#      unit_of_measurement: 'β'
-#      icon_template: 'mdi:truck'
-#      value_template: >-
-#        {% if states('sensor.motion_detected_vehicle_confidence_statistics')|lower != 'unknown' %}
-#          {{ state_attr('sensor.motion_detected_vehicle_confidence_statistics','min_value')|int }}
-#        {%- else -%}null{%- endif -%}
-#    motion_detected_vehicle_confidence_max:
-#      friendly_name: '🚚 β max'
-#      unit_of_measurement: 'β'
-#      icon_template: 'mdi:truck'
-#      value_template: >-
-#        {% if states('sensor.motion_detected_vehicle_confidence_statistics')|lower != 'unknown' %}
-#          {{ state_attr('sensor.motion_detected_vehicle_confidence_statistics','max_value')|int }}
-#        {%- else -%}null{%- endif -%}
-#    motion_detected_vehicle_confidence_stdev:
-#      friendly_name: '🚚 β σ'
-#      unit_of_measurement: 'β'
-#      icon_template: 'mdi:truck'
-#      value_template: >
-#        {% if states('sensor.motion_detected_vehicle_confidence_statistics')|lower != 'unknown' %}
-#          {{ state_attr('sensor.motion_detected_vehicle_confidence_statistics','standard_deviation')|float }}
-#        {%- else -%}null{%- endif -%}
-#    motion_detected_vehicle_confidence_change:
-#      friendly_name: '🚚 β Δ'
-#      unit_of_measurement: 'β'
-#      icon_template: 'mdi:truck'
-#      value_template: >
-#        {% if states('sensor.motion_detected_vehicle_confidence_statistics')|lower != 'unknown' %}
-#          {{ state_attr('sensor.motion_detected_vehicle_confidence_statistics','change')|float }}
-#        {%- else -%}null{%- endif -%}
-
-#- platform: statistics
-#  name: motion_detected_vehicle_confidence_stdev_statistics
-#  entity_id: sensor.motion_detected_vehicle_confidence_stdev
-#  sampling_size: 1000
-#  max_age:
-#    hours: 72
-#
-#- platform: template
-#  sensors:
-#    motion_detected_vehicle_confidence_stdev_mean:
-#      friendly_name: '🚚 β σ μ'
-#      unit_of_measurement: 'β'
-#      value_template: >
-#        {% if states.sensor.motion_detected_vehicle_confidence_stdev_statistics|lower != 'unknown' %}
-#          {{ states('sensor.motion_detected_vehicle_confidence_stdev_statistics')|float }}
-#        {%- else -%}null{%- endif -%}
-#    motion_detected_vehicle_confidence_stdev_change:
-#      friendly_name: '🚚 β σ Δ'
-#      unit_of_measurement: 'β'
-#      value_template: >
-#        {% if states.sensor.motion_detected_vehicle_confidence_stdev_statistics|lower != 'unknown' %}
-#          {{ state_attr('sensor.motion_detected_vehicle_confidence_stdev_statistics','change')|float }}
-#        {%- else -%}null{%- endif -%}
-#    motion_detected_vehicle_confidence_stdev_stdev:
-#      friendly_name: '🚚 β σ σ'
-#      unit_of_measurement: 'β'
-#      value_template: >
-#        {% if states.sensor.motion_detected_vehicle_confidence_stdev_statistics|lower != 'unknown' %}
-#          {{ state_attr('sensor.motion_detected_vehicle_confidence_stdev_statistics','standard_deviation')|float }}
-#        {%- else -%}null{%- endif -%}
-#
-#- platform: statistics
-#  name: motion_detected_vehicle_confidence_change_statistics
-#  entity_id: sensor.motion_detected_vehicle_confidence_change
-#  sampling_size: 1000
-#  max_age:
-#    hours: 72
-#
-#- platform: template
-#  sensors:
-#    motion_detected_vehicle_confidence_change_mean:
-#      friendly_name: '🚚 β Δ μ'
-#      unit_of_measurement: 'β'
-#      value_template: >
-#        {% if states.sensor.motion_detected_vehicle_confidence_change_statistics|lower != 'unknown' %}
-#          {{ states('sensor.motion_detected_vehicle_confidence_change_statistics')|float }}
-#        {%- else -%}null{%- endif -%}
-#    motion_detected_vehicle_confidence_change_stdev:
-#      friendly_name: '🚚 β Δ σ'
-#      unit_of_measurement: 'β'
-#      value_template: >
-#        {% if states.sensor.motion_detected_vehicle_confidence_change_statistics|lower != 'unknown' %}
-#          {{ state_attr('sensor.motion_detected_vehicle_confidence_change_statistics','standard_deviation')|float }}
-#        {%- else -%}null{%- endif -%}
-#    motion_detected_vehicle_confidence_change_change:
-#      friendly_name: '🚚 β Δ Δ'
-#      unit_of_measurement: 'β'
-#      value_template: >
-#        {% if states.sensor.motion_detected_vehicle_confidence_change_statistics|lower != 'unknown' %}
-#          {{ state_attr('sensor.motion_detected_vehicle_confidence_change_statistics','change')|float }}
-#        {%- else -%}null{%- endif -%}
 
 ## ago
 
