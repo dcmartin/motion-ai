@@ -2,9 +2,71 @@
 # homeassistant/sensor/motion/person_away.yaml
 ###
 
-##
 # away ratio
-##
+
+- platform: history_stats
+  name: motion_person_away_ratio_history_stats_1d
+  entity_id: binary_sensor.motion_person_away
+  state: 'on'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_person_away_ratio_history_stats_1w
+  entity_id: binary_sensor.motion_person_away
+  state: 'on'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_person_weeks_timestamp')|int }}
+  end: '{{ now() }}'
+
+- platform: template
+  sensors:
+    motion_person_away_ratio_1d:
+      friendly_name: 'Away ratio (1d)'
+      icon_template: 'mdi:map'
+      unit_of_measurement: '🗺'
+      value_template: >
+        {%- set s = states('sensor.motion_person_away_ratio_history_stats_1d') -%}
+        {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+          {{- s|int -}}
+        {%- else -%}null{%- endif -%}
+    motion_person_away_ratio_1w:
+      friendly_name: 'Away ratio (1w)'
+      icon_template: 'mdi:map'
+      unit_of_measurement: '🗺'
+      value_template: >
+        {%- set s = states('sensor.motion_person_away_ratio_history_stats_1w') -%}
+        {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+          {{- s|int -}}
+        {%- else -%}null{%- endif -%}
+
+- platform: statistics
+  name: motion_person_away_ratio_oldest_1w
+  entity_id: sensor.motion_person_away_ratio_history_stats_1d
+  state_characteristic: datetime_oldest
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_person_away_ratio_mean_1w
+  entity_id: sensor.motion_person_away_ratio_history_stats_1d
+  state_characteristic: mean
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_person_away_ratio_stdev_1w
+  entity_id: sensor.motion_person_away_ratio_history_stats_1d
+  state_characteristic: standard_deviation
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+# away count
 
 - platform: history_stats
   name: motion_person_away_count_history_stats_1d
@@ -45,8 +107,33 @@
         {%- else -%}null{%- endif -%}
 
 - platform: statistics
-  name: motion_person_away_count_statistics_1w
-  entity_id: sensor.motion_person_away_count_count_history_stats_1d
+  name: motion_person_away_count_oldest_1w
+  entity_id: sensor.motion_person_away_count_history_stats_1d
+  state_characteristic: datetime_oldest
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_person_away_count_total_1w
+  entity_id: sensor.motion_person_away_count_history_stats_1d
+  state_characteristic: total
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_person_away_count_mean_1w
+  entity_id: sensor.motion_person_away_count_history_stats_1d
+  state_characteristic: mean
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_person_away_count_stdev_1w
+  entity_id: sensor.motion_person_away_count_history_stats_1d
+  state_characteristic: standard_deviation
   sampling_size: 1000
   max_age:
     days: 7
@@ -56,15 +143,15 @@
     motion_person_away_period_count:
       unit_of_measurement: 'Σ'
       value_template: >-
-        {{ state_attr('sensor.motion_person_away_ratio_statistics_1w','count') }}
+        {{ states('sensor.motion_person_away_count_1w') }}
     motion_person_away_period_duration:
       friendly_name: 'Away analysis duration (s)'
       icon_template: 'mdi:av-timer'
       unit_of_measurement: 's'
       value_template: >-
-        {% set s = state_attr('sensor.motion_person_away_ratio_statistics_1w','min_age') %}
-        {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|length > 0 %}
-          {{ utcnow().timestamp() - s|as_timestamp }}
+        {% set s = states('sensor.motion_person_away_count_oldest_1w') %}
+        {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 %}
+          {{ utcnow().timestamp() - s|float }}
         {%- else -%}null{%- endif -%}
     motion_person_away_period:
       unique_id: motion_person_away_period
@@ -93,46 +180,3 @@
           {% endif %}
           {{ '(' + states('sensor.motion_person_away_period_count') + ')' }}
         {%- else -%}Pending{%- endif -%}
-
-- platform: template
-  sensors:
-    motion_person_away_count_mean_1w:
-      friendly_name: 'Person away μ (1w)'
-      unit_of_measurement: '🗺'
-      icon_template: 'mdi:map'
-      value_template: >-
-        {% if states('sensor.motion_person_away_count_statistics_1w') != 'unknown' %}
-          {{ states.sensor.motion_person_away_count_statistics_1w.state|float }}
-        {%- else -%}null{%- endif -%}
-    motion_person_away_count_min_1w:
-      friendly_name: 'Person away min (1w)'
-      unit_of_measurement: '🗺'
-      icon_template: 'mdi:map'
-      value_template: >-
-        {% if states('sensor.motion_person_away_count_statistics_1w') != 'unknown' %}
-          {{ state_attr('sensor.motion_person_away_count_statistics_1w','min_value')|int }}
-        {%- else -%}null{%- endif -%}
-    motion_person_away_count_max_1w:
-      friendly_name: 'Person away max (1w)'
-      unit_of_measurement: '🗺'
-      icon_template: 'mdi:map'
-      value_template: >-
-        {% if states('sensor.motion_person_away_count_statistics_1w') != 'unknown' %}
-          {{ state_attr('sensor.motion_person_away_count_statistics_1w','max_value')|int }}
-        {%- else -%}null{%- endif -%}
-    motion_person_away_count_stdev_1w:
-      friendly_name: Person away stdev (1w)
-      unit_of_measurement: '🗺'
-      icon_template: 'mdi:sigma-lower'
-      value_template: >
-        {% if states('sensor.motion_person_away_count_statistics_1w') != 'unknown' %}
-          {{ state_attr('sensor.motion_person_away_count_statistics_1w','standard_deviation')|float }}
-        {%- else -%}null{%- endif -%}
-    motion_person_away_count_change_1w:
-      friendly_name: Person away change (1w)
-      unit_of_measurement: '🗺'
-      icon_template: 'mdi:map'
-      value_template: >
-        {% if states('sensor.motion_person_away_count_statistics_1w') != 'unknown' %}
-          {{ state_attr('sensor.motion_person_away_count_statistics_1w','change')|float }}
-        {%- else -%}null{%- endif -%}
