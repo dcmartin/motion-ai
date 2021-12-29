@@ -5,18 +5,18 @@
 - id: motion_person_detected_previous
   alias: motion_person_detected_previous
   initial_state: on
-  mode: queued
+  mode: single
   trigger:
     - platform: state
       entity_id: sensor.motion_person_detected
-      to:
   condition:
     condition: and
     conditions:
       - condition: template
         value_template: >
           {% set s = states('sensor.motion_person_detected') %}
-          {{ s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'pending' }}
+          {# s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'pending' #}
+          {{ s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' }}
   variables:
     latitude: >-
       {% set s = state_attr('sensor.motion_person_detected','latitude') %}
@@ -51,7 +51,9 @@
                 {% set d = distance(plat, plng, clat, clng) %}
                 {% if d|int is number and d|int > 0 and d|int < 40075 %}
                   {{- '%0.2f'|format(d * 1000) -}}
-                {% else %}{{ state_attr('sensor.motion_person_detected','gps_accuracy') }}{% endif %}
+                {% else %}
+                  {{ range(0,state_attr('sensor.motion_person_detected','gps_accuracy'))|random }}
+                {% endif %}
               {% else %}null{% endif %}
             {% else %}null{% endif %}
           {% else %}null{% endif %}
@@ -113,21 +115,19 @@
 - id: motion_person_detected
   alias: motion_person_detected
   initial_state: on
-  mode: queued
+  mode: single
   trigger:
     - platform: state
       entity_id: binary_sensor.motion_detected_person
-      to:
+      to: 'on'
   condition:
     condition: and
     conditions:
       - condition: template
         value_template: >
-          {{ is_state('binary_sensor.motion_detected_person','on') }}
-      - condition: template
-        value_template: >
           {% set s = states('sensor.motion_detected_person_camera') %}
-          {{ s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'pending' }}
+          {# s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'pending' #}
+          {{ s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' }}
   variables:
     id: >-
       {% set s = states('sensor.motion_detected_person_camera') %}
@@ -214,15 +214,15 @@
                   {{ sensor|string + '_person_detected' }}
                 message: >-
                   Person detection camera id or location invalid; id: {{ id -}}; GPS: {{ latitude,longitude -}}; distance: {{ distance }}
-    - alias: 'id and/or gps'
+    - alias: 'choose: id and/or gps'
       choose:
-        - alias: 'id good and gps bad'
+        - alias: 'test: id good and gps bad'
           conditions:
             - condition: template
               value_template: >-
                 {{ id|lower != 'null' and gps|lower != 'true' }}
           sequence:
-            - alias: 'set sensor.motion_person_detected'
+            - alias: 'ID GOOD; GPS BAD: set sensor.motion_person_detected'
               service: python_script.set_state
               data_template:
                 entity_id: sensor.motion_person_detected
@@ -248,13 +248,13 @@
                   {{ probability }}
                 state: >-
                   {{ id }}
-        - alias: 'id good and gps good'
+        - alias: 'test: id good and gps good'
           conditions:
             - condition: template
               value_template: >-
                 {{ id|lower != 'null' and gps|lower == 'true' }}
           sequence:
-            - alias: 'set sensor.motion_person_detected'
+            - alias: 'ID GOOD; GPS GOOD: set sensor.motion_person_detected'
               service: python_script.set_state
               data_template:
                 entity_id: sensor.motion_person_detected
