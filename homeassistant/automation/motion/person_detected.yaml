@@ -15,16 +15,15 @@
       - condition: template
         value_template: >
           {% set s = states('sensor.motion_person_detected') %}
-          {# s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'pending' #}
-          {{ s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' }}
+          {{ s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'pending' }}
   variables:
     latitude: >-
-      {% set s = state_attr('sensor.motion_person_detected','latitude') %}
+      {% set s = state_attr(state_attr('sensor.motion_person_detected','sensor'),'latitude') %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
         {{ s }}
       {% else %}null{% endif %}
     longitude: >-
-      {% set s = state_attr('sensor.motion_person_detected','longitude') %}
+      {% set s = state_attr(state_attr('sensor.motion_person_detected','sensor'),'longitude') %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
         {{ s }}
       {% else %}null{% endif %}
@@ -34,31 +33,12 @@
         {{ s }}
       {% else %}null{% endif %}
     movement: >-
-      {% set s = states('sensor.motion_person_detected_previous') %}
-      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-        {% set s = state_attr('sensor.motion_person_detected_previous','latitude') %}
-        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-          {% set plat = s|float %}
-          {% set s = state_attr('sensor.motion_person_detected_previous','longitude') %}
-          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-            {% set plng = s|float %}
-            {% set s = state_attr('sensor.motion_person_detected','latitude') %}
-            {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-              {% set clat = s|float %}
-              {% set s = state_attr('sensor.motion_person_detected','longitude') %}
-              {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-                {% set clng = s|float %}
-                {% set d = distance(plat, plng, clat, clng) %}
-                {% if d|int is number and d|int > 0 and d|int < 40075 %}
-                  {{- '%0.2f'|format(d * 1000) -}}
-                {% else %}
-                  {{ range(0,state_attr('sensor.motion_person_detected','gps_accuracy'))|random }}
-                {% endif %}
-              {% else %}null{% endif %}
-            {% else %}null{% endif %}
-          {% else %}null{% endif %}
-        {% else %}null{% endif %}
-      {% else %}null{% endif %}
+      {% set d = distance(state_attr('sensor.motion_person_detected','sensor'), state_attr('sensor.motion_person_detected','prior')) %}
+      {% if d|lower != 'none' and d|float is number and d|float > 0 and d|float < 40075 %}
+        {{- '%0.2f'|format(d * 1000) -}}
+      {% else %}
+        {{ range(0,state_attr(state_attr('sensor.motion_person_detected','sensor'),'gps_accuracy'))|random }}
+      {% endif %}
     interval: >-
       {% set t = state_attr('sensor.motion_person_detected_previous','timestamp') %}
       {% if t|lower != 'none' and t|lower != 'unknown' and t|lower != 'unavailable' and t|lower != 'null' and t|float is number and t|float > 0 %}
@@ -73,6 +53,21 @@
         {% else %}null{% endif %}
       {% else %}null{% endif %}
   action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ is_state('input_select.motion_log_level','debug') }}
+          sequence:
+            - alias: 'debug: person_detected_previous'
+              service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: Person detection
+                notification_id: >-
+                  {{ 'person_detected_previous_' + id }}
+                message: >-
+                  Sensor: {{ state_attr('sensor.motion_person_detected','sensor') -}}; prior: {{ state_attr('sensor.motion_person_detected','prior') -}}; GPS: {{ latitude,longitude -}}; movement: {{ movement -}}; velocity: {{ velocity }}
     - alias: 'camera and location good?'
       condition: and
       conditions:
@@ -118,19 +113,16 @@
   mode: single
   trigger:
     - platform: state
-      entity_id: binary_sensor.motion_detected_person
+      entity_id: binary_sensor.motion_cameras_detected_person
       to: 'on'
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >
-          {% set s = states('sensor.motion_detected_person_camera') %}
-          {# s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'pending' #}
-          {{ s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' }}
   variables:
     id: >-
-      {% set s = states('sensor.motion_detected_person_camera') %}
+      {% set s = state_attr('binary_sensor.motion_cameras_detected_person','id') %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ s }}
+      {% else %}null{% endif %}
+    sensor: >-
+      {% set s = state_attr('binary_sensor.motion_cameras_detected_person','sensor') %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
         {{ s }}
       {% else %}null{% endif %}
@@ -139,7 +131,7 @@
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
         {{ s }}
       {% else %}null{% endif %}
-    sensor: >-
+    device: >-
       {% set s = states('camera.motion_' + id|string + '_detected_person') %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
         {{ 'camera.motion_' + id|string + '_detected_person' }}
@@ -147,12 +139,12 @@
         {{ 'camera.motion_detected_person' }}
       {% endif %}
     latitude: >-
-      {% set s = state_attr('sensor.motion_' + id|string + '_camera_detected_person_status','latitude') %}
+      {% set s = state_attr(sensor,'latitude') %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
         {{ s }}
       {% else %}null{% endif %}
     longitude: >-
-      {% set s = state_attr('sensor.motion_' + id|string + '_camera_detected_person_status','longitude') %}
+      {% set s = state_attr(sensor,'longitude') %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
         {{ s }}
       {% else %}null{% endif %}
@@ -171,21 +163,19 @@
         {% else %}null{% endif %}
       {% else %}null{% endif %}
     ago: >-
-      {% set s = state_attr('sensor.motion_' + id|string + '_camera_detected_person_status','ago') %}
+      {% set s = state_attr(sensor,'date') %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-        {{ s }}
-      {% else %}
-        {{ states('sensor.motion_detected_person_ago') }}
-      {% endif %}
+        {{ utcnow().timestamp() - s|int }}
+      {% else %}null{% endif %}
     area: >-
-      {% set s = area_name(sensor) %}
+      {% set s = area_name(device) %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
         {{ s }}
       {% else %}null{% endif %}
     probability: >-
       {{ state_attr('binary_sensor.motion_person_detected_active','probability') }}
     gps_accuracy: >-
-      {% set s = state_attr('sensor.motion_' + id|string + '_camera_detected_person_status','gps_accuracy') %}
+      {% set s = state_attr(sensor,'gps_accuracy') %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
         {{ s }}
       {% else %}null{% endif %}
@@ -228,6 +218,8 @@
                 entity_id: sensor.motion_person_detected
                 sensor: >-
                   {{ sensor }}
+                prior: >-
+                  {{ state_attr('sensor.motion_person_detected_previous','sensor') }}
                 location: >-
                   {{ location }}
                 id: >-
@@ -260,6 +252,8 @@
                 entity_id: sensor.motion_person_detected
                 sensor: >-
                   {{ sensor }}
+                prior: >-
+                  {{ state_attr('sensor.motion_person_detected_previous','sensor') }}
                 location: >-
                   {{ location }}
                 id: >-
