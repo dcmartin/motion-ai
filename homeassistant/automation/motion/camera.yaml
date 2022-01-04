@@ -122,7 +122,7 @@
   initial_state: on
   mode: queued
   max_exceeded: warn
-  max: 100
+  max: 1000
   trigger:
     - platform: mqtt
       topic: '+/+/+/event/end/+'
@@ -147,8 +147,8 @@
       {% else %}null{% endif %}
     date: >-
       {% if 'date' in trigger.payload_json %}
-        {{ trigger.payload_json.date }}
-      {% else %}null{% endif %}
+        {{ trigger.payload_json.date|default(utcnow().timestamp()) }}
+      {% else %}utcnow().timestamp(){% endif %}
     group: >-
       {% if event|lower != 'null' %}
         {{ event.group }}
@@ -200,7 +200,7 @@
           {% set p = l|list|max|int %}
           {% if (is_state('binary_sensor.motion_detect_animal_confirmed','on') and p >= states('sensor.motion_detected_animal_threshold_confirmed')|int) or
             (is_state('binary_sensor.motion_detect_animal_confirmed','off') and p >= states('sensor.motion_detected_animal_threshold')|int) %}
-            {% set t = date|default(utcnow().timestamp()) %}
+            {% set t = date %}
           {% endif %}
         {% endif %}
         {% if t is defined %}
@@ -222,7 +222,7 @@
           {% set p = l|list|max|int %}
           {% if (is_state('binary_sensor.motion_detect_person_confirmed','on') and p >= states('sensor.motion_detected_person_threshold_confirmed')|int) or
             (is_state('binary_sensor.motion_detect_person_confirmed','off') and p >= states('sensor.motion_detected_person_threshold')|int) %}
-            {% set t = date|default(utcnow().timestamp()) %}
+            {% set t = date %}
           {% endif %}
         {% endif %}
         {% if t is defined %}
@@ -244,7 +244,7 @@
           {% set p = l|list|max|int %}
           {% if (is_state('binary_sensor.motion_detect_vehicle_confirmed','on') and p >= states('sensor.motion_detected_vehicle_threshold_confirmed')|int) or
             (is_state('binary_sensor.motion_detect_vehicle_confirmed','off') and p >= states('sensor.motion_detected_vehicle_threshold')|int) %}
-            {% set t = date|default(utcnow().timestamp()) %}
+            {% set t = date %}
           {% endif %}
         {% endif %}
         {% if t is defined %}
@@ -266,7 +266,7 @@
           {% set p = l|list|max|int %}
           {% if (is_state('binary_sensor.motion_detect_entity_confirmed','on') and p >= states('sensor.motion_detected_entity_threshold_confirmed')|int) or
             (is_state('binary_sensor.motion_detect_entity_confirmed','off') and p >= states('sensor.motion_detected_entity_threshold')|int) %}
-            {% set t = date|default(utcnow().timestamp()) %}
+            {% set t = date %}
           {% endif %}
         {% endif %}
         {% if t is defined %}
@@ -402,6 +402,35 @@
               value_template: >
                 {{ detected|lower != 'null' }}
           sequence:
+            - variables:
+                prior: >-
+                  {% set s = state_attr('binary_sensor.motion_cameras_detected','sensor') %}
+                  {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+                    {{ s }}
+                  {% else %}null{% endif %}
+                movement: >-
+                  {% if prior|lower != 'null' %}
+                    {% set s = distance(sensor,prior) %}
+                    {% if s|float is number and s|float > 0.0 and s|float < 45000 %}
+                      {% set s = s|float * 1000.0 %}
+                    {% endif %}
+                  {% endif %}
+                  {% if s is defined and s is number and s > 0 %}
+                    {{ s }}
+                  {% else %}
+                    {{ range(0,state_attr(sensor,'gps_accuracy'))|random|float }}
+                  {% endif %}
+                interval: >-
+                  {% if prior|lower != 'null' %}
+                    {% set s = state_attr(prior, 'date') %}
+                    {% if s|float is number and s|float > 0.0 %}
+                      {{ date|float - s|float }}
+                    {% else %}null{% endif %}
+                  {% else %}null{% endif %}
+                velocity: >-
+                  {% if interval|lower != 'null' and interval|float > 0.0 %}
+                    {{ movement / interval }}
+                  {% else %}null{% endif %}
             - alias: 'set binary_sensor.motion_cameras_detected'
               service: python_script.set_state
               data_template:
@@ -410,6 +439,14 @@
                   {{ 'binary_sensor.motion_cameras_detected' }}
                 sensor: >-
                   {{ sensor }}
+                prior: >-
+                  {{ prior }}
+                movement: >-
+                  {{ movement }}
+                interval: >-
+                  {{ interval }}
+                velocity: >-
+                  {{ velocity }}
                 date: >-
                   {{ date }}
                 id: >-
@@ -431,6 +468,35 @@
               value_template: >
                 {{ entity|lower != 'null' }}
           sequence:
+            - variables:
+                prior: >-
+                  {% set s = state_attr('binary_sensor.motion_cameras_detected_entity','sensor') %}
+                  {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+                    {{ s }}
+                  {% else %}null{% endif %}
+                movement: >-
+                  {% if prior|lower != 'null' %}
+                    {% set s = distance(sensor,prior) %}
+                    {% if s|float is number and s|float > 0.0 and s|float < 45000 %}
+                      {% set s = s|float * 1000.0 %}
+                    {% endif %}
+                  {% endif %}
+                  {% if s is defined and s is number and s > 0 %}
+                    {{ s }}
+                  {% else %}
+                    {{ range(0,state_attr(sensor,'gps_accuracy'))|random|float }}
+                  {% endif %}
+                interval: >-
+                  {% if prior|lower != 'null' %}
+                    {% set s = state_attr(prior, 'date') %}
+                    {% if s|float is number and s|float > 0.0 %}
+                      {{ date|float - s|float }}
+                    {% else %}null{% endif %}
+                  {% else %}null{% endif %}
+                velocity: >-
+                  {% if interval|lower != 'null' and interval|float > 0.0 %}
+                    {{ movement / interval }}
+                  {% else %}null{% endif %}
             - alias: 'set binary_sensor.motion_cameras_detected_entity'
               service: python_script.set_state
               data_template:
@@ -439,6 +505,14 @@
                   {{ 'binary_sensor.motion_cameras_detected_entity' }}
                 sensor: >-
                   {{ sensor }}
+                prior: >-
+                  {{ prior }}
+                movement: >-
+                  {{ movement }}
+                interval: >-
+                  {{ interval }}
+                velocity: >-
+                  {{ velocity }}
                 date: >-
                   {{ date }}
                 id: >-
@@ -458,6 +532,35 @@
               value_template: >
                 {{ animal|lower != 'null' }}
           sequence:
+            - variables:
+                prior: >-
+                  {% set s = state_attr('binary_sensor.motion_cameras_detected_animal','sensor') %}
+                  {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+                    {{ s }}
+                  {% else %}null{% endif %}
+                movement: >-
+                  {% if prior|lower != 'null' %}
+                    {% set s = distance(sensor,prior) %}
+                    {% if s|float is number and s|float > 0.0 and s|float < 45000 %}
+                      {% set s = s|float * 1000.0 %}
+                    {% endif %}
+                  {% endif %}
+                  {% if s is defined and s is number and s > 0 %}
+                    {{ s }}
+                  {% else %}
+                    {{ range(0,state_attr(sensor,'gps_accuracy'))|random|float }}
+                  {% endif %}
+                interval: >-
+                  {% if prior|lower != 'null' %}
+                    {% set s = state_attr(prior, 'date') %}
+                    {% if s|float is number and s|float > 0.0 %}
+                      {{ date|float - s|float }}
+                    {% else %}null{% endif %}
+                  {% else %}null{% endif %}
+                velocity: >-
+                  {% if interval|lower != 'null' and interval|float > 0.0 %}
+                    {{ movement / interval }}
+                  {% else %}null{% endif %}
             - alias: 'set binary_sensor.motion_cameras_detected_animal'
               service: python_script.set_state
               data_template:
@@ -466,6 +569,14 @@
                   {{ 'binary_sensor.motion_cameras_detected_animal' }}
                 sensor: >-
                   {{ sensor }}
+                prior: >-
+                  {{ prior }}
+                movement: >-
+                  {{ movement }}
+                interval: >-
+                  {{ interval }}
+                velocity: >-
+                  {{ velocity }}
                 date: >-
                   {{ date }}
                 id: >-
@@ -485,6 +596,35 @@
               value_template: >
                 {{ vehicle|lower != 'null' }}
           sequence:
+            - variables:
+                prior: >-
+                  {% set s = state_attr('binary_sensor.motion_cameras_detected_vehicle','sensor') %}
+                  {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+                    {{ s }}
+                  {% else %}null{% endif %}
+                movement: >-
+                  {% if prior|lower != 'null' %}
+                    {% set s = distance(sensor,prior) %}
+                    {% if s|float is number and s|float > 0.0 and s|float < 45000 %}
+                      {% set s = s|float * 1000.0 %}
+                    {% endif %}
+                  {% endif %}
+                  {% if s is defined and s is number and s > 0 %}
+                    {{ s }}
+                  {% else %}
+                    {{ range(0,state_attr(sensor,'gps_accuracy'))|random|float }}
+                  {% endif %}
+                interval: >-
+                  {% if prior|lower != 'null' %}
+                    {% set s = state_attr(prior, 'date') %}
+                    {% if s|float is number and s|float > 0.0 %}
+                      {{ date|float - s|float }}
+                    {% else %}null{% endif %}
+                  {% else %}null{% endif %}
+                velocity: >-
+                  {% if interval|lower != 'null' and interval|float > 0.0 %}
+                    {{ movement / interval }}
+                  {% else %}null{% endif %}
             - alias: 'set binary_sensor.motion_cameras_detected_vehicle'
               service: python_script.set_state
               data_template:
@@ -493,6 +633,14 @@
                   {{ 'binary_sensor.motion_cameras_detected_vehicle' }}
                 sensor: >-
                   {{ sensor }}
+                prior: >-
+                  {{ prior }}
+                movement: >-
+                  {{ movement }}
+                interval: >-
+                  {{ interval }}
+                velocity: >-
+                  {{ velocity }}
                 date: >-
                   {{ date }}
                 id: >-
@@ -512,6 +660,35 @@
               value_template: >
                 {{ person|lower != 'null' }}
           sequence:
+            - variables:
+                prior: >-
+                  {% set s = state_attr('binary_sensor.motion_cameras_detected_person','sensor') %}
+                  {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+                    {{ s }}
+                  {% else %}null{% endif %}
+                movement: >-
+                  {% if prior|lower != 'null' %}
+                    {% set s = distance(sensor,prior) %}
+                    {% if s|float is number and s|float > 0.0 and s|float < 45000 %}
+                      {% set s = s|float * 1000.0 %}
+                    {% endif %}
+                  {% endif %}
+                  {% if s is defined and s is number and s > 0 %}
+                    {{ s }}
+                  {% else %}
+                    {{ range(0,state_attr(sensor,'gps_accuracy'))|random|float }}
+                  {% endif %}
+                interval: >-
+                  {% if prior|lower != 'null' %}
+                    {% set s = state_attr(prior, 'date') %}
+                    {% if s|float is number and s|float > 0.0 %}
+                      {{ date|float - s|float }}
+                    {% else %}null{% endif %}
+                  {% else %}null{% endif %}
+                velocity: >-
+                  {% if interval|lower != 'null' and interval|float > 0.0 %}
+                    {{ movement / interval }}
+                  {% else %}null{% endif %}
             - alias: 'set binary_sensor.motion_cameras_detected_person'
               service: python_script.set_state
               data_template:
@@ -520,6 +697,14 @@
                   {{ 'binary_sensor.motion_cameras_detected_person' }}
                 sensor: >-
                   {{ sensor }}
+                prior: >-
+                  {{ prior }}
+                movement: >-
+                  {{ movement }}
+                interval: >-
+                  {{ interval }}
+                velocity: >-
+                  {{ velocity }}
                 date: >-
                   {{ date }}
                 id: >-
