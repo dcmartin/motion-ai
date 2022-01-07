@@ -12,88 +12,19 @@
 
 - platform: template
   sensors:
-    motion_${MOTION_CAMERA}_camera_detected_person_picture:
-      value_template: >-
-        {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_status_camera','on') %}
-          {% set s = states('sensor.motion_${MOTION_CAMERA}_camera_detected_person_level') %}
-          {% if s|lower != 'unavailable' %}
-            {% if s|lower == 'none' %}
-              {{- '/local/images/none-signal.png' -}}
-            {% elif s|lower == 'verylow' %}
-              {{- '/local/images/verylow-signal.png' -}}
-            {% elif s|lower == 'veryhigh' %}
-              {{- '/local/images/veryhigh-signal.png' -}}
-            {% elif s|lower == 'low' %}
-              {{- '/local/images/low-signal.png' -}}
-            {% elif s|lower == 'high' %}
-              {{- '/local/images/high-signal.png' -}}
-            {% elif s|lower == 'null' %}
-              {{- '/local/images/null-signal.png' -}}
-            {% elif s|lower == 'nominal' %}
-              {{- '/local/images/nominal-signal.png' -}}
-            {% else %}
-              {{- '/local/images/unknown-signal.png' -}}
-            {% endif %}
-          {% else %}
-            {{- '/local/images/noise-signal.gif' -}}
-          {% endif %}
-        {% else %}
-          {{- '/local/images/no-signal.gif' -}}
-        {% endif %}
     motion_${MOTION_CAMERA}_camera_detected_person_rank:
       unique_id: motion_${MOTION_CAMERA}_camera_detected_person_rank
       friendly_name: '${MOTION_CAMERA} 👱 ≋'
       unit_of_measurement: '≋'
       icon_template: 'mdi:chevron-triple-up'
       value_template: >-
-        {% set id = '${MOTION_CAMERA}' %}
-        {%- set s = state_attr('group.motion_cameras','persons') %}
-        {%- if s|lower != 'none' and s|lower != 'null' and s|from_json is iterable %}
-          {%- set n = utcnow().timestamp() - s|from_json|select('number')|list|max|float -%}
-          {%- set m = utcnow().timestamp() - s|from_json|select('number')|list|min|float -%}
-          {% set d = state_attr('binary_sensor.motion_camera_' + id + '_detected','person') -%}
-          {% if d|lower != 'none' and d|lower != 'null' and d is iterable %}
-            {% set d = utcnow().timestamp() - d|first|float %}
-            {% if n|float > 0.0 and m|float > 0.0 and d|float > 0.0 -%}
-              {% if d <= n %}
-                {% set s = 100 %}
-              {% elif d >= m %}
-                {% set s = 0 %}
-              {% else %}
-                {%- set s = n/d*100 -%}
-              {% endif %}
-              {%- if s|float <= 100.0 %}
-                {{- "%.2f"|format(s) -}}
-              {%- else -%}null{%- endif -%}
-            {% else %}null{% endif %}
-          {% else %}null{% endif %}
-        {% else %}null{% endif %}
+        {{ state_attr('sensor.motion_${MOTION_CAMERA}_detected_person_status','rank') }}
     motion_${MOTION_CAMERA}_camera_detected_person_level:
       unique_id: motion_${MOTION_CAMERA}_camera_detected_person_level
       friendly_name: '${MOTION_CAMERA} 👱 level'
       icon_template: 'mdi:filter-variant'
       value_template: >-
-        {% set id = '${MOTION_CAMERA}' %}
-        {%- set s = states('sensor.motion_detected_person_ago_stdev') -%}
-        {%- set m = states('sensor.motion_detected_person_ago_mean') -%}
-        {%- set n = states('sensor.motion_detected_person_ago_min') -%}
-        {%- if s|float > 0.0 and m|float > 0.0 and n|float > 0.0 %}
-          {%- set rate_u = n|float / m|float * 100.0 %}
-          {%- set rate_s = n|float / s|float * 100.0 %}
-          {%- set rate_vl = rate_u - rate_s %}
-          {%- set rate_vh = rate_u + rate_s %}
-          {%- set rate_l = rate_u - rate_s/2 %}
-          {%- set rate_h = rate_u + rate_s/2 %}
-          {%- set v = states('sensor.motion_' + id|string + '_camera_detected_person_rank') %}
-          {%- if v|lower == 'null' %}{{- 'none' -}}
-          {%- elif v|float >= rate_vh %}{{- 'veryhigh' -}}
-            {%- elif v|float >= rate_h %}{{- 'high' -}}
-            {%- elif v|float < rate_h and v|float > rate_l %}{{- 'nominal' -}}
-            {%- elif v|float <= rate_vl %}{{- 'verylow' -}}
-            {%- elif v|float <= rate_l %}{{- 'low' -}}
-            {%- else %}{{- 'null' -}}
-          {%- endif -%}
-        {%- else %}{{- 'null' -}}{% endif %}
+        {{ state_attr('sensor.motion_${MOTION_CAMERA}_detected_person_status','level') }}
 
 - platform: template
   sensors:
@@ -187,12 +118,82 @@
           {%- else -%}{{- state_attr('zone.home','longitude')|float -}}{%- endif -%}
         gps_accuracy: >-
           {{- states('input_number.motion_gps_accuracy_default')|int -}}
+        rank: >-
+          {% set id = '${MOTION_CAMERA}' %}
+          {%- set s = state_attr('group.motion_cameras','persons') %}
+          {%- if s|lower != 'none' and s|lower != 'null' and s|from_json is iterable and s|from_json|count > 0 %}
+            {%- set n = utcnow().timestamp() - s|from_json|select('number')|list|max|float -%}
+            {%- set m = utcnow().timestamp() - s|from_json|select('number')|list|min|float -%}
+            {% set d = state_attr('binary_sensor.motion_camera_' + id + '_detected','person') -%}
+            {% if d|lower != 'none' and d|lower != 'null' and d is iterable %}
+              {% set d = utcnow().timestamp() - d|first|float %}
+              {% if n|float > 0.0 and m|float > 0.0 and d|float > 0.0 -%}
+                {% if d <= n %}
+                {% set s = 100 %}
+                {% elif d >= m %}
+                  {% set s = 0 %}
+                {% else %}
+                  {%- set s = n/d*100 -%}
+                {% endif %}
+                {%- if s|float <= 100.0 %}
+                  {{- "%.2f"|format(s) -}}
+                {%- else -%}null{%- endif -%}
+              {% else %}null{% endif %}
+            {% else %}null{% endif %}
+          {% else %}null{% endif %}
+        level: >-
+          {% set id = '${MOTION_CAMERA}' %}
+          {%- set s = states('sensor.motion_detected_person_ago_stdev') -%}
+          {%- set m = states('sensor.motion_detected_person_ago_mean') -%}
+          {%- set n = states('sensor.motion_detected_person_ago_min') -%}
+          {%- if s|float > 0.0 and m|float > 0.0 and n|float > 0.0 %}
+            {%- set rate_u = n|float / m|float * 100.0 %}
+            {%- set rate_s = n|float / s|float * 100.0 %}
+            {%- set rate_vl = rate_u - rate_s %}
+            {%- set rate_vh = rate_u + rate_s %}
+            {%- set rate_l = rate_u - rate_s/2 %}
+            {%- set rate_h = rate_u + rate_s/2 %}
+            {%- set v = state_attr('sensor.motion_' + id|string + '_camera_detected_person','rank') %}
+            {%- if v|lower == 'none' or v|lower == 'null' %}{{- 'none' -}}
+            {%- elif v|float >= rate_vh %}{{- 'veryhigh' -}}
+              {%- elif v|float >= rate_h %}{{- 'high' -}}
+              {%- elif v|float < rate_h and v|float > rate_l %}{{- 'nominal' -}}
+              {%- elif v|float <= rate_vl %}{{- 'verylow' -}}
+              {%- elif v|float <= rate_l %}{{- 'low' -}}
+              {%- else %}{{- 'null' -}}
+            {%- endif -%}
+          {%- else %}{{- 'null' -}}{% endif %}
         entity_picture: >-
-          {{- states('sensor.motion_${MOTION_CAMERA}_camera_detected_person_picture') -}}
+          {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_status_camera','on') %}
+            {% set s = states('sensor.motion_${MOTION_CAMERA}_camera_detected_person','level') %}
+            {% if s|lower != 'unavailable' %}
+              {% if s|lower == 'none' %}
+                {{- '/local/images/none-signal.png' -}}
+              {% elif s|lower == 'verylow' %}
+                {{- '/local/images/verylow-signal.png' -}}
+              {% elif s|lower == 'veryhigh' %}
+                {{- '/local/images/veryhigh-signal.png' -}}
+              {% elif s|lower == 'low' %}
+                {{- '/local/images/low-signal.png' -}}
+              {% elif s|lower == 'high' %}
+                {{- '/local/images/high-signal.png' -}}
+              {% elif s|lower == 'null' %}
+                {{- '/local/images/null-signal.png' -}}
+              {% elif s|lower == 'nominal' %}
+                {{- '/local/images/nominal-signal.png' -}}
+              {% else %}
+                {{- '/local/images/unknown-signal.png' -}}
+              {% endif %}
+            {% else %}
+              {{- '/local/images/noise-signal.gif' -}}
+            {% endif %}
+          {% else %}
+            {{- '/local/images/no-signal.gif' -}}
+          {% endif %}
       icon_template: 'mdi:${MOTION_CAMERA_ICON}'
       value_template: >-
         {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_status_camera','on') %}
-          {{ states('sensor.motion_${MOTION_CAMERA}_camera_detected_person_rank') }}
+          {{ state_attr('sensor.motion_${MOTION_CAMERA}_camera_detected_person','rank') }}
         {% else %}null{% endif %}
 
 ###
