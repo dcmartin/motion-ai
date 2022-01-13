@@ -1,9 +1,9 @@
 ###
-# homeassistant/automation/motion/shelly_light.yaml
+# homeassistant/automation/motion/shelly_plug.yaml
 ###
 
-- id: motion_shellies_light_state_changed
-  alias: motion_shellies_light_state_changed
+- id: motion_shellies_plug_state_changed
+  alias: motion_shellies_plug_state_changed
   initial_state: on
   mode: single
   max_exceeded: silent
@@ -12,7 +12,7 @@
       event_type: state_changed
       event_data:
         new_state:
-          entity_id: binary_sensor.motion_shellies_light
+          entity_id: binary_sensor.motion_shellies_plug
   variables:
     state: >-
       {{ trigger.to_state.state }}
@@ -27,81 +27,43 @@
         value_template: >
           {{ 'context' in trigger.to_state }}
   action:
-    - alias: 'set group.motion_shellies_light'
+    - alias: 'set group.motion_shellies_plug'
       service: python_script.set_state
       data_template:
         allow_create: true
         entity_id: >-
-          {{ 'group.motion_shellies_light' }}
+          {{ 'group.motion_shellies_plug' }}
         context: >-
           {{ context }}
         state: >-
           {{ state }}
 
-- id: motion_shellies_light_counter
-  alias: motion_shellies_light_counter
+- id: motion_shellies_plug_counter
+  alias: motion_shellies_plug_counter
   initial_state: on
   trigger:
     platform: state
-    entity_id: binary_sensor.motion_shellies_light
+    entity_id: binary_sensor.motion_shellies_plug
     from: 'off'
     to: 'on'
   action:
     - service: counter.increment
-      entity_id: counter.motion_shellies_light
+      entity_id: counter.motion_shellies_plug
 
-# set lights brightness
+# turn on all plugs
 
-- id: motion_shellies_light_mqtt_publish_brightness
-  alias: motion_shellies_light_mqtt_publish_brightness
+- id: motion_shellies_plug_mqtt_publish_on
+  alias: motion_shellies_plug_mqtt_publish_on
   initial_state: on
   mode: single
   trigger:
     - platform: state
-      entity_id: input_number.motion_shellies_light_brightness
-  variables:
-    devices: >-
-      {%- set s = state_attr('group.motion_shellies_light','entity_id') -%}
-      {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-        {%- for c in s -%}
-          {%- if loop.first -%}[{%- else -%},{%- endif -%}
-          "{{- state_attr(c,'id') -}}"
-          {%- if loop.last -%}]{%- endif -%}
-        {%- endfor -%}
-      {% else %}null{%- endif -%}
-  action:
-    - alias: 'set brightness on on all shelly lights'
-      repeat:
-        while:
-          - condition: template
-            value_template: >-
-              {% set s = devices[repeat.index - 1] %}
-              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
-        sequence:
-          - alias: 'publish light set command'
-            service_template: mqtt.publish
-            data_template:
-              topic: >-
-                {{- 'shellies/' + devices[repeat.index - 1] + '/light/0/set' -}}
-              payload_template: >-
-                {{ '{"brightness":' + states('input_number.motion_shellies_light_brightness')|int|string + ',"turn":"on"}' }}
-              qos: 2
-              retain: false
-
-# turn on all lights
-
-- id: motion_shellies_light_mqtt_publish_on
-  alias: motion_shellies_light_mqtt_publish_on
-  initial_state: on
-  mode: single
-  trigger:
-    - platform: state
-      entity_id: input_boolean.motion_shellies_light
+      entity_id: input_boolean.motion_shellies_plug
       from: 'off'
       to: 'on'
   variables:
     devices: >-
-      {%- set s = state_attr('group.motion_shellies_light','entity_id') -%}
+      {%- set s = state_attr('group.motion_shellies_plug','entity_id') -%}
       {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
         {%- for c in s -%}
           {%- if loop.first -%}[{%- else -%},{%- endif -%}
@@ -115,9 +77,9 @@
       conditions:
         - condition: template
           value_template: >-
-            {% set s = state_attr('automation.motion_shellies_light_mqtt_publish_off','current') %}
+            {% set s = state_attr('automation.motion_shellies_plug_mqtt_publish_off','current') %}
             {{ s is number and s|int == 0 }}
-    - alias: 'turn on all shelly lights'
+    - alias: 'turn on all shelly plugs'
       repeat:
         while:
           - condition: template
@@ -125,33 +87,33 @@
               {% set s = devices[repeat.index - 1] %}
               {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
         sequence:
-          - alias: 'publish light on command'
+          - alias: 'publish plug on command'
             service_template: mqtt.publish
             data_template:
               topic: >-
-                {{- 'shellies/' + devices[repeat.index - 1] + '/light/0/command' -}}
+                {{- 'shellies/' + devices[repeat.index - 1] + '/plug/0/command' -}}
               payload_template: >-
                 {{- 'on' -}}
               qos: 2
               retain: false
-    - alias: 'update group.motion_shellies_light'
+    - alias: 'update group.motion_shellies_plug'
       service: automation.trigger
-      entity_id: automation.motion_shellies_light_group_update
+      entity_id: automation.motion_shellies_plug_group_update
 
-# turn off all lights
+# turn off all plugs
 
-- id: motion_shellies_light_mqtt_publish_off
-  alias: motion_shellies_light_mqtt_publish_off
+- id: motion_shellies_plug_mqtt_publish_off
+  alias: motion_shellies_plug_mqtt_publish_off
   initial_state: on
   mode: single
   trigger:
     - platform: state
-      entity_id: input_boolean.motion_shellies_light
+      entity_id: input_boolean.motion_shellies_plug
       from: 'on'
       to: 'off'
   variables:
     devices: >-
-      {%- set s = state_attr('group.motion_shellies_light','entity_id') -%}
+      {%- set s = state_attr('group.motion_shellies_plug','entity_id') -%}
       {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
         {%- for c in s -%}
           {%- if loop.first -%}[{%- else -%},{%- endif -%}
@@ -165,9 +127,9 @@
       conditions:
         - condition: template
           value_template: >-
-            {% set s = state_attr('automation.motion_shellies_light_mqtt_publish_on','current') %}
+            {% set s = state_attr('automation.motion_shellies_plug_mqtt_publish_on','current') %}
             {{ s is number and s|int == 0 }}
-    - alias: 'turn off all shelly lights'
+    - alias: 'turn off all shelly plugs'
       repeat:
         while:
           - condition: template
@@ -175,71 +137,71 @@
               {% set s = devices[repeat.index - 1] %}
               {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
         sequence:
-          - alias: 'publish light off command'
+          - alias: 'publish plug off command'
             service_template: mqtt.publish
             data_template:
               topic: >-
-                {{- 'shellies/' + devices[repeat.index - 1] + '/light/0/command' -}}
+                {{- 'shellies/' + devices[repeat.index - 1] + '/plug/0/command' -}}
               payload_template: >-
                 {{- 'off' -}}
               qos: 2
               retain: false
-    - alias: 'update group.motion_shellies_light'
+    - alias: 'update group.motion_shellies_plug'
       service: automation.trigger
-      entity_id: automation.motion_shellies_light_group_update
+      entity_id: automation.motion_shellies_plug_group_update
 
-# update light group on binary_sensor
+# update plug group on binary_sensor
 
-- id: motion_shellies_light_group_update
-  alias: motion_shellies_light_group_update
+- id: motion_shellies_plug_group_update
+  alias: motion_shellies_plug_group_update
   initial_state: on
   mode: restart
   trigger:
     - platform: state
-      entity_id: sensor.motion_shellies_light
+      entity_id: sensor.motion_shellies_plug
   variables:
     state: >-
-      {% set s = state_attr('sensor.motion_shellies_light','status') %}
+      {% set s = state_attr('sensor.motion_shellies_plug','status') %}
       {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s is iterable %}
         {% if s|select('==','on')|list|length > 0 %}on{% else %}off{% endif %}
       {% else %}off{% endif %}
   action:
-    - alias: 'set group.motion_shellies_light'
+    - alias: 'set group.motion_shellies_plug'
       service: python_script.set_state
       data_template:
         allow_create: true
         entity_id: >-
-          {{ 'group.motion_shellies_light' }}
+          {{ 'group.motion_shellies_plug' }}
         state: >-
           {{ state }}
 
-# update on light start
+# update on plug start
 
-- id: motion_shellies_light_start
-  alias: motion_shellies_light_start
+- id: motion_shellies_plug_start
+  alias: motion_shellies_plug_start
   mode: queued
   initial_state: on
   trigger:
     platform: state
-    entity_id: binary_sensor.motion_shellies_light
+    entity_id: binary_sensor.motion_shellies_plug
     from: 'off'
     to: 'on'
   variables:
     sensor: >-
-      {% set mac = state_attr('binary_sensor.motion_shellies_light','mac') %}
+      {% set mac = state_attr('binary_sensor.motion_shellies_plug','mac') %}
       {% if mac|lower != 'none' and mac|lower != 'unavailable' and mac|lower != 'unknown' and mac|lower != 'null' and mac|length > 0 %}
-        {{ 'binary_sensor.motion_shelly_light_' + mac|lower }}
+        {{ 'binary_sensor.motion_shelly_plug_' + mac|lower }}
       {% else %}null{% endif %}
     last: >-
       {{ utcnow().timestamp()|int }}
     when: >-
       {{ last|timestamp_custom("%a %b %d %I:%M:%S %p %Z") }}
   action:
-    - alias: 'set on: binary_sensor.motion_shellies_light'
+    - alias: 'set on: binary_sensor.motion_shellies_plug'
       service: python_script.set_state
       data_template:
         entity_id: >-
-          {{- 'binary_sensor.motion_shellies_light' -}}
+          {{- 'binary_sensor.motion_shellies_plug' -}}
         last: >-
           {{ last }}
         when: >-
@@ -252,7 +214,7 @@
         - condition: template
           value_template: >-
             {{ sensor|lower != 'null' }}
-    - alias: 'set on: binary_sensor.motion_shelly_light_<mac>'
+    - alias: 'set on: binary_sensor.motion_shelly_plug_<mac>'
       service: python_script.set_state
       data_template:
         allow_create: true
@@ -269,20 +231,20 @@
         state: >-
           {{- 'on' -}}
 
-- id: motion_shellies_light_end
-  alias: motion_shellies_light_end
+- id: motion_shellies_plug_end
+  alias: motion_shellies_plug_end
   mode: queued
   initial_state: on
   trigger:
     platform: state
-    entity_id: binary_sensor.motion_shellies_light
+    entity_id: binary_sensor.motion_shellies_plug
     from: 'on'
     to: 'off'
   variables:
     sensor: >-
-      {% set mac = state_attr('binary_sensor.motion_shellies_light','mac') %}
+      {% set mac = state_attr('binary_sensor.motion_shellies_plug','mac') %}
       {% if mac|lower != 'none' and mac|lower != 'unavailable' and mac|lower != 'unknown' and mac|lower != 'null' and mac|length > 0 %}
-        {{ 'binary_sensor.motion_shelly_light_' + mac|lower }}
+        {{ 'binary_sensor.motion_shelly_plug_' + mac|lower }}
       {% else %}null{% endif %}
     last: >-
       {{ utcnow().timestamp()|int }}
@@ -296,12 +258,12 @@
         {% else %}null{% endif %}
       {% else %}null{% endif %}
   action:
-    - alias: 'set off: binary_sensor.motion_shellies_light'
+    - alias: 'set off: binary_sensor.motion_shellies_plug'
       service: python_script.set_state
       data_template:
         allow_create: true
         entity_id: >-
-          {{- 'binary_sensor.motion_shellies_light' -}}
+          {{- 'binary_sensor.motion_shellies_plug' -}}
         last: >-
           {{ last }}
         when: >-
@@ -316,7 +278,7 @@
         - condition: template
           value_template: >-
             {{ sensor|lower != 'null' }}
-    - alias: 'set off: binary_sensor.motion_shelly_light_<mac>'
+    - alias: 'set off: binary_sensor.motion_shelly_plug_<mac>'
       service: python_script.set_state
       data_template:
         allow_create: true
@@ -335,15 +297,17 @@
 
 ## MQTT
 
-# light on message
+# plug on message
 
-- id: motion_shellies_light_mqtt_state
-  alias: motion_shellies_light_mqtt_state
+- id: motion_shellies_plug_mqtt_state
+  alias: motion_shellies_plug_mqtt_state
   initial_state: on
   mode: queued
   trigger:
     - platform: mqtt
-      topic: 'shellies/+/light/+'
+      topic: 'shellies/+/plug/+'
+    - platform: mqtt
+      topic: 'shellies/+/relay/+'
   variables:
     topic: >-
       {{ trigger.topic }}
@@ -426,15 +390,15 @@
         state: >-
           {{ state }}
 
-# update shellies/+/light/0/energy int
+# update shellies/+/plug/0/energy int
 
-- id: motion_shellies_light_mqtt_energy
-  alias: motion_shellies_light_mqtt_energy
+- id: motion_shellies_plug_mqtt_energy
+  alias: motion_shellies_plug_mqtt_energy
   initial_state: on
   mode: parallel
   trigger:
     - platform: mqtt
-      topic: 'shellies/+/light/+/energy'
+      topic: 'shellies/+/plug/+/energy'
     - platform: mqtt
       topic: 'shellies/+/relay/+/energy'
   variables:
@@ -513,13 +477,13 @@
         - condition: template
           value_template: >-
             {{ sensor|lower != 'null' }}
-    - alias: 'choose: update if light.status not defined'
+    - alias: 'choose: update if plug.status not defined'
       choose:
-        - alias: 'condition: light.status defined?'
+        - alias: 'condition: plug.status defined?'
           conditions:
             - condition: template
               value_template: >
-                {% if kind == 'light' %}
+                {% if kind == 'plug' %}
                   {% set s = state_attr(sensor, 'status') %}
                   {{ s|lower == 'none' or s|lower == 'unknown' or s|lower == 'null' or s|lower == 'unavailable' }}
                 {% else %}false{% endif %}
@@ -557,15 +521,15 @@
         state: >-
           {{ state }}
 
-# update shellies/+/light/0/power float
+# update shellies/+/plug/0/power float
 
-- id: motion_shellies_light_mqtt_power
-  alias: motion_shellies_light_mqtt_power
+- id: motion_shellies_plug_mqtt_power
+  alias: motion_shellies_plug_mqtt_power
   initial_state: on
   mode: parallel
   trigger:
     - platform: mqtt
-      topic: 'shellies/+/light/+/power'
+      topic: 'shellies/+/plug/+/power'
     - platform: mqtt
       topic: 'shellies/+/relay/+/power'
   variables:
@@ -622,13 +586,13 @@
         - condition: template
           value_template: >-
             {{ sensor|lower != 'null' }}
-    - alias: 'choose: update if light.status not defined'
+    - alias: 'choose: update if plug.status not defined'
       choose:
-        - alias: 'condition: light.status defined?'
+        - alias: 'condition: plug.status defined?'
           conditions:
             - condition: template
               value_template: >
-                {% if kind == 'light' %}
+                {% if kind == 'plug' %}
                   {% set s = state_attr(sensor, 'status') %}
                   {{ s|lower == 'none' or s|lower == 'unknown' or s|lower == 'null' or s|lower == 'unavailable' }}
                 {% else %}false{% endif %}
@@ -660,8 +624,8 @@
         state: >-
           {{ state }}
 
-- id: motion_shellies_light_power_off
-  alias: motion_shellies_light_power_off
+- id: motion_shellies_plug_power_off
+  alias: motion_shellies_plug_power_off
   initial_state: on
   mode: single
   trigger:
@@ -669,7 +633,7 @@
       minutes: /1
   variables:
     entities: >-
-      {% set s = state_attr('group.motion_shellies_light','entity_id') %}
+      {% set s = state_attr('group.motion_shellies_plug','entity_id') %}
       {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
         {{ s }}
       {% else %}null{% endif %}
@@ -689,18 +653,18 @@
         {%- endfor -%}]
       {% else %}null{% endif %}
   action:
-    - alias: 'set binary_sensor.motion_shellies_light_outage'
+    - alias: 'set binary_sensor.motion_shellies_plug_outage'
       service: python_script.set_state
       data_template:
         allow_create: true
         entity_id: >-
-          {{ 'binary_sensor.motion_shellies_light_outage' }}
+          {{ 'binary_sensor.motion_shellies_plug_outage' }}
         power_off: >-
           {{ power_off }}
         state: >-
           {% if power_off|lower != 'null' and power_off|list|length > 0 %}on{% else %}off{% endif %}
 
-#  light
+#  plug
 # {
 #   "brightness": 10,
 #   "has_timer": false,
@@ -721,13 +685,13 @@
 #   "new_fw": false
 # }
 
-- id: motion_shellies_light_mqtt_status
-  alias: motion_shellies_light_mqtt_status
+- id: motion_shellies_plug_mqtt_status
+  alias: motion_shellies_plug_mqtt_status
   initial_state: on
   mode: queued
   trigger:
     - platform: mqtt
-      topic: 'shellies/+/light/+/status'
+      topic: 'shellies/+/relay/+/status'
   variables:
     topic: >-
       {{ trigger.topic }}
