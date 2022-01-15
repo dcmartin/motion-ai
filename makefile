@@ -14,6 +14,7 @@ UPTIMEROBOT_RSSURL ?= $(if $(wildcard UPTIMEROBOT_RSSURL),$(shell v=$$(cat UPTIM
 LOGGER_DEFAULT ?= $(if $(wildcard LOGGER_DEFAULT),$(shell v=$$(cat LOGGER_DEFAULT) && echo "${TG}== LOGGER_DEFAULT: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="error" && echo "${DF}** LOGGER_DEFAULT${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 LOGGER_MQTT ?= $(if $(wildcard LOGGER_MQTT),$(shell v=$$(cat LOGGER_MQTT) && echo "${TG}== LOGGER_MQTT: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="fatal" && echo "${DF}** LOGGER_MQTT${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 LOGGER_AUTOMATION ?= $(if $(wildcard LOGGER_AUTOMATION),$(shell v=$$(cat LOGGER_AUTOMATION) && echo "${TG}== LOGGER_AUTOMATION: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="warn" && echo "${DF}** LOGGER_AUTOMATION${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+MOTION_LOG_LEVEL ?= $(if $(wildcard MOTION_LOG_LEVEL),$(shell v=$$(cat MOTION_LOG_LEVEL) && echo "${TG}== MOTION_LOG_LEVEL: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="info" && echo "${DF}** MOTION_LOG_LEVEL${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 
 # domain
 DOMAIN_NAME ?= $(if $(wildcard DOMAIN_NAME),$(shell v=$$(cat DOMAIN_NAME) && echo "${TG}== DOMAIN_NAME: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v=$$(hostname -d) && v=$${v:-local} && echo "${DF}** DOMAIN_NAME${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
@@ -248,6 +249,7 @@ $(ACTIONS): necessary
 	  MOTION_FACE_DETECTED_TUNE="$(MOTION_FACE_DETECTED_TUNE)" \
 	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
 	  MOTION_GROUP="$(MOTION_GROUP)" \
+	  MOTION_LOG_LEVEL="$(MOTION_LOG_LEVEL)" \
 	  MOTION_NOTIFY_SMARTPHONE="$(MOTION_NOTIFY_SMARTPHONE)" \
 	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
 	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
@@ -354,6 +356,7 @@ homeassistant/setup.json: setup.json.tmpl
 	  MOTION_FACE_DETECTED_TUNE="$(MOTION_FACE_DETECTED_TUNE)" \
 	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
 	  MOTION_GROUP="$(MOTION_GROUP)" \
+	  MOTION_LOG_LEVEL="$(MOTION_LOG_LEVEL)" \
 	  MOTION_NOTIFY_SMARTPHONE="$(MOTION_NOTIFY_SMARTPHONE)" \
 	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
 	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
