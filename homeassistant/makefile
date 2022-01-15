@@ -15,6 +15,7 @@ LOGGER_DEFAULT ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.LOGGER_DEFAULT'
 
 LOGGER_MQTT ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.LOGGER_MQTT' $(SETUP)) && echo "${TS}++ LOGGER_MQTT: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard LOGGER_MQTT),$(shell v=$$(cat LOGGER_MQTT) && echo "${TG}== LOGGER_MQTT: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="warn" && echo "${TB}** LOGGER_MQTT unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 LOGGER_AUTOMATION ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.LOGGER_AUTOMATION' $(SETUP)) && echo "${TS}++ LOGGER_AUTOMATION: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard LOGGER_AUTOMATION),$(shell v=$$(cat LOGGER_AUTOMATION) && echo "${TG}== LOGGER_AUTOMATION: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="warn" && echo "${TB}** LOGGER_AUTOMATION unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+MOTION_LOG_LEVEL ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_LOG_LEVEL' $(SETUP)) && echo "${TS}++ MOTION_LOG_LEVEL: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_LOG_LEVEL),$(shell v=$$(cat MOTION_LOG_LEVEL) && echo "${TG}== MOTION_LOG_LEVEL: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="info" && echo "${TB}** MOTION_LOG_LEVEL unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 
 # automation(s)
 AUTOMATION_INTERNET ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.AUTOMATION_INTERNET' $(SETUP)) && echo "${TS}++ AUTOMATION_INTERNET: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard AUTOMATION_INTERNET),$(shell v=$$(cat AUTOMATION_INTERNET) && echo "${TG}== AUTOMATION_INTERNET: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell echo "** AUTOMATION_INTERNET unset; default: off" > /dev/stderr && echo "off")))
@@ -326,6 +327,7 @@ secrets.yaml: secrets.yaml.tmpl
           MOTION_FACE_DETECTED_TUNE="$(MOTION_FACE_DETECTED_TUNE)" \
 	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
 	  MOTION_GROUP="$(MOTION_GROUP)" \
+	  MOTION_LOG_LEVEL="$(MOTION_LOG_LEVEL)" \
 	  MOTION_NOTIFY_SMARTPHONE="$(MOTION_NOTIFY_SMARTPHONE)" \
 	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
 	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
