@@ -9,6 +9,12 @@
       friendly_name: 'Devices (📱)'
       icon_template: 'mdi:devices'
       attribute_templates:
+        array: >-
+          [{%- for state in states.device_tracker -%}
+            {%- if loop.first -%}{%- else -%},{%- endif -%}
+            {%- set s = state.state_with_unit|lower -%}
+            {%- if s == 'on' or s == 'off' -%}1{%- else -%}0{%- endif -%}
+          {%- endfor -%}]
         count: >-
           {% set s = state_attr('sensor.motion_device_trackers','array') %}
           {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
@@ -17,15 +23,7 @@
         online: >-
           {% set s = state_attr('sensor.motion_device_trackers','array') %}
           {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
-            {{ s|sum }}
-          {% else %}null{% endif %}
-        offline: >-
-          {{ state_attr('sensor.motion_device_trackers','count')|int - state_attr('sensor.motion_device_trackers','online')|int  }}
-        percent: >-
-          {% set c = state_attr('sensor.motion_device_trackers','count')|int %}
-          {% if c > 0 %}
-            {% set o = state_attr('sensor.motion_device_trackers','online')|int %}
-            {{ (o / c * 100)|int }}
+            {{ s|select('number')|sum }}
           {% else %}null{% endif %}
         ago: >-
           {% set s = state_attr('binary_sensor.motion_device_tracker','ago') %}
@@ -37,21 +35,29 @@
               {%- endfor -%}
             {% else %}None{% endif %}
           {% else %}Pending{% endif %}
-        array: >-
-          [{%- for state in states.device_tracker -%}
-            {%- if loop.first -%}{%- else -%},{%- endif -%}
-            {%- set s = state.state_with_unit|lower -%}
-            {%- if s == 'on' or s == 'off' -%}1{%- else -%}0{%- endif -%}
-          {%- endfor -%}]
       value_template: >-
-        {{ states('sensor.motion_device_tracker_count_online') -}}/{{- states('sensor.motion_device_tracker_count') }}📱;
-        {{ states('sensor.motion_device_tracker_online_percent') -}}%
+        {{ state_attr('sensor.motion_device_trackers','online') -}}/{{- state_attr('sensor.motion_device_trackers','count') }}📱;
+        {{ states('sensor.motion_device_trackers_percent') -}}%
+
+- platform: template
+  sensors:
+    motion_device_trackers_percent:
+      unique_id: motion_device_trackers_percent
+      friendly_name: Devices on-line
+      icon_template: 'mdi:devices'
+      unit_of_measurement: '%'
+      value_template: >-
+        {% set c = state_attr('sensor.motion_device_trackers','count')|int %}
+        {% if c > 0 %}
+          {% set o = state_attr('sensor.motion_device_trackers','online')|int %}
+          {{ (o / c * 100)|int }}
+        {% else %}null{% endif %}
 
 # percent statistics
 
 - platform: statistics
   name: motion_device_tracker_online_percent_min
-  entity_id: sensor.motion_device_tracker_online_percent
+  entity_id: sensor.motion_device_trackers_percent
   state_characteristic: value_min
   sampling_size: 100
   max_age:
@@ -59,7 +65,7 @@
 
 - platform: statistics
   name: motion_device_tracker_online_percent_mean
-  entity_id: sensor.motion_device_tracker_online_percent
+  entity_id: sensor.motion_device_trackers_percent
   state_characteristic: mean
   sampling_size: 100
   max_age:
@@ -67,7 +73,7 @@
 
 - platform: statistics
   name: motion_device_tracker_online_percent_max
-  entity_id: sensor.motion_device_tracker_online_percent
+  entity_id: sensor.motion_device_trackers_percent
   state_characteristic: value_max
   sampling_size: 100
   max_age:
@@ -75,31 +81,8 @@
 
 - platform: statistics
   name: motion_device_tracker_online_percent_stdev
-  entity_id: sensor.motion_device_tracker_online_percent
+  entity_id: sensor.motion_device_trackers_percent
   state_characteristic: standard_deviation
   sampling_size: 100
   max_age:
     hours: 72
-
-# online statistics
-
-- platform: template
-  sensors:
-    motion_device_tracker_online:
-      unique_id: motion_device_tracker_online
-      friendly_name: Devices on-line
-      icon_template: 'mdi:devices'
-      unit_of_measurement: '%'
-      value_template: >-
-        {% set c = state_attr('binary_sensor.motion_device_tracker','online') %}
-        {% if c|lower != 'none' and c|float > 0 %}
-          {{ c }}
-        {% else %}null{% endif %}
-
-- platform: statistics
-  name: motion_device_tracker_online_mean_1d
-  entity_id: sensor.motion_device_tracker_online
-  state_characteristic: mean
-  sampling_size: 864
-  max_age:
-    hours: 24
