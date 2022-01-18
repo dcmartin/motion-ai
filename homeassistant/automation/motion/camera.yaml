@@ -78,19 +78,8 @@
             {{- c -}}
           {%- endif -%}
 
-## update options for sensor.motion_devices
-
-#- id: motion_devices_set_options
-#  alias: motion_devices_set_options
-#  initial_state: on
-#  trigger:
-#    platform: state
-#    entity_id: sensor.motion_devices
-#  condition:
-#    - condition: template
-#      value_template: >-
-#        {% set v = states('sensor.motion_devices') %}
-#        {{ v|lower != 'none' and v|lower != 'unavailable' and v|lower != 'null' and v|length > 0 }}
+### update input_select.motion_devices
+#
 #  action:
 #    - service: python_script.input_select_set_options
 #      data_template:
@@ -117,7 +106,18 @@
 #            {%- if prior != 'null' -%}{%- endif -%}
 #          {%- endif -%}
 
-# motion/agx1/mangate/event/start {"group":"motion","device":"agx1","camera":"mangate","event":"238","start":1642357527,"timestamp":{"start":"2022-01-16T18:25:27Z"}}
+## start
+
+# {
+#   "camera": "mangate",
+#   "device": "agx1",
+#   "event": "238",
+#   "group": "motion",
+#   "start": 1642357527,
+#   "timestamp": {
+#     "start": "2022-01-16T18:25:27Z"
+#   }
+# }
 
 - id: motion_cameras_start
   alias: motion_cameras_start
@@ -132,7 +132,7 @@
     topic: >-
       {{ trigger.topic }}
     client: >-
-      {{ topic|regex_replace('/event/end/[^/]*','')|regex_replace('[^/]*/','') }}
+      {{ topic|regex_replace('/event/start/[^/]*','')|regex_replace('[^/]*/','') }}
     event: >-
       {% if 'event' in trigger.payload_json %}
         {{ trigger.payload_json.event }}
@@ -149,17 +149,9 @@
       {% if 'camera' in trigger.payload_json %}
         {{ trigger.payload_json.camera }}
       {% else %}null{% endif %}
-    start: >-
-      {% if 'start' in trigger.payload_json %}
-        {{ trigger.payload_json.start}}
-      {% else %}null{% endif %}
     timestamp: >-
       {% if 'timestamp' in trigger.payload_json %}
         {{ trigger.payload_json.timestamp }}
-      {% else %}null{% endif %}
-    delay: >-
-      {% if timestamp|lower != 'null' and 'start' in timestamp and start|lower != 'null' %}
-        {{ (utcnow().timestamp() - timestamp.start|as_timestamp)|int }}
       {% else %}null{% endif %}
     sensor: >-
       {% if id|lower != 'null' and id|lower != 'none' and id|lower|length > 0 %}
@@ -195,12 +187,295 @@
           {{ sensor }}
         timestamp: >-
           {{ timestamp }}
-        start: >-
-          {{ start }}
-        delay: >-
-          {{ delay }}
+        duration: >-
+          {{ 'null'}}
         state: >-
           {{ states(sensor) }}
+
+## end
+
+# {
+#   "camera": "ssinterior",
+#   "date": 1642526040,
+#   "device": "agx1",
+#   "elapsed": 15,
+#   "end": 1642526005,
+#   "event": "782",
+#   "group": "motion",
+#   "id": "20220118091325-782",
+#   "image": "<BASE64-JPEG:redacted>",
+#   "images": [
+#     {
+#       "camera": "ssinterior",
+#       "center": {
+#         "x": 159,
+#         "y": 369
+#       },
+#       "date": 1642526005,
+#       "device": "agx1",
+#       "event": "782",
+#       "height": 90,
+#       "id": "20220118091310-782-00",
+#       "noise": 11,
+#       "seqno": "20220118091310-782-00",
+#       "size": 3326,
+#       "timestamp": "2022-01-18T17:13:25Z",
+#       "type": "jpeg",
+#       "width": 98
+#     }
+#   ],
+#   "mask": {
+#     "event": "782",
+#     "file": "/var/www/localhost/htdocs/cameras/ssinterior/20220118091309-782m.mp4",
+#     "fps": 2,
+#     "timestamp": "2022-01-18T17:13:25Z",
+#     "type": 16
+#   },
+#   "movie": {
+#     "event": "782",
+#     "file": "/var/www/localhost/htdocs/cameras/ssinterior/20220118091309-782.mp4",
+#     "fps": 2,
+#     "timestamp": "2022-01-18T17:13:25Z",
+#     "type": 8
+#   },
+#   "start": 1642525990,
+#   "timestamp": {
+#     "end": "2022-01-18T17:13:25Z",
+#     "publish": "2022-01-18T17:13:36Z",
+#     "start": "2022-01-18T17:13:10Z"
+#   }
+# }
+
+- id: motion_cameras_end
+  alias: motion_cameras_end
+  initial_state: on
+  mode: queued
+  max_exceeded: warn
+  max: 1000
+  trigger:
+    - platform: mqtt
+      topic: '+/+/+/event/end'
+  variables:
+    topic: >-
+      {{ trigger.topic }}
+    client: >-
+      {{ topic|regex_replace('/event/end/[^/]*','')|regex_replace('[^/]*/','') }}
+    event: >-
+      {% if 'event' in trigger.payload_json %}
+        {{ trigger.payload_json.event }}
+      {% else %}null{% endif %}
+    group: >-
+      {% if 'group' in trigger.payload_json %}
+        {{ trigger.payload_json.group }}
+      {% else %}null{% endif %}
+    device: >-
+      {% if 'device' in trigger.payload_json %}
+        {{ trigger.payload_json.device }}
+      {% else %}null{% endif %}
+    id: >-
+      {% if 'camera' in trigger.payload_json %}
+        {{ trigger.payload_json.camera }}
+      {% else %}null{% endif %}
+    timestamp: >-
+      {% if 'timestamp' in trigger.payload_json %}
+        {{ trigger.payload_json.timestamp }}
+      {% else %}null{% endif %}
+    duration: >-
+      {% if timestamp|lower != 'null' %}
+        {{ (timestamp.end|as_timestamp - timestamp.start|as_timestamp)|int }}
+      {% else %}null{% endif %}
+    sensor: >-
+      {% if id|lower != 'null' and id|lower != 'none' and id|lower|length > 0 %}
+        {{ 'binary_sensor.motion_camera_' + id|lower + '_detected' }}
+      {% else %}null{% endif %}
+    config: >-
+      {% set s = state_attr('binary_sensor.motion_cameras','cameras') %}
+      {% if s|lower != 'none' %}
+        {% set s = s|selectattr("name","==",id)|first %}
+        {% if s|lower != 'none' and s|length > 0 %}
+          {{ s }}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+  action:
+    - alias: 'sensor defined?'
+      condition: template
+      value_template: >-
+        {{ sensor|lower != 'null' }}
+    - alias: 'sensor on or off?'
+      condition: template
+      value_template: >-
+        {% set s = states(sensor) %}
+        {{ s|lower == 'on' or s|lower == 'off' }}
+    - alias: 'config good or any?'
+      condition: template
+      value_template: >-
+        {{ is_state('input_boolean.motion_status_camera_any','on') or config|lower != 'null' }}
+    - alias: 'set end state'
+      service: python_script.set_state
+      data_template:
+        allow_create: true
+        entity_id: >-
+          {{ sensor }}
+        timestamp: >-
+          {{ timestamp }}
+        duration: >-
+          {{ duration }}
+        delay: >-
+          {{ 'null' }}
+        state: >-
+          {{ states(sensor) }}
+
+## annotated
+
+# {
+#   "camera": "+",
+#   "client": "agx1",
+#   "config": {
+#     "scale": "640x480",
+#     "threshold": "0.25"
+#   },
+#   "count": 2,
+#   "date": 1642526338,
+#   "debug": true,
+#   "detected": [
+#     {
+#       "count": 1,
+#       "entity": "bench"
+#     },
+#     {
+#       "count": 1,
+#       "entity": "car"
+#     }
+#   ],
+#   "event": {
+#     "camera": "dogshed",
+#     "date": 1642526337,
+#     "device": "agx1",
+#     "elapsed": 14,
+#     "end": 1642526326,
+#     "event": "61",
+#     "group": "motion",
+#     "id": "20220118091846-61",
+#     "image": "",
+#     "images": [
+#       {
+#         "camera": "dogshed",
+#         "center": {
+#           "x": 190,
+#           "y": 203
+#         },
+#         "date": 1642526326,
+#         "device": "agx1",
+#         "event": "61",
+#         "height": 98,
+#         "id": "20220118091831-61-01",
+#         "noise": 14,
+#         "seqno": "01",
+#         "size": 5428,
+#         "timestamp": "2022-01-18T17:18:47Z",
+#         "type": "jpeg",
+#         "width": 100
+#       }
+#     ],
+#     "mask": {
+#       "event": "61",
+#       "file": "/var/www/localhost/htdocs/cameras/dogshed/20220118091830-61m.mp4",
+#       "fps": 2,
+#       "timestamp": "2022-01-18T17:18:46Z",
+#       "type": 16
+#     },
+#     "movie": {
+#       "event": "61",
+#       "file": "/var/www/localhost/htdocs/cameras/dogshed/20220118091830-61.mp4",
+#       "fps": 2,
+#       "timestamp": "2022-01-18T17:18:46Z",
+#       "type": 8
+#     },
+#     "start": 1642526312,
+#     "timestamp": {
+#       "end": "2022-01-18T17:18:47Z",
+#       "publish": "2022-01-18T17:18:57Z",
+#       "start": "2022-01-18T17:18:32Z"
+#     }
+#   },
+#   "group": "motion",
+#   "image": "",
+#   "info": {
+#     "bps": "8-bit",
+#     "color": "sRGB",
+#     "mock": "false",
+#     "size": "640x480",
+#     "type": "JPEG"
+#   },
+#   "log_level": "debug",
+#   "mqtt": {
+#     "host": "192.168.1.40",
+#     "password": "password",
+#     "port": 1883,
+#     "username": "username"
+#   },
+#   "old": 500,
+#   "payload": "image/end",
+#   "results": [
+#     {
+#       "center": {
+#         "x": 145,
+#         "y": 232
+#       },
+#       "confidence": 31.146281957626343,
+#       "entity": "car",
+#       "height": 104,
+#       "id": "0",
+#       "width": 210
+#     },
+#     {
+#       "center": {
+#         "x": 553,
+#         "y": 147
+#       },
+#       "confidence": 26.009950041770935,
+#       "entity": "bench",
+#       "height": 167,
+#       "id": "1",
+#       "width": 136
+#     }
+#   ],
+#   "services": [
+#     {
+#       "name": "mqtt",
+#       "url": "http://mqtt"
+#     }
+#   ],
+#   "time": null,
+#   "timestamp": "2022-01-18T17:18:58Z",
+#   "topic": "motion/agx1/+",
+#   "yolo": {
+#     "config": "v2",
+#     "darknet": {
+#       "cfg": "/openyolo/darknet/cfg/yolov2.cfg",
+#       "data": "/openyolo/darknet/cfg/coco.data",
+#       "names": "/openyolo/darknet/data/coco.names",
+#       "threshold": 0.25,
+#       "weights": "/openyolo/darknet/yolov2.weights",
+#       "weights_md5": "70d89ba2e180739a1c700a9ff238e354",
+#       "weights_url": "https://www.dropbox.com/s/uz15x6xbudqyweg/yolov2.weights"
+#     },
+#     "date": 1642456650,
+#     "debug": true,
+#     "entity": "all",
+#     "log_level": "debug",
+#     "names": [ "person", "bicycle", "car", "motorbike", "aeroplane", "bus", "train", "truck", "boat", "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat", "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella", "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard", "sports ball", "kite", "baseball bat", "baseball glove", "skateboard", "surfboard", "tennis racket", "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple", "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair", "sofa", "pottedplant", "bed", "diningtable", "toilet", "tvmonitor", "laptop", "mouse", "remote", "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush" ],
+#     "period": 60,
+#     "scale": "640x480",
+#     "services": [
+#       {
+#         "name": "mqtt",
+#         "url": "http://mqtt"
+#       }
+#     ],
+#     "timestamp": "2022-01-17T21:57:30Z"
+#   }
+# }
 
 - id: motion_cameras_detected
   alias: motion_cameras_detected
@@ -221,7 +496,7 @@
         {{ trigger.payload_json.event }}
       {% else %}null{% endif %}
     detected: >-
-      {% if 'detected' in trigger.payload_json and trigger.payload_json.detected|length > 0 %}
+      {% if 'detected' in trigger.payload_json and trigger.payload_json.detected|count > 0 %}
         {{ trigger.payload_json.detected }}
       {% else %}null{% endif %}
     count: >-
@@ -248,21 +523,13 @@
       {% if event|lower != 'null' %}
         {{ event.camera }}
       {% else %}null{% endif %}
-    duration: >-
-      {% if event|lower != 'null' %}
-        {% set s = event.timestamp.start|as_timestamp %}
-        {% set e = event.timestamp.end|as_timestamp %}
-        {{ e|int - s|int }}
-      {% else %}null{% endif %}
     timestamp: >-
       {% if 'timestamp' in event %}
         {{ event.timestamp }}
       {% else %}null{% endif %}
     delay: >-
-      {% if event|lower != 'null' %}
-        {% set e = event.timestamp.end|as_timestamp %}
-        {% set p = event.timestamp.publish|as_timestamp %}
-        {{ (p - e)|int }}
+      {% if timestamp|lower != 'null' %}
+        {{ (utcnow().timestamp() - timestamp.publish|as_timestamp)|int }}
       {% else %}null{% endif %}
     sensor: >-
       {% if id|lower != 'null' and id|lower != 'none' and id|lower|length > 0 %}
@@ -835,8 +1102,6 @@
           {{ count }}
         results: >-
           {{ results }}
-        duration: >-
-          {{ duration }}
         timestamp: >-
           {{ timestamp }}
         delay: >-
