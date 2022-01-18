@@ -1,0 +1,87 @@
+###
+# homeassistant/automation/motion/areas.yaml
+###
+
+- id: motion_areas
+  alias: motion_areas
+  initial_state: on
+  trigger:
+    - platform: time_pattern
+      minutes: '/5'
+  variables:
+    all: >-
+      [{%- for s in states if area_id(s.entity_id)|lower != 'none' -%}
+        {%- if not loop.first -%},{%- endif -%}
+        "{{- area_id(s.entity_id) -}}"
+      {%- endfor -%}]
+    ids: >-
+      {% if all|lower != 'none' and all != '[]' and all is iterable and all|count > 0 -%}
+        [{%- for i in all|sort|unique -%}
+          {%- if not loop.first -%},{%- endif -%}
+          "{{- i -}}"
+        {%- endfor -%}]
+      {% else %}null{% endif %}
+    areas: >-
+      {% if ids|lower != 'null' %}
+        [{%- for i in ids -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {"id":"{{- i -}}","name":"{{- area_name(i) -}}","entities":{{- area_entities(i)|to_json -}}}
+        {%- endfor -%}]
+      {% else %}null{% endif %}
+    count: >-
+      {% if ids|lower != 'null' %}
+        {{ ids|count }}
+      {% else %}null{% endif %}
+    raw: >-
+      [{%- for j in areas -%}
+        {%- if not loop.first -%},{%- endif -%}
+        {"id":"{{- j.id -}}",
+        "latitudes":[{%- for i in j.entities if state_attr(i,'latitude') is number -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {{- state_attr(i,'latitude') -}}
+        {%- endfor -%}],
+        "longitudes":[{%- for i in j.entities if state_attr(i,'longitude') is number -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {{- state_attr(i,'longitude') -}}
+        {%- endfor -%}]}
+      {%- endfor -%}]
+    locations: >-
+      [{%- for i in raw -%}
+        {%- if not loop.first -%},{%- endif -%}
+        {%- set lat = i.latitudes|select('number')|list -%}
+        {%- set lng = i.longitudes|select('number')|list -%}
+        {%- if lat|count > 0 -%}{%- set lat = lat|average -%}{%- else -%}{%- set lat = 0 -%}{%- endif -%}
+        {%- if lng|count > 0 -%}{%- set lng = lng|average -%}{%- else -%}{%- set lng = 0 -%}{%- endif -%}
+        {"id":"{{- i.id -}}","latitude":{{- lat -}},"longitude":{{- lng -}}}
+      {%- endfor -%}]
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ is_state('input_select.motion_log_level','debug') }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: motion_areas
+                notification_id: >-
+                  {{ 'motion_areas' }}
+                message: >-
+                  AREAS: {{ areas -}}; IDS: {{ ids -}}; COUNT: {{ count }}
+    - alias: 'update group.motion_areas'
+      service: python_script.set_state
+      data_template:
+        allow_create: true
+        entity_id: group.motion_areas
+        friendly_name: 'Areas(s) group'
+        entity_ids: >-
+          {{ ids }}
+        areas: >-
+          {{ areas }}
+        locations: >-
+          {{ locations }}
+        count: >-
+          {{ count }}
+        state: >-
+          {{ count|int > 0 }}
