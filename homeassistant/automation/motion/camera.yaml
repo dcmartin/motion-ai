@@ -137,21 +137,29 @@
       {% if 'event' in trigger.payload_json %}
         {{ trigger.payload_json.event }}
       {% else %}null{% endif %}
-    timestamp: >-
-      {% if 'timestamp' in trigger.payload_json and 'start' in trigger.payload_json.timestamp %}
-        {{ trigger.payload_json.timestamp.start|as_timestamp }}
-      {% else %}utcnow().timestamp(){% endif %}
     group: >-
-      {% if event|lower != 'null' %}
-        {{ event.group }}
+      {% if 'group' in trigger.payload_json %}
+        {{ trigger.payload_json.group }}
       {% else %}null{% endif %}
     device: >-
-      {% if event|lower != 'null' %}
-        {{ event.device }}
+      {% if 'device' in trigger.payload_json %}
+        {{ trigger.payload_json.device }}
       {% else %}null{% endif %}
     id: >-
-      {% if event|lower != 'null' %}
-        {{ event.camera }}
+      {% if 'camera' in trigger.payload_json %}
+        {{ trigger.payload_json.camera }}
+      {% else %}null{% endif %}
+    start: >-
+      {% if 'start' in trigger.payload_json %}
+        {{ trigger.payload_json.start}}
+      {% else %}null{% endif %}
+    timestamp: >-
+      {% if 'timestamp' in trigger.payload_json %}
+        {{ trigger.payload_json.timestamp }}
+      {% else %}null{% endif %}
+    delay: >-
+      {% if timestamp|lower != 'null' and 'start' in timestamp and start|lower != 'null' %}
+        {{ utcnow().timestamp() - timestamp.start|as_timestamp }}
       {% else %}null{% endif %}
     sensor: >-
       {% if id|lower != 'null' and id|lower != 'none' and id|lower|length > 0 %}
@@ -166,25 +174,31 @@
         {% else %}null{% endif %}
       {% else %}null{% endif %}
   action:
-    - alias: 'sensor defined and camera configured (or any)?'
-      conditions:
-        condition: template
-        value_template: >-
-          {% if sensor|lower != 'null' %}
-            {% set s = states(sensor) %}
-            {{ s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' }}
-          {% else %}false{% endif %}
-        condition: template
-        value_template: >-
-          {{ is_state('input_boolean.motion_status_camera_any','on') or config|lower != 'null' }}
+    - alias: 'sensor defined?'
+      condition: template
+      value_template: >-
+        {{ sensor|lower != 'null' }}
+    - alias: 'sensor on or off?'
+      condition: template
+      value_template: >-
+        {% set s = states(sensor) %}
+        {{ s|lower == 'on' or s|lower == 'off' }}
+    - alias: 'config good or any?'
+      condition: template
+      value_template: >-
+        {{ is_state('input_boolean.motion_status_camera_any','on') or config|lower != 'null' }}
     - alias: 'set start state'
       service: python_script.set_state
       data_template:
         allow_create: true
         entity_id: >-
           {{ sensor }}
-        start: >-
+        timestamp: >-
           {{ timestamp }}
+        start: >-
+          {{ start }}
+        delay: >-
+          {{ delay }}
         state: >-
           {{ states(sensor) }}
 
@@ -358,27 +372,27 @@
     - alias: 'sensor good?'
       condition: and
       conditions:
-          condition: template
-          value_template: >-
-            {{ sensor|lower != 'null' }}
+        condition: template
+        value_template: >-
+          {{ sensor|lower != 'null' }}
     - alias: 'group good?'
       condition: and
       conditions:
-          condition: template
-          value_template: >-
-            {{ group == states('input_text.motion_group') or states('input_text.motion_group') == '+' }}
+        condition: template
+        value_template: >-
+         {{ group == states('input_text.motion_group') or states('input_text.motion_group') == '+' }}
     - alias: 'client good?'
       condition: and
       conditions:
-          condition: template
-          value_template: >-
-            {{ client == states('input_text.motion_client') or states('input_text.motion_client') == '+' }}
+        condition: template
+        value_template: >-
+          {{ client == states('input_text.motion_client') or states('input_text.motion_client') == '+' }}
     - alias: 'config good?'
       condition: and
       conditions:
-          condition: template
-          value_template: >-
-            {{ is_state('input_boolean.motion_status_camera_any','on') or config|lower != 'null' }}
+        condition: template
+        value_template: >-
+          {{ is_state('input_boolean.motion_status_camera_any','on') or config|lower != 'null' }}
     - choose:
         - conditions:
             - condition: template
