@@ -78,26 +78,26 @@
             {{- c -}}
           {%- endif -%}
 
-## update options for sensor.motion_status_device_camera_list
+## update options for sensor.motion_devices
 
-#- id: motion_status_device_camera_list_set_options
-#  alias: motion_status_device_camera_list_set_options
+#- id: motion_devices_set_options
+#  alias: motion_devices_set_options
 #  initial_state: on
 #  trigger:
 #    platform: state
-#    entity_id: sensor.motion_status_device_camera_list
+#    entity_id: sensor.motion_devices
 #  condition:
 #    - condition: template
 #      value_template: >-
-#        {% set v = states('sensor.motion_status_device_camera_list') %}
+#        {% set v = states('sensor.motion_devices') %}
 #        {{ v|lower != 'none' and v|lower != 'unavailable' and v|lower != 'null' and v|length > 0 }}
 #  action:
 #    - service: python_script.input_select_set_options
 #      data_template:
-#        entity_id: input_select.motion_camera_name
-#        default: latest
+#        entity_id: input_select.motion_devices
+#        default: localhost
 #        options: >-
-#          {%- set prior = state_attr('input_select.motion_camera_name','options') -%}
+#          {%- set prior = state_attr('input_select.motion_devices','options') -%}
 #          {%- if prior|lower != 'none' and prior|lower != 'unknown' and prior|lower != 'unavailable' and prior|lower != 'null' and prior|length > 0 -%}
 #            {%- for p in prior -%}
 #              {%- if loop.first -%}{%- else -%},{% endif -%}
@@ -106,9 +106,9 @@
 #          {%- else -%}
 #            {%- set prior = 'null' -%}
 #          {%- endif -%}
-#          {%- set cameras = states('sensor.motion_status_device_camera_list')|string|from_json -%}
-#          {%- if cameras|lower != 'none' and cameras|lower != 'unavailable' and cameras|lower != 'null' and cameras|length > 0 -%}
-#            {%- for c in cameras if c|length > 0 -%}
+#          {%- set devices = state_attr('binary_sensor.motion_cameras','ids') -%}
+#          {%- if devices|lower != 'none' and devices|lower != 'unavailable' and devices|lower != 'null' and devices|length > 0 -%}
+#            {%- for c in devices if c|length > 0 -%}
 #              {%- if loop.first -%}{%- if prior != 'null' -%},{%- endif -%}{%- else -%},{% endif -%}
 #              {{- c -}}
 #              {%- if loop.last -%}{%- endif -%}
@@ -116,6 +116,91 @@
 #          {%- else -%}
 #            {%- if prior != 'null' -%}{%- endif -%}
 #          {%- endif -%}
+
+# motion/agx1/mangate/event/start {"group":"motion","device":"agx1","camera":"mangate","event":"238","start":1642357527,"timestamp":{"start":"2022-01-16T18:25:27Z"}}
+
+- id: motion_cameras_start
+  alias: motion_cameras_start
+  initial_state: on
+  mode: queued
+  max_exceeded: warn
+  max: 1000
+  trigger:
+    - platform: mqtt
+      topic: '+/+/+/event/start'
+  variables:
+    topic: >-
+      {{ trigger.topic }}
+    client: >-
+      {{ topic|regex_replace('/event/end/[^/]*','')|regex_replace('[^/]*/','') }}
+    event: >-
+      {% if 'event' in trigger.payload_json %}
+        {{ trigger.payload_json.event }}
+      {% else %}null{% endif %}
+    group: >-
+      {% if 'group' in trigger.payload_json %}
+        {{ trigger.payload_json.group }}
+      {% else %}null{% endif %}
+    device: >-
+      {% if 'device' in trigger.payload_json %}
+        {{ trigger.payload_json.device }}
+      {% else %}null{% endif %}
+    id: >-
+      {% if 'camera' in trigger.payload_json %}
+        {{ trigger.payload_json.camera }}
+      {% else %}null{% endif %}
+    start: >-
+      {% if 'start' in trigger.payload_json %}
+        {{ trigger.payload_json.start}}
+      {% else %}null{% endif %}
+    timestamp: >-
+      {% if 'timestamp' in trigger.payload_json %}
+        {{ trigger.payload_json.timestamp }}
+      {% else %}null{% endif %}
+    delay: >-
+      {% if timestamp|lower != 'null' and 'start' in timestamp and start|lower != 'null' %}
+        {{ (utcnow().timestamp() - timestamp.start|as_timestamp)|int }}
+      {% else %}null{% endif %}
+    sensor: >-
+      {% if id|lower != 'null' and id|lower != 'none' and id|lower|length > 0 %}
+        {{ 'binary_sensor.motion_camera_' + id|lower + '_detected' }}
+      {% else %}null{% endif %}
+    config: >-
+      {% set s = state_attr('binary_sensor.motion_cameras','cameras') %}
+      {% if s|lower != 'none' %}
+        {% set s = s|selectattr("name","==",id)|first %}
+        {% if s|lower != 'none' and s|length > 0 %}
+          {{ s }}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+  action:
+    - alias: 'sensor defined?'
+      condition: template
+      value_template: >-
+        {{ sensor|lower != 'null' }}
+    - alias: 'sensor on or off?'
+      condition: template
+      value_template: >-
+        {% set s = states(sensor) %}
+        {{ s|lower == 'on' or s|lower == 'off' }}
+    - alias: 'config good or any?'
+      condition: template
+      value_template: >-
+        {{ is_state('input_boolean.motion_status_camera_any','on') or config|lower != 'null' }}
+    - alias: 'set start state'
+      service: python_script.set_state
+      data_template:
+        allow_create: true
+        entity_id: >-
+          {{ sensor }}
+        timestamp: >-
+          {{ timestamp }}
+        start: >-
+          {{ start }}
+        delay: >-
+          {{ delay }}
+        state: >-
+          {{ states(sensor) }}
 
 - id: motion_cameras_detected
   alias: motion_cameras_detected
@@ -169,11 +254,15 @@
         {% set e = event.timestamp.end|as_timestamp %}
         {{ e|int - s|int }}
       {% else %}null{% endif %}
+    timestamp: >-
+      {% if 'timestamp' in event %}
+        {{ event.timestamp }}
+      {% else %}null{% endif %}
     delay: >-
       {% if event|lower != 'null' %}
         {% set e = event.timestamp.end|as_timestamp %}
         {% set p = event.timestamp.publish|as_timestamp %}
-        {{ p|int - e|int }}
+        {{ (p - e)|int }}
       {% else %}null{% endif %}
     sensor: >-
       {% if id|lower != 'null' and id|lower != 'none' and id|lower|length > 0 %}
@@ -287,27 +376,27 @@
     - alias: 'sensor good?'
       condition: and
       conditions:
-          condition: template
-          value_template: >-
-            {{ sensor|lower != 'null' }}
+        condition: template
+        value_template: >-
+          {{ sensor|lower != 'null' }}
     - alias: 'group good?'
       condition: and
       conditions:
-          condition: template
-          value_template: >-
-            {{ group == states('input_text.motion_group') or states('input_text.motion_group') == '+' }}
+        condition: template
+        value_template: >-
+         {{ group == states('input_text.motion_group') or states('input_text.motion_group') == '+' }}
     - alias: 'client good?'
       condition: and
       conditions:
-          condition: template
-          value_template: >-
-            {{ client == states('input_text.motion_client') or states('input_text.motion_client') == '+' }}
+        condition: template
+        value_template: >-
+          {{ client == states('input_text.motion_client') or states('input_text.motion_client') == '+' }}
     - alias: 'config good?'
       condition: and
       conditions:
-          condition: template
-          value_template: >-
-            {{ is_state('input_boolean.motion_status_camera_any','on') or config|lower != 'null' }}
+        condition: template
+        value_template: >-
+          {{ is_state('input_boolean.motion_status_camera_any','on') or config|lower != 'null' }}
     - choose:
         - conditions:
             - condition: template
@@ -720,6 +809,10 @@
           {{ sensor }}
         id: >-
           {{ id }}
+        group: >-
+          {{ group }}
+        device: >-
+          {{ device }}
         latitude: >-
           {{ latitude }}
         longitude: >-
@@ -744,6 +837,8 @@
           {{ results }}
         duration: >-
           {{ duration }}
+        timestamp: >-
+          {{ timestamp }}
         delay: >-
           {{ delay }}
         date: >-
