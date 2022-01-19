@@ -32,26 +32,46 @@
       {% if ids|lower != 'null' %}
         {{ ids|count }}
       {% else %}null{% endif %}
-    raw: >-
+    defined: >-
       [{%- for j in areas -%}
         {%- if not loop.first -%},{%- endif -%}
         {"id":"{{- j.id -}}",
-        "latitudes":[{%- for i in j.entities if state_attr(i,'latitude') is number -%}
+        "latitude":[{%- for i in j.entities if state_attr(i,'latitude') is number -%}
           {%- if not loop.first -%},{%- endif -%}
           {{- state_attr(i,'latitude') -}}
         {%- endfor -%}],
-        "longitudes":[{%- for i in j.entities if state_attr(i,'longitude') is number -%}
+        "longitude":[{%- for i in j.entities if state_attr(i,'longitude') is number -%}
           {%- if not loop.first -%},{%- endif -%}
           {{- state_attr(i,'longitude') -}}
         {%- endfor -%}]}
       {%- endfor -%}]
     locations: >-
-      [{%- for i in raw -%}
+      [{%- for i in defined if i.latitude|select('number')|list|count > 0 and i.longitude|select('number')|list|count > 0 -%}
         {%- if not loop.first -%},{%- endif -%}
-        {%- set lat = i.latitudes|select('number')|list -%}
-        {%- set lng = i.longitudes|select('number')|list -%}
-        {%- if lat|count > 0 -%}{%- set lat = lat|average -%}{%- else -%}{%- set lat = 0 -%}{%- endif -%}
-        {%- if lng|count > 0 -%}{%- set lng = lng|average -%}{%- else -%}{%- set lng = 0 -%}{%- endif -%}
+        {%- set lat = i.latitude|select('number')|list|average -%}
+        {%- set lng = i.longitude|select('number')|list|average -%}
+        {"id":"{{- i.id -}}","latitude":{{- lat -}},"longitude":{{- lng -}}}
+      {%- endfor -%}]
+    discovered: >-
+      [{%- for id in ids -%}
+        {%- if not loop.first -%},{%- endif -%}
+        {"id":"{{- id -}}",
+        "latitude":
+        [{%- for state in states if id|string in state.entity_id and state_attr(state.entity_id,'latitude')|lower != 'none' -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {{- state_attr(state.entity_id,'latitude') -}}
+        {%- endfor -%}],
+        "longitude":
+        [{%- for state in states if id|string in state.entity_id and state_attr(state.entity_id,'longitude')|lower != 'none' -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {{- state_attr(state.entity_id,'longitude') -}}
+        {%- endfor -%}]}
+      {%- endfor -%}]
+    gps: >-
+      [{%- for i in discovered if i.latitude|select('number')|list|count > 0 and i.longitude|select('number')|list|count > 0 -%}
+        {%- if not loop.first -%},{%- endif -%}
+        {%- set lat = i.latitude|select('number')|list|average -%}
+        {%- set lng = i.longitude|select('number')|list|average -%}
         {"id":"{{- i.id -}}","latitude":{{- lat -}},"longitude":{{- lng -}}}
       {%- endfor -%}]
   action:
@@ -81,6 +101,8 @@
           {{ areas }}
         locations: >-
           {{ locations }}
+        gps: >-
+          {{ gps }}
         count: >-
           {{ count }}
         state: >-
