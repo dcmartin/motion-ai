@@ -2,6 +2,55 @@
 # homeassistant/automation/motion/person_activity.yaml
 ###
 
+- id: motion_person_active_on
+  alias: motion_person_active_on
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_person_active
+      to: 'on'
+  variables:
+    now: >-
+      {{ utcnow().timestamp() }}
+  action:
+    - alias: 'set binary_sensor.motion_person_active start; reset end, duration'
+      service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_person_active
+        allow_create: true
+        start: >-
+          {{ now }}
+        state: >-
+          {{ states('binary_sensor.motion_person_active') }}
+
+- id: motion_person_active_off
+  alias: motion_person_active_off
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_person_active
+      to: 'off'
+  variables:
+    now: >-
+      {{ utcnow().timestamp() }}
+    duration: >-
+      {% set s = state_attr('sensor.motion_person_active','start') %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ now - s|float }}
+      {% else %}null{% endif %}
+  action:
+    - alias: 'set sensor.motion_person_active end, duration'
+      service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_person_active
+        allow_create: true
+        end: >-
+          {{ now }}
+        duration: >-
+          {{ duration }}
+        state: >-
+          {{ states('binary_sensor.motion_person_active') }}
+
 - id: motion_person_active_probability_threshold
   alias: motion_person_active_probability_threshold
   initial_state: on
