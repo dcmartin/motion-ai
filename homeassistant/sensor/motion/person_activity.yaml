@@ -4,6 +4,35 @@
 
 - platform: template
   sensors:
+    motion_person_active:
+      friendly_name: 'Person activity'
+      icon_template: 'mdi:account'
+      attribute_templates:
+        status: >-
+          {%- set s = state_attr('binary_sensor.motion_person_active','probability') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {% set p = '%0.2f'|format(s) %}
+            {%- set s = state_attr('binary_sensor.motion_person_active','probability_threshold') -%}
+            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+              {% set t = '%0.2f'|format(s) %}
+              ∀Σ: {{ p -}}; {{ t -}};
+            {% else %}
+               ∀Σ: {{ p -}};
+            {% endif %}
+            {%- set s = state_attr('binary_sensor.motion_person_active','observations') -%}
+            {%- if s|lower != 'none' and s|lower != 'null' and 'observations' in s and s.observations is iterable and s.observations|count > 0 %}
+              True (μ): {{ s.observations|map(attribute='prob_given_true')|select('number')|average -}};
+              False (μ): {{ s.observations|map(attribute='prob_given_false')|select('number')|average -}};
+              n: {{ s|count }}
+            {% else %}No observations{% endif %}
+          {%- else -%}
+            {%- set s = state_attr('sensor.motion_person_active','status') -%}
+            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+              {{ s }}
+            {%- else -%}Pending{%- endif -%}
+          {%- endif -%}
+      value_template: >
+        {{ 'Pending' }}
     motion_person_active_duration:
       friendly_name: 'Active duration'
       icon_template: 'mdi:av-timer'
@@ -40,6 +69,84 @@
           {%- set r = strptime(utcnow().timestamp() - s|float, '%Y-%m-%dT%H:%M:%S.%f%z') -%}
           {{- relative_time(r|as_datetime) -}}
         {%- else -%}null{%- endif -%}
+
+# ago
+
+- platform: statistics
+  name: motion_person_active_ago_min
+  entity_id: sensor.motion_person_active_ago
+  state_characteristic: value_min
+  sampling_size: 100
+  max_age:
+    days: 1
+
+- platform: statistics
+  name: motion_person_active_ago_max
+  entity_id: sensor.motion_person_active_ago
+  state_characteristic: value_max
+  sampling_size: 100
+  max_age:
+    days: 1
+
+- platform: statistics
+  name: motion_person_active_ago_mean
+  entity_id: sensor.motion_person_active_ago
+  state_characteristic: mean
+  sampling_size: 100
+  max_age:
+    days: 1
+
+- platform: statistics
+  name: motion_person_active_ago_stdev
+  entity_id: sensor.motion_person_active_ago
+  state_characteristic: standard_deviation
+  sampling_size: 100
+  max_age:
+    days: 1
+
+- platform: statistics
+  name: motion_person_active_ago_stdev_mean
+  entity_id: sensor.motion_person_active_ago_stdev
+  state_characteristic: mean
+  sampling_size: 100
+  max_age:
+    days: 1
+
+# 1m
+- platform: statistics
+  name: motion_person_active_ago_mean_1m
+  entity_id: sensor.motion_person_active_ago
+  state_characteristic: mean
+  sampling_size: 20
+  max_age:
+    minutes: 1
+
+# 5m
+- platform: statistics
+  name: motion_person_active_ago_mean_5m
+  entity_id: sensor.motion_person_active_ago
+  state_characteristic: mean
+  sampling_size: 100
+  max_age:
+    minutes: 5
+
+# 15m
+- platform: statistics
+  name: motion_person_active_ago_mean_15m
+  entity_id: sensor.motion_person_active_ago
+  state_characteristic: mean
+  sampling_size: 300
+  max_age:
+    minutes: 15
+
+# 30m
+- platform: statistics
+  name: motion_person_active_ago_mean_30m
+  entity_id: sensor.motion_person_active_ago
+  state_characteristic: mean
+  sampling_size: 600
+  max_age:
+    minutes: 30
 
 # active
 
