@@ -71,6 +71,17 @@
           {%- set r = strptime(utcnow().timestamp() - s|float, '%Y-%m-%dT%H:%M:%S.%f%z') -%}
           {{- relative_time(r|as_datetime) -}}
         {%- else -%}Pending{%- endif -%}
+    motion_person_active_history_duration:
+      friendly_name: 'Active history'
+      unit_of_measurement: days
+      icon_template: 'mdi:calendar-account'
+      value_template: >-
+        {% set s = states('sensor.motion_person_active_ago_oldest') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != null %}
+          {{ (( utcnow().timestamp() - s|as_timestamp) / 86400)|int }}
+        {%- else -%}null{%- endif -%}
+
+# active today
 
 - platform: history_stats
   name: motion_person_active_counter_today
@@ -89,6 +100,14 @@
   end: '{{ now() }}'
 
 # ago
+
+- platform: statistics
+  name: motion_person_active_ago_oldest
+  entity_id: sensor.motion_person_active_ago
+  state_characteristic: datetime_oldest
+  sampling_size: 100000
+  max_age:
+    days: 30
 
 - platform: statistics
   name: motion_person_active_ago_min
@@ -627,6 +646,14 @@
   end: '{{ now() }}'
 
 - platform: history_stats
+  name: motion_person_active_time_history_stats_1d
+  entity_id: binary_sensor.motion_person_active
+  state: 'on'
+  type: time
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
   name: motion_person_active_ratio_history_stats_1w
   entity_id: binary_sensor.motion_person_active
   state: 'on'
@@ -643,15 +670,6 @@
       unit_of_measurement: '%'
       value_template: >
         {%- set s = states('sensor.motion_person_active_ratio_history_stats_1d') -%}
-        {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
-          {{- s|float -}}
-        {%- else -%}null{%- endif -%}
-    motion_person_active_ratio_1w:
-      friendly_name: 'Active ratio (1w)'
-      icon_template: 'mdi:home-variant'
-      unit_of_measurement: '%'
-      value_template: >
-        {%- set s = states('sensor.motion_person_active_ratio_history_stats_1w') -%}
         {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
           {{- s|float -}}
         {%- else -%}null{%- endif -%}
@@ -682,11 +700,54 @@
 
 - platform: template
   sensors:
-    motion_person_active_period_count:
+    motion_person_active_ratio_1w:
+      friendly_name: 'Active ratio (1w)'
+      icon_template: 'mdi:home-variant'
+      unit_of_measurement: '%'
+      attribute_templates:
+        count: >-
+          {{ states('sensor.motion_person_active_ratio_count_1w') }}
+        duration: >-
+          {% set s = states('sensor.motion_person_active_ratio_oldest_1w') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 %}
+            {{ utcnow().timestamp() - s|as_timestamp }}
+          {%- else -%}null{%- endif -%}
+        status: >-
+          {%- set s = states('sensor.motion_person_active_ratio_oldest_1w') -%}
+          {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 -%}
+            {%- set s = utcnow().timestamp() - s|as_timestamp -%}
+            {%- set d = (s/86400)|int -%}
+            {%- set h = ((s-(d*86400))/3600)|int -%}
+            {%- if d < 1 -%}
+              {%- set m = ((s-(d*86400)-(h*3600))/60)|int -%}
+              {%- set s = (s % 60)|int -%}
+              {%- if h < 1 -%}
+                {%- if m < 1 -%}
+                  {{ s -}}s
+                {%- else -%}
+                  {{ m -}}m; {{ s -}}s
+                {%- endif -%}
+              {%- else -%}
+                {{ h -}}h; {{ m -}}m
+              {%- endif -%}
+            {%- else -%}
+              {{ d -}}d; {{ h -}}h
+            {%- endif -%}
+            {{- ' (' + states('sensor.motion_person_active_ratio_count_1w') + ')' -}}
+          {%- else -%}Pending{%- endif -%}
+      value_template: >
+        {%- set s = states('sensor.motion_person_active_ratio_history_stats_1w') -%}
+        {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+          {{- s|float -}}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_person_active_ratio_history_count:
       unit_of_measurement: 'Σ'
       value_template: >-
         {{ states('sensor.motion_person_active_ratio_count_1w') }}
-    motion_person_active_period_duration:
+    motion_person_active_ratio_history_duration:
       friendly_name: 'Active analysis duration (s)'
       icon_template: 'mdi:av-timer'
       unit_of_measurement: 's'
@@ -695,30 +756,30 @@
         {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 %}
           {{ utcnow().timestamp() - s|as_timestamp }}
         {%- else -%}null{%- endif -%}
-    motion_person_active_period:
-      unique_id: motion_person_active_period
+    motion_person_active_ratio_history:
+      unique_id: motion_person_active_ratio_history
       friendly_name: 'Active analysis duration (Σ)'
       icon_template: 'mdi:calendar-range'
       value_template: >-
-        {% set s = states('sensor.motion_person_active_period_duration') %}
-        {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|float is number and s|float > 0.0 %}
-          {% set s = s|float %}
-          {% set d = (s/86400)|int %}
-          {% set h = ((s-(d*86400))/3600)|int %}
-          {% if d < 1 %}
-            {% set m = ((s-(d*86400)-(h*3600))/60)|int %}
-            {% set s = (s % 60)|int %}
-            {% if h < 1 %}
-              {% if m < 1 %}
+        {%- set s = states('sensor.motion_person_active_ratio_history_duration') -%}
+        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|float is number and s|float > 0.0 -%}
+          {%- set s = s|float -%}
+          {%- set d = (s/86400)|int -%}
+          {%- set h = ((s-(d*86400))/3600)|int -%}
+          {%- if d < 1 -%}
+            {%- set m = ((s-(d*86400)-(h*3600))/60)|int -%}
+            {%- set s = (s % 60)|int -%}
+            {%- if h < 1 -%}
+              {%- if m < 1 -%}
                 {{ s -}}s
-              {% else %}
+              {%- else -%}
                 {{ m -}}m; {{ s -}}s
-              {% endif %}
-            {% else %}
+              {%- endif -%}
+            {%- else -%}
               {{ h -}}h; {{ m -}}m
-            {% endif %}
-          {% else %}
+            {%- endif -%}
+          {%- else -%}
             {{ d -}}d; {{ h -}}h
-          {% endif %}
-          {{ '(' + states('sensor.motion_person_active_period_count') + ')' }}
+          {%- endif -%}
+          {{- ' (' + states('sensor.motion_person_active_ratio_history_count') + ')' -}}
         {%- else -%}Pending{%- endif -%}
