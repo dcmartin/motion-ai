@@ -7,9 +7,43 @@
   initial_state: on
   trigger:
     - platform: state
-      entity_id: sensor.motion_person_active_ago
+      entity_id: sensor.motion_person_active_counter_today
   variables:
     level: >-
+      {% set s = states('sensor.motion_person_active_counter_today') %}
+      {% if s|lower == 'none' or s|lower == 'unknown' or s|lower == 'unknown' or s|lower == 'unavailable' %}
+         Pending
+      {% elif s|int <= 0 %}
+         Nothing today
+      {%- elif is_state('binary_sensor.motion_person_active_ago_high_persistent','on') -%}
+        Low
+      {%- elif is_state('binary_sensor.motion_person_active_ago_high','on') -%}
+        Decreasing
+      {%- elif is_state('binary_sensor.motion_person_active_ago_low_persistent','on') -%}
+        High
+      {%- elif is_state('binary_sensor.motion_person_active_ago_low','on') -%}
+        Increasing
+      {%- else -%}
+        Nominal
+      {%- endif -%}
+  action:
+    - alias: 'set sensor.motion_person_active level'
+      service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_person_active
+        level: >-
+          {{ level }}
+        state: >-
+          {{ states('sensor.motion_person_active') }}
+
+- id: motion_person_active_rank
+  alias: motion_person_active_rank
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_person_active_ago
+  variables:
+    rank: >-
       {%- set s = states('sensor.motion_person_active_ago_stdev') -%}
       {%- set m = states('sensor.motion_person_active_ago_mean') -%}
       {%- set n = states('sensor.motion_person_active_ago_min') -%}
@@ -31,12 +65,12 @@
         {%- endif -%}
       {%- else %}{{- 'null' -}}{% endif %}
   action:
-    - alias: 'set sensor.motion_person_active level'
+    - alias: 'set sensor.motion_person_active rank'
       service: python_script.set_state
       data_template:
         entity_id: sensor.motion_person_active
-        level: >-
-          {{ level }}
+        rank: >-
+          {{ rank }}
         state: >-
           {{ states('sensor.motion_person_active') }}
 
