@@ -151,7 +151,7 @@
     ago: >-
       {% set s = state_attr(sensor,'date') %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-        {{ utcnow().timestamp() - s|int }}
+        {{ utcnow().timestamp() - s|float }}
       {% else %}null{% endif %}
     area: >-
       {% set s = area_name(sensor) %}
@@ -165,13 +165,32 @@
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
         {{ s }}
       {% else %}null{% endif %}
-    confidence: >-
-      {% set s = states('sensor.motion_' + id|string + '_detected_person') %}
+    results: >-
+      {% set s = state_attr(sensor,'results') %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-        {{ states('sensor.motion_' + id|string + '_detected_person_confidence') }}
-      {% else %}
-        {{ states('sensor.motion_detected_person_confidence') }}
+        {{ s }}
+      {% else %}null{% endif %}
+    confidence: >-
+      {% if results|lower != 'null' and results is iterable and results|count > 0 %}
+        {% set option = states('input_select.motion_detect_person') %}
+        {% if option|lower == 'all' or option|lower == 'person' %}
+          {% set options = state_attr('input_select.motion_detect_person','options') %}
+          {% if options|lower != 'none' and options|lower != 'unknown' and options|length > 0 %}
+            {% set l = results|selectattr('entity','in',options)|map(attribute='confidence')|list %}
+          {% endif %}
+        {% else %}
+          {% set options = state_attr('input_select.motion_detect_person','options') %}
+          {% if options|lower != 'none' and options|lower != 'unknown' and options|length > 0 %}
+            {% set l = results|selectattr('entity','==',option)|map(attribute='confidence')|list %}
+          {% endif %}
+        {% endif %}
+        {% if l|lower != 'none' and l|length > 0 %}
+          {% set p = l|max %}
+        {% endif %}
       {% endif %}
+      {% if p is defined %}
+        {{ '%0.2f'|format(p) }}
+      {% else %}null{% endif %}
   action:
     - alias: 'choose: notify on id or gps'
       choose:
@@ -214,10 +233,12 @@
                   {{ state_attr('zone.home','longitude') }}
                 gps_accuracy: >-
                   {{ gps_accuracy }}
+                results: >-
+                  {{ results }}
                 confidence: >-
                   {{ confidence }}
                 ago: >-
-                  {{ ago }}
+                  {{ '%0.1f'|format(ago|float) }}
                 area: >-
                   {{ area }}
                 probability: >-
@@ -251,7 +272,7 @@
                 distance: >-
                   {{ distance }}
                 ago: >-
-                  {{ ago }}
+                  {{ '%0.1f'|format(ago|float) }}
                 area: >-
                   {{ area }}
                 probability: >-
