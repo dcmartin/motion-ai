@@ -2,27 +2,10 @@
 ## sensor/motion/person_detected.yaml
 ###
 
-## sqlite /config/home-assistant_v2.db << EOF
-## DELETE FROM "states" where entity_id == "sensor.motion_person_detected" and  json_extract(attributes, "$.latitude")  == "null" or json_extract(attributes, "$.longitude") == "null";
-## EOF
-
-- platform: template
-  sensors:
-    motion_person_detected_status:
-      value_template: >-
-        {% if is_state('sensor.motion_detected_person','unknown') %}unknown
-        {% elif is_state('binary_sensor.motion_detected_person','off') %}off
-        {% elif is_state('binary_sensor.motion_detected_person_expired','on') %}expired
-        {% elif is_state('binary_sensor.motion_detected_person','on') %}on{% else %}off{% endif %}
-
-## location detected
-
 - platform: template
   sensors:
     motion_person_detected:
-      unique_id: motion_person_detected
       friendly_name: '👱 detected (🧞)'
-      unit_of_measurement: '🧞'
       icon_template: >-
         {{- 'mdi:map-marker-circle' -}}
       attribute_templates:
@@ -31,7 +14,6 @@
       value_template: >-
         {{- 'unknown' -}}
     motion_person_detected_previous:
-      unique_id: motion_person_detected_previous
       friendly_name: '👱 detected previous (🧞)'
       unit_of_measurement: '🧞'
       attribute_templates:
@@ -60,37 +42,504 @@
         {{- 'mdi:map-marker-circle' -}}
       value_template: >-
         {{ 'unknown' }}
-
-## ago
-
-- platform: template
-  sensors:
-    motion_person_detected_ago_relative:
-      friendly_name: 'Person detected ago'
-      icon_template: 'mdi:account'
+    motion_person_detected_level:
+      friendly_name: 'Person detected level'
+      icon_template: >-
+        {%- set s = state_attr('sensor.motion_person_detected','rank') -%}
+        {%- if s|lower == 'none' or s|lower == 'null' or s|lower == 'unknown' or s|lower == 'unavailable' -%}
+          {{- 'mdi:account-question' -}}
+        {%- elif s|lower == 'veryhigh' -%}
+          {{- 'mdi:account-multiple-plus' -}}
+        {%- elif s|lower == 'high' -%}
+          {{- 'mdi:account-plus' -}}
+        {%- elif s|lower == 'nominal' -%}
+            {{- 'mdi:account-box' -}}
+        {%- elif s|lower == 'low' -%}
+          {{- 'mdi:account-minus' -}}
+        {%- elif s|lower == 'verylow' -%}
+          {{- 'mdi:account-multiple-minus' -}}
+        {%- else -%}
+          {{- 'mdi:account-clock' -}}
+        {%- endif -%}
       value_template: >
-        {% set s = state_attr('sensor.motion_person_detected','ago') %}
-        {%- if s|lower != 'none' and s|float > 0.0 -%}
+        {% set s = state_attr('sensor.motion_person_detected','level') %}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'unavailable' -%}
+          {{- s -}}
+        {%- else -%}Pending{%- endif -%}
+    motion_person_detected_duration:
+      friendly_name: 'Detected duration'
+      icon_template: 'mdi:av-timer'
+      unit_of_measurement: 's'
+      value_template: >
+        {% set s = states('sensor.motion_person_detected_duration_measurement') %}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'unavailable' -%}
+          {{ '%0.1f'|format(s|float) }}
+        {%- else -%}null{%- endif -%}
+    motion_person_detected_duration_relative:
+      friendly_name: 'Detected duration'
+      icon_template: 'mdi:clock'
+      value_template: >-
+        {% set s = states('sensor.motion_person_detected_duration') %}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'unavailable' -%}
+          {%- set r = strptime(utcnow().timestamp() - s|float, '%Y-%m-%dT%H:%M:%S.%f%z') -%}
+          {{- relative_time(r|as_datetime) -}}
+        {%- else -%}null{%- endif -%}
+    motion_person_detected_probability:
+      friendly_name: 'Detected probability'
+      icon_template: 'mdi:percent'
+      unit_of_measurement: '%'
+      value_template: >
+        {{- 'null' -}}
+    motion_person_detected_ago:
+      friendly_name: 'Detected ago'
+      icon_template: 'mdi:av-timer'
+      unit_of_measurement: 's'
+      value_template: >-
+        {{- 'null' -}}
+    motion_person_detected_ago_relative:
+      friendly_name: 'Detected ago'
+      icon_template: 'mdi:clock'
+      value_template: >-
+        {% set s = states('sensor.motion_person_detected_ago') %}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'unavailable' -%}
           {%- set r = strptime(utcnow().timestamp() - s|float, '%Y-%m-%dT%H:%M:%S.%f%z') -%}
           {{- relative_time(r|as_datetime) -}}
         {%- else -%}Pending{%- endif -%}
-
-- platform: template
-  sensors:
-    motion_person_detected_ago:
-      friendly_name: 'Person detected ago'
-      icon_template: 'mdi:camera-timer'
+    motion_person_detected_history_duration:
+      friendly_name: 'Detected history'
+      unit_of_measurement: days
+      icon_template: 'mdi:calendar-account'
+      value_template: >-
+        {% set s = states('sensor.motion_person_detected_ago_oldest') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != null %}
+          {{ (( utcnow().timestamp() - s|as_timestamp) / 86400)|int }}
+        {%- else -%}null{%- endif -%}
+    motion_person_detected_on_duration:
+      friendly_name: 'Detected duration'
+      icon_template: 'mdi:av-timer'
       unit_of_measurement: 's'
       value_template: >
-        {% set s = state_attr('sensor.motion_person_detected','ago') %}
-        {%- if s|lower != 'none' and s|float > 0.0 -%}
+        {% if is_state('binary_sensor.motion_person_detected','on') %}
+          {{ states('sensor.motion_person_detected_duration') }}
+        {%- else -%}null{%- endif -%}
+    motion_person_detected_off_duration:
+      friendly_name: 'Detected off duration'
+      icon_template: 'mdi:av-timer'
+      unit_of_measurement: 's'
+      value_template: >
+        {% if is_state('binary_sensor.motion_person_detected','off') %}
+          {{ states('sensor.motion_person_detected_duration') }}
+        {%- else -%}null{%- endif -%}
+    motion_person_detected_ratio_1d:
+      friendly_name: 'Detected ratio (1d)'
+      icon_template: 'mdi:home-variant'
+      unit_of_measurement: '%'
+      attribute_templates:
+        count: >-
+          {{ states('sensor.motion_person_detected_ratio_count_1d') }}
+        duration: >-
+          {% set s = states('sensor.motion_person_detected_ratio_oldest_1d') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 %}
+            {{ utcnow().timestamp() - s|as_timestamp }}
+          {%- else -%}null{%- endif -%}
+        status: >-
+          {%- set s = states('sensor.motion_person_detected_ratio_oldest_1d') -%}
+          {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 -%}
+            {%- set s = utcnow().timestamp() - s|as_timestamp -%}
+            {%- set d = (s/86400)|int -%}
+            {%- set h = ((s-(d*86400))/3600)|int -%}
+            {%- if d < 1 -%}
+              {%- set m = ((s-(d*86400)-(h*3600))/60)|int -%}
+              {%- set s = (s % 60)|int -%}
+              {%- if h < 1 -%}
+                {%- if m < 1 -%}
+                  {{ s -}}s
+                {%- else -%}
+                  {{ m -}}m; {{ s -}}s
+                {%- endif -%}
+              {%- else -%}
+                {{ h -}}h; {{ m -}}m
+              {%- endif -%}
+            {%- else -%}
+              {{ d -}}d; {{ h -}}h
+            {%- endif -%}
+            {{- ' (' + states('sensor.motion_person_detected_ratio_count_1d') + ')' -}}
+          {%- else -%}Pending{%- endif -%}
+      value_template: >
+        {%- set s = states('sensor.motion_person_detected_ratio_history_stats_1d') -%}
+        {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
           {{- s|float -}}
         {%- else -%}null{%- endif -%}
+    motion_person_detected_ratio_1w:
+      friendly_name: 'Detected ratio (1w)'
+      icon_template: 'mdi:home-variant'
+      unit_of_measurement: '%'
+      attribute_templates:
+        count: >-
+          {{ states('sensor.motion_person_detected_ratio_count_1w') }}
+        duration: >-
+          {% set s = states('sensor.motion_person_detected_ratio_oldest_1w') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 %}
+            {{ utcnow().timestamp() - s|as_timestamp }}
+          {%- else -%}null{%- endif -%}
+        status: >-
+          {%- set s = states('sensor.motion_person_detected_ratio_oldest_1w') -%}
+          {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 -%}
+            {%- set s = utcnow().timestamp() - s|as_timestamp -%}
+            {%- set d = (s/86400)|int -%}
+            {%- set h = ((s-(d*86400))/3600)|int -%}
+            {%- if d < 1 -%}
+              {%- set m = ((s-(d*86400)-(h*3600))/60)|int -%}
+              {%- set s = (s % 60)|int -%}
+              {%- if h < 1 -%}
+                {%- if m < 1 -%}
+                  {{ s -}}s
+                {%- else -%}
+                  {{ m -}}m; {{ s -}}s
+                {%- endif -%}
+              {%- else -%}
+                {{ h -}}h; {{ m -}}m
+              {%- endif -%}
+            {%- else -%}
+              {{ d -}}d; {{ h -}}h
+            {%- endif -%}
+            {{- ' (' + states('sensor.motion_person_detected_ratio_count_1w') + ')' -}}
+          {%- else -%}Pending{%- endif -%}
+      value_template: >
+        {%- set s = states('sensor.motion_person_detected_ratio_history_stats_1w') -%}
+        {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+          {{- s|float -}}
+        {%- else -%}null{%- endif -%}
+    motion_person_detected_ratio_history_count:
+      unit_of_measurement: 'Σ'
+      value_template: >-
+        {{ states('sensor.motion_person_detected_ratio_count_1w') }}
+    motion_person_detected_ratio_history_duration:
+      friendly_name: 'Detected analysis duration (s)'
+      icon_template: 'mdi:av-timer'
+      unit_of_measurement: 's'
+      value_template: >-
+        {% set s = states('sensor.motion_person_detected_ratio_oldest_1w') %}
+        {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 %}
+          {{ utcnow().timestamp() - s|as_timestamp }}
+        {%- else -%}null{%- endif -%}
+    motion_person_detected_ratio_history:
+      unique_id: motion_person_detected_ratio_history
+      friendly_name: 'Detected analysis duration'
+      icon_template: 'mdi:calendar-range'
+      value_template: >-
+        {%- set s = states('sensor.motion_person_detected_ratio_history_duration') -%}
+        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|float is number and s|float > 0.0 -%}
+          {%- set s = s|float -%}
+          {%- set d = (s/86400)|int -%}
+          {%- set h = ((s-(d*86400))/3600)|int -%}
+          {%- if d < 1 -%}
+            {%- set m = ((s-(d*86400)-(h*3600))/60)|int -%}
+            {%- set s = (s % 60)|int -%}
+            {%- if h < 1 -%}
+              {%- if m < 1 -%}
+                {{ s -}}s
+              {%- else -%}
+                {{ m -}}m; {{ s -}}s
+              {%- endif -%}
+            {%- else -%}
+              {{ h -}}h; {{ m -}}m
+            {%- endif -%}
+          {%- else -%}
+            {{ d -}}d; {{ h -}}h
+          {%- endif -%}
+          {{- ' (' + states('sensor.motion_person_detected_ratio_history_count') + ')' -}}
+        {%- else -%}Pending{%- endif -%}
 
-# where
+# deciles
+
+- platform: statistics
+  name: motion_person_detected_probability_deciles_1w
+  entity_id: sensor.motion_person_detected_probability
+  state_characteristic: quantiles
+  quantile_intervals: 10
+  quantile_method: exclusive
+  sampling_size: 10000
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_person_detected_ago_deciles_1w
+  entity_id: sensor.motion_person_detected_ago
+  state_characteristic: quantiles
+  quantile_intervals: 10
+  quantile_method: inclusive
+  sampling_size: 10000
+  max_age:
+    days: 7
+
+# today
+
+- platform: history_stats
+  name: motion_person_detected_counter_today
+  entity_id: binary_sensor.motion_person_detected
+  state: 'on'
+  type: count
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_person_detected_time_today
+  entity_id: binary_sensor.motion_person_detected
+  state: 'on'
+  type: time
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+# ago
+
+- platform: statistics
+  name: motion_person_detected_ago_oldest
+  entity_id: sensor.motion_person_detected_ago
+  state_characteristic: datetime_oldest
+  sampling_size: 100000
+  max_age:
+    days: 30
+
+- platform: statistics
+  name: motion_person_detected_ago_min
+  entity_id: sensor.motion_person_detected_ago
+  state_characteristic: value_min
+  sampling_size: 100
+  max_age:
+    days: 1
+
+- platform: statistics
+  name: motion_person_detected_ago_max
+  entity_id: sensor.motion_person_detected_ago
+  state_characteristic: value_max
+  sampling_size: 100
+  max_age:
+    days: 1
+
+- platform: statistics
+  name: motion_person_detected_ago_mean
+  entity_id: sensor.motion_person_detected_ago
+  state_characteristic: mean
+  sampling_size: 100
+  max_age:
+    days: 1
+
+- platform: statistics
+  name: motion_person_detected_ago_stdev
+  entity_id: sensor.motion_person_detected_ago
+  state_characteristic: standard_deviation
+  sampling_size: 100
+  max_age:
+    days: 1
+
+- platform: statistics
+  name: motion_person_detected_ago_stdev_mean
+  entity_id: sensor.motion_person_detected_ago_stdev
+  state_characteristic: mean
+  sampling_size: 100
+  max_age:
+    days: 1
+
+# active
+
+- platform: statistics
+  name: motion_person_detected_on_duration_mean_1d
+  entity_id: sensor.motion_person_detected_on_duration
+  state_characteristic: mean
+  sampling_size: 720
+  max_age:
+    days: 1
+
+- platform: statistics
+  name: motion_person_detected_on_duration_mean_1w
+  entity_id: sensor.motion_person_detected_on_duration
+  state_characteristic: mean
+  sampling_size: 5040
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_person_detected_off_duration_mean_1d
+  entity_id: sensor.motion_person_detected_off_duration
+  state_characteristic: mean
+  sampling_size: 720
+  max_age:
+    days: 1
+
+- platform: statistics
+  name: motion_person_detected_off_duration_mean_1w
+  entity_id: sensor.motion_person_detected_off_duration
+  state_characteristic: mean
+  sampling_size: 5040
+  max_age:
+    days: 7
+
+# probability
+
+- platform: statistics
+  name: motion_person_detected_probability_mean_5m
+  entity_id: sensor.motion_person_detected_probability
+  state_characteristic: mean
+  sampling_size: 60
+  max_age:
+    minutes: 5
+
+- platform: statistics
+  name: motion_person_detected_probability_mean_15m
+  entity_id: sensor.motion_person_detected_probability
+  state_characteristic: mean
+  sampling_size: 180
+  max_age:
+    minutes: 15
+
+- platform: statistics
+  name: motion_person_detected_probability_mean_1h
+  entity_id: sensor.motion_person_detected_probability
+  state_characteristic: mean
+  sampling_size: 720
+  max_age:
+    hours: 1
+
+- platform: statistics
+  name: motion_person_detected_probability_mean_1d
+  entity_id: sensor.motion_person_detected_probability
+  state_characteristic: mean
+  sampling_size: 2880
+  max_age:
+    days: 1
+
+- platform: statistics
+  name: motion_person_detected_probability_mean_1w
+  entity_id: sensor.motion_person_detected_probability
+  state_characteristic: mean
+  sampling_size: 20160
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_person_detected_average_5m
+  entity_id: binary_sensor.motion_person_detected
+  state_characteristic: average_step
+  sampling_size: 60
+  max_age:
+    minutes: 5
+
+- platform: statistics
+  name: motion_person_detected_average_15m
+  entity_id: binary_sensor.motion_person_detected
+  state_characteristic: average_step
+  sampling_size: 180
+  max_age:
+    minutes: 15
+
+- platform: statistics
+  name: motion_person_detected_average_1h
+  entity_id: binary_sensor.motion_person_detected
+  state_characteristic: average_step
+  sampling_size: 720
+  max_age:
+    hours: 1
+
+- platform: statistics
+  name: motion_person_detected_average_1d
+  entity_id: binary_sensor.motion_person_detected
+  state_characteristic: average_step
+  sampling_size: 2880
+  max_age:
+    days: 1
+
+- platform: statistics
+  name: motion_person_detected_average_1w
+  entity_id: binary_sensor.motion_person_detected
+  state_characteristic: average_step
+  sampling_size: 20160
+  max_age:
+    days: 7
+
+##
+# active ratio
+##
+
+# 1d
+
+- platform: history_stats
+  name: motion_person_detected_ratio_history_stats_1d
+  entity_id: binary_sensor.motion_person_detected
+  state: 'on'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: statistics
+  name: motion_person_detected_ratio_mean_1d
+  entity_id: sensor.motion_person_detected_ratio_history_stats_1d
+  state_characteristic: mean
+  sampling_size: 720
+  max_age:
+    days: 1
+
+- platform: statistics
+  name: motion_person_detected_ratio_oldest_1d
+  entity_id: sensor.motion_person_detected_ratio_history_stats_1d
+  state_characteristic: datetime_oldest
+  sampling_size: 720
+  max_age:
+    days: 1
+
+- platform: statistics
+  name: motion_person_detected_ratio_count_1d
+  entity_id: sensor.motion_person_detected_ratio_history_stats_1d
+  state_characteristic: count
+  sampling_size: 720
+  max_age:
+    days: 1
+
+# 1w
+
+- platform: history_stats
+  name: motion_person_detected_ratio_history_stats_1w
+  entity_id: binary_sensor.motion_person_detected
+  state: 'on'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int - states('sensor.motion_person_weeks_timestamp')|int }}
+  end: '{{ now() }}'
+
+- platform: statistics
+  name: motion_person_detected_ratio_mean_1w
+  entity_id: sensor.motion_person_detected_ratio_history_stats_1w
+  state_characteristic: mean
+  sampling_size: 5040
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_person_detected_ratio_oldest_1w
+  entity_id: sensor.motion_person_detected_ratio_history_stats_1w
+  state_characteristic: datetime_oldest
+  sampling_size: 5040
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_person_detected_ratio_count_1w
+  entity_id: sensor.motion_person_detected_ratio_history_stats_1w
+  state_characteristic: count
+  sampling_size: 5040
+  max_age:
+    days: 7
+
+## status, where
 
 - platform: template
   sensors:
+    motion_person_detected_status:
+      value_template: >-
+        {% if is_state('sensor.motion_detected_person','unknown') %}unknown
+        {% elif is_state('binary_sensor.motion_detected_person','off') %}off
+        {% elif is_state('binary_sensor.motion_detected_person_expired','on') %}expired
+        {% elif is_state('binary_sensor.motion_detected_person','on') %}on{% else %}off{% endif %}
     motion_person_detected_where:
       friendly_name: 'Person detected where'
       icon_template: 'mdi:map-marker'
@@ -98,9 +547,27 @@
         {% set s = state_attr('sensor.motion_person_detected','id') %}
         {%- if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' and s|length > 0 -%}
           {{- s -}}
-        {%- else -%}null{%- endif -%}
+        {%- else -%}Pending{%- endif -%}
+    motion_person_detected_confidence:
+      friendly_name: 'Person detected confidence'
+      unit_of_measurement: 'β'
+      icon_template: 'mdi:beta'
+      value_template: >-
+        {{- 'null' -}}
 
-## distance statistics
+# deciles
+
+- platform: statistics
+  name: motion_person_detected_confidence_deciles_1w
+  entity_id: sensor.motion_person_detected_confidence
+  state_characteristic: quantiles
+  quantile_intervals: 10
+  quantile_method: inclusive
+  sampling_size: 10000
+  max_age:
+    days: 7
+
+## distance
 
 - platform: statistics
   name: motion_person_detected_distance_mean_1h
@@ -158,8 +625,6 @@
   max_age:
     days: 7
 
-# distance stdev
-
 - platform: statistics
   name: motion_person_detected_distance_stdev_1d
   entity_id: sensor.motion_person_detected_distance_measurement
@@ -192,7 +657,7 @@
   max_age:
     days: 7
 
-## accuracy statistics
+## accuracy
 
 - platform: statistics
   name: motion_person_detected_accuracy_mean_1h
@@ -250,8 +715,6 @@
   max_age:
     days: 7
 
-# accuracy stdev
-
 - platform: statistics
   name: motion_person_detected_accuracy_stdev_1d
   entity_id: sensor.motion_person_detected_accuracy_measurement
@@ -284,7 +747,7 @@
   max_age:
     days: 7
 
-## velocity statistics
+## velocity
 
 - platform: statistics
   name: motion_person_detected_velocity_mean_1h
@@ -342,8 +805,6 @@
   max_age:
     days: 7
 
-# velocity stdev
-
 - platform: statistics
   name: motion_person_detected_velocity_stdev_1d
   entity_id: sensor.motion_person_detected_velocity_measurement
@@ -376,7 +837,7 @@
   max_age:
     days: 7
 
-## movement statistics
+## movement
 
 - platform: statistics
   name: motion_person_detected_movement_mean_1h
@@ -433,8 +894,6 @@
   sampling_size: 5040
   max_age:
     days: 7
-
-# movement stdev
 
 - platform: statistics
   name: motion_person_detected_movement_stdev_1d
