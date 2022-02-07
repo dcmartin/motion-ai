@@ -13,7 +13,7 @@
     state: >-
       {% set s = states('sensor.motion_person_active_ago_measurement') %}
       {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'unavailable' -%}
-        {{ '%0.1f'|format(s|float) }}
+        {{ '%0.1f'|format(s|float(0.0)) }}
       {%- else -%}{{ 'null' }}{%- endif -%}
   action:
     - alias: 'set sensor.motion_person_active ago'
@@ -34,7 +34,7 @@
     state: >-
       {% set s = state_attr('binary_sensor.motion_person_active','probability') %}
       {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'unavailable' -%}
-        {{ '%0.2f'|format(s|float) }}
+        {{ '%0.2f'|format(s|float(0.0)) }}
       {%- else -%}{{ 'null' }}{%- endif -%}
   action:
     - alias: 'set sensor.motion_person_active probability'
@@ -60,9 +60,9 @@
       {% else %}
         {% set s = states('sensor.motion_person_active_probability_mean_1w') %}
         {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-          {% set mn = s|float %}
-          {% set sd = states('sensor.motion_person_active_probability_stdev_1w')|float %}
-          {% set d = states('input_number.motion_person_active_probability_threshold_deviation')|float %}
+          {% set mn = s|float(0.0) %}
+          {% set sd = states('sensor.motion_person_active_probability_stdev_1w')|float(0.0) %}
+          {% set d = states('input_number.motion_person_active_probability_threshold_deviation')|float(0.0) %}
           {{ mn + sd * d }}
         {% else %}
           {{ state_attr('binary_sensor.motion_person_active','probability_threshold') }}
@@ -73,7 +73,7 @@
     conditions:
       - condition: template
         value_template: >
-          {{ not 'input_number' in trigger.entity_id and state_attr(trigger.entity_id,'probability_threshold')|float != threshold|float or true }}
+          {{ not 'input_number' in trigger.entity_id and state_attr(trigger.entity_id,'probability_threshold')|float(0.0) != threshold|float(0.0) or true }}
   action:
     - alias: 'set motion_person_active.probability_threshold'
       service: python_script.set_state
@@ -82,16 +82,16 @@
         probability_threshold: >-
           {{ threshold }}
 
-- id: motion_person_active_ago_deciles
-  alias: motion_person_active_ago_deciles
+- id: motion_person_active_ago_quartiles
+  alias: motion_person_active_ago_quartiles
   initial_state: on
   mode: restart
   trigger:
     - platform: state
-      entity_id: sensor.motion_person_active_ago_deciles_1w
+      entity_id: sensor.motion_person_active_ago_quartiles_1w
   variables:
-    deciles: >-
-      {% set s = states('sensor.motion_person_active_ago_deciles_1w') %}
+    quartiles: >-
+      {% set s = states('sensor.motion_person_active_ago_quartiles_1w') %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unknown' and s|lower != 'unavailable' %}
          {{ s }}
       {%- else -%}null{%- endif -%}
@@ -100,19 +100,19 @@
       service: python_script.set_state
       data_template:
         entity_id: sensor.motion_person_active_ago
-        deciles: >-
-          {{ deciles }}
+        quartiles: >-
+          {{ quartiles }}
 
-- id: motion_person_active_probability_deciles
-  alias: motion_person_active_probability_deciles
+- id: motion_person_active_probability_quartiles
+  alias: motion_person_active_probability_quartiles
   initial_state: on
   mode: restart
   trigger:
     - platform: state
-      entity_id: sensor.motion_person_active_probability_deciles_1w
+      entity_id: sensor.motion_person_active_probability_quartiles_1w
   variables:
-    deciles: >-
-      {% set s = states('sensor.motion_person_active_probability_deciles_1w') %}
+    quartiles: >-
+      {% set s = states('sensor.motion_person_active_probability_quartiles_1w') %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unknown' and s|lower != 'unavailable' %}
          {{ s }}
       {%- else -%}null{%- endif -%}
@@ -121,8 +121,8 @@
       service: python_script.set_state
       data_template:
         entity_id: sensor.motion_person_active_probability
-        deciles: >-
-          {{ deciles }}
+        quartiles: >-
+          {{ quartiles }}
 
 - id: motion_person_active_level
   alias: motion_person_active_level
@@ -136,7 +136,7 @@
       {% set s = states('sensor.motion_person_active_count_today') %}
       {% if s|lower == 'none' or s|lower == 'unknown' or s|lower == 'unknown' or s|lower == 'unavailable' %}
          Pending
-      {% elif s|int <= 0 %}
+      {% elif s|int(0) <= 0 %}
          Nothing today
       {%- elif is_state('binary_sensor.motion_person_active_ago_high_persistent','on') -%}
         Low
@@ -169,20 +169,20 @@
       {%- set s = states('sensor.motion_person_active_ago_stdev') -%}
       {%- set m = states('sensor.motion_person_active_ago_mean') -%}
       {%- set n = states('sensor.motion_person_active_ago_min') -%}
-      {%- if s|float > 0.0 and m|float > 0.0 and n|float >= 0.0 %}
-        {%- set rate_u = n|float / m|float * 100.0 %}
-        {%- set rate_s = n|float / s|float * 100.0 %}
+      {%- if s|float(0.0) > 0.0 and m|float(0.0) > 0.0 and n|float(0.0) >= 0.0 %}
+        {%- set rate_u = n|float(0.0) / m|float(0.0) * 100.0 %}
+        {%- set rate_s = n|float(0.0) / s|float(0.0) * 100.0 %}
         {%- set rate_vl = rate_u - rate_s %}
         {%- set rate_vh = rate_u + rate_s %}
         {%- set rate_l = rate_u - rate_s/2 %}
         {%- set rate_h = rate_u + rate_s/2 %}
         {%- set v = states('sensor.motion_person_active_ago') %}
         {%- if v|lower == 'none' or v|lower == 'null' %}{{- 'none' -}}
-        {%- elif v|float >= rate_vh %}{{- 'veryhigh' -}}
-          {%- elif v|float >= rate_h %}{{- 'high' -}}
-          {%- elif v|float < rate_h and v|float > rate_l %}{{- 'nominal' -}}
-          {%- elif v|float <= rate_vl %}{{- 'verylow' -}}
-          {%- elif v|float <= rate_l %}{{- 'low' -}}
+        {%- elif v|float(0.0) >= rate_vh %}{{- 'veryhigh' -}}
+          {%- elif v|float(0.0) >= rate_h %}{{- 'high' -}}
+          {%- elif v|float(0.0) < rate_h and v|float(0.0) > rate_l %}{{- 'nominal' -}}
+          {%- elif v|float(0.0) <= rate_vl %}{{- 'verylow' -}}
+          {%- elif v|float(0.0) <= rate_l %}{{- 'low' -}}
           {%- else %}{{- 'null' -}}
         {%- endif -%}
       {%- else %}{{- 'unknown' -}}{% endif %}
@@ -206,13 +206,13 @@
     status: >-
       {%- set s = state_attr('binary_sensor.motion_person_active','probability') -%}
       {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-        {%- set p = '%0.2f'|format(s|float) -%}
+        {%- set p = '%0.2f'|format(s|float(0.0)) -%}
         {%- set s = state_attr('binary_sensor.motion_person_active','probability_threshold') -%}
         {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-          {%- set t = '%0.2f'|format(s|float) -%}
-          𝛒: {{ '%0.1f'|format(p|float * 100) -}}; τ: {{ '%0.1f'|format(t|float * 100) -}};
+          {%- set t = '%0.2f'|format(s|float(0.0)) -%}
+          𝛒: {{ '%0.1f'|format(p|float(0.0) * 100) -}}; τ: {{ '%0.1f'|format(t|float(0.0) * 100) -}};
         {%- else -%}
-          𝛒: {{ '%0.1f'|format(p|float * 100) -}};
+          𝛒: {{ '%0.1f'|format(p|float(0.0) * 100) -}};
         {%- endif -%}
         {%- set s = state_attr('binary_sensor.motion_person_active','observations') -%}
         {%- if s|lower != 'none' and s|lower != 'null' and 'observations' in s and s.observations is iterable and s.observations|count > 0 -%}
@@ -301,9 +301,9 @@
       {% else %}
         {% set s = states('sensor.motion_person_occupancy_probability_mean_1w') %}
         {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-          {% set mn = s|float %}
-          {% set sd = states('sensor.motion_person_occupancy_probability_stdev_1w')|float %}
-          {% set d = states('input_number.motion_person_occupancy_probability_threshold_deviation')|float %}
+          {% set mn = s|float(0.0) %}
+          {% set sd = states('sensor.motion_person_occupancy_probability_stdev_1w')|float(0.0) %}
+          {% set d = states('input_number.motion_person_occupancy_probability_threshold_deviation')|float(0.0) %}
           {{ mn + sd * d }}
         {% else %}
           {{ state_attr('binary_sensor.motion_person_occupancy','probability_threshold') }}
@@ -314,7 +314,7 @@
     conditions:
       - condition: template
         value_template: >
-          {{ not 'input_number' in trigger.entity_id and state_attr(trigger.entity_id,'probability_threshold')|float != threshold|float or true }}
+          {{ not 'input_number' in trigger.entity_id and state_attr(trigger.entity_id,'probability_threshold')|float(0.0) != threshold|float(0.0) or true }}
   action:
     - alias: 'set motion_person_occupancy.probability_threshold'
       service: python_script.set_state
@@ -341,9 +341,9 @@
       {% else %}
         {% set s = states('sensor.motion_person_location_probability_mean_1w') %}
         {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-          {% set mn = s|float %}
-          {% set sd = states('sensor.motion_person_location_probability_stdev_1w')|float %}
-          {% set d = states('input_number.motion_person_location_probability_threshold_deviation')|float %}
+          {% set mn = s|float(0.0) %}
+          {% set sd = states('sensor.motion_person_location_probability_stdev_1w')|float(0.0) %}
+          {% set d = states('input_number.motion_person_location_probability_threshold_deviation')|float(0.0) %}
           {{ mn + sd * d }}
         {% else %}
           {{ state_attr('binary_sensor.motion_person_location','probability_threshold') }}
@@ -354,7 +354,7 @@
     conditions:
       - condition: template
         value_template: >
-          {{ not 'input_number' in trigger.entity_id and state_attr(trigger.entity_id,'probability_threshold')|float != threshold|float or true }}
+          {{ not 'input_number' in trigger.entity_id and state_attr(trigger.entity_id,'probability_threshold')|float(0.0) != threshold|float(0.0) or true }}
   action:
     - alias: 'set motion_person_location.probability_threshold'
       service: python_script.set_state

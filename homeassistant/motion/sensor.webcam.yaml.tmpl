@@ -24,7 +24,7 @@
       friendly_name: '${MOTION_CAMERA} status counter'
       unit_of_measurement: count
       value_template: >-
-        {{ states('sensor.motion_${MOTION_CAMERA}_status_camera_found_counter')|int - states('sensor.motion_status_camera_lost_counter')|int }}
+        {{ states('sensor.motion_${MOTION_CAMERA}_status_camera_found_counter')|int(0) - states('sensor.motion_status_camera_lost_counter')|int(0) }}
 
 - platform: template
   sensors:
@@ -33,7 +33,7 @@
       unit_of_measurement: count
       value_template: >
         {% if states('counter.motion_${MOTION_CAMERA}_status_camera_found_counter') != 'unknown' %}
-          {{ states('counter.motion_${MOTION_CAMERA}_status_camera_found_counter')|int }}
+          {{ states('counter.motion_${MOTION_CAMERA}_status_camera_found_counter')|int(0) }}
         {%- else -%}null{%- endif -%}
 
 - platform: template
@@ -43,7 +43,7 @@
       unit_of_measurement: count
       value_template: >
         {% if states('counter.motion_${MOTION_CAMERA}_status_camera_lost_counter') != 'unknown' %}
-          {{ states('counter.motion_${MOTION_CAMERA}_status_camera_lost_counter')|int }}
+          {{ states('counter.motion_${MOTION_CAMERA}_status_camera_lost_counter')|int(0) }}
         {%- else -%}null{%- endif -%}
 
 ## found
@@ -64,9 +64,9 @@
     motion_${MOTION_CAMERA}_status_camera_found_date:
       unit_of_measurement: 's'
       value_template: >-
-        {% if state_attr('sensor.motion_${MOTION_CAMERA}_status_camera_found','date')|lower != 'none'
-              and state_attr('sensor.motion_${MOTION_CAMERA}_status_camera_found','date')|int > 0 %}
-          {{ state_attr('sensor.motion_${MOTION_CAMERA}_status_camera_found','date')|int }}
+        {% set s = state_attr('sensor.motion_${MOTION_CAMERA}_status_camera_found','date') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'unavailable' %}
+          {{ s }}
         {% else %}null{% endif %}
 
 - platform: template
@@ -74,12 +74,10 @@
     motion_${MOTION_CAMERA}_status_camera_found_when:
       friendly_name: '${MOTION_CAMERA} found at'
       value_template: >-
-        {% if states.sensor.motion_${MOTION_CAMERA}_status_camera_found_date|lower != 'none'
-              and states.sensor.motion_${MOTION_CAMERA}_status_camera_found_date.state|int > 0 %}
-          {% set s = states.sensor.motion_${MOTION_CAMERA}_status_camera_found_date.state|int %}
-          {% set n = utcnow().timestamp() %}
-          {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}; {{ (n|int-s)|int }} lag
-        {% else %}null{% endif %} 
+        {% set s = state_attr('sensor.motion_${MOTION_CAMERA}_status_camera_found','date') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'unavailable' %}
+          {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}; {{ utcnow().timestamp()|int(0) - s|int(0) -}}s lag
+        {% else %}null{% endif %}
 
 ## lost
 
@@ -98,9 +96,9 @@
     motion_${MOTION_CAMERA}_status_camera_lost_date:
       unit_of_measurement: 's'
       value_template: >-
-        {% if state_attr('sensor.motion_${MOTION_CAMERA}_status_camera_lost','date')|lower != 'none'
-              and state_attr('sensor.motion_${MOTION_CAMERA}_status_camera_lost','date')|int > 0 %}
-          {{ state_attr('sensor.motion_${MOTION_CAMERA}_status_camera_lost','date')|int }}
+        {% set s = state_attr('sensor.motion_${MOTION_CAMERA}_status_camera_lost','date') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'unavailable' %}
+          {{ s }}
         {% else %}null{% endif %}
 
 - platform: template
@@ -108,11 +106,10 @@
     motion_${MOTION_CAMERA}_status_camera_lost_when:
       friendly_name: '${MOTION_CAMERA} lost at'
       value_template: >-
-        {% if states.sensor.motion_${MOTION_CAMERA}_status_camera_lost_date|lower != 'none'
-              and states.sensor.motion_${MOTION_CAMERA}_status_camera_lost_date.state|int > 0 %}
-          {% set s = states.sensor.motion_${MOTION_CAMERA}_status_camera_lost_date.state|int %}
+        {% set s = state_attr('sensor.motion_${MOTION_CAMERA}_status_camera_lost','date') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'unavailable' %}
           {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}
-        {% else %}null{% endif %} 
+        {% else %}null{% endif %}
 
 ###
 # start event
@@ -209,7 +206,7 @@
             {%- set camera = state_attr('sensor.motion_${MOTION_CAMERA}_event_end','camera') -%}
             {%- set event = state_attr('sensor.motion_${MOTION_CAMERA}_event_end','event') -%}
             {%- set end = state_attr('sensor.motion_${MOTION_CAMERA}_event_end','end') -%}
-            {%- set elapsed = state_attr('sensor.motion_${MOTION_CAMERA}_event_end','elapsed')|int -%}
+            {%- set elapsed = state_attr('sensor.motion_${MOTION_CAMERA}_event_end','elapsed')|int(0) -%}
             {%- set when = end|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -%}
             {%- if elapsed > 0 %} Duration: {{ elapsed }} seconds{%- else -%}None{%- endif -%};
             from: {{ device -}}/{{- camera -}}/{{- event -}}; at: {{ when -}}
@@ -252,7 +249,7 @@
       friendly_name: '${MOTION_CAMERA} end counter'
       unit_of_measurement: count
       value_template: >-
-        {{ states('counter.motion_${MOTION_CAMERA}_end_counter')|int }}
+        {{ states('counter.motion_${MOTION_CAMERA}_end_counter')|int(0) }}
 
 ## timing
 - platform: template
@@ -262,7 +259,7 @@
       value_template: >-
         {% if states.sensor.motion_${MOTION_CAMERA}_event_end|lower != 'none' 
               and state_attr('sensor.motion_${MOTION_CAMERA}_event_end','end')|lower != 'none' %}
-          {% set date = state_attr('sensor.motion_${MOTION_CAMERA}_event_end','end')|int %}
+          {% set date = state_attr('sensor.motion_${MOTION_CAMERA}_event_end','end')|int(0) %}
           {% if date > 0 %}{{ date }}{% else %}null{% endif %}
         {% else %}null{% endif %}
 
@@ -271,7 +268,7 @@
     motion_${MOTION_CAMERA}_end_when:
       friendly_name: '${MOTION_CAMERA} end'
       value_template: >-
-        {% set s = states('sensor.motion_${MOTION_CAMERA}_end_date')|int %}
+        {% set s = states('sensor.motion_${MOTION_CAMERA}_end_date')|int(0) %}
         {% if s > 0 %}
           {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}
         {% else %}Pending{% endif %}
@@ -283,10 +280,10 @@
       unit_of_measurement: 's'
       value_template: >
         {% set t = states('sensor.time') %}
-        {% set s = states('sensor.motion_${MOTION_CAMERA}_end_date')|float %}
+        {% set s = states('sensor.motion_${MOTION_CAMERA}_end_date')|float(0.0) %}
         {% if s >  0 %}
-          {% set s = utcnow().timestamp()|float - s %}
-          {% if s|int <  86400 %}{{ s|float }}{%- else -%}null{%- endif -%}
+          {% set s = utcnow().timestamp()|float(0.0) - s %}
+          {% if s|int(0) <  86400 %}{{ s|float(0.0) }}{%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif -%}
 
 ## elapsed
@@ -312,13 +309,13 @@
         {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_annotated','on') or is_state('binary_sensor.motion_${MOTION_CAMERA}_annotated_expired','off') %}
           {% set e = state_attr('sensor.motion_${MOTION_CAMERA}_event_annotated','event') %}
           {% if e|lower != 'none' and e|lower != 'unknown' and e|lower != 'unavailable' and e|lower != 'null' and e is mapping %}
-            {% set n = utcnow().timestamp()|int %}
-            {% set end = e.end|int %}
+            {% set n = utcnow().timestamp()|int(0) %}
+            {% set end = e.end|int(0) %}
             {% set ago = n - end %}
             {% set event = e.event %}
             {% set device = e.device %}
             {% set camera = e.camera %}
-            {% set elapsed = e.elapsed|int %}
+            {% set elapsed = e.elapsed|int(0) %}
             {% set what = state_attr('sensor.motion_${MOTION_CAMERA}_event_annotated','detected')|map(attribute='entity')|list %}
             {% set count = state_attr('sensor.motion_${MOTION_CAMERA}_event_annotated','count') %}
             {% set when = end|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
@@ -348,7 +345,7 @@
         {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_annotated','on') or is_state('binary_sensor.motion_${MOTION_CAMERA}_annotated_expired','off') %}
           {% set count = state_attr('sensor.motion_${MOTION_CAMERA}_event_annotated','count') %}
           {% if count|lower != 'none' and count|lower != 'unknown' and count != 'null' %}
-            {{ count|int }}
+            {{ count|int(0) }}
           {% else %}null{% endif %}
         {% else %}null{% endif %}
 
@@ -368,7 +365,7 @@
           {% if detected|lower != 'none' and detected|lower != 'unknown' and detected != 'null' %}
             {% set count = detected|selectattr('entity','==',states('sensor.motion_${MOTION_CAMERA}_detect_entity'))|map(attribute='count')|select("number")|sum %}
             {% if count|lower != 'none' and count|lower != 'unknown' and count != 'null' %}
-              {{ count|int }}
+              {{ count|int(0) }}
             {% else %}null{% endif %}
           {% else %}null{% endif %}
         {% else %}null{% endif %}
@@ -402,7 +399,7 @@
       friendly_name: '${MOTION_CAMERA} annotated counter'
       unit_of_measurement: count
       value_template: >
-        {{ states('counter.motion_${MOTION_CAMERA}_annotated_counter')|int }}
+        {{ states('counter.motion_${MOTION_CAMERA}_annotated_counter')|int(0) }}
 
 ## date
 - platform: template
@@ -414,8 +411,8 @@
           {% set e = state_attr('sensor.motion_${MOTION_CAMERA}_event_annotated','event') %}
           {% if e is mapping %}
             {% set s = e.end %}
-            {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
-              {{ s|int }}
+            {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' and s|int(0) > 0 %}
+              {{ s|int(0) }}
             {%- else -%}null{%- endif -%}
           {%- else -%}null{%- endif -%}
         {% else %}
@@ -431,7 +428,7 @@
     motion_${MOTION_CAMERA}_annotated_when:
       friendly_name: '${MOTION_CAMERA} annotated when'
       value_template: >-
-        {% set s = states('sensor.motion_${MOTION_CAMERA}_annotated_date')|int %}
+        {% set s = states('sensor.motion_${MOTION_CAMERA}_annotated_date')|int(0) %}
         {% if s > 0 %}
           {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z") -}}
         {% else %}Pending{% endif %}
@@ -444,10 +441,10 @@
       unit_of_measurement: 's'
       value_template: >
         {% set e = state_attr('sensor.motion_${MOTION_CAMERA}_event_annotated','event') %}
-        {% if e|lower != 'none' and e|lower != 'unknown' and e|lower != 'unavailable' and e|lower != 'null' and e is mapping %}
+        {% if e|lower != 'none' and e|lower != 'unknown' and e|lower != 'unavailable' and e|lower != 'null' and 'elapsed' in e %}
           {% set s = e.elapsed %}
           {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' %}
-            {{ s|int }}
+            {{ s|int(0) }}
           {%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif -%}
 
@@ -462,10 +459,10 @@
         {%- set s = state_attr('sensor.motion_${MOTION_CAMERA}_event_annotated','timestamp') -%}
         {%- if s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'unknown' and s != null -%}
           {%- set e = state_attr('sensor.motion_${MOTION_CAMERA}_event_annotated','event') -%}
-          {%- if e|lower != 'unavailable' and e|lower != 'none' and e|lower != 'unknown' and e != null and e is iterable %}
-            {%- set t = e.timestamp.end -%}
+          {%- if e|lower != 'unavailable' and e|lower != 'none' and e|lower != 'unknown' and e != null and 'timestamp' in e %}
+            {%- set t = e.timestamp.end|default('unknown') -%}
             {%- if t|lower != 'unavailable' and t|lower != 'none' and t|lower != 'unknown' and t != null and t|length > 0 %}
-              {{- as_timestamp(s)|int - as_timestamp(t)|int }}
+              {{- as_timestamp(s)|int(0) - as_timestamp(t)|int(0) }}
             {% else %}null{% endif %}
           {% else %}null{% endif %}
         {% else %}null{% endif %}
@@ -486,13 +483,13 @@
       friendly_name: '${MOTION_CAMERA} annotated ago relative'
       icon_template: 'mdi:eye'
       value_template: >
-        {% set s = states('sensor.motion_${MOTION_CAMERA}_annotated_ago')|int %}
+        {% set s = states('sensor.motion_${MOTION_CAMERA}_annotated_ago')|int(0) %}
         {% if s > 0 %}
-          {% set d = (s/86400)|int %}
-          {% set h = (s/3600)|int %}
+          {% set d = (s/86400)|int(0) %}
+          {% set h = (s/3600)|int(0) %}
           {% if d < 1 %}
-            {% set m = ((s-(d*86400)-(h*3600))/60)|int %}
-            {% set s = (s % 60)|int %}
+            {% set m = ((s-(d*86400)-(h*3600))/60)|int(0) %}
+            {% set s = (s % 60)|int(0) %}
             {% if h < 1 %}
               {% if m < 1 %}
                 {{ s -}}s
@@ -515,7 +512,7 @@
       value_template: >
         {%- set s = states('sensor.motion_${MOTION_CAMERA}_annotated_date') -%}
         {%- if s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' and s|lower != 'null' -%}
-          {%- set s = utcnow().timestamp()|int - s|int -%}
+          {%- set s = utcnow().timestamp()|int(0) - s|int(0) -%}
           {{- s -}}
         {%- else -%}null{%- endif -%}
 
@@ -534,9 +531,9 @@
       friendly_name: '${MOTION_CAMERA} annotated percent'
       unit_of_measurement: '%'
       value_template: >-
-        {% if states('sensor.motion_${MOTION_CAMERA}_annotated_counter')|int > 0 and states('sensor.motion_end_counter')|int > 0 %}
-          {% set value = states.sensor.motion_${MOTION_CAMERA}_annotated_counter.state|int / states.sensor.motion_end_counter.state|int * 100.0 %}
-          {{ "%.2f"|format(value|float) }}
+        {% if states('sensor.motion_${MOTION_CAMERA}_annotated_counter')|int(0) > 0 and states('sensor.motion_end_counter')|int(0) > 0 %}
+          {% set value = states.sensor.motion_${MOTION_CAMERA}_annotated_counter.state|int(0) / states.sensor.motion_end_counter.state|int(0) * 100.0 %}
+          {{ "%.2f"|format(value|float(0.0)) }}
         {%- else -%}null{%- endif -%}
 
 - platform: statistics
@@ -559,12 +556,12 @@
         {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_detected','on') %}
           {% set e = state_attr('sensor.motion_${MOTION_CAMERA}_event_annotated','event') %}
           {% if e is mapping %}
-            {% set n = utcnow().timestamp()|int %}
-            {% set end = e.end|int %}
+            {% set n = utcnow().timestamp()|int(0) %}
+            {% set end = e.end|int(0) %}
             {% set event = e.event %}
             {% set device = e.device %}
             {% set camera = e.camera %}
-            {% set elapsed = e.elapsed|int %}
+            {% set elapsed = e.elapsed|int(0) %}
             {% set what = state_attr('sensor.motion_${MOTION_CAMERA}_event_annotated','detected')|map(attribute='entity')|list %}
             {% set count = state_attr('sensor.motion_${MOTION_CAMERA}_event_annotated','count') %}
             {% set when = end|timestamp_custom("%a %b %d %I:%M:%S %p %Z") %}
@@ -591,7 +588,7 @@
       value_template: >-
         {% set s = state_attr('sensor.motion_${MOTION_CAMERA}_event_annotated','detected')|selectattr('entity','==',states('sensor.motion_${MOTION_CAMERA}_detect_entity'))|map(attribute='count')|select("number")|sum %}
         {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' %}
-          {{ s|int }}
+          {{ s|int(0) }}
         {% else %}null{% endif %}
 
 ## counter
@@ -601,7 +598,7 @@
       friendly_name: '${MOTION_CAMERA} detected counter'
       unit_of_measurement: count
       value_template: >
-        {{ states('counter.motion_${MOTION_CAMERA}_detected_counter')|int }}
+        {{ states('counter.motion_${MOTION_CAMERA}_detected_counter')|int(0) }}
 
 - platform: template
   sensors:
@@ -613,8 +610,8 @@
           {% set e = state_attr('sensor.motion_${MOTION_CAMERA}_event_annotated','event') %}
           {% if e is mapping %}
             {% set s = e.event %}
-            {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
-              {{ s|int }}
+            {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' and s|int(0) > 0 %}
+              {{ s|int(0) }}
             {%- else -%}null{%- endif -%}
           {%- else -%}null{%- endif -%}
         {% else %}
@@ -635,8 +632,8 @@
           {% set e = state_attr('sensor.motion_${MOTION_CAMERA}_event_annotated','event') %}
           {% if e is mapping %}
             {% set s = e.end %}
-            {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' and s|int > 0 %}
-              {{ s|int }}
+            {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' and s|int(0) > 0 %}
+              {{ s|int(0) }}
             {%- else -%}null{%- endif -%}
           {%- else -%}null{%- endif -%}
         {% else %}
@@ -658,7 +655,7 @@
           {% if e|lower != 'none' and e|lower != 'unknown' and e|lower != 'unavailable' and e|lower != 'null' and e is mapping %}
             {% set s = e.elapsed %}
             {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' %}
-              {{ s|int }}
+              {{ s|int(0) }}
             {%- else -%}null{%- endif -%}
           {%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif -%}
@@ -725,13 +722,13 @@
       friendly_name: '${MOTION_CAMERA} detected ago relative'
       icon_template: 'mdi:eye'
       value_template: >
-        {% set s = states('sensor.motion_${MOTION_CAMERA}_detected_ago')|int %}
+        {% set s = states('sensor.motion_${MOTION_CAMERA}_detected_ago')|int(0) %}
         {% if s > 0 %}
-          {% set d = (s/86400)|int %}
-          {% set h = (s/3600)|int %}
+          {% set d = (s/86400)|int(0) %}
+          {% set h = (s/3600)|int(0) %}
           {% if d < 1 %}
-            {% set m = ((s-(d*86400)-(h*3600))/60)|int %}
-            {% set s = (s % 60)|int %}
+            {% set m = ((s-(d*86400)-(h*3600))/60)|int(0) %}
+            {% set s = (s % 60)|int(0) %}
             {% if h < 1 %}
               {% if m < 1 %}
                 {{ s -}}s
@@ -754,7 +751,7 @@
       value_template: >
         {%- set s = states('sensor.motion_${MOTION_CAMERA}_detected_date') -%}
         {%- if s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' and s|lower != 'null' -%}
-          {%- set s = utcnow().timestamp()|int - s|int -%}
+          {%- set s = utcnow().timestamp()|int(0) - s|int(0) -%}
           {{- s -}}
         {%- else -%}null{%- endif -%}
 
@@ -776,7 +773,7 @@
         {% if is_state('binary_sensor.motion_${MOTION_CAMERA}_detected','on') or is_state('binary_sensor.motion_${MOTION_CAMERA}_detected_expired','off') %}
           {% set s = states('sensor.motion_${MOTION_CAMERA}_annotated_count') %}
           {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' %}
-            {{ s|int }}
+            {{ s|int(0) }}
           {% else %}null{% endif %}
         {% else %}null{% endif %}
 
@@ -788,9 +785,9 @@
       friendly_name: '${MOTION_CAMERA} detected percent'
       unit_of_measurement: '%'
       value_template: >-
-        {% if states('sensor.motion_${MOTION_CAMERA}_detected_counter')|int > 0 and states('sensor.motion_annotated_counter')|int > 0 %}
-          {% set value = states.sensor.motion_${MOTION_CAMERA}_detected_counter.state|int / states.sensor.motion_annotated_counter.state|int * 100.0 %}
-          {{ "%.2f"|format(value|float) }}
+        {% if states('sensor.motion_${MOTION_CAMERA}_detected_counter')|int(0) > 0 and states('sensor.motion_annotated_counter')|int(0) > 0 %}
+          {% set value = states.sensor.motion_${MOTION_CAMERA}_detected_counter.state|int(0) / states.sensor.motion_annotated_counter.state|int(0) * 100.0 %}
+          {{ "%.2f"|format(value|float(0.0)) }}
         {%- else -%}null{%- endif -%}
 
 ###
@@ -805,8 +802,8 @@
       value_template: >
         {%- set c = as_timestamp(states.camera.motion_${MOTION_CAMERA}_event_annotated.last_updated) -%}
         {%- set s = as_timestamp(states.sensor.motion_${MOTION_CAMERA}_event_annotated.last_updated) -%}
-        {%- set d = c|float - s|float -%}
-        {%- if d > 0.0 and d < state_attr('input_number.motion_complete','max')|float -%}
+        {%- set d = c|float(0.0) - s|float(0.0) -%}
+        {%- if d > 0.0 and d < state_attr('input_number.motion_complete','max')|float(0.0) -%}
           {{ "%.2f"|format(d) }}
         {%- else -%}null{%- endif -%}
 
@@ -833,5 +830,5 @@
       unit_of_measurement: '%'
       value_template: >-
         {% if states('sensor.motion_${MOTION_CAMERA}_complete_history_stats_ratio_1d') != 'unknown' %}
-          {{ states('sensor.motion_${MOTION_CAMERA}_complete_history_stats_ratio_1d')|float }}
+          {{ states('sensor.motion_${MOTION_CAMERA}_complete_history_stats_ratio_1d')|float(0.0) }}
         {%- else -%}null{%- endif -%}

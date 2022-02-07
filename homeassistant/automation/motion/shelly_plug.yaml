@@ -78,13 +78,13 @@
         - condition: template
           value_template: >-
             {% set s = state_attr('automation.motion_shellies_plug_mqtt_publish_off','current') %}
-            {{ s is number and s|int == 0 }}
+            {{ s is number and s|int(0) == 0 }}
     - alias: 'turn on all shelly plugs'
       repeat:
         while:
           - condition: template
             value_template: >-
-              {% set s = devices[repeat.index - 1] %}
+              {% set s = devices[repeat.index - 1]|default('unknown') %}
               {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
         sequence:
           - alias: 'publish plug on command'
@@ -128,13 +128,13 @@
         - condition: template
           value_template: >-
             {% set s = state_attr('automation.motion_shellies_plug_mqtt_publish_on','current') %}
-            {{ s is number and s|int == 0 }}
+            {{ s is number and s|int(0) == 0 }}
     - alias: 'turn off all shelly plugs'
       repeat:
         while:
           - condition: template
             value_template: >-
-              {% set s = devices[repeat.index - 1] %}
+              {% set s = devices[repeat.index - 1]|default('unknown') %}
               {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
         sequence:
           - alias: 'publish plug off command'
@@ -193,7 +193,7 @@
         {{ 'binary_sensor.motion_shelly_plug_' + mac|lower }}
       {% else %}null{% endif %}
     last: >-
-      {{ utcnow().timestamp()|int }}
+      {{ utcnow().timestamp()|int(0) }}
     when: >-
       {{ last|timestamp_custom("%a %b %d %I:%M:%S %p %Z") }}
   action:
@@ -247,14 +247,14 @@
         {{ 'binary_sensor.motion_shelly_plug_' + mac|lower }}
       {% else %}null{% endif %}
     last: >-
-      {{ utcnow().timestamp()|int }}
+      {{ utcnow().timestamp()|int(0) }}
     when: >-
       {{ last|timestamp_custom("%a %b %d %I:%M:%S %p %Z") }}
     duration: >-
       {% if sensor|lower != 'null' %}
       {% set s = state_attr(sensor,'start') %}
-        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int > 0 %}
-          {{ last - s|int }}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int(0) > 0 %}
+          {{ last - s|int(0) }}
         {% else %}null{% endif %}
       {% else %}null{% endif %}
   action:
@@ -312,7 +312,7 @@
     topic: >-
       {{ trigger.topic }}
     state: >-
-      {% set s = trigger.payload_json|lower %}
+      {% set s = trigger.payload_json|default('null') %}
       {% if s|lower == 'on' or s|lower == 'off' %}{{- s -}}{% else %}null{% endif %}
     id: >-
       {{ topic|regex_replace('shellies/','')|regex_replace('/[^/]*/[^/]*','') }}
@@ -321,7 +321,7 @@
     kind: >-
       {{ topic|regex_replace('shellies/[^/]*/','')|regex_replace('[0-9/]*/[^/]*','') }}
     updated: >-
-      {{ utcnow().timestamp()|int }}
+      {{ utcnow().timestamp()|int(0) }}
     mac: >-
       {% if id|lower != 'none' and id|lower != 'unavailable' and id|lower != 'unknown' and id|lower != 'null' and id|length > 0 %}
         {% set s = states('group.motion_shellies') %}
@@ -405,7 +405,7 @@
     topic: >-
       {{ trigger.topic }}
     energy: >-
-      {{ trigger.payload_json|int }}
+      {{ trigger.payload_json|int(0) }}
     id: >-
       {{ topic|regex_replace('shellies/','')|regex_replace('/[^/]*/[^/]*/energy','') }}
     channel: >-
@@ -413,7 +413,7 @@
     kind: >-
       {{ topic|regex_replace('shellies/[^/]*/','')|regex_replace('[0-9/]*/[^/]*','') }}
     timestamp: >-
-      {{ utcnow().timestamp()|int }}
+      {{ utcnow().timestamp()|int(0) }}
     mac: >-
       {% if id|lower != 'none' and id|lower != 'unavailable' and id|lower != 'unknown' and id|lower != 'null' and id|length > 0 %}
         {% set s = states('group.motion_shellies') %}
@@ -521,7 +521,7 @@
         state: >-
           {{ state }}
 
-# update shellies/+/plug/0/power float
+# update shellies/+/plug/0/power float(0.0)
 
 - id: motion_shellies_plug_mqtt_power
   alias: motion_shellies_plug_mqtt_power
@@ -536,7 +536,7 @@
     topic: >-
       {{ trigger.topic }}
     power: >-
-      {{ trigger.payload_json|float }}
+      {{ trigger.payload_json|float(0.0) }}
     id: >-
       {{ topic|regex_replace('shellies/','')|regex_replace('/[^/]*/[^/]*/power','') }}
     channel: >-
@@ -544,7 +544,7 @@
     kind: >-
       {{ topic|regex_replace('shellies/[^/]*/','')|regex_replace('[0-9/]*/[^/]*','') }}
     timestamp: >-
-      {{ utcnow().timestamp()|int }}
+      {{ utcnow().timestamp()|int(0) }}
     mac: >-
       {% if id|lower != 'none' and id|lower != 'unavailable' and id|lower != 'unknown' and id|lower != 'null' and id|length > 0 %}
         {% set s = states('group.motion_shellies') %}
@@ -642,12 +642,12 @@
         [{%- for e in entities -%}
           {%- if not loop.first -%},{%- endif -%}
           {% set s = state_attr(e,'power') %}
-          {% if s|lower != 'none' %}{{ s|int }}{% else %}null{% endif %}
+          {% if s|lower != 'none' %}{{ s|int(0) }}{% else %}null{% endif %}
         {%- endfor %}]
       {% else %}null{% endif %}
     power_off: >-
       {% if entities|lower != 'null' and entities is iterable -%}
-        [{%- for i in range(entities|count) if power[i]|lower == 'null' or not power[i]|float > 0.0 -%}
+        [{%- for i in range(entities|count) if power[i]|lower == 'null' or not power[i]|float(0.0) > 0.0 -%}
           {%- if not loop.first -%},{%- endif -%}
           "{{ state_attr(entities[i],'id') }}"
         {%- endfor -%}]
@@ -704,7 +704,7 @@
     kind: >-
       {{ topic|regex_replace('shellies/[^/]*/','')|regex_replace('[0-9/]*/[^/]*','') }}
     timestamp: >-
-      {{ utcnow().timestamp()|int }}
+      {{ utcnow().timestamp()|int(0) }}
     mac: >-
       {% if id|lower != 'none' and id|lower != 'unavailable' and id|lower != 'unknown' and id|lower != 'null' and id|length > 0 %}
         {% set s = states('group.motion_shellies') %}
@@ -756,16 +756,16 @@
       {% set s = states('zone.home') %}
       {% if latitude|lower != 'null' and longitude|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
         {% set s = distance('zone.home',latitude,longitude) %}
-        {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' and s|int is number and s|int < 40075 %}
-          {{ '%0.2f'|format(s|float * 1000) }}
+        {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' and s|int(0) is number and s|int(0) < 40075 %}
+          {{ '%0.2f'|format(s|float(0.0) * 1000) }}
         {% else %}null{% endif %}
       {% else %}null{% endif %}
     gps: >-
       {% set s = states('zone.home') %}
       {% if latitude|lower != 'null' and longitude|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
         {% set s = state_attr('zone.home','radius') %}
-        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int > 0 %}
-          {{ latitude|lower != 'null' and longitude|lower != 'null' and distance|int < s|int }}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int(0) > 0 %}
+          {{ latitude|lower != 'null' and longitude|lower != 'null' and distance|int(0) < s|int(0) }}
         {% else %}null{% endif %}
       {% else %}null{% endif %}
     state: >-
