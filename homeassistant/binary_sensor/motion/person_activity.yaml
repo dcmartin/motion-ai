@@ -2,6 +2,52 @@
 # homeassistant/binary_sensor/motion/person_activity.yaml
 ###
 
+- platform: bayesian
+  name: motion_person_active
+  prior: 0.4
+  probability_threshold: 0.7
+  observations:
+    - platform: state
+      entity_id: binary_sensor.motion_person_detected
+      prob_given_true: 0.9
+      prob_given_false: 0.2
+      to_state: 'on'
+    - platform: state
+      entity_id: binary_sensor.motion_person_occupancy
+      prob_given_true: 0.8
+      prob_given_false: 0.3
+      to_state: 'on'
+    - platform: state
+      entity_id: binary_sensor.motion_person_location
+      prob_given_true: 0.7
+      prob_given_false: 0.4
+      to_state: 'on'
+
+- platform: template
+  sensors:
+    motion_person_active_5m:
+      unique_id: motion_person_active_5m
+      friendly_name: 'Active (5m)'
+      value_template: >-
+        {{ states('sensor.motion_person_active_average_5m')|float(0.0) > 0.0 }}
+    motion_person_active_15m:
+      unique_id: motion_person_active_15m
+      friendly_name: 'Active (15m)'
+      value_template: >-
+        {{ states('sensor.motion_person_active_average_15m')|float(0.0) > 0.0 }}
+    motion_person_active_1h:
+      unique_id: motion_person_active_1h
+      friendly_name: 'Active (1h)'
+      value_template: >-
+        {{ states('sensor.motion_person_active_average_1h')|float(0.0) > 0.0 }}
+    motion_person_active_1d:
+      unique_id: motion_person_active_1d
+      friendly_name: 'Active (1d)'
+      value_template: >-
+        {{ states('sensor.motion_person_active_average_1d')|float(0.0) > 0.0 }}
+
+# from smartphone
+
 - platform: template
   sensors:
     motion_person_stationary:
@@ -58,27 +104,6 @@
         {% set stdev_1w = states('sensor.motion_person_stationary_ratio_stdev_1w') %}
         {{- today|float(0.0) > (mean_1w|float(0.0) - stdev_1w|float(0.0)) -}}
 
-- platform: bayesian
-  name: motion_person_active
-  prior: 0.4
-  probability_threshold: 0.7
-  observations:
-    - platform: state
-      entity_id: binary_sensor.motion_person_detected
-      prob_given_true: 0.9
-      prob_given_false: 0.2
-      to_state: 'on'
-    - platform: state
-      entity_id: binary_sensor.motion_person_occupancy
-      prob_given_true: 0.8
-      prob_given_false: 0.3
-      to_state: 'on'
-    - platform: state
-      entity_id: binary_sensor.motion_person_location
-      prob_given_true: 0.7
-      prob_given_false: 0.4
-      to_state: 'on'
-
 ## TREND - over 0.1 m/s over 3600 seconds (0.0000277777)
 
 - platform: trend
@@ -101,23 +126,6 @@
       friendly_name: Activity trending lower (1h)
       value_template: >-
         {{ state_attr('binary_sensor.motion_person_active_trend_1h','gradient')|float(0.0) < 0 - state_attr('binary_sensor.motion_person_active_trend_1h','min_gradient')|float(0.0) }}
-
-## ACTIVITY
-
-- platform: template
-  sensors:
-    motion_person_detected_activity_low_1d:
-      friendly_name: Activity low
-      icon_template: 'mdi:priority-low'
-      value_template: >-
-        {{ is_state('binary_sensor.motion_person_detected_movement_low_1d','on')
-             and is_state('binary_sensor.motion_person_detected_velocity_low_1d','on') }}
-    motion_person_detected_activity_high_1d:
-      friendly_name: Activity high
-      icon_template: 'mdi:priority-high'
-      value_template: >-
-        {{ is_state('binary_sensor.motion_person_detected_movement_high_1d','on')
-             and is_state('binary_sensor.motion_person_detected_velocity_high_1d','on') }}
 
 ## ACTIVE LOW / HIGH
 
