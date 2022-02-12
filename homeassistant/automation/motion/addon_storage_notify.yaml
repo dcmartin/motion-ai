@@ -1,0 +1,90 @@
+###
+# homeassistant/automation/motion/addon_storage_notify.yaml
+###
+
+- id: motion_addon_storage_notify
+  alias: motion_addon_storage_notify
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_addon_storage
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ states('sensor.motion_addon_storage')|lower == 'true' }}
+  variables:
+    blocks: >-
+      {{ state_attr(trigger.entity_id,'blocks') }}
+    used: >-
+      {{ state_attr(trigger.entity_id,'used') }}
+    available: >-
+      {{ state_attr(trigger.entity_id,'available') }}
+    cameras: >-
+      {{ state_attr(trigger.entity_id,'cameras') }}
+    config: >-
+      {{ state_attr('sensor.motion_addon_config','config') }}
+    group: >-
+      {% if config|lower != 'none' %}
+        {{ config.group }}
+      {% else %}null{% endif %}
+    device: >-
+      {% if config|lower != 'none' %}
+        {{ config.device }}
+      {% else %}null{% endif %}
+    ipaddr: >-
+      {% if config|lower != 'none' %}
+        {{ config.ipaddr }}
+      {% else %}null{% endif %}
+    percent: >-
+      {{ available|float(0.0) / blocks|float(0.0) * 100.0 }}
+  action:
+    - alias: 'storage low?'
+      condition: and
+      conditions:
+        - condition: template
+          value_template: >-
+            {{ percent|int(0) <= 30 }}
+    - alias: 'choose: how low?'
+      choose:
+        - alias: 'condition: percent < 5?'
+          conditions:
+            - condition: template
+              value_template: >
+                {{ percent|int(0) <= 5 }}
+          sequence:
+            - alias: 'notify percent critically low'
+              service: persistent_notification.create
+              data_template:
+                title: >-
+                  CRITICAL: Storage low
+                notification_id: >-
+                  {{ device|string + '_storage_low' }}
+                message: >-
+                  Storage **critically low** ({{- '%0.1f'|format(percent) -}}%) for device: {{ device -}}; available: {{ '%0.2f'|format(available/1024/1024) }} GB
+        - alias: 'condition: percent < 10?'
+          conditions:
+            - condition: template
+              value_template: >
+                {{ percent|int(0) <= 10 }}
+          sequence:
+            - alias: 'notify percent very low'
+              service: persistent_notification.create
+              data_template:
+                title: >-
+                  WARN: Storage low
+                notification_id: >-
+                  {{ device|string + '_storage_low' }}
+                message: >-
+                  Storage **very low** ({{- '%0.1f'|format(percent) -}}%) for device: {{ device -}}; available: {{ '%0.2f'|format(available/1024/1024) }} GB
+    - alias: 'notify when storage is low'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          INFO: Storage low
+        notification_id: >-
+          {{ device|string + '_storage_low' }}
+        message: >-
+          Storage **low** ({{- '%0.1f'|format(percent) -}}%) for device: {{ device -}}; available: {{ '%0.2f'|format(available/1024/1024) }} GB

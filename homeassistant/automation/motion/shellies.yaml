@@ -113,11 +113,11 @@
     topic: >-
       {{ trigger.topic }}
     online: >-
-      {{ trigger.payload_json|lower == 'true' }}
+      {{ 'payload_json' in trigger and trigger.payload_json|lower == 'true' }}
     id: >-
       {{ topic|replace('shellies/','')|replace('/online','') }}
     timestamp: >-
-      {{ utcnow().timestamp()|int }}
+      {{ utcnow().timestamp()|int(0) }}
     mac: >-
       {% if id|lower != 'none' and id|lower != 'unavailable' and id|lower != 'unknown' and id|lower != 'null' and id|length > 0 %}
         {% set s = states('group.motion_shellies') %}
@@ -181,7 +181,7 @@
         online: >-
           {{ online }}
         updated: >-
-          {{ utcnow().timestamp()|int }}
+          {{ utcnow().timestamp()|int(0) }}
         state: >-
           {{ state }}
 
@@ -209,7 +209,7 @@
     event: >-
       {{ trigger.payload_json }}
     timestamp: >-
-      {{ utcnow().timestamp()|int }}
+      {{ utcnow().timestamp()|int(0) }}
     mac: >-
       {% if id|lower != 'none' and id|lower != 'unavailable' and id|lower != 'unknown' and id|lower != 'null' and id|length > 0 %}
         {% set s = states('group.motion_shellies') %}
@@ -403,12 +403,14 @@
   variables:
     topic: >-
       {{ trigger.topic }}
+    kind: >-
+      {{ topic|regex_replace('shellies/[^/]*/','')|regex_replace('[0-9/]*/[^/]*','') }}
     attr: >-
-      {{ topic|regex_replace('shellies/[^/]*/sensor/','') }}
+      {{ topic|regex_replace('shellies/[^/]*/' + kind|string + '/','') }}
     id: >-
-      {{ topic|replace('shellies/','')|replace('sensor/','')|replace('/' + attr|string,'') }}
+      {{ topic|replace('shellies/','')|replace(kind + '/','')|replace('/' + attr|string,'') }}
     timestamp: >-
-      {{ utcnow().timestamp()|int }}
+      {{ utcnow().timestamp()|int(0) }}
     mac: >-
       {% if id|lower != 'none' and id|lower != 'unavailable' and id|lower != 'unknown' and id|lower != 'null' and id|length > 0 %}
         {% set s = states('group.motion_shellies') %}
@@ -569,13 +571,13 @@
     timestamp: >-
       {% if 'timestamp' in status %}
         {% set s = status.timestamp %}
-        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int > 0 %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int(0) > 0 %}
           {{ s }}
         {% else %}
-          {{ utcnow().timestamp()|int }}
+          {{ utcnow().timestamp()|int(0) }}
         {% endif %}
       {% else %}
-        {{ utcnow().timestamp()|int }}
+        {{ utcnow().timestamp()|int(0) }}
       {% endif %}
     mac: >-
       {% if id|lower != 'none' and id|lower != 'unavailable' and id|lower != 'unknown' and id|lower != 'null' and id|length > 0 %}
@@ -633,16 +635,16 @@
       {% set s = states('zone.home') %}
       {% if latitude|lower != 'null' and longitude|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
         {% set s = distance('zone.home',latitude,longitude) %}
-        {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' and s|int is number and s|int < 40075 %}
-          {{ '%0.2f'|format(s|float * 1000) }}
+        {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' and s|int(0) is number and s|int(0) < 40075 %}
+          {{ '%0.2f'|format(s|float(0.0) * 1000) }}
         {% else %}null{% endif %}
       {% else %}null{% endif %}
     gps: >-
       {% set s = states('zone.home') %}
       {% if latitude|lower != 'null' and longitude|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
         {% set s = state_attr('zone.home','radius') %}
-        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int > 0 %}
-          {{ latitude|lower != 'null' and longitude|lower != 'null' and distance|int < s|int }}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int(0) > 0 %}
+          {{ latitude|lower != 'null' and longitude|lower != 'null' and distance|int(0) < s|int(0) }}
         {% else %}null{% endif %}
       {% else %}null{% endif %}
     state: >-
@@ -747,7 +749,7 @@
         status: >-
           {{ status }}
         updated: >-
-          {{ utcnow().timestamp()|int }}
+          {{ utcnow().timestamp()|int(0) }}
         timestamp: >-
           {{ timestamp }}
         state: >-
@@ -774,7 +776,7 @@
                 notification_id: >-
                   {{ sensor + '_gps_invalid' }}
                 message: >-
-                  Sensor **{{- id -}}** located outside of home; model: {{ model -}}; distance: {{ distance|int -}}m; GPS: {{ latitude,longitude }}
+                  Sensor **{{- id -}}** located outside of home; model: {{ model -}}; distance: {{ distance|int(0) -}}m; GPS: {{ latitude,longitude }}
                   {{- '<br>' -}}
                   {%- if ip|lower != 'none' and ip|lower != 'null' -%}
                     {{- '[![](https://img.shields.io/badge/location-reset-green.svg)]('
@@ -849,27 +851,27 @@
     latitude: >-
       {% set s = states(trigger.entity_id) %}
       {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-        {{ state_attr('sensor.motion_shellies_settings_rest','lat')|float }}
+        {{ state_attr('sensor.motion_shellies_settings_rest','lat')|float(0.0) }}
       {% else %}null{% endif %}
     longitude: >-
       {% set s = states(trigger.entity_id) %}
       {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-        {{ state_attr('sensor.motion_shellies_settings_rest','lng')|float }}
+        {{ state_attr('sensor.motion_shellies_settings_rest','lng')|float(0.0) }}
       {% else %}null{% endif %}
     distance: >-
       {% set s = states('zone.home') %}
       {% if latitude|lower != 'null' and longitude|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
         {% set s = distance('zone.home',latitude,longitude) %}
-        {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' and s|int is number and s|int < 40075 %}
-          {{ '%0.2f'|format(s|float * 1000) }}
+        {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' and s|int(0) is number and s|int(0) < 40075 %}
+          {{ '%0.2f'|format(s|float(0.0) * 1000) }}
         {% else %}null{% endif %}
       {% else %}null{% endif %}
     gps: >-
       {% set s = states('zone.home') %}
       {% if latitude|lower != 'null' and longitude|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
         {% set s = state_attr('zone.home','radius') %}
-        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int > 0 %}
-          {{ latitude|lower != 'null' and longitude|lower != 'null' and distance|int < s|int }}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int(0) > 0 %}
+          {{ latitude|lower != 'null' and longitude|lower != 'null' and distance|int(0) < s|int(0) }}
         {% else %}null{% endif %}
       {% else %}null{% endif %}
     mac: >-
@@ -950,7 +952,7 @@
         distance: >-
           {{ distance }}
         updated: >-
-          {{ utcnow().timestamp()|int }}
+          {{ utcnow().timestamp()|int(0) }}
         state: >-
           {{ state }}
     - alias: 'motion_shellies_settings_rest: condition: gps not good?'
@@ -967,7 +969,7 @@
         notification_id: >-
           {{ sensor + '_gps_invalid' }}
         message: >-
-          Sensor **{{- id -}}** location outside of home; model: {{ model -}}; distance: {{ distance|int -}}m; GPS: {{ latitude,longitude }}
+          Sensor **{{- id -}}** location outside of home; model: {{ model -}}; distance: {{ distance|int(0) -}}m; GPS: {{ latitude,longitude }}
           {{- '<br>' -}}
           {%- if ip|lower != 'none' and ip|lower != 'null' -%}
             {{- '[![](https://img.shields.io/badge/location-reset-green.svg)]('
@@ -1054,7 +1056,7 @@
         info: >-
           {{ info }}
         updated: >-
-          {{ utcnow().timestamp()|int }}
+          {{ utcnow().timestamp()|int(0) }}
         state: >-
           {{ state }}
 
@@ -1130,7 +1132,7 @@
         ota: >-
           {{ info }}
         updated: >-
-          {{ utcnow().timestamp()|int }}
+          {{ utcnow().timestamp()|int(0) }}
         state: >-
           {{ state }}
 
@@ -1441,7 +1443,7 @@
         info: >-
           {{ info }}
         updated: >-
-          {{ utcnow().timestamp()|int }}
+          {{ utcnow().timestamp()|int(0) }}
         state: >-
           {{ state }}
 
@@ -1546,6 +1548,17 @@
 #   "new_fw": false
 # }
 
+# energy
+
+# {
+#   "fw_ver": "20211109-131251/v1.11.7-g682a0db",
+#   "id": "equipmentpad-pumps",
+#   "ip": "192.168.1.86",
+#   "mac": "8CAAB5619544",
+#   "model": "SHEM-3",
+#   "new_fw": false
+# }
+
 - id: motion_shellies_mqtt_announce
   alias: motion_shellies_mqtt_announce
   initial_state: on
@@ -1585,6 +1598,8 @@
         {{ 'gas' }}
       {% elif model == 'SHPLG-U1' %}
         {{ 'plug' }}
+      {% elif model == 'SHEM-3' %}
+        {{ 'energy' }}
       {% else %}null{% endif %}
     picture: >-
       {{ '/local/images/' + model|string + '.png' }}
@@ -1597,7 +1612,7 @@
           {%- if prior|lower != 'none' and prior|lower != 'unknown' and prior|lower != 'unavailable' and prior|lower != 'null' %}
             {% if prior is iterable %}
               {% if prior|length > 0 -%}
-                {%- for p in prior if p|length > 0 -%}
+                {%- for p in prior if p|length > 0 and not id in prior -%}
                   {%- if loop.first -%}{%- else -%},{% endif -%}
                   "{{- p -}}"
                 {%- endfor -%}
@@ -1608,26 +1623,16 @@
       {%- else -%}{%- set prior = null -%}{%- endif -%}
       {%- if prior != null -%},{%- endif -%}
       "{{- id -}}"]
+    types: >-
+      [{% for eid in states.binary_sensor|map(attribute='entity_id')|list if 'motion_shelly_' in eid  -%}
+      {%- if not loop.first -%},{%- endif -%}
+      "{{- state_attr(eid,'type') -}}"
+      {%- endfor %}]
     models: >-
-      {% set s = states('group.motion_shellies') %}
-      [{%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-        {%- set prior = state_attr('group.motion_shellies','models') -%}
-        {%- if prior|lower != 'none' and prior|lower != 'unknown' and prior|lower != 'unavailable' and prior|lower != 'null' %}
-          {% set prior = prior|string|from_json %}
-          {%- if prior|lower != 'none' and prior|lower != 'unknown' and prior|lower != 'unavailable' and prior|lower != 'null' %}
-            {% if prior is iterable %}
-              {% if prior|length > 0 -%}
-                {%- for p in prior if p|length > 0 -%}
-                  {%- if loop.first -%}{%- else -%},{% endif -%}
-                  "{{- p -}}"
-                {%- endfor -%}
-              {%- else -%}{%- set prior = null -%}{%- endif -%}
-            {%- else -%}{%- set prior = null -%}{%- endif -%}
-          {%- else -%}{%- set prior = null -%}{%- endif -%}
-        {%- else -%}{%- set prior = null -%}{%- endif -%}
-      {%- else -%}{%- set prior = null -%}{%- endif -%}
-      {%- if prior != null -%},{%- endif -%}
-      "{{- model -}}"]
+      [{% for eid in states.binary_sensor|map(attribute='entity_id')|list if 'motion_shelly_' in eid  -%}
+      {%- if not loop.first -%},{%- endif -%}
+      "{{- state_attr(eid,'model') -}}"
+      {%- endfor %}]
     macs: >-
       {% set s = states('group.motion_shellies') %}
       [{%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
@@ -1706,7 +1711,7 @@
         type: >-
           {{ type }}
         updated: >-
-          {{ utcnow().timestamp()|int }}
+          {{ utcnow().timestamp()|int(0) }}
         state: >-
           {{ state }}
     - alias: 'update group.motion_shellies_<type>'
@@ -1723,7 +1728,7 @@
           "{{- eid -}}"
           {%- endfor %}]
         updated: >-
-          {{ utcnow().timestamp()|int }}
+          {{ utcnow().timestamp()|int(0) }}
         sensor: >-
           {{ sensor }}
         state: >-
@@ -1736,29 +1741,49 @@
       data_template:
         allow_create: true
         entity_id: group.motion_shellies
-        friendly_name: 'All shellies'
+        friendly_name: 'Shelly(s) group'
         macs: >-
           [{% for eid in states.binary_sensor|map(attribute='entity_id')|list if 'motion_shelly_' in eid  -%}
           {%- if not loop.first -%},{%- endif -%}
           "{{- state_attr(eid,'mac') -}}"
           {%- endfor %}]
         ids: >-
-          [{% for eid in states.binary_sensor|map(attribute='entity_id')|list if 'motion_shelly_' in eid  -%}
+          [{%- for eid in states.binary_sensor|map(attribute='entity_id')|list if 'motion_shelly_' in eid  -%}
           {%- if not loop.first -%},{%- endif -%}
           "{{- state_attr(eid,'id') -}}"
-          {%- endfor %}]
+          {%- endfor -%}]
+        types: >-
+          {% if types|lower != 'null' -%}
+            {%- if not types is string -%}{{- types|sort|unique|list|to_json|string -}}{%- else -%}{{- types|from_json|sort|unique|list|to_json|string -}}{%- endif -%}
+          {%- else -%}null{%- endif %}
         models: >-
-          [{% for eid in states.binary_sensor|map(attribute='entity_id')|list if 'motion_shelly_' in eid  -%}
-          {%- if not loop.first -%},{%- endif -%}
-          "{{- state_attr(eid,'model') -}}"
-          {%- endfor %}]
+          {% if models|lower != 'null' -%}
+            {%- if not models is string -%}{{- models|sort|unique|list|to_json|string -}}{%- else -%}{{- models|from_json|sort|unique|list|to_json|string -}}{%- endif -%}
+          {%- else -%}null{%- endif %}
         entity_ids: >-
-          [{% for eid in states.binary_sensor|map(attribute='entity_id')|list if 'motion_shelly_' in eid  -%}
-          {%- if not loop.first -%},{%- endif -%}
-          "{{- eid -}}"
-          {%- endfor %}]
+          [{%- for eid in states.binary_sensor|map(attribute='entity_id')|list if 'motion_shelly_' in eid  -%}
+            {%- if not loop.first -%},{%- endif -%}
+            "{{- eid -}}"
+          {%- endfor -%}]
         sensor: >-
           {{ sensor }}
+        all: >-
+          {% if types|lower != 'null' -%}
+            {%- if not types is string -%}{%- set types = types|sort|unique|list -%}{%- else -%}{%- set types = types|from_json|sort|unique|list -%}{%- endif -%}
+            {%- if types|lower != 'null' and types is iterable and types|length > 0 -%}
+              [{%- for type in types -%}
+                {%- if not loop.first -%},{%- endif -%}
+                {"type": "{{- type -}}","entities":
+                [{%- for eid in states.binary_sensor|map(attribute='entity_id')|list if ('binary_sensor.motion_shellies_' + type|string) == eid  -%}
+                  {%- set g = eid|replace('binary_sensor','group') -%}
+                  {%- for e in state_attr(g,'entity_id') -%}
+                    {%- if not loop.first -%},{%- endif -%}
+                    {"entity":"{{- e -}}","id":"{{- state_attr(e,'id') -}}","ip":"{{- state_attr(e,'ip') -}}"}
+                  {%- endfor -%}
+                {%- endfor -%}]}
+              {%- endfor -%}]
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif %}
         state: >-
           {%- if is_state('binary_sensor.motion_shellies_occupancy','on') and is_state('binary_sensor.motion_shellies_light','on') -%}
             {{- 'on' -}}
@@ -1781,6 +1806,7 @@
             {%- for c in s -%}
               {%- if not loop.first -%},{%- endif -%}
               {{- state_attr(c,'id') -}}
+              {%- if loop.last -%},none{%- endif -%}
             {%- endfor -%}
           {% else %}none{%- endif %}
     - alias: 'update input_select.motion_shellies_<type>'
@@ -1799,6 +1825,7 @@
             {%- for c in s if state_attr(c,'type')|string == type|string -%}
               {%- if not loop.first -%},{%- endif -%}
               {{- state_attr(c,'id') -}}
+              {%- if loop.last -%},none{%- endif -%}
             {%- endfor -%}
           {% else %}none{%- endif %}
     - alias: 'handle settings'
@@ -1877,13 +1904,13 @@
         while:
           - condition: template
             value_template: >-
-              {% set s = devices[repeat.index - 1] %}
+              {% set s = devices[repeat.index - 1]|default('unknown') %}
               {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
         sequence:
           - alias: "wait until ready"
             wait_template: >-
               {% set s = state_attr('automation.motion_shellies_scan_process','current') %}
-              {{ s is number and s|int == 0 }}
+              {{ s is number and s|int(0) == 0 }}
           - alias: "set_state: motion_shellies_scan_ip"
             service: python_script.set_state
             data_template:
@@ -1981,6 +2008,8 @@
         {{ 'gas' }}
       {% elif model == 'SHPLG-U1' %}
         {{ 'plug' }}
+      {% elif model == 'SHEM-3' %}
+        {{ 'energy' }}
       {% else %}null{% endif %}
     sensor: >-
       {% if mac|lower != 'null' and mac|length > 0 and type|lower != 'null' and type|length > 0 %}
@@ -2048,22 +2077,22 @@
       {% else %}null{% endif %}
     ago: >-
       {% if entities|lower != 'null' and entities is iterable %}
-        {%- set now = utcnow().timestamp()|int %}
+        {%- set now = utcnow().timestamp()|int(0) %}
         [{%- for e in entities -%}
           {%- if not loop.first -%},{%- endif -%}
-          {%- if state_attr(e,'updated')|lower != 'none' -%}{{- now - state_attr(e,'updated')|int -}}{%- else -%}null{%- endif -%}
+          {%- if state_attr(e,'updated')|lower != 'none' -%}{{- now - state_attr(e,'updated')|int(0) -}}{%- else -%}null{%- endif -%}
         {%- endfor %}]
       {% else %}null{% endif %}
     offline: >-
       {% if entities|lower != 'null' and entities is iterable -%}
-        [{%- for i in range(entities|count) if ago[i]|lower == 'null' or ago[i]|int > states('input_number.motion_shellies_timeout')|int -%}
+        [{%- for i in range(entities|count) if ago[i]|lower == 'null' or ago[i]|int(0) > states('input_number.motion_shellies_timeout')|int(0) -%}
           {%- if not loop.first -%},{%- endif -%}
           "{{ state_attr(entities[i],'id') }}"
         {%- endfor -%}]
       {% else %}null{% endif %}
     offline_eid: >-
       {% if entities|lower != 'null' and entities is iterable -%}
-        [{%- for i in range(entities|count) if ago[i]|lower == 'null' or ago[i]|int > 60 -%}
+        [{%- for i in range(entities|count) if ago[i]|lower == 'null' or ago[i]|int(0) > 60 -%}
           {%- if not loop.first -%},{%- endif -%}
           "{{ entities[i] }}"
         {%- endfor -%}]
@@ -2090,7 +2119,7 @@
         while:
           - condition: template
             value_template: >-
-              {% set s = entities[repeat.index - 1] %}
+              {% set s = entities[repeat.index - 1]|default('unknown') %}
               {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
         sequence:
           - alias: 'set_state: binary_sensor.motion_shelly_<type>_<mac>'
@@ -2102,6 +2131,6 @@
                 {{- ago[repeat.index - 1] -}}
               online: >-
                 {%- set s = ago[repeat.index - 1] -%}
-                {{- s|lower != 'null' and s|int <= states('input_number.motion_shellies_timeout')|int -}}
+                {{- s|lower != 'null' and s|int(0) <= states('input_number.motion_shellies_timeout')|int(0) -}}
               state: >-
                 {{ states(entities[repeat.index - 1]) }}

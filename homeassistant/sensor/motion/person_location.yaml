@@ -6,60 +6,25 @@
   sensors:
     motion_person_location_status:
       value_template: >-
-        {% if is_state('sensor.motion_person_location','unknown') %}{{ 'unknown' }}
-        {% elif is_state('binary_sensor.motion_person_location_expired','on') %}{{ 'expired' }}
+        {% if is_state('sensor.motion_person_location','unknown') %}unknown
+        {% elif is_state('binary_sensor.motion_person_location','off') %}off
+        {% elif is_state('binary_sensor.motion_person_location_expired','on') %}expired
         {% elif is_state('binary_sensor.motion_person_location','on') %}on{% else %}off{% endif %}
     motion_person_location_activity:
       value_template: >-
         {{ states('sensor.sensor.motion_person_device_activity') }}
-    motion_person_location_derived:
-      unique_id: motion_person_location_derived
-      friendly_name: '👱 location derived'
+    motion_person_location_where:
+      unique_id: motion_person_location_where
+      friendly_name: '👱 location (derived)'
       attribute_templates:
-        latitude: >-
-          {% set s = states('person.' + states('sensor.motion_person')) %}
-          {% if s|lower != 'null' and s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' %}
-            {{ state_attr('person.' + states('sensor.motion_person'),'latitude') }}
-          {% else %}
-            {% set s = state_attr('sensor.motion_person_location','latitude') %}
-            {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' %}
-              {{ s }}
-            {% else %}null{% endif %}
-          {% endif %}
-        longitude: >-
-          {% set s = states('person.' + states('sensor.motion_person')) %}
-          {% if s|lower != 'null' and s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' %}
-            {{ state_attr('person.' + states('sensor.motion_person'),'longitude') }}
-          {% else %}
-            {% set s = state_attr('sensor.motion_person_location','longitude') %}
-            {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' %}
-              {{ s }}
-            {% else %}null{% endif %}
-          {% endif %}
-        gps_accuracy: >-
-          {% set s = states('person.' + states('sensor.motion_person')) %}
-          {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' %}
-            {{ state_attr('person.' + states('sensor.motion_person'),'gps_accuracy') }}
-          {% else %}
-            {% set s = state_attr('sensor.motion_person_location','gps_accuracy') %}
-            {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' %}
-              {{ s }}
-            {% else %}null{% endif %}
-          {% endif %}
         sensor: >-
-          {% set s = states('person.' + states('sensor.motion_person')) %}
-          {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' %}
-            {{ state_attr('person.' + states('sensor.motion_person'),'source') }}
-          {% else %}
-            {% set s = state_attr('sensor.motion_person_location','sensor') %}
-            {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' %}
-              {{ s }}
-            {% else %}null{% endif %}
-          {% endif %}
+          {% for i in states.person if i.attributes.id == states('sensor.motion_person') %}
+            {% if loop.first %}{{ i.entity_id }}{% endif %}
+          {% endfor %}
       value_template: >-
-        {% set s = states('person.' + states('sensor.motion_person')) %}
+        {% set s = state_attr('sensor.motion_person_location_where','sensor') %}
         {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' %}
-          {{ s }}
+          {{ states(s) }}
         {% else %}
           {% set s = states('sensor.motion_person_location') %}
           {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' %}
@@ -76,11 +41,11 @@
       friendly_name: '👱 location'
       attribute_templates:
         entity_picture: >-
-          {{ state_attr('person.' + states('sensor.motion_person'),'entity_picture')|default('/local/images/genie.png',true)  }}
+          {{ state_attr(state_attr('sensor.motion_person_location_where','sensor'),'entity_picture')|default('/local/images/smartphone.png',true)  }}
         id: >-
-          {{ state_attr('person.' + states('sensor.motion_person'),'id') }}
+          {{ state_attr(state_attr('sensor.motion_person_location_where','sensor'),'id') }}
         user_id: >-
-          {{ state_attr('person.' + states('sensor.motion_person'),'user_id') }}
+          {{ state_attr(state_attr('sensor.motion_person_location_where','sensor'),'user_id') }}
       icon_template: >-
         {{- 'mdi:map-marker' -}}
       value_template: >-
@@ -90,7 +55,7 @@
       friendly_name: '👱 previous location'
       attribute_templates:
         entity_picture: >-
-          {{ state_attr('person.' + states('sensor.motion_person'),'entity_picture')|default('/local/images/map-marker.png',true)  }}
+          {{ state_attr(state_attr('sensor.motion_person_location_where','sensor'),'entity_picture')|default('/local/images/smartphone.png',true)  }}
         velocity: 0.0
         movement: >-
           {{ 'unknown' }}
@@ -482,3 +447,63 @@
   sampling_size: 1000
   max_age:
     days: 7
+
+# location_active
+
+- platform: template
+  sensors:
+    motion_person_location_probability:
+      friendly_name: 'Active probability'
+      icon_template: 'mdi:percent'
+      unit_of_measurement: '%'
+      value_template: >
+        {{ state_attr('binary_sensor.motion_person_location','probability') }}
+
+- platform: statistics
+  name: motion_person_location_probability_mean_1h
+  entity_id: sensor.motion_person_location_probability
+  state_characteristic: mean
+  sampling_size: 720
+  max_age:
+    hours: 1
+
+- platform: statistics
+  name: motion_person_location_probability_mean_1d
+  entity_id: sensor.motion_person_location_probability
+  state_characteristic: mean
+  sampling_size: 2880
+  max_age:
+    days: 1
+
+- platform: statistics
+  name: motion_person_location_probability_mean_1w
+  entity_id: sensor.motion_person_location_probability
+  state_characteristic: mean
+  sampling_size: 20160
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_person_location_average_1h
+  entity_id: binary_sensor.motion_person_location
+  state_characteristic: average_step
+  sampling_size: 720
+  max_age:
+    hours: 1
+
+- platform: statistics
+  name: motion_person_location_average_1d
+  entity_id: binary_sensor.motion_person_location
+  state_characteristic: average_step
+  sampling_size: 2880
+  max_age:
+    days: 1
+
+- platform: statistics
+  name: motion_person_location_average_1w
+  entity_id: binary_sensor.motion_person_location
+  state_characteristic: average_step
+  sampling_size: 20160
+  max_age:
+    days: 7
+

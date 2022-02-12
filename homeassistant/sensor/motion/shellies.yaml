@@ -4,21 +4,67 @@
 
 - platform: template
   sensors:
+    motion_shellies:
+      friendly_name: 'Shelly selected'
+      icon_template: >
+        {% set s = states('sensor.motion_shellies') %}
+        {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' -%}
+          {% if s|lower == 'pending' %}
+            {{ 'mdi:lan-pending' }}
+          {% else %}
+            {{ 'mdi:lan-connect' }}
+          {% endif %}
+        {% else %}
+          {{ 'mdi:lan-disconnect' }}
+        {% endif %}
+      attribute_templates:
+        entity_picture: >-
+          {{- '/local/images/gauge.png' -}}
+        sensor: >-
+          {% set s = state_attr('group.motion_shellies','entity_id') -%}
+          {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' -%}
+            {%- for i in s if state_attr(i,'id')|lower == states('input_select.motion_shellies')-%}
+              {%- if loop.first -%}{{- i -}}{%- endif -%}
+            {%- endfor -%}
+          {%- else -%}null{%- endif %}
+        names: >-
+          [{%- for i in states.sensor if '_channel_' in i.entity_id -%}
+            {%- if not loop.first -%},{%- endif -%}
+            "{{- i.entity_id|replace('sensor.','')|regex_replace('_channel_.*','') -}}"
+          {%- endfor -%}]
+        channels: >-
+          {%- set s = state_attr('motion_shellies','names') -%}
+          {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s is iterable and s|count > 0 -%}
+            {%- set names = s|list|sort|unique -%}
+            [{%- for j in names -%}
+              {%- if not loop.first -%},{%- endif -%}
+              {{- '{"channel":"' + j|string + '","entities":' -}}
+              [{%- for i in states if j|string in i.entity_id -%}
+                {%- if not loop.first -%},{%- endif -%}
+                "{{- i.entity_id -}}"
+              {%- endfor -%}]}
+            {%- endfor -%}]
+          {%- else -%}null{%- endif %}
+      value_template: >-
+        {% set s = states('input_select.motion_shellies') %}
+        {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' -%}
+          {{- s -}}
+        {%- else -%}Pending{%- endif %}
+
+- platform: template
+  sensors:
     motion_shellies_count:
       friendly_name: 'Shelly count'
       icon_template: 'mdi:sigma'
       unit_of_measurement: 'count'
       value_template: >-
-        {% set s = states('group.motion_shellies') -%}
-        {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' -%}
-          {%- set s = state_attr('group.motion_shellies','entity_id') -%}
-          {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' -%}
-            {{ s|count }}
-          {%- else -%}null{%- endif -%}
-        {%- else -%}null{%- endif -%}
+        {%- set s = state_attr('group.motion_shellies','entity_id') -%}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' -%}
+          {{ s|count }}
+        {%- else -%}null{%- endif %}
     motion_shellies_scan_ip:
       value_template: >-
-        {{ null }}
+        {{ 'null' }}
 
 ## shelly (REST)
 
@@ -30,6 +76,20 @@
 #  "mac": "ECFABC6F7138",
 #  "num_outputs": 1,
 #  "type": "SHVIN-1"
+# }
+
+# energy
+
+# {
+#   "auth": true,
+#   "fw": "20211109-131251/v1.11.7-g682a0db",
+#   "longid": 1,
+#   "mac": "8CAAB5619544",
+#   "num_emeters": 3,
+#   "num_meters": 0,
+#   "num_outputs": 1,
+#   "report_period": 1,
+#   "type": "SHEM-3"
 # }
 
 - platform: rest
@@ -535,6 +595,147 @@
 #   }
 # }
 
+# energy
+
+# {
+#   "actions": {
+#     "active": false,
+#     "names": [
+#       "out_on_url",
+#       "out_off_url",
+#       "over_power_url",
+#       "under_power_url",
+#       "over_power_url",
+#       "under_power_url",
+#       "over_power_url",
+#       "under_power_url",
+#       "over_power_url",
+#       "under_power_url"
+#     ]
+#   },
+#   "allow_cross_origin": true,
+#   "ap_roaming": {
+#     "enabled": false,
+#     "threshold": -70
+#   },
+#   "build_info": {
+#     "build_id": "20211109-131251/v1.11.7-g682a0db",
+#     "build_timestamp": "2021-11-09T13:12:51Z",
+#     "build_version": "1.0"
+#   },
+#   "cloud": {
+#     "connected": false,
+#     "enabled": false
+#   },
+#   "coiot": {
+#     "enabled": true,
+#     "peer": "",
+#     "update_period": 15
+#   },
+#   "debug_enable": false,
+#   "device": {
+#     "hostname": "shellyem3-8CAAB5619544",
+#     "mac": "8CAAB5619544",
+#     "num_emeters": 3,
+#     "num_meters": 0,
+#     "num_outputs": 1,
+#     "report_period": 1,
+#     "type": "SHEM-3"
+#   },
+#   "discoverable": true,
+#   "emeters": [
+#     {
+#       "appliance_type": "General",
+#       "max_power": 0,
+#       "name": null
+#     },
+#     {
+#       "appliance_type": "General",
+#       "max_power": 0,
+#       "name": null
+#     },
+#     {
+#       "appliance_type": "General",
+#       "max_power": 0,
+#       "name": null
+#     }
+#   ],
+#   "fw": "20211109-131251/v1.11.7-g682a0db",
+#   "hwinfo": {
+#     "batch_id": 1,
+#     "hw_revision": "prod-2020-1"
+#   },
+#   "lat": 37.192089,
+#   "led_status_disable": false,
+#   "lng": -122.111679,
+#   "login": {
+#     "enabled": true,
+#     "unprotected": false,
+#     "username": "username"
+#   },
+#   "mqtt": {
+#     "clean_session": true,
+#     "enable": true,
+#     "id": "equipmentpad-pumps",
+#     "keep_alive": 60,
+#     "max_qos": 0,
+#     "reconnect_timeout_max": 60,
+#     "reconnect_timeout_min": 2,
+#     "retain": false,
+#     "server": "192.168.1.40:1883",
+#     "update_period": 30,
+#     "user": "username"
+#   },
+#   "name": "Equipmentpad pumps",
+#   "pin_code": "23!sv0",
+#   "relays": [
+#     {
+#       "auto_off": 0,
+#       "auto_on": 0,
+#       "default_state": "off",
+#       "has_timer": false,
+#       "ison": false,
+#       "name": null,
+#       "schedule": false,
+#       "schedule_rules": []
+#     }
+#   ],
+#   "sntp": {
+#     "enabled": true,
+#     "server": "time.google.com"
+#   },
+#   "time": "11:59",
+#   "timezone": "America/Los_Angeles",
+#   "tz_dst": false,
+#   "tz_dst_auto": true,
+#   "tz_utc_offset": -28800,
+#   "tzautodetect": false,
+#   "unixtime": 1641931144,
+#   "wifi_ap": {
+#     "enabled": false,
+#     "key": "",
+#     "ssid": "shellyem3-8CAAB5619544"
+#   },
+#   "wifi_sta": {
+#     "dns": null,
+#     "enabled": true,
+#     "gw": null,
+#     "ip": null,
+#     "ipv4_method": "dhcp",
+#     "mask": null,
+#     "ssid": "CABIN"
+#   },
+#   "wifi_sta1": {
+#     "dns": null,
+#     "enabled": false,
+#     "gw": null,
+#     "ip": null,
+#     "ipv4_method": "dhcp",
+#     "mask": null,
+#     "ssid": null
+#   }
+# }
+
 - platform: rest
   name: motion_shellies_settings_rest
   scan_interval: 86400
@@ -774,6 +975,87 @@
 #     "connected": true,
 #     "ip": "192.168.1.219",
 #     "rssi": -37,
+#     "ssid": "CABIN"
+#   }
+# }
+
+# energy
+
+# {
+#   "actions_stats": {
+#     "skipped": 0
+#   },
+#   "cfg_changed_cnt": 0,
+#   "cloud": {
+#     "connected": false,
+#     "enabled": false
+#   },
+#   "emeters": [
+#     {
+#       "current": 0.01,
+#       "is_valid": true,
+#       "pf": 0,
+#       "power": 0,
+#       "total": 0,
+#       "total_returned": 0,
+#       "voltage": 0.1
+#     },
+#     {
+#       "current": 0.02,
+#       "is_valid": true,
+#       "pf": -0.66,
+#       "power": 0,
+#       "total": 104.4,
+#       "total_returned": 86.1,
+#       "voltage": 122.15
+#     },
+#     {
+#       "current": 0.08,
+#       "is_valid": true,
+#       "pf": 0,
+#       "power": 0,
+#       "total": 0,
+#       "total_returned": 0,
+#       "voltage": 0.1
+#     }
+#   ],
+#   "fs_free": 156122,
+#   "fs_mounted": true,
+#   "fs_size": 233681,
+#   "has_update": false,
+#   "mac": "8CAAB5619544",
+#   "mqtt": {
+#     "connected": true
+#   },
+#   "ram_free": 30076,
+#   "ram_total": 49448,
+#   "relays": [
+#     {
+#       "has_timer": false,
+#       "is_valid": true,
+#       "ison": false,
+#       "overpower": false,
+#       "source": "input",
+#       "timer_duration": 0,
+#       "timer_remaining": 0,
+#       "timer_started": 0
+#     }
+#   ],
+#   "serial": 147,
+#   "time": "11:59",
+#   "total_power": 0,
+#   "unixtime": 1641931182,
+#   "update": {
+#     "has_update": false,
+#     "new_version": "20211109-131251/v1.11.7-g682a0db",
+#     "old_version": "20211109-131251/v1.11.7-g682a0db",
+#     "status": "idle"
+#   },
+#   "uptime": 82090,
+#   "wifi_sta": {
+#     "connected": true,
+#     "ip": "192.168.1.86",
+#     "rssi": -51,
 #     "ssid": "CABIN"
 #   }
 # }

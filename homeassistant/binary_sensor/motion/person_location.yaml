@@ -6,15 +6,6 @@
 
 - platform: template
   sensors:
-    motion_person_location:
-      friendly_name: Location
-      icon_template: >-
-        {% if is_state('binary_sensor.motion_person_location','on') %}
-          {{ 'mdi:map-marker' }}
-        {% else %}{{ 'mdi:map-marker-off' }}{% endif %}
-      value_template: >-
-        {% set s = states('sensor.motion_person_location') %}
-        {{ s|lower != 'unknown' and s|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' }}
     motion_person_location_expired:
       friendly_name: Location expired
       icon_template: >-
@@ -24,13 +15,106 @@
       value_template: >-
         {% set s = states('input_number.motion_person_location_expired') %}
         {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unavailable' and s|lower != 'unknown' %}
-          {% set timeout = s|float * 60 %}
-          {% set s = states.sensor.motion_person_location.last_updated %}
+          {% set timeout = s|float(0.0) * 60 %}
+          {% set s = states.sensor.motion_person_location.last_updated|default('unknown') %}
           {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unavailable' and s|lower != 'unknown' %}
-            {% set updated = s|as_timestamp %}
+            {% set updated = s|as_timestamp|default(0) %}
             {{ utcnow().timestamp() - updated > timeout }}
           {% else %}on{% endif %}
         {% else %}on{% endif %}
+
+## LOCATION (smartphone)
+
+- platform: bayesian
+  name: motion_person_location
+  prior: 0.1
+  probability_threshold: 0.7
+  observations:
+    - platform: state
+      entity_id: sensor.motion_person_location_status
+      to_state: 'on'
+      prob_given_true: 0.75
+      prob_given_false: 0.5
+    - platform: state
+      entity_id: sensor.motion_person_location_status
+      to_state: 'off'
+      prob_given_true: 0.2
+      prob_given_false: 0.5
+    - platform: state
+      entity_id: sensor.motion_person_location_status
+      to_state: 'unknown'
+      prob_given_true: 0.1
+      prob_given_false: 0.5
+    - platform: state
+      entity_id: sensor.motion_person_location_status
+      to_state: 'expired'
+      prob_given_true: 0.3
+      prob_given_false: 0.5
+    - platform: state
+      entity_id: binary_sensor.motion_person_location_movement_low_1d
+      to_state: 'on'
+      prob_given_true: 0.1
+      prob_given_false: 0.5
+    - platform: state
+      entity_id: binary_sensor.motion_person_location_movement_low_1d
+      to_state: 'off'
+      prob_given_true: 0.2
+      prob_given_false: 0.1
+    - platform: state
+      entity_id: binary_sensor.motion_person_location_velocity_low_1d
+      to_state: 'on'
+      prob_given_true: 0.1
+      prob_given_false: 0.2
+    - platform: state
+      entity_id: binary_sensor.motion_person_location_velocity_low_1d
+      to_state: 'off'
+      prob_given_true: 0.2
+      prob_given_false: 0.1
+    - platform: state
+      entity_id: binary_sensor.motion_person_location_movement_high_1d
+      to_state: 'on'
+      prob_given_true: 0.8
+      prob_given_false: 0.2
+    - platform: state
+      entity_id: binary_sensor.motion_person_location_movement_high_1d
+      to_state: 'off'
+      prob_given_true: 0.2
+      prob_given_false: 0.1
+    - platform: state
+      entity_id: binary_sensor.motion_person_location_velocity_high_1d
+      to_state: 'on'
+      prob_given_true: 0.8
+      prob_given_false: 0.2
+    - platform: state
+      entity_id: binary_sensor.motion_person_location_velocity_high_1d
+      to_state: 'off'
+      prob_given_true: 0.2
+      prob_given_false: 0.1
+    - platform: state
+      entity_id: sensor.motion_person_location_activity
+      to_state: 'unknown'
+      prob_given_true: 0.1
+      prob_given_false: 0.5
+    - platform: state
+      entity_id: sensor.motion_person_location_activity
+      to_state: 'stationary'
+      prob_given_true: 0.6
+      prob_given_false: 0.5
+    - platform: state
+      entity_id: sensor.motion_person_location_activity
+      to_state: 'walking'
+      prob_given_true: 0.8
+      prob_given_false: 0.1
+    - platform: state
+      entity_id: sensor.motion_person_location_activity
+      to_state: 'automotive'
+      prob_given_true: 0.8
+      prob_given_false: 0.1
+    - platform: state
+      entity_id: sensor.motion_person_location_activity
+      to_state: 'cycling'
+      prob_given_true: 0.8
+      prob_given_false: 0.1
 
 ## MOVEMENT
 
@@ -46,9 +130,9 @@
         {% set pas = states('sensor.motion_person_location_movement_stdev_1d') %}
         {% if pa|lower != 'none' and pa|lower != 'null' and pa|lower != 'unavailable' and pa|lower != 'unknown'
           and pam|lower != 'none' and pam|lower != 'null' and pam|lower != 'unavailable' and pam|lower != 'unknown'
-          and pas|lower != 'none' and pas|lower != 'null' and pas|lower != 'unavailable' and pas|lower != 'unknown' and pas|float > 0.0
+          and pas|lower != 'none' and pas|lower != 'null' and pas|lower != 'unavailable' and pas|lower != 'unknown' and pas|float(0.0) > 0.0
           and pad|lower != 'none' and pad|lower != 'null' and pad|lower != 'unavailable' and pad|lower != 'unknown' %}
-          {{ ((pam|float - pa|float) / pas|float) >= pad|float }}
+          {{ ((pam|float(0.0) - pa|float(0.0)) / pas|float(0.0)) >= pad|float(0.0) }}
         {% else %}null{% endif %}
 
 - platform: template
@@ -64,10 +148,10 @@
         {% set pasm = states('sensor.motion_person_location_movement_stdev_1d_mean') %}
         {% if pa|lower != 'none' and pa|lower != 'null' and pa|lower != 'unavailable' and pa|lower != 'unknown'
           and pam|lower != 'none' and pam|lower != 'null' and pam|lower != 'unavailable' and pam|lower != 'unknown'
-          and pas|lower != 'none' and pas|lower != 'null' and pas|lower != 'unavailable' and pas|lower != 'unknown' and pas|float > 0.0
-          and pasm|lower != 'none' and pasm|lower != 'null' and pasm|lower != 'unavailable' and pasm|lower != 'unknown' and pasm|float > 0.0
+          and pas|lower != 'none' and pas|lower != 'null' and pas|lower != 'unavailable' and pas|lower != 'unknown' and pas|float(0.0) > 0.0
+          and pasm|lower != 'none' and pasm|lower != 'null' and pasm|lower != 'unavailable' and pasm|lower != 'unknown' and pasm|float(0.0) > 0.0
           and pad|lower != 'none' and pad|lower != 'null' and pad|lower != 'unavailable' and pad|lower != 'unknown' %}
-          {{ ((pam|float - pa|float) / pasm|float) >= pad|float }}
+          {{ ((pam|float(0.0) - pa|float(0.0)) / pasm|float(0.0)) >= pad|float(0.0) }}
         {% else %}null{% endif %}
 
 - platform: template
@@ -82,9 +166,9 @@
         {% set pas = states('sensor.motion_person_location_movement_stdev_1d') %}
         {% if pa|lower != 'none' and pa|lower != 'null' and pa|lower != 'unavailable' and pa|lower != 'unknown'
           and pam|lower != 'none' and pam|lower != 'null' and pam|lower != 'unavailable' and pam|lower != 'unknown'
-          and pas|lower != 'none' and pas|lower != 'null' and pas|lower != 'unavailable' and pas|lower != 'unknown' and pas|float > 0.0
+          and pas|lower != 'none' and pas|lower != 'null' and pas|lower != 'unavailable' and pas|lower != 'unknown' and pas|float(0.0) > 0.0
           and pad|lower != 'none' and pad|lower != 'null' and pad|lower != 'unavailable' and pad|lower != 'unknown' %}
-          {{ ((pa|float - pam|float) / pas|float) >= pad|float }}
+          {{ ((pa|float(0.0) - pam|float(0.0)) / pas|float(0.0)) >= pad|float(0.0) }}
         {% else %}null{% endif %}
 
 - platform: template
@@ -100,10 +184,10 @@
         {% set pasm = states('sensor.motion_person_location_movement_stdev_1d_mean') %}
         {% if pa|lower != 'none' and pa|lower != 'null' and pa|lower != 'unavailable' and pa|lower != 'unknown'
           and pam|lower != 'none' and pam|lower != 'null' and pam|lower != 'unavailable' and pam|lower != 'unknown'
-          and pas|lower != 'none' and pas|lower != 'null' and pas|lower != 'unavailable' and pas|lower != 'unknown' and pas|float > 0.0
-          and pasm|lower != 'none' and pasm|lower != 'null' and pasm|lower != 'unavailable' and pasm|lower != 'unknown' and pasm|float > 0.0
+          and pas|lower != 'none' and pas|lower != 'null' and pas|lower != 'unavailable' and pas|lower != 'unknown' and pas|float(0.0) > 0.0
+          and pasm|lower != 'none' and pasm|lower != 'null' and pasm|lower != 'unavailable' and pasm|lower != 'unknown' and pasm|float(0.0) > 0.0
           and pad|lower != 'none' and pad|lower != 'null' and pad|lower != 'unavailable' and pad|lower != 'unknown' %}
-          {{ ((pa|float - pam|float) / pasm|float) >= pad|float }}
+          {{ ((pa|float(0.0) - pam|float(0.0)) / pasm|float(0.0)) >= pad|float(0.0) }}
         {% else %}null{% endif %}
 
 - platform: template
@@ -135,9 +219,9 @@
         {% set pas = states('sensor.motion_person_location_velocity_stdev_1d') %}
         {% if pa|lower != 'none' and pa|lower != 'null' and pa|lower != 'unavailable' and pa|lower != 'unknown'
           and pam|lower != 'none' and pam|lower != 'null' and pam|lower != 'unavailable' and pam|lower != 'unknown'
-          and pas|lower != 'none' and pas|lower != 'null' and pas|lower != 'unavailable' and pas|lower != 'unknown' and pas|float > 0.0
+          and pas|lower != 'none' and pas|lower != 'null' and pas|lower != 'unavailable' and pas|lower != 'unknown' and pas|float(0.0) > 0.0
           and pad|lower != 'none' and pad|lower != 'null' and pad|lower != 'unavailable' and pad|lower != 'unknown' %}
-          {{ ((pam|float - pa|float) / pas|float) >= pad|float }}
+          {{ ((pam|float(0.0) - pa|float(0.0)) / pas|float(0.0)) >= pad|float(0.0) }}
         {% else %}null{% endif %}
 
 - platform: template
@@ -153,10 +237,10 @@
         {% set pasm = states('sensor.motion_person_location_velocity_stdev_1d_mean') %}
         {% if pa|lower != 'none' and pa|lower != 'null' and pa|lower != 'unavailable' and pa|lower != 'unknown'
           and pam|lower != 'none' and pam|lower != 'null' and pam|lower != 'unavailable' and pam|lower != 'unknown'
-          and pas|lower != 'none' and pas|lower != 'null' and pas|lower != 'unavailable' and pas|lower != 'unknown' and pas|float > 0.0
-          and pasm|lower != 'none' and pasm|lower != 'null' and pasm|lower != 'unavailable' and pasm|lower != 'unknown' and pasm|float > 0.0
+          and pas|lower != 'none' and pas|lower != 'null' and pas|lower != 'unavailable' and pas|lower != 'unknown' and pas|float(0.0) > 0.0
+          and pasm|lower != 'none' and pasm|lower != 'null' and pasm|lower != 'unavailable' and pasm|lower != 'unknown' and pasm|float(0.0) > 0.0
           and pad|lower != 'none' and pad|lower != 'null' and pad|lower != 'unavailable' and pad|lower != 'unknown' %}
-          {{ ((pam|float - pa|float) / pasm|float) >= pad|float }}
+          {{ ((pam|float(0.0) - pa|float(0.0)) / pasm|float(0.0)) >= pad|float(0.0) }}
         {% else %}null{% endif %}
 
 - platform: template
@@ -171,9 +255,9 @@
         {% set pas = states('sensor.motion_person_location_velocity_stdev_1d') %}
         {% if pa|lower != 'none' and pa|lower != 'null' and pa|lower != 'unavailable' and pa|lower != 'unknown'
           and pam|lower != 'none' and pam|lower != 'null' and pam|lower != 'unavailable' and pam|lower != 'unknown'
-          and pas|lower != 'none' and pas|lower != 'null' and pas|lower != 'unavailable' and pas|lower != 'unknown' and pas|float > 0.0
+          and pas|lower != 'none' and pas|lower != 'null' and pas|lower != 'unavailable' and pas|lower != 'unknown' and pas|float(0.0) > 0.0
           and pad|lower != 'none' and pad|lower != 'null' and pad|lower != 'unavailable' and pad|lower != 'unknown' %}
-          {{ ((pa|float - pam|float) / pas|float) >= pad|float }}
+          {{ ((pa|float(0.0) - pam|float(0.0)) / pas|float(0.0)) >= pad|float(0.0) }}
         {% else %}null{% endif %}
 
 - platform: template
@@ -189,10 +273,10 @@
         {% set pasm = states('sensor.motion_person_location_velocity_stdev_1d_mean') %}
         {% if pa|lower != 'none' and pa|lower != 'null' and pa|lower != 'unavailable' and pa|lower != 'unknown'
           and pam|lower != 'none' and pam|lower != 'null' and pam|lower != 'unavailable' and pam|lower != 'unknown'
-          and pas|lower != 'none' and pas|lower != 'null' and pas|lower != 'unavailable' and pas|lower != 'unknown' and pas|float > 0.0
-          and pasm|lower != 'none' and pasm|lower != 'null' and pasm|lower != 'unavailable' and pasm|lower != 'unknown' and pasm|float > 0.0
+          and pas|lower != 'none' and pas|lower != 'null' and pas|lower != 'unavailable' and pas|lower != 'unknown' and pas|float(0.0) > 0.0
+          and pasm|lower != 'none' and pasm|lower != 'null' and pasm|lower != 'unavailable' and pasm|lower != 'unknown' and pasm|float(0.0) > 0.0
           and pad|lower != 'none' and pad|lower != 'null' and pad|lower != 'unavailable' and pad|lower != 'unknown' %}
-          {{ ((pa|float - pam|float) / pasm|float) >= pad|float }}
+          {{ ((pa|float(0.0) - pam|float(0.0)) / pasm|float(0.0)) >= pad|float(0.0) }}
         {% else %}null{% endif %}
 
 - platform: template
