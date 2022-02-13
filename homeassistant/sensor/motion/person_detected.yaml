@@ -85,12 +85,6 @@
           {%- set r = as_datetime(utcnow().timestamp() - s|float(0.0)) -%}
           {{- relative_time(r) -}}
         {%- else -%}null{%- endif -%}
-    motion_person_detected_probability:
-      friendly_name: 'Detected probability'
-      icon_template: 'mdi:percent'
-      unit_of_measurement: '%'
-      value_template: >
-        {{- 'null' -}}
     motion_person_detected_ago:
       friendly_name: 'Detected ago'
       icon_template: 'mdi:av-timer'
@@ -132,6 +126,59 @@
           {{ states('sensor.motion_person_detected_duration') }}
         {%- else -%}null{%- endif -%}
 
+## person_detected average
+
+- platform: statistics
+  name: motion_person_detected_average_5m
+  entity_id: binary_sensor.motion_person_detected
+  state_characteristic: average_step
+  sampling_size: 60
+  max_age:
+    minutes: 5
+
+- platform: statistics
+  name: motion_person_detected_average_15m
+  entity_id: binary_sensor.motion_person_detected
+  state_characteristic: average_step
+  sampling_size: 180
+  max_age:
+    minutes: 15
+
+- platform: statistics
+  name: motion_person_detected_average_1h
+  entity_id: binary_sensor.motion_person_detected
+  state_characteristic: average_step
+  sampling_size: 720
+  max_age:
+    hours: 1
+
+- platform: statistics
+  name: motion_person_detected_average_1d
+  entity_id: binary_sensor.motion_person_detected
+  state_characteristic: average_step
+  sampling_size: 2880
+  max_age:
+    days: 1
+
+- platform: statistics
+  name: motion_person_detected_average_1w
+  entity_id: binary_sensor.motion_person_detected
+  state_characteristic: average_step
+  sampling_size: 20160
+  max_age:
+    days: 7
+
+## probability
+
+- platform: template
+  sensors:
+    motion_person_detected_probability:
+      friendly_name: 'Detected probability'
+      icon_template: 'mdi:percent'
+      unit_of_measurement: '%'
+      value_template: >
+        {{- 'null' -}}
+
 # quartiles
 
 - platform: statistics
@@ -154,15 +201,55 @@
   max_age:
     days: 7
 
-# today
+# probability
 
-- platform: history_stats
-  name: motion_person_detected_count_today
+- platform: statistics
+  name: motion_person_detected_probability_mean_1h
+  entity_id: sensor.motion_person_detected_probability
+  state_characteristic: mean
+  sampling_size: 720
+  max_age:
+    hours: 1
+
+- platform: statistics
+  name: motion_person_detected_probability_mean_1d
+  entity_id: sensor.motion_person_detected_probability
+  state_characteristic: mean
+  sampling_size: 2880
+  max_age:
+    days: 1
+
+- platform: statistics
+  name: motion_person_detected_probability_mean_1w
+  entity_id: sensor.motion_person_detected_probability
+  state_characteristic: mean
+  sampling_size: 20160
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_person_detected_average_1h
   entity_id: binary_sensor.motion_person_detected
-  state: 'on'
-  type: count
-  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
-  end: '{{ now() }}'
+  state_characteristic: average_step
+  sampling_size: 720
+  max_age:
+    hours: 1
+
+- platform: statistics
+  name: motion_person_detected_average_1d
+  entity_id: binary_sensor.motion_person_detected
+  state_characteristic: average_step
+  sampling_size: 2880
+  max_age:
+    days: 1
+
+- platform: statistics
+  name: motion_person_detected_average_1w
+  entity_id: binary_sensor.motion_person_detected
+  state_characteristic: average_step
+  sampling_size: 20160
+  max_age:
+    days: 7
 
 # ago
 
@@ -245,56 +332,6 @@
   entity_id: sensor.motion_person_detected_off_duration
   state_characteristic: mean
   sampling_size: 5040
-  max_age:
-    days: 7
-
-# probability
-
-- platform: statistics
-  name: motion_person_detected_probability_mean_1h
-  entity_id: sensor.motion_person_detected_probability
-  state_characteristic: mean
-  sampling_size: 720
-  max_age:
-    hours: 1
-
-- platform: statistics
-  name: motion_person_detected_probability_mean_1d
-  entity_id: sensor.motion_person_detected_probability
-  state_characteristic: mean
-  sampling_size: 2880
-  max_age:
-    days: 1
-
-- platform: statistics
-  name: motion_person_detected_probability_mean_1w
-  entity_id: sensor.motion_person_detected_probability
-  state_characteristic: mean
-  sampling_size: 20160
-  max_age:
-    days: 7
-
-- platform: statistics
-  name: motion_person_detected_average_1h
-  entity_id: binary_sensor.motion_person_detected
-  state_characteristic: average_step
-  sampling_size: 720
-  max_age:
-    hours: 1
-
-- platform: statistics
-  name: motion_person_detected_average_1d
-  entity_id: binary_sensor.motion_person_detected
-  state_characteristic: average_step
-  sampling_size: 2880
-  max_age:
-    days: 1
-
-- platform: statistics
-  name: motion_person_detected_average_1w
-  entity_id: binary_sensor.motion_person_detected
-  state_characteristic: average_step
-  sampling_size: 20160
   max_age:
     days: 7
 
@@ -404,8 +441,8 @@
           {%- else -%}null{%- endif -%}
         oldest: >-
           {% set s = states('sensor.motion_person_detected_count_oldest_1d') %}
-          {% if s|float(0.0) > 0.0 %}
-            {{ s|relative_count }}
+          {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 -%}
+            {{ s|as_datetime|relative_time }}
           {%- else -%}Pending{%- endif -%}
         status: >-
           {%- set s = states('sensor.motion_person_detected_count_oldest_1d') -%}
@@ -429,29 +466,6 @@
               {{ d -}}d; {{ h -}}h
             {%- endif -%}
             {{- ' (' + states('sensor.motion_person_detected_count_history_stats_1d') + ')' -}}
-          {%- else -%}Pending{%- endif -%}
-        period: >-
-          {% set s = as_timestamp(states('sensor.motion_person_detected_count_oldest_1d'),0) %}
-          {% if s|float > 0 %}
-            {%- set s = utcnow().timestamp() - s|float -%}
-            {%- set d = (s/86400)|int(0) -%}
-            {%- set h = ((s-(d*86400))/3600)|int(0) -%}
-            {%- if d < 1 -%}
-              {%- set m = ((s-(d*86400)-(h*3600))/60)|int(0) -%}
-              {%- set s = (s % 60)|int(0) -%}
-              {%- if h < 1 -%}
-                {%- if m < 1 -%}
-                  {{ s -}}s
-                {%- else -%}
-                  {{ m -}}m; {{ s -}}s
-                {%- endif -%}
-              {%- else -%}
-                {{ h -}}h; {{ m -}}m
-              {%- endif -%}
-            {%- else -%}
-              {{ d -}}d; {{ h -}}h
-            {%- endif -%}
-            {{- ' (' + states('sensor.motion_person_detected_count_week') + ')' -}}
           {%- else -%}Pending{%- endif -%}
         notdetected: >
           {%- set s = states('sensor.motion_person_notdetected_count_history_stats_1d') -%}
@@ -550,8 +564,8 @@
           {%- else -%}null{%- endif -%}
         oldest: >-
           {% set s = states('sensor.motion_person_detected_count_oldest_1w') %}
-          {% if s|float(0.0) > 0.0 %}
-            {{ s|relative_count }}
+          {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 -%}
+            {{ s|as_datetime|relative_time }}
           {%- else -%}Pending{%- endif -%}
         status: >-
           {%- set s = states('sensor.motion_person_detected_count_oldest_1w') -%}
@@ -575,29 +589,6 @@
               {{ d -}}d; {{ h -}}h
             {%- endif -%}
             {{- ' (' + states('sensor.motion_person_detected_count_history_stats_1w') + ')' -}}
-          {%- else -%}Pending{%- endif -%}
-        period: >-
-          {% set s = as_timestamp(states('sensor.motion_person_detected_count_oldest_1w'),0) %}
-          {% if s|float > 0 %}
-            {%- set s = utcnow().timestamp() - s|float -%}
-            {%- set d = (s/86400)|int(0) -%}
-            {%- set h = ((s-(d*86400))/3600)|int(0) -%}
-            {%- if d < 1 -%}
-              {%- set m = ((s-(d*86400)-(h*3600))/60)|int(0) -%}
-              {%- set s = (s % 60)|int(0) -%}
-              {%- if h < 1 -%}
-                {%- if m < 1 -%}
-                  {{ s -}}s
-                {%- else -%}
-                  {{ m -}}m; {{ s -}}s
-                {%- endif -%}
-              {%- else -%}
-                {{ h -}}h; {{ m -}}m
-              {%- endif -%}
-            {%- else -%}
-              {{ d -}}d; {{ h -}}h
-            {%- endif -%}
-            {{- ' (' + states('sensor.motion_person_detected_count_week') + ')' -}}
           {%- else -%}Pending{%- endif -%}
         notdetected: >
           {%- set s = states('sensor.motion_person_notdetected_count_mean_1w') -%}
@@ -636,6 +627,14 @@
   name: motion_person_detected_time_mean_1d
   entity_id: sensor.motion_person_detected_time_history_stats_1d
   state_characteristic: mean
+  sampling_size: 1440
+  max_age:
+    days: 1
+
+- platform: statistics
+  name: motion_person_detected_time_count_1d
+  entity_id: sensor.motion_person_detected_time_history_stats_1d
+  state_characteristic: count
   sampling_size: 1440
   max_age:
     days: 1
@@ -704,7 +703,7 @@
       unit_of_measurement: 'h'
       attribute_templates:
         count: >-
-          {{ states('sensor.motion_person_detected_time_history_stats_1d') }}
+          {{ states('sensor.motion_person_detected_time_count_1d') }}
         coverage: >-
          {{ state_attr('sensor.motion_person_detected_time_oldest_1d','age_coverage_ratio')|float(0) * 100 }}
         usage: >-
@@ -716,8 +715,8 @@
           {%- else -%}null{%- endif -%}
         oldest: >-
           {% set s = states('sensor.motion_person_detected_time_oldest_1d') %}
-          {% if s|float(0.0) > 0.0 %}
-            {{ s|relative_time }}
+          {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 -%}
+            {{ s|as_datetime|relative_time }}
           {%- else -%}Pending{%- endif -%}
         status: >-
           {%- set s = states('sensor.motion_person_detected_time_oldest_1d') -%}
@@ -742,29 +741,6 @@
             {%- endif -%}
             {{- ' (' + states('sensor.motion_person_detected_time_history_stats_1d') + ')' -}}
           {%- else -%}Pending{%- endif -%}
-        period: >-
-          {% set s = as_timestamp(states('sensor.motion_person_detected_time_oldest_1d'),0) %}
-          {% if s|float > 0 %}
-            {%- set s = utcnow().timestamp() - s|float -%}
-            {%- set d = (s/86400)|int(0) -%}
-            {%- set h = ((s-(d*86400))/3600)|int(0) -%}
-            {%- if d < 1 -%}
-              {%- set m = ((s-(d*86400)-(h*3600))/60)|int(0) -%}
-              {%- set s = (s % 60)|int(0) -%}
-              {%- if h < 1 -%}
-                {%- if m < 1 -%}
-                  {{ s -}}s
-                {%- else -%}
-                  {{ m -}}m; {{ s -}}s
-                {%- endif -%}
-              {%- else -%}
-                {{ h -}}h; {{ m -}}m
-              {%- endif -%}
-            {%- else -%}
-              {{ d -}}d; {{ h -}}h
-            {%- endif -%}
-            {{- ' (' + states('sensor.motion_person_detected_time_week') + ')' -}}
-          {%- else -%}Pending{%- endif -%}
         notdetected: >
           {%- set s = states('sensor.motion_person_notdetected_time_history_stats_1d') -%}
           {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
@@ -782,6 +758,14 @@
   name: motion_person_detected_time_mean_1w
   entity_id: sensor.motion_person_detected_time_history_stats_1d
   state_characteristic: mean
+  sampling_size: 5040
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_person_detected_time_count_1w
+  entity_id: sensor.motion_person_detected_time_history_stats_1d
+  state_characteristic: count
   sampling_size: 5040
   max_age:
     days: 7
@@ -850,7 +834,7 @@
       unit_of_measurement: 'h'
       attribute_templates:
         count: >-
-          {{ states('sensor.motion_person_detected_time_history_stats_1w') }}
+          {{ states('sensor.motion_person_detected_time_count_1w') }}
         coverage: >-
          {{ state_attr('sensor.motion_person_detected_time_oldest_1w','age_coverage_ratio')|float(0) * 100 }}
         usage: >-
@@ -862,8 +846,8 @@
           {%- else -%}null{%- endif -%}
         oldest: >-
           {% set s = states('sensor.motion_person_detected_time_oldest_1w') %}
-          {% if s|float(0.0) > 0.0 %}
-            {{ s|relative_time }}
+          {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 -%}
+            {{ s|as_datetime|relative_time }}
           {%- else -%}Pending{%- endif -%}
         status: >-
           {%- set s = states('sensor.motion_person_detected_time_oldest_1w') -%}
@@ -887,29 +871,6 @@
               {{ d -}}d; {{ h -}}h
             {%- endif -%}
             {{- ' (' + states('sensor.motion_person_detected_time_history_stats_1w') + ')' -}}
-          {%- else -%}Pending{%- endif -%}
-        period: >-
-          {% set s = as_timestamp(states('sensor.motion_person_detected_time_oldest_1w'),0) %}
-          {% if s|float > 0 %}
-            {%- set s = utcnow().timestamp() - s|float -%}
-            {%- set d = (s/86400)|int(0) -%}
-            {%- set h = ((s-(d*86400))/3600)|int(0) -%}
-            {%- if d < 1 -%}
-              {%- set m = ((s-(d*86400)-(h*3600))/60)|int(0) -%}
-              {%- set s = (s % 60)|int(0) -%}
-              {%- if h < 1 -%}
-                {%- if m < 1 -%}
-                  {{ s -}}s
-                {%- else -%}
-                  {{ m -}}m; {{ s -}}s
-                {%- endif -%}
-              {%- else -%}
-                {{ h -}}h; {{ m -}}m
-              {%- endif -%}
-            {%- else -%}
-              {{ d -}}d; {{ h -}}h
-            {%- endif -%}
-            {{- ' (' + states('sensor.motion_person_detected_time_week') + ')' -}}
           {%- else -%}Pending{%- endif -%}
         notdetected: >
           {%- set s = states('sensor.motion_person_notdetected_time_mean_1w') -%}
