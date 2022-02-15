@@ -4,52 +4,6 @@
 
 - platform: template
   sensors:
-    motion_automation_count:
-      friendly_name: Automation count
-      icon_template: 'mdi:counter'
-      unit_of_measurement: '⒡'
-      value_template: >-
-        {% set s = state_attr('sensor.motion_automation_status','array') %}
-        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
-          {{ s|length }}
-        {% else %}null{% endif %}
-
-- platform: template
-  sensors:
-    motion_automation_count_online:
-      friendly_name: Automation on-line count
-      icon_template: 'mdi:counter'
-      unit_of_measurement: '⒡'
-      value_template: >-
-        {% set s = state_attr('sensor.motion_automation_status','array') %}
-        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
-          {{ s|sum }}
-        {% else %}null{% endif %}
-
-- platform: template
-  sensors:
-    motion_automation_count_offline:
-      friendly_name: Automation off-line count
-      icon_template: 'mdi:counter'
-      unit_of_measurement: '⒡'
-      value_template: >-
-        {{ states('sensor.motion_automation_count')|int(0) - states('sensor.motion_automation_count_online')|int(0)  }}
-
-- platform: template
-  sensors:
-    motion_automation_online_percent:
-      friendly_name: Automation on-line percent
-      icon_template: 'mdi:light-automation'
-      unit_of_measurement: '%'
-      value_template: >-
-        {% set c = states('sensor.motion_automation_count')|int(0) %}
-        {% if c > 0 %}
-          {% set o = states('sensor.motion_automation_count_online')|int(0) %}
-          {{ (o / c * 100)|int(0) }}
-        {% else %}null{% endif %}
-
-- platform: template
-  sensors:
     motion_automation_status:
       friendly_name: Automation on-line status 
       icon_template: 'mdi:light-automation'
@@ -61,8 +15,48 @@
             {%- if s == 'on' or s == 'off' -%}1{%- else -%}0{%- endif -%}
           {%- endfor -%}]
       value_template: >-
-        {{ states('sensor.motion_automation_count_online') -}}/{{- states('sensor.motion_automation_count') -}};
+        {{ state_attr('sensor.motion_automation_count','online') -}}/{{- states('sensor.motion_automation_count') -}};
         {{ states('sensor.motion_automation_online_percent') -}}%
+    motion_automation_count:
+      friendly_name: Automation count
+      icon_template: 'mdi:counter'
+      unit_of_measurement: '⒡'
+      attribute_templates:
+        online: >-
+          {% set s = state_attr('sensor.motion_automation_status','array') %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+            {{ s|sum }}
+          {% else %}null{% endif %}
+        offline: >-
+          {% set s = state_attr('sensor.motion_automation_status','array') %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+            {% set online = s|sum %}
+            {% set count = s|length %}
+            {{ count - online }}
+          {% else %}null{% endif %}
+        min: >-
+          {{ states('sensor.motion_automation_online_percent_min')|default('null') }}
+        max: >-
+          {{ states('sensor.motion_automation_online_percent_max')|default('null') }}
+        mean: >-
+          {{ states('sensor.motion_automation_online_percent_mean')|default('null') }}
+        stdev: >-
+          {{ states('sensor.motion_automation_online_percent_stdev')|default('null') }}
+      value_template: >-
+        {% set s = state_attr('sensor.motion_automation_status','array') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+          {{ s|length }}
+        {% else %}null{% endif %}
+    motion_automation_online_percent:
+      friendly_name: Automation on-line percent
+      icon_template: 'mdi:light-automation'
+      unit_of_measurement: '%'
+      value_template: >-
+        {% set c = states('sensor.motion_automation_count')|int(0) %}
+        {% if c > 0 %}
+          {% set o = state_attr('sensor.motion_automation_count','online')|int(0) %}
+          {{ (o / c * 100)|int(0) }}
+        {% else %}null{% endif %}
 
 # percent statistics
 
