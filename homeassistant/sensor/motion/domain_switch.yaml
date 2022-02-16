@@ -1,0 +1,93 @@
+###
+# homeassistant/sensor/motion/switch.yaml
+###
+
+- platform: template
+  sensors:
+    motion_domain_switch_status:
+      friendly_name: Switch on-line status 
+      icon_template: 'mdi:light-switch'
+      attribute_templates:
+        array: >-
+          [{%- for state in states.switch -%}
+            {%- if loop.first -%}{%- else -%},{%- endif -%}
+            {%- set s = state.state_with_unit|lower -%}
+            {%- if s == 'on' or s == 'off' -%}1{%- else -%}0{%- endif -%}
+          {%- endfor -%}]
+      value_template: >-
+        {{ state_attr('sensor.motion_domain_switch_count','online') -}}/{{- states('sensor.motion_domain_switch_count') -}};
+        {{ states('sensor.motion_domain_switch_online_percent') -}}%
+    motion_domain_switch_count:
+      friendly_name: Switch count
+      icon_template: 'mdi:counter'
+      unit_of_measurement: '🔌'
+      attribute_templates:
+        online: >-
+          {% set s = state_attr('sensor.motion_domain_switch_status','array') %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+            {{ s|sum }}
+          {% else %}null{% endif %}
+        offline: >-
+          {% set s = state_attr('sensor.motion_domain_switch_status','array') %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+            {% set online = s|sum %}
+            {% set count = s|length %}
+            {{ count - online }}
+          {% else %}null{% endif %}
+        min: >-
+          {{ states('sensor.motion_domain_switch_online_percent_min')|default('null') }}
+        max: >-
+          {{ states('sensor.motion_domain_switch_online_percent_max')|default('null') }}
+        mean: >-
+          {{ states('sensor.motion_domain_switch_online_percent_mean')|default('null') }}
+        stdev: >-
+          {{ states('sensor.motion_domain_switch_online_percent_stdev')|default('null') }}
+      value_template: >-
+        {% set s = state_attr('sensor.motion_domain_switch_status','array') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+          {{ s|length }}
+        {% else %}null{% endif %}
+    motion_domain_switch_online_percent:
+      friendly_name: Switch on-line percent
+      icon_template: 'mdi:percent'
+      unit_of_measurement: '%'
+      value_template: >-
+        {% set c = states('sensor.motion_domain_switch_count')|int(0) %}
+        {% if c > 0 %}
+          {% set o = state_attr('sensor.motion_domain_switch_count','online')|int(0) %}
+          {{ (o / c * 100)|int(0) }}
+        {% else %}null{% endif %}
+
+# percent statistics
+
+- platform: statistics
+  name: motion_domain_switch_online_percent_min
+  entity_id: sensor.motion_domain_switch_online_percent
+  state_characteristic: value_min
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: statistics
+  name: motion_domain_switch_online_percent_mean
+  entity_id: sensor.motion_domain_switch_online_percent
+  state_characteristic: mean
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: statistics
+  name: motion_domain_switch_online_percent_max
+  entity_id: sensor.motion_domain_switch_online_percent
+  state_characteristic: value_max
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: statistics
+  name: motion_domain_switch_online_percent_stdev
+  entity_id: sensor.motion_domain_switch_online_percent
+  state_characteristic: standard_deviation
+  sampling_size: 100
+  max_age:
+    hours: 72
