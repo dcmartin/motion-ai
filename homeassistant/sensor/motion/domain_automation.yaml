@@ -10,9 +10,9 @@
       attribute_templates:
         array: >-
           [{%- for state in states.automation -%}
-            {%- if loop.first -%}{%- else -%},{%- endif -%}
+            {%- if not loop.first -%},{%- endif -%}
             {%- set s = state.state_with_unit|lower -%}
-            {%- if s == 'on' or s == 'off' -%}1{%- else -%}0{%- endif -%}
+            {%- if s == 'on' -%}1{%- elif s == 'off' -%}0{%- else -%}null{%- endif -%}
           {%- endfor -%}]
       value_template: >-
         {{ state_attr('sensor.motion_domain_automation_count','online') -}}/{{- states('sensor.motion_domain_automation_count') -}};
@@ -22,18 +22,54 @@
       icon_template: 'mdi:counter'
       unit_of_measurement: '⒡'
       attribute_templates:
+        enabled: >-
+          {%- set s = state_attr('sensor.motion_domain_automation_status','array') -%}
+          {%- if s|lower != 'none' -%}
+            {%- if s is string -%}{%- set s = s|from_json -%}{%- endif -%}
+            {%- if s is iterable and s|count > 0 -%}
+              {% set s = s|select('number') %}
+              {%- if s|lower != 'none' and s|lower != 'null' and s is iterable and s|count > 0 -%}
+                {{ s|sum }}
+              {%- else -%}null{%- endif -%}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        disabled: >-
+          {%- set s = state_attr('sensor.motion_domain_automation_status','array') -%}
+          {%- if s|lower != 'none' -%}
+            {%- if s is string -%}{%- set s = s|from_json -%}{%- endif -%}
+            {%- if s is iterable and s|count > 0 -%}
+              {%- set count = s|count -%}
+              {% set s = s|select('number') %}
+              {%- if s|lower != 'none' and s|lower != 'null' and s is iterable and s|count > 0 -%}
+                {%- set enabled = s|sum -%}
+                {{ count - enabled }}
+              {%- else -%}null{%- endif -%}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
         online: >-
-          {% set s = state_attr('sensor.motion_domain_automation_status','array') %}
-          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
-            {{ s|sum }}
-          {% else %}null{% endif %}
+          {%- set s = state_attr('sensor.motion_domain_automation_status','array') -%}
+          {%- if s|lower != 'none' -%}
+            {%- if s is string -%}{%- set s = s|from_json -%}{%- endif -%}
+            {%- if s is iterable and s|count > 0 -%}
+              {% set s = s|select('number') %}
+              {%- if s|lower != 'none' and s|lower != 'null' and s is iterable and s|count > 0 -%}
+                {{ s|count }}
+              {%- else -%}null{%- endif -%}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
         offline: >-
-          {% set s = state_attr('sensor.motion_domain_automation_status','array') %}
-          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
-            {% set online = s|sum %}
-            {% set count = s|length %}
-            {{ count - online }}
-          {% else %}null{% endif %}
+          {%- set s = state_attr('sensor.motion_domain_automation_status','array') -%}
+          {%- if s|lower != 'none' -%}
+            {%- if s is string -%}{%- set s = s|from_json -%}{%- endif -%}
+            {%- if s is iterable and s|count > 0 -%}
+              {%- set count = s|count -%}
+              {% set s = s|select('number') %}
+              {%- if s|lower != 'none' and s|lower != 'null' and s is iterable and s|count > 0 -%}
+                {%- set online = s|count -%}
+                {{ count - online }}
+              {%- else -%}null{%- endif -%}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
         min: >-
           {{ states('sensor.motion_domain_automation_online_percent_min')|default('null') }}
         max: >-
@@ -44,8 +80,11 @@
           {{ states('sensor.motion_domain_automation_online_percent_stdev')|default('null') }}
       value_template: >-
         {% set s = state_attr('sensor.motion_domain_automation_status','array') %}
-        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
-          {{ s|length }}
+        {% if s|lower != 'none' %}
+          {% if s is string %}{% set s = s|from_json %}{% endif %}
+          {% if s is iterable %}
+            {{ s|count }}
+          {% else %}null{% endif %}
         {% else %}null{% endif %}
     motion_domain_automation_online_percent:
       friendly_name: Automation on-line percent
