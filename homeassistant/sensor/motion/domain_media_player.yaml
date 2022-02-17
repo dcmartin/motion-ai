@@ -5,15 +5,13 @@
 - platform: template
   sensors:
     motion_domain_media_player_status:
-      friendly_name: Media Player status 
-      icon_template: 'mdi:play'
+      friendly_name: Media Player on-line status 
+      icon_template: 'mdi:cctv'
       attribute_templates:
-        array: >-
-          [{%- for state in states.media_player -%}
-            {%- if loop.first -%}{%- else -%},{%- endif -%}
-            {%- set s = state.state_with_unit|lower -%}
-            {%- if s == 'on' or s == 'off' -%}1{%- else -%}0{%- endif -%}
-          {%- endfor -%}]
+        online: >-
+          {{ states.media_player|selectattr('state','==','on')|list|count + states.media_player|selectattr('state','==','off')|list|count }}
+        offline: >-
+          {{ states.media_player|count - (states.media_player|selectattr('state','==','on')|list|count + states.media_player|selectattr('state','==','off')|list|count) }}
         selected: >-
           {% set s = states('input_select.motion_media_player_name') %}
           {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
@@ -32,18 +30,6 @@
       icon_template: 'mdi:counter'
       unit_of_measurement: '🔊'
       attribute_templates:
-        online: >-
-          {% set s = state_attr('sensor.motion_domain_media_player_status','array') %}
-          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
-            {{ s|sum }}
-          {% else %}null{% endif %}
-        offline: >-
-          {% set s = state_attr('sensor.motion_domain_media_player_status','array') %}
-          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
-            {% set online = s|sum %}
-            {% set count = s|length %}
-            {{ count - online }}
-          {% else %}null{% endif %}
         min: >-
           {{ states('sensor.motion_domain_media_player_online_percent_min')|default('null') }}
         max: >-
@@ -53,20 +39,63 @@
         stdev: >-
           {{ states('sensor.motion_domain_media_player_online_percent_stdev')|default('null') }}
       value_template: >-
-        {% set s = state_attr('sensor.motion_domain_media_player_status','array') %}
+        {% set s = states.media_player|default(null) %}
         {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
-          {{ s|length }}
+          {{ s|count}}
         {% else %}null{% endif %}
     motion_domain_media_player_online_percent:
       friendly_name: Media Player on-line percent
-      icon_template: 'mdi:pecent'
+      icon_template: 'mdi:percent'
       unit_of_measurement: '%'
+      attribute_templates:
+        min: >-
+          {{ states('sensor.motion_domain_media_player_online_percent_min')|default('null') }}
+        max: >-
+          {{ states('sensor.motion_domain_media_player_online_percent_max')|default('null') }}
+        mean: >-
+          {{ states('sensor.motion_domain_media_player_online_percent_mean')|default('null') }}
+        stdev: >-
+          {{ states('sensor.motion_domain_media_player_online_percent_stdev')|default('null') }}
       value_template: >-
         {% set c = states('sensor.motion_domain_media_player_count')|int(0) %}
         {% if c > 0 %}
           {% set o = state_attr('sensor.motion_domain_media_player_count','online')|int(0) %}
           {{ (o / c * 100)|int(0) }}
         {% else %}null{% endif %}
+
+# count statistics
+
+- platform: statistics
+  name: motion_domain_media_player_count_min
+  entity_id: sensor.motion_domain_media_player_count
+  state_characteristic: value_min
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: statistics
+  name: motion_domain_media_player_count_mean
+  entity_id: sensor.motion_domain_media_player_count
+  state_characteristic: mean
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: statistics
+  name: motion_domain_media_player_count_max
+  entity_id: sensor.motion_domain_media_player_count
+  state_characteristic: value_max
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: statistics
+  name: motion_domain_media_player_count_stdev
+  entity_id: sensor.motion_domain_media_player_count
+  state_characteristic: standard_deviation
+  sampling_size: 100
+  max_age:
+    hours: 72
 
 # percent statistics
 
