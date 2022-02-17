@@ -8,12 +8,14 @@
       friendly_name: Automation on-line status 
       icon_template: 'mdi:robot'
       attribute_templates:
-        array: >-
-          [{%- for state in states.automation -%}
-            {%- if not loop.first -%},{%- endif -%}
-            {%- set s = state.state_with_unit|lower -%}
-            {%- if s == 'on' -%}1{%- elif s == 'off' -%}0{%- else -%}null{%- endif -%}
-          {%- endfor -%}]
+        online: >-
+          {{ states.automation|selectattr('state','==','on')|list|count + states.automation|selectattr('state','==','off')|list|count }}
+        offline: >-
+          {{ states.automation|count - (states.automation|selectattr('state','==','on')|list|count + states.automation|selectattr('state','==','off')|list|count) }}
+        enabled: >-
+          {{ states.automation|selectattr('state','==','on')|list|count }}
+        disabled: >-
+          {{ states.automation|selectattr('state','==','off')|list|count }}
       value_template: >-
         {{ state_attr('sensor.motion_domain_automation_count','online') -}}/{{- states('sensor.motion_domain_automation_count') -}};
         {{ states('sensor.motion_domain_automation_online_percent') -}}%
@@ -22,62 +24,14 @@
       icon_template: 'mdi:counter'
       unit_of_measurement: '⒡'
       attribute_templates:
-        enabled: >-
-          {%- set s = state_attr('sensor.motion_domain_automation_status','array') -%}
-          {%- if s|lower != 'none' -%}
-            {%- if s is string -%}{%- set s = s|from_json -%}{%- endif -%}
-            {%- if s is iterable and s|count > 0 -%}
-              {% set s = s|select('number')|list %}
-              {%- if s|lower != 'none' and s|lower != 'null' and s is iterable and s|count > 0 -%}
-                {{ s|sum }}
-              {%- else -%}null{%- endif -%}
-            {%- else -%}null{%- endif -%}
-          {%- else -%}null{%- endif -%}
-        disabled: >-
-          {%- set s = state_attr('sensor.motion_domain_automation_status','array') -%}
-          {%- if s|lower != 'none' -%}
-            {%- if s is string -%}{%- set s = s|from_json -%}{%- endif -%}
-            {%- if s is iterable and s|count > 0 -%}
-              {%- set count = s|count -%}
-              {% set s = s|select('number')|list %}
-              {%- if s|lower != 'none' and s|lower != 'null' and s is iterable and s|count > 0 -%}
-                {%- set enabled = s|sum -%}
-                {{ count - enabled }}
-              {%- else -%}null{%- endif -%}
-            {%- else -%}null{%- endif -%}
-          {%- else -%}null{%- endif -%}
-        online: >-
-          {%- set s = state_attr('sensor.motion_domain_automation_status','array') -%}
-          {%- if s|lower != 'none' -%}
-            {%- if s is string -%}{%- set s = s|from_json -%}{%- endif -%}
-            {%- if s is iterable and s|count > 0 -%}
-              {% set s = s|select('number')|list %}
-              {%- if s|lower != 'none' and s|lower != 'null' and s is iterable and s|count > 0 -%}
-                {{ s|count }}
-              {%- else -%}null{%- endif -%}
-            {%- else -%}null{%- endif -%}
-          {%- else -%}null{%- endif -%}
-        offline: >-
-          {%- set s = state_attr('sensor.motion_domain_automation_status','array') -%}
-          {%- if s|lower != 'none' -%}
-            {%- if s is string -%}{%- set s = s|from_json -%}{%- endif -%}
-            {%- if s is iterable and s|count > 0 -%}
-              {%- set count = s|count -%}
-              {% set s = s|select('number')|list %}
-              {%- if s|lower != 'none' and s|lower != 'null' and s is iterable and s|count > 0 -%}
-                {%- set online = s|count -%}
-                {{ count - online }}
-              {%- else -%}null{%- endif -%}
-            {%- else -%}null{%- endif -%}
-          {%- else -%}null{%- endif -%}
         min: >-
-          {{ states('sensor.motion_domain_automation_online_percent_min')|default('null') }}
+          {{ states('sensor.motion_domain_automation_count_min')|default('null') }}
         max: >-
-          {{ states('sensor.motion_domain_automation_online_percent_max')|default('null') }}
+          {{ states('sensor.motion_domain_automation_count_max')|default('null') }}
         mean: >-
-          {{ states('sensor.motion_domain_automation_online_percent_mean')|default('null') }}
+          {{ states('sensor.motion_domain_automation_count_mean')|default('null') }}
         stdev: >-
-          {{ states('sensor.motion_domain_automation_online_percent_stdev')|default('null') }}
+          {{ states('sensor.motion_domain_automation_count_stdev')|default('null') }}
       value_template: >-
         {% set s = state_attr('sensor.motion_domain_automation_status','array') %}
         {% if s|lower != 'none' %}
@@ -90,6 +44,15 @@
       friendly_name: Automation on-line percent
       icon_template: 'mdi:percent'
       unit_of_measurement: '%'
+      attribute_templates:
+        min: >-
+          {{ states('sensor.motion_domain_automation_online_percent_min')|default('null') }}
+        max: >-
+          {{ states('sensor.motion_domain_automation_online_percent_max')|default('null') }}
+        mean: >-
+          {{ states('sensor.motion_domain_automation_online_percent_mean')|default('null') }}
+        stdev: >-
+          {{ states('sensor.motion_domain_automation_online_percent_stdev')|default('null') }}
       value_template: >-
         {% set c = states('sensor.motion_domain_automation_count')|int(0) %}
         {% if c > 0 %}
