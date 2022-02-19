@@ -23,6 +23,9 @@
     - platform: state
       entity_id: 'sensor.motion_person_detected'
       attribute: end
+    - platform: state
+      entity_id: 'sensor.motion_person_detected'
+      attribute: start
     - platform: time_pattern
       minutes: '/1'
   sensor:
@@ -33,7 +36,16 @@
       state: >-
         {% set s = state_attr('sensor.motion_person_detected','end') %}
         {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
-          {{ '%0.1f'|format(utcnow().timestamp() - s) }}
+          {% set end = s|float %}
+          {% set s = state_attr('sensor.motion_person_detected','start') %}
+          {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+            {% set start = s|float %}
+          {%- endif -%}
+          {%- if start is defined and start > end %}
+            {{ '%0.1f'|format(utcnow().timestamp() - start) }}
+          {%- else %}
+            {{ '%0.1f'|format(utcnow().timestamp() - end) }}
+          {%- endif %}
         {%- else -%}null{%- endif -%}
 
 - unique_id: motion_person_detected_confidence_measurement
@@ -52,7 +64,7 @@
           {{- s -}}
         {%- else -%}null{%- endif -%}
 
-- unique_id: motion_person_detected_probability
+- unique_id: motion_person_detected_probability_measurement
   trigger:
     - platform: state
       entity_id: 'binary_sensor.motion_person_detected'

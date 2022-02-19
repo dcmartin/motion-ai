@@ -85,30 +85,6 @@
           {%- set r = as_datetime(utcnow().timestamp() - s|float(0.0)) -%}
           {{- relative_time(r) -}}
         {%- else -%}null{%- endif -%}
-    motion_person_detected_ago:
-      friendly_name: 'Detected ago'
-      icon_template: 'mdi:av-timer'
-      unit_of_measurement: 's'
-      value_template: >-
-        {{- 'null' -}}
-    motion_person_detected_ago_relative:
-      friendly_name: 'Detected ago'
-      icon_template: 'mdi:clock'
-      value_template: >-
-        {% set s = states('sensor.motion_person_detected_ago') %}
-        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'unavailable' -%}
-          {%- set r = as_datetime(utcnow().timestamp() - s|float(0.0)) -%}
-          {{- relative_time(r) -}}
-        {%- else -%}Pending{%- endif -%}
-    motion_person_detected_history_duration:
-      friendly_name: 'Detected history'
-      unit_of_measurement: days
-      icon_template: 'mdi:calendar-account'
-      value_template: >-
-        {% set s = states('sensor.motion_person_detected_ago_oldest') %}
-        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != null %}
-          {{ (( utcnow().timestamp() - s|as_timestamp) / 86400)|int(0) }}
-        {%- else -%}null{%- endif -%}
     motion_person_detected_on_duration:
       friendly_name: 'Detected duration'
       icon_template: 'mdi:av-timer'
@@ -191,16 +167,6 @@
   max_age:
     days: 7
 
-- platform: statistics
-  name: motion_person_detected_ago_quartiles_1w
-  entity_id: sensor.motion_person_detected_ago
-  state_characteristic: quantiles
-  quantile_intervals: 4
-  quantile_method: inclusive
-  sampling_size: 10000
-  max_age:
-    days: 7
-
 # probability
 
 - platform: statistics
@@ -253,13 +219,80 @@
 
 # ago
 
+- platform: template
+  sensors:
+    motion_person_detected_ago:
+      friendly_name: 'Detected ago'
+      icon_template: 'mdi:av-timer'
+      unit_of_measurement: 's'
+      value_template: >-
+        {% set s = states('sensor.motion_person_detected_ago_measurement') %}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'unavailable' -%}
+          {{ '%0.1f'|format(s|float(0.0)) }}
+        {%- else -%}{{ 'null' }}{%- endif -%}
+    motion_person_detected_ago_status:
+      friendly_name: 'Detected ago'
+      icon_template: 'mdi:clock'
+      attribute_templates:
+        count: >-
+          {{ states('sensor.motion_person_detected_ago_count') }}
+        min: >-
+          {{ states('sensor.motion_person_detected_ago_min') }}
+        max: >-
+          {{ states('sensor.motion_person_detected_ago_max') }}
+        mean: >-
+          {{ states('sensor.motion_person_detected_ago_mean') }}
+        stdev: >-
+          {{ states('sensor.motion_person_detected_ago_stdev') }}
+        oldest: >-
+          {{ states('sensor.motion_person_detected_ago_oldest') }}
+        quartiles: >-
+          {{ states('sensor.motion_person_detected_ago_quartiles_1w') }}
+        coverage: >-
+         {{ state_attr('sensor.motion_person_detected_ago_oldest','age_coverage_ratio')|float(0) * 100 }}
+        usage: >-
+         {{ state_attr('sensor.motion_person_detected_ago_oldest','buffer_usage_ratio')|float(0) * 100 }}
+      value_template: >-
+        {% set s = states('sensor.motion_person_detected_ago') %}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'unavailable' -%}
+          {%- set r = as_datetime(utcnow().timestamp() - s|float(0.0)) -%}
+          {{- relative_time(r) -}}
+        {%- else -%}Pending{%- endif -%}
+    motion_person_detected_history_duration:
+      friendly_name: 'Detected history'
+      unit_of_measurement: days
+      icon_template: 'mdi:calendar-account'
+      value_template: >-
+        {% set s = states('sensor.motion_person_detected_ago_oldest') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != null %}
+          {{ (( utcnow().timestamp() - s|as_timestamp) / 86400)|int(0) }}
+        {%- else -%}null{%- endif -%}
+
+- platform: statistics
+  name: motion_person_detected_ago_quartiles_1w
+  entity_id: sensor.motion_person_detected_ago
+  state_characteristic: quantiles
+  quantile_intervals: 4
+  quantile_method: inclusive
+  sampling_size: 10000
+  max_age:
+    days: 7
+
 - platform: statistics
   name: motion_person_detected_ago_oldest
   entity_id: sensor.motion_person_detected_ago
   state_characteristic: datetime_oldest
-  sampling_size: 100000
+  sampling_size: 1000
   max_age:
-    days: 30
+    days: 1
+
+- platform: statistics
+  name: motion_person_detected_ago_count
+  entity_id: sensor.motion_person_detected_ago
+  state_characteristic: count
+  sampling_size: 100
+  max_age:
+    days: 1
 
 - platform: statistics
   name: motion_person_detected_ago_min
