@@ -2,8 +2,8 @@
 # homeassistant/automation/motion/notification.yaml
 ###
 
-- id: motion_notification_timed_update
-  alias: motion_notification_timed_update
+- id: motion_notification_binary_sensor_update
+  alias: motion_notification_binary_sensor_update
   initial_state: on
   mode: restart
   max_exceeded: silent
@@ -17,3 +17,42 @@
     - alias: 'update_entity: binary_sensor.motion_notification'
       service: homeassistant.update_entity
       entity_id: binary_sensor.motion_notification
+
+- id: motion_notification_homekit_autodismiss
+  alias: motion_notification_homekit_autodismiss
+  initial_state: on
+  mode: single
+  max_exceeded: silent
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_notification
+      attribute: 'homekit'
+  variables:
+    homekit: >-
+      {{ state_attr('binary_sensor.motion_notification','homekit')|default('none') }}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('input_boolean.motion_notification_homekit_autodismiss','on') }}
+      - condition: template
+        value_template: >
+          {{ homekit|lower != 'none' and homekit is iterable and homekit|count > 0 }}
+  action:
+    - alias: 'dismiss homekit pairing notifications'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = homekit[repeat.index-1]|default('') %}
+              {{ s|string != '' }}
+        sequence:
+          - variables:
+              id: >-
+                {% set s = homekit[repeat.index-1]|default('') %}
+                {{ s[0] }}
+          - service: persistent_notification.dismiss
+            data_template:
+              notification_id: >-
+                {{ id }}
