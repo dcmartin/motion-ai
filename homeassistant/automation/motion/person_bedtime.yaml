@@ -20,14 +20,20 @@
       {% if s|lower != 'none' and s|int(-1) >= 0 %}
         {{ s|int(0) }}
       {% else %}null{% endif %}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ begin|lower != 'null' and end|lower != 'null' }}
   action:
     - service: python_script.set_state
       data_template:
         entity_id: binary_sensor.motion_person_bedtime
         begin: >-
-          {{ begin }}
+          {{ begin + now().replace(hour=0).replace(minute=0).replace(second=0)|as_timestamp }}
         end: >-
-          {{ end }}
+          {{ end + now().replace(hour=0).replace(minute=0).replace(second=0)|as_timestamp }}
         state: >-
           {{ 'unknown' }}
     - alias: 'reset night to unknown'
@@ -51,6 +57,9 @@
       - condition: template
         value_template: >-
           {{ not is_state('binary_sensor.motion_person_bedtime','off') }}
+      - condition: template
+        value_template: >-
+          {{ state_attr('sensor.motion_person_bedtime','end')|float(0) > utcnow().timestamp() > state_attr('sensor.motion_person_bedtime','begin')|float(0) }}
   variables:
     count: >-
       {% set s = states('sensor.motion_person_active_count_day') %}
@@ -105,7 +114,7 @@
     when: >-
       {%- set s = state_attr('binary_sensor.motion_person_bedtime','timestamp') -%}
       {%- if s|lower != 'none' and s|float(-1) > 0 -%}
-        {%- set s = s|timestamp_custom('%a -%b -%d -%I:%M -%p -%Z',true) -%}
+        {%- set s = s|timestamp_custom('%a %b %d %I:%M %p %Z',true) -%}
       {%- endif -%}
       {{- s -}}
   action:
@@ -125,7 +134,7 @@
       entity_id: binary_sensor.motion_person_bedtime
       attribute: 'when'
   variables:
-    start: >-
+    begin: >-
       {{- state_attr('binary_sensor.motion_person_bedtime','timestamp') -}}
     end: >-
       {% set s = state_attr('binary_sensor.motion_person_wakeup','end') %}
@@ -135,12 +144,12 @@
       {% set s = s + now().replace(hour=0).replace(minute=0).replace(second=0)|as_timestamp + 86400 %}
       {{ s }}
   action:
-    - alias: 'set binary_sensor.motion_person_night start,end'
+    - alias: 'set binary_sensor.motion_person_night begin,end'
       service: python_script.set_state
       data_template:
         entity_id: binary_sensor.motion_person_night
-        start: >-
-          {{- start -}}
+        begin: >-
+          {{- begin -}}
         end: >-
           {{- end -}}
         state: >-
@@ -179,7 +188,7 @@
     when: >-
       {%- set s = state_attr('binary_sensor.motion_person_night','end') -%}
       {%- if s|lower != 'none' and s|float(-1) > 0 -%}
-        {%- set s = s|timestamp_custom('%a -%b -%d -%I:%M -%p -%Z',true) -%}
+        {%- set s = s|timestamp_custom('%a %b %d %I:%M %p %Z',true) -%}
       {%- endif -%}
       {{- s -}}
   action:
@@ -233,7 +242,7 @@
                     + '<br>'
                   -}}
                   {{- 'No wakeup detected at '
-                     + utcnow().timestamp()|timestamp_custom('%a -%b -%d -%I:%M -%p -%Z',true)|string
+                     + utcnow().timestamp()|timestamp_custom('%a %b %d %I:%M %p %Z',true)|string
                      + '; last night: '
                      + count|string
                      + '; time: '
