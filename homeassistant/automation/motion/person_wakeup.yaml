@@ -1,0 +1,176 @@
+###
+# automation/motion/person_wakeup.yaml
+###
+
+- id: motion_person_wakeup_begin
+  alias: motion_person_wakeup_begin
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: time
+      at: sensor.motion_person_wakeup_begin
+  variables:
+    begin: >-
+      {% set s = state_attr('sensor.motion_person_wakeup','begin') %}
+      {% if s|lower != 'none' and s|int(-1) >= 0 %}
+        {{ s|int(0) }}
+      {% else %}null{% endif %}
+    end: >-
+      {% set s = state_attr('sensor.motion_person_wakeup','end') %}
+      {% if s|lower != 'none' and s|int(-1) >= 0 %}
+        {{ s|int(0) }}
+      {% else %}null{% endif %}
+  action:
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_person_wakeup
+        begin: >-
+          {{ begin }}
+        end: >-
+          {{ end }}
+        state: >-
+          {{ 'unknown' }}
+    - alias: 'reset night to unknown'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_person_night
+        state: >-
+          {{ 'unknown' }}
+
+- id: motion_person_wakeup_detected
+  alias: motion_person_wakeup_detected
+  mode: single
+  initial_state: on
+  trigger:
+    platform: state
+    entity_id: binary_sensor.motion_person_active
+    to: 'on'
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ not is_state('binary_sensor.motion_person_wakeup','on') }}
+  variables:
+    timestamp: >-
+      {{ utcnow().timestamp() }}
+  action:
+    - alias: 'set binary_sensor.motion_person_wakeup to on'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_person_wakeup
+        timestamp: >-
+          {{ timestamp }}
+        state: >-
+          {{ 'on' }}
+
+- id: motion_person_wakeup_end
+  alias: motion_person_wakeup_end
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: time
+      at: sensor.motion_person_wakeup_end
+  action:
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_person_wakeup
+        state: >-
+          {{ 'off' }}
+
+- id: motion_person_wakeup_complete
+  alias: motion_person_wakeup_complete
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_person_wakeup
+      to: 'on'
+  variables:
+    when: >-
+      {%- set s = state_attr('binary_sensor.motion_person_wakeup','timestamp') -%}
+      {%- if s|lower != 'none' and s|float(-1) > 0 -%}
+        {%- set s = s|timestamp_custom('%a -%b -%d -%I:%M -%p -%Z',true) -%}
+      {%- endif -%}
+      {{- s -}}
+  action:
+    - alias: 'set binary_sensor.motion_person_wakeup when'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_person_wakeup
+        when: >-
+          {{- when -}}
+
+- id: motion_person_day_begin
+  alias: motion_person_day_begin
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_person_wakeup
+      attribute: 'when'
+  variables:
+    start: >-
+      {{- state_attr('binary_sensor.motion_person_wakeup','timestamp') -}}
+    end: >-
+      {{ state_attr('sensor.motion_person_bedtime','end') + now().replace(hour=0).replace(minute=0).replace(second=0) }}
+  action:
+    - alias: 'set binary_sensor.motion_person_day ON - start,end'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_person_day
+        start: >-
+          {{- start -}}
+        end: >-
+          {{- end -}}
+        state: >-
+          {{- 'on' -}}
+    - alias: 'update active count day'
+      service: homeassistant.update_entity
+      entity_id: sensor.motion_person_active_count_day
+    - alias: 'update active time day'
+      service: homeassistant.update_entity
+      entity_id: sensor.motion_person_active_time_day
+
+- id: motion_person_day_end
+  alias: motion_person_day_end
+  mode: single
+  initial_state: on
+  trigger:
+    platform: state
+    entity_id: binary_sensor.motion_person_wakeup
+    to: 'on'
+  variables:
+    timestamp: >-
+      {{ state_attr('binary_sensor.motion_person_wakeup','timestamp') }}
+    count: >-
+      {% set s = states('sensor.motion_person_active_count_day') %}
+      {% if s|lower != 'none' and s|int(-1) > 0 %}
+        {{ s|int(0) }}
+      {% else %}null{% endif %}
+    time: >-
+      {% set s = states('sensor.motion_person_active_time_day') %}
+      {% if s|lower != 'none' and s|int(-1) > 0 %}
+        {{ s|int(0) }}
+      {% else %}null{% endif %}
+    when: >-
+      {%- set s = state_attr('binary_sensor.motion_person_day','end') -%}
+      {%- if s|lower != 'none' and s|float(-1) > 0 -%}
+        {%- set s = s|timestamp_custom('%a -%b -%d -%I:%M -%p -%Z',true) -%}
+      {%- endif -%}
+      {{- s -}}
+  action:
+    - alias: 'set binary_sensor.motion_person_day off'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_person_day
+        end: >-
+          {{- end -}}
+        count: >-
+          {{- count -}}
+        time: >-
+          {{- time -}}
+        when: >-
+          {{- when -}}
+        state: >-
+          {{- 'off' -}}

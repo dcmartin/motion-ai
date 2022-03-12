@@ -2,18 +2,56 @@
 ## sensor/motion/person_bedtime.yaml
 ###
 
-## bedtime
-
-# 1w
-
 - platform: template
   sensors:
     motion_person_bedtime:
       friendly_name: 'Person bedtime'
       icon_template: 'mdi:bed'
       unit_of_measurement: 'hours'
+      attribute_templates:
+        begin: >-
+          {# default bedtime begin specified in seconds from midnight #}
+          {{ states('input_number.motion_schedule_bedtime_begin') }}
+        end: >-
+          {# default bedtime end specified in seconds from midnight #}
+          {{ states('input_number.motion_schedule_bedtime_end') }}
       value_template: >-
         {{ states('sensor.motion_person_bedtime_measurement') }}
+    motion_person_night:
+      friendly_name: 'Person night'
+      icon_template: 'mdi:alarm'
+      unit_of_measurement: 'hours'
+      attribute_templates:
+        start: >-
+          {# calculated history_stats night start timestamp #}
+          {% set s = state_attr('binary_sensor.motion_person_bedtime','begin') %}
+          {% if not (s|lower != 'none' and s|float(0.0) > 0) %}
+            {# default history_stats night start timestamp #}
+            {% set s = state_attr('sensor.motion_schedule_bedtime','begin') %}
+          {% endif %}
+          {% if s|lower != 'none' %}
+            {% set s = s|int + now().replace(hour=0).replace(minute=0).replace(second=0) %}
+          {% endif %}
+          {{ s }}
+        end: >-
+          {# calculated history_stats night end timestamp #} 
+          {% set s = state_attr('binary_sensor.motion_person_bedtime','end') %}
+          {% if not (s|lower != 'none' and s|float(0.0) > 0) %}
+            {# default history_stats night end timestamp #} 
+            {% set s = state_attr('sensor.motion_schedule_wakeup','end') %}
+          {% endif %}
+          {% if s|lower != 'none' %}
+            {% set s = s|int + now().replace(hour=0).replace(minute=0).replace(second=0) %}
+          {% endif %}
+          {{ s }}
+      value_template: >-
+        {{ states('binary_sensor.motion_person_night') }}
+    motion_person_bedtime_begin:
+      value_template: >-
+        {{ state_attr('sensor.motion_person_bedtime','begin') }}
+    motion_person_bedtime_end:
+      value_template: >-
+        {{ state_attr('sensor.motion_person_bedtime','end') }}
     motion_person_bedtime_week:
       friendly_name: 'Person bedtime (1w)'
       icon_template: 'mdi:calendar-week'
@@ -21,9 +59,9 @@
         count: >-
           {{ states('sensor.motion_person_bedtime_count_1w') }}
         coverage: >-
-         {{ state_attr('sensor.motion_person_bedtime_oldest_1w','age_coverage_ratio')|float(0) * 100 }}
+          {{ state_attr('sensor.motion_person_bedtime_oldest_1w','age_coverage_ratio')|float(0) * 100 }}
         usage: >-
-         {{ state_attr('sensor.motion_person_bedtime_oldest_1w','buffer_usage_ratio')|float(0) * 100 }}
+          {{ state_attr('sensor.motion_person_bedtime_oldest_1w','buffer_usage_ratio')|float(0) * 100 }}
         duration: >-
           {% set s = states('sensor.motion_person_bedtime_oldest_1w') %}
           {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 %}
@@ -44,9 +82,9 @@
         count: >-
           {{ states('sensor.motion_person_bedtime_count_1m') }}
         coverage: >-
-         {{ state_attr('sensor.motion_person_bedtime_oldest_1m','age_coverage_ratio')|float(0) * 100 }}
+          {{ state_attr('sensor.motion_person_bedtime_oldest_1m','age_coverage_ratio')|float(0) * 100 }}
         usage: >-
-         {{ state_attr('sensor.motion_person_bedtime_oldest_1m','buffer_usage_ratio')|float(0) * 100 }}
+          {{ state_attr('sensor.motion_person_bedtime_oldest_1m','buffer_usage_ratio')|float(0) * 100 }}
         duration: >-
           {% set s = states('sensor.motion_person_bedtime_oldest_1m') %}
           {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 %}
@@ -61,6 +99,31 @@
         {% set s = states('sensor.motion_person_bedtime_mean_1m')|float(-1) %}
         {%- if s > 0 -%}{{ s }}{% else %}null{% endif %}
 
+## history_stats
+
+- platform: history_stats
+  name: motion_person_active_count_night
+  entity_id: binary_sensor.motion_person_active
+  state: 'on'
+  type: count
+  start: >-
+    {{ state_attr('sensor.motion_person_night','start') }}
+  end: >-
+    {{ state_attr('sensor.motion_person_night','end') }}
+
+- platform: history_stats
+  name: motion_person_active_time_night
+  entity_id: binary_sensor.motion_person_active
+  state: 'on'
+  type: time
+  start: >-
+    {{ state_attr('sensor.motion_person_night','start') }}
+  end: >-
+    {{ state_attr('sensor.motion_person_night','end') }}
+
+## statistics
+
+# 1w
 
 - platform: statistics
   name: motion_person_bedtime_mean_1w

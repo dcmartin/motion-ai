@@ -16,6 +16,65 @@
         state: >-
           {{ 'none' }}
 
+- id: motion_person_occupancy_probability_state
+  alias: motion_person_occupancy_probability_state
+  initial_state: on
+  mode: restart
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_person_occupancy
+  variables:
+    state: >-
+      {% set s = state_attr('binary_sensor.motion_person_occupancy','probability') %}
+      {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'unavailable' -%}
+        {{ '%0.2f'|format(s|float(0.0)) }}
+      {%- else -%}{{ 'null' }}{%- endif -%}
+  action:
+    - alias: 'set sensor.motion_person_occupancy probability'
+      service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_person_occupancy_probability
+        state: >-
+          {{ state }}
+
+- id: motion_person_occupancy_probability_threshold
+  alias: motion_person_occupancy_probability_threshold
+  initial_state: on
+  mode: queued
+  trigger:
+    - platform: state
+      entity_id:
+        - binary_sensor.motion_person_occupancy
+        - input_number.motion_person_occupancy_probability_threshold
+  variables:
+    threshold: >-
+      {% if 'input_number' in trigger.entity_id %}
+        {{ states(trigger.entity_id) }}
+      {% else %}
+        {% set s = states('sensor.motion_person_occupancy_probability_mean_1w') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+          {% set mn = s|float(0.0) %}
+          {% set sd = states('sensor.motion_person_occupancy_probability_stdev_1w')|float(0.0) %}
+          {% set d = states('input_number.motion_person_occupancy_probability_threshold_deviation')|float(0.0) %}
+          {{ mn + sd * d }}
+        {% else %}
+          {{ state_attr('binary_sensor.motion_person_occupancy','probability_threshold') }}
+        {% endif %}
+      {% endif %}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ not 'input_number' in trigger.entity_id and state_attr(trigger.entity_id,'probability_threshold')|float(0.0) != threshold|float(0.0) or true }}
+  action:
+    - alias: 'set motion_person_occupancy.probability_threshold'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_person_occupancy
+        probability_threshold: >-
+          {{ threshold }}
+
 - id: motion_person_occupancy_previous
   alias: motion_person_occupancy_previous
   initial_state: on
