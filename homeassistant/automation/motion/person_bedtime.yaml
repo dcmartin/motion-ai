@@ -31,9 +31,11 @@
       data_template:
         entity_id: binary_sensor.motion_person_bedtime
         begin: >-
-          {{ begin + utcnow().replace(hour=0).replace(minute=0).replace(second=0)|as_timestamp }}
+          {{ begin }}
         end: >-
-          {{ end + utcnow().replace(hour=0).replace(minute=0).replace(second=0)|as_timestamp }}
+          {{ end }}
+        timestamp: >-
+          {{ 'null' }}
         state: >-
           {{ 'unknown' }}
     - alias: 'reset night to unknown'
@@ -68,8 +70,8 @@
       {% else %}null{% endif %}
     time: >-
       {% set s = states('sensor.motion_person_active_time_day') %}
-      {% if s|lower != 'none' and s|int(-1) > 0 %}
-        {{ s|int(0) }}
+      {% if s|lower != 'none' and s|float(-1) > 0 %}
+        {{ s|float(0) }}
       {% else %}null{% endif %}
     timestamp: >-
       {{- utcnow().timestamp() -}}
@@ -93,12 +95,39 @@
   trigger:
     - platform: time
       at: sensor.motion_person_bedtime_end
+  variables:
+    count: >-
+      {% set s = states('binary_sensor.motion_person_bedtime','count') %}
+      {% if s|lower != 'none' and s|int(-1) > 0 %}
+        {{ s|int(0) }}
+      {% else %}null{% endif %}
+    time: >-
+      {% set s = states('binary_sensor.motion_person_bedtime','time') %}
+      {% if s|lower != 'none' and s|float(-1) > 0 %}
+        {{ s|float(0) }}
+      {% else %}null{% endif %}
+    timestamp: >-
+      {% set s = states('binary_sensor.motion_person_bedtime','timestamp') %}
+      {% if s|lower != 'none' and s|float(-1) > 0 %}
+        {{ s|float(0) }}
+      {% else %}null{% endif %}
   action:
     - service: python_script.set_state
       data_template:
         entity_id: binary_sensor.motion_person_bedtime
         end: >-
-          {{- state_attr('binary_sensor.motion_person_bedtime','timestamp') -}}
+          {{ timestamp }}
+        state: >-
+          {{ 'off' }}
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_person_day
+        count: >-
+          {{ count }}
+        time: >-
+          {{- time -}}
+        end: >-
+          {{ timestamp }}
         state: >-
           {{ 'off' }}
 
@@ -166,12 +195,14 @@
   mode: single
   initial_state: on
   trigger:
-    platform: template
-      value_template: >-
-        {{ not is_state('binary_sensor.motion_person_wakeup','unknown') }}
+    - platform: state
+      entity_id: binary_sensor.motion_person_wakeup
   condition:
     condition: and
     conditions:
+      - condition: template
+        value_template: >-
+          {{ not is_state('binary_sensor.motion_person_wakeup','unknown') }}
       - condition: template
         value_template: >-
           {{ state_attr('binary_sensor.motion_person_wakeup','timestamp')|int(-1) > 0 }}

@@ -10,11 +10,19 @@
       unit_of_measurement: 'hours'
       attribute_templates:
         begin: >-
-          {# default bedtime begin specified in seconds from midnight #}
-          {{ states('input_number.motion_schedule_bedtime_begin') }}
+          {{ state_attr('sensor.motion_schedule_bedtime','begin') }}
         end: >-
-          {# default bedtime end specified in seconds from midnight #}
-          {{ states('input_number.motion_schedule_bedtime_end') }}
+          {{ state_attr('sensor.motion_schedule_bedtime','end') }}
+        interval: >-
+         {% set s = state_attr('binary_sensor.motion_person_bedtime','begin') %}
+         {% if s|lower != 'none' and s|float(-1) > 0 %}
+           {% set begin = s|timestamp_custom("%H:%M",true) %}
+         {% endif %}
+         {% set s = state_attr('binary_sensor.motion_person_bedtime','end') %}
+         {% if s|lower != 'none' and s|float(-1) > 0 %}
+           {% set end = s|timestamp_custom("%H:%M",true) %}
+         {% endif %}
+         {{ begin|default('unknown')|string + ' - ' + end|default('unknown')|string }}
       value_template: >-
         {{ states('sensor.motion_person_bedtime_measurement') }}
     motion_person_night:
@@ -23,17 +31,48 @@
       unit_of_measurement: 'hours'
       attribute_templates:
         begin: >-
-          {# calculated history_stats day begin timestamp #}
-          {% set s = state_attr('sensor.motion_person_bedtime','begin') %}
-          {{ s|int(0) + utcnow().replace(hour=0).replace(minute=0).replace(second=0)|as_timestamp }}
+          {% if is_state('binary_sensor.motion_person_bedtime','on') %}
+            {{ state_attr('binary_sensor.motion_person_bedtime','timestamp') }}
+          {% else %}
+            {% set s = state_attr('sensor.motion_person_bedtime','begin') %}
+            {{ s|float(0) + utcnow().replace(hour=0).replace(minute=0).replace(second=0)|as_timestamp }}
+          {% endif %}
         end: >-
-          {# default history_stats day end timestamp #}
-          {% set s = state_attr('sensor.motion_person_wakeup','end') %}
-          {{ s|int(0) + utcnow().replace(hour=0).replace(minute=0).replace(second=0)|as_timestamp + 86400 }}
+          {% if is_state('binary_sensor.motion_person_wakeup','on') %}
+            {{ state_attr('binary_sensor.motion_person_wakeup','timestamp') }}
+          {% else %}
+            {% set s = state_attr('sensor.motion_person_wakeup','end') %}
+            {{ s|float(0) + utcnow().replace(hour=0).replace(minute=0).replace(second=0)|as_timestamp + 86400 }}
+          {% endif %}
+        interval: >-
+         {% set s = state_attr('binary_sensor.motion_person_night','begin') %}
+         {% if s|lower != 'none' and s|float(-1) > 0 %}
+           {% set begin = s|timestamp_custom("%H:%M",true) %}
+         {% endif %}
+         {% set s = state_attr('binary_sensor.motion_person_night','end') %}
+         {% if s|lower != 'none' and s|float(-1) > 0 %}
+           {% set end = s|timestamp_custom("%H:%M",true) %}
+         {% endif %}
+         {{ begin|default('unknown')|string + ' - ' + end|default('unknown')|string }}
       value_template: >-
-        {{ state_attr('binary_sensor.motion_person_night','end')|int(state_attr('sensor.motion_person_night','end')|int(0)) 
-           > utcnow().timestamp()|int 
-           > state_attr('binary_sensor.motion_person_night','begin')|int(state_attr('sensor.motion_person_night','begin')|int(0)) }}
+        {% if is_state('binary_sensor.motion_person_night','on') %}
+          {% set s = state_attr('binary_sensor.motion_person_night','end') %}
+          {% if s|lower != 'none' and s|float(-1.0) > 0.0 %}
+            {% set end = s|float %}
+            {% set s = state_attr('binary_sensor.motion_person_night','begin') %}
+            {% if s|lower != 'none' and s|float(-1.0) > 0.0 %}
+              {% set begin = s|float %}
+              {% set p = end > utcnow().timestamp() > begin %}
+            {% endif %}
+          {% endif %}
+        {% elif is_state('binary_sensor.motion_person_night','unknown') %}
+          {% set p = state_attr('sensor.motion_person_night','end') > utcnow().timestamp() > state_attr('sensor.motion_person_night','begin') %}
+        {% endif %}
+        {% if p is defined %}
+          {% if p|lower == 'true' %}on{% else %}off{% endif %}
+        {% else %}
+          {{ states('binary_sensor.motion_person_night') %}
+        {% endif %}
     motion_person_bedtime_begin:
       value_template: >-
         {{ state_attr('sensor.motion_person_bedtime','begin') }}
