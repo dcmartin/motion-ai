@@ -2,14 +2,18 @@
 # homeassistant/automation/motion/bedtime.yaml
 ###
 
-# slide sync
-- id: motion_schedule_bedtime_end_slider
-  alias: motion_schedule_bedtime_end_slider
+- id: motion_schedule_bedtime_begin
+  alias: motion_schedule_bedtime_begin
   mode: single
   initial_state: on
   trigger:
     - platform: state
-      entity_id: input_number.motion_schedule_bedtime_end
+      entity_id: input_datetime.motion_schedule_bedtime_begin
+  variables:
+    end: >-
+      {{ state_attr('input_datetime.motion_schedule_bedtime_end','timestamp')|int(0) }}
+    begin: >-
+      {{ state_attr('input_datetime.motion_schedule_bedtime_begin','timestamp')|int(0) }}
   condition:
     condition: and
     conditions:
@@ -18,31 +22,66 @@
           {{ trigger.to_state.state != trigger.from_state.state }}
       - condition: template
         value_template: >
-          {% set s = states('input_number.motion_schedule_bedtime_begin') %}
+          {% set s = states('input_datetime.motion_schedule_bedtime_end') %}
           {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null }}
       - condition: template
         value_template: >
-          {% set s = states('input_number.motion_schedule_bedtime_end') %}
+          {% set s = states('input_datetime.motion_schedule_bedtime_begin') %}
           {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null }}
-      - condition: template
-        value_template: >
-          {% set b = states('input_number.motion_schedule_bedtime_begin') %}
-          {% set e = states('input_number.motion_schedule_bedtime_end') %}
-          {{ b|int(0) >= e|int(0) }}
   action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ end|int(0) <= begin|int(0) }}
+          sequence:
+            - variables:
+                value: >-
+                  {{ begin + states('input_number.motion_schedule_step')|int(0) }}
+                time: >-
+                  {% set s = value %}
+                  {% if s > 0 %}
+                    {% set h = (s/3600)|int(0) %}
+                    {% set m = ((s-(h*3600))/60)|int(0) %}
+                    {% set s = (s % 60)|int(0) %}
+                    {% if h < 1 %}
+                      {% if m < 1 %}
+                        {{- '00:00:' + '%02d' % s -}}
+                      {% else %}
+                      {{- '00:' + '%02d' % m + ':' + '%02d' % s -}}
+                      {% endif %}
+                    {% else %}
+                      {{- '%02d' % h + ':' + '%02d' % m + ':' + '%02d' % s -}}
+                    {% endif %}
+                  {%- else -%}{{- '00:00:00' -}}{%- endif -%}
+            - service: input_datetime.set_datetime
+              data_template:
+                entity_id: input_datetime.motion_schedule_bedtime_end
+                time: >-
+                  {{ time }}
+            - service: input_number.set_value
+              data_template:
+                entity_id: input_number.motion_schedule_bedtime_end
+                value: >-
+                  {{ value }}
     - service: input_number.set_value
       data_template:
         entity_id: input_number.motion_schedule_bedtime_begin
         value: >-
-          {{ states('input_number.motion_schedule_bedtime_end')|int(0) - state_attr('input_number.motion_schedule_bedtime_begin','step')|int(0) }}
+          {{ begin }}
 
-- id: motion_schedule_bedtime_begin_slider
-  alias: motion_schedule_bedtime_begin_slider
+- id: motion_schedule_bedtime_end
+  alias: motion_schedule_bedtime_end
   mode: single
   initial_state: on
   trigger:
     - platform: state
-      entity_id: input_number.motion_schedule_bedtime_begin
+      entity_id: input_datetime.motion_schedule_bedtime_end
+  variables:
+    begin: >-
+      {{ state_attr('input_datetime.motion_schedule_bedtime_begin','timestamp')|int(0) }}
+    end: >-
+      {{ state_attr('input_datetime.motion_schedule_bedtime_end','timestamp')|int(0) }}
   condition:
     condition: and
     conditions:
@@ -51,101 +90,56 @@
           {{ trigger.to_state.state != trigger.from_state.state }}
       - condition: template
         value_template: >
-          {% set s = states('input_number.motion_schedule_bedtime_begin') %}
+          {% set s = states('input_datetime.motion_schedule_bedtime_begin') %}
           {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null }}
       - condition: template
         value_template: >
-          {% set s = states('input_number.motion_schedule_bedtime_end') %}
+          {% set s = states('input_datetime.motion_schedule_bedtime_end') %}
           {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null }}
-      - condition: template
-        value_template: >
-          {% set b = states('input_number.motion_schedule_bedtime_begin') %}
-          {% set e = states('input_number.motion_schedule_bedtime_end') %}
-          {{ b|int(0) >= e|int(0) }}
   action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ begin|int(0) >= end|int(0) }}
+          sequence:
+            - variables:
+                value: >-
+                  {{ end - states('input_number.motion_schedule_step')|int(0) }}
+                time: >-
+                  {% set s = value %}
+                  {% if s > 0 %}
+                    {% set h = (s/3600)|int(0) %}
+                    {% set m = ((s-(h*3600))/60)|int(0) %}
+                    {% set s = (s % 60)|int(0) %}
+                    {% if h < 1 %}
+                      {% if m < 1 %}
+                        {{- '00:00:' + '%02d' % s -}}
+                      {% else %}
+                      {{- '00:' + '%02d' % m + ':' + '%02d' % s -}}
+                      {% endif %}
+                    {% else %}
+                      {{- '%02d' % h + ':' + '%02d' % m + ':' + '%02d' % s -}}
+                    {% endif %}
+                  {%- else -%}{{- '00:00:00' -}}{%- endif -%}
+            - service: input_datetime.set_datetime
+              data_template:
+                entity_id: input_datetime.motion_schedule_bedtime_begin
+                time: >-
+                  {{ time }}
+            - service: input_number.set_value
+              data_template:
+                entity_id: input_number.motion_schedule_bedtime_begin
+                value: >-
+                  {{ value }}
     - service: input_number.set_value
       data_template:
         entity_id: input_number.motion_schedule_bedtime_end
         value: >-
-          {{ states('input_number.motion_schedule_bedtime_begin')|int(0) + state_attr('input_number.motion_schedule_bedtime_end','step')|int(0) }}
+          {{ end }}
 
-# synchronize input_datetime to sensor converted (begin and end)
+# reset sensor.motion_schedule_bedtime_detected at bedtime_begin
 
-- id: motion_schedule_bedtime_begin_datetime
-  alias: motion_schedule_bedtime_begin_datetime
-  mode: single
-  initial_state: on
-  trigger:
-    - platform: state
-      entity_id: sensor.motion_schedule_bedtime_begin_datetime
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >
-          {{ trigger.to_state.state != trigger.from_state.state }}
-      - condition: template
-        value_template: >
-          {% set s = states('input_number.motion_schedule_bedtime_end') %}
-          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null }}
-      - condition: template
-        value_template: >
-          {% set s = states('input_number.motion_schedule_bedtime_begin') %}
-          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null }}
-      - condition: template
-        value_template: >-
-          {% set s = states('sensor.motion_schedule_bedtime_begin_datetime') %}
-          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null }}
-      - condition: template
-        value_template: >
-          {% set s = states('input_number.motion_schedule_bedtime_begin') %}
-          {% set e = states('input_number.motion_schedule_bedtime_end') %}
-          {{ e|int(0) > s|int(0) }}
-  action:
-    - service: input_datetime.set_datetime
-      data_template:
-        entity_id: input_datetime.motion_schedule_bedtime_begin
-        time: >-
-          {{ states('sensor.motion_schedule_bedtime_begin_datetime')|string }}
-
-- id: motion_schedule_bedtime_end_datetime
-  alias: motion_schedule_bedtime_end_datetime
-  mode: single
-  initial_state: on
-  trigger:
-    - platform: state
-      entity_id: sensor.motion_schedule_bedtime_end_datetime
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >
-          {{ trigger.to_state.state != trigger.from_state.state }}
-      - condition: template
-        value_template: >
-          {% set s = states('input_number.motion_schedule_bedtime_end') %}
-          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null }}
-      - condition: template
-        value_template: >
-          {% set s = states('input_number.motion_schedule_bedtime_begin') %}
-          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null }}
-      - condition: template
-        value_template: >-
-          {% set s = states('sensor.motion_schedule_bedtime_end_datetime') %}
-          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null }}
-      - condition: template
-        value_template: >
-          {% set s = states('input_number.motion_schedule_bedtime_begin') %}
-          {% set e = states('input_number.motion_schedule_bedtime_end') %}
-          {{ e|int(0) > s|int(0) }}
-  action:
-    - service: input_datetime.set_datetime
-      data_template:
-        entity_id: input_datetime.motion_schedule_bedtime_end
-        time: >-
-          {{ states('sensor.motion_schedule_bedtime_end_datetime')|string }}
-
-# reset sensor.motion_schedule_bedtime_detected at wake_begin
 - id: motion_schedule_bedtime_detected_reset
   alias: motion_schedule_bedtime_detected_reset
   mode: single
@@ -153,20 +147,12 @@
   trigger:
     - platform: time
       at: input_datetime.motion_schedule_bedtime_begin
-    - platform: state
-      entity_id:
-        - sensor.motion_schedule_bedtime_begin_datetime
-        - sensor.motion_schedule_bedtime_end_datetime
   condition:
     condition: and
     conditions:
       - condition: template
         value_template: >
           {{ trigger.to_state.state != trigger.from_state.state }}
-      - condition: template
-        value_template: >
-          {% set s = states('sensor.motion_schedule_bedtime_detected') %}
-          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' }}
   action:
     - service: python_script.set_state
       data_template:
@@ -174,7 +160,7 @@
         state: >-
           {{ 'null' }}
 
-# set sensor.motion_schedule_bedtime_detected when person detected after wake_begin and before wake_end
+# set sensor.motion_schedule_bedtime_detected when person detected after bedtime_begin and before bedtime_end
 
 - id: motion_schedule_bedtime_detected
   alias: motion_schedule_bedtime_detected
@@ -184,8 +170,19 @@
     platform: state
     entity_id: 
       - sensor.motion_detected_person_count_today
-      - input_datetime.motion_schedule_bedtime_begin
-      - input_datetime.motion_schedule_bedtime_end
+  variables:
+    count: >-
+      {{ states('sensor.motion_detected_person_count_today') }}
+    midnight: >-
+      {{ as_timestamp(now().replace(hour=0).replace(minute=0).replace(second=0))|int(0) }}
+    timestamp: >-
+      {{ as_timestamp(states.sensor.motion_detected_person_count_today.last_updated)|int(0) }}
+    today: >-
+      {{ timestamp - midnight }}
+    begin: >-
+      {{ state_attr('input_datetime.motion_schedule_bedtime_begin','timestamp') }}
+    end: >-
+      {{ state_attr('input_datetime.motion_schedule_bedtime_end','timestamp') }}
   condition:
     condition: and
     conditions:
@@ -194,27 +191,41 @@
           {{ trigger.to_state.state != trigger.from_state.state }}
       - condition: template
         value_template: >
-          {{ is_state('sensor.motion_schedule_bedtime_detected_time','Pending') }}
+          {{ is_state('sensor.motion_schedule_bedtime_detected_time','null') }}
       - condition: template
         value_template: >-
-          {% set s = states('sensor.motion_detected_person_count_today') %}
-          {% set b = state_attr('input_datetime.motion_schedule_bedtime_begin','timestamp') %}
-          {% set e = state_attr('input_datetime.motion_schedule_bedtime_end','timestamp') %}
-          {% set d = as_timestamp(states.sensor.motion_detected_person_count_today.last_updated)|int(0) - as_timestamp(now().replace(hour=0).replace(minute=0).replace(second=0))|int(0) %}
-          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null and
-             b|lower != 'none' and b|lower != 'unavailable' and b|lower != 'unknown' and b != null and
-             e|lower != 'none' and e|lower != 'unavailable' and e|lower != 'unknown' and e != null and
-             s|int(0) > 0 and d >= b|int(0) and d <= e|int(0) }}
-  variables:
-    timestamp: >-
-      {{ as_timestamp(states.sensor.motion_detected_person_count_today.last_updated)|int(0) }}
-    today: >-
-      {{ as_timestamp(states.sensor.motion_detected_person_count_today.last_updated)|int(0) - as_timestamp(now().replace(hour=0).replace(minute=0).replace(second=0))|int(0) }}
+          {{ count|lower != 'none' and count|lower != 'unavailable' and count|lower != 'unknown' and count|lower != 'null' and
+             begin|lower != 'none' and begin|lower != 'unavailable' and begin|lower != 'unknown' and begin|lower != 'null'
+             end|lower != 'none' and end|lower != 'unavailable' and end|lower != 'unknown' and end|lower != 'null' and
+             count|int(0) > 0 and timestamp >= begin|int(0) and timestamp <= end|int(0) }}
   action:
     - service: python_script.set_state
       data_template:
         entity_id: sensor.motion_schedule_bedtime_detected
         timestamp: >-
           {{ timestamp }}
-        state: >-
+        today: >-
           {{ today }}
+
+# complete bedtime
+
+- id: motion_schedule_bedtime_complete
+  alias: motion_schedule_bedtime_complete
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: time
+      at: input_datetime.motion_schedule_bedtime_end
+  variables:
+    state: >-
+      {{ state_attr('sensor.motion_schedule_bedtime_detected','today') }}
+    when: >-
+      {{ state_attr('sensor.motion_schedule_bedtime_detected','timestamp')|timestamp_custom('%H:%M',true)|default('unknown') }}
+  action:
+    - service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_schedule_bedtime_detected
+        when: >-
+          {{ when }}
+        state: >-
+          {{ state }}
