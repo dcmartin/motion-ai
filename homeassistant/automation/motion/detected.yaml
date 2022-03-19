@@ -4,8 +4,8 @@
 
 ## media
 
-- id: motion_cameras_detected_media_animated
-  alias: motion_cameras_detected_media_animated
+- id: motion_cameras_detected_media_animated_snapshot
+  alias: motion_cameras_detected_media_animated_snapshot
   initial_state: on
   mode: queued
   trigger:
@@ -129,16 +129,33 @@
   condition:
     condition: and
     conditions:
-      - condition: template
+      - alias: 'cameras_detected?'
+        condition: template
         value_template: >-
           {{ is_state('binary_sensor.motion_cameras_detected','on') }}
-      - condition: template
+      - alias: 'id good?'
+        condition: template
         value_template: >-
           {{ id|lower != 'null' }}
-      - condition: template
+      - alias: 'specific or general good?'
+        condition: template
         value_template: >-
           {{ specific|lower != 'null' or general|lower != 'null' }}
   action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ is_state('input_select.motion_log_level','debug') }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: camera {{ id }} snapshot
+                notification_id: >-
+                  {{ 'cameras_detected_snapshot_' + id|string }}
+                message: >-
+                  Snapshot for camera: {{ id -}}; specific: {{ specific|lower != 'null' -}}; general: {{ general|lower != 'null' }}
     - choose:
         - alias: 'condition: no specific camera'
           conditions:
@@ -146,6 +163,24 @@
               value_template: >-
                 {{ specific|lower == 'null' and general|lower != 'null' }}
           sequence:
+            - service: camera.snapshot
+              data_template:
+                entity_id: >-
+                  {{ 'camera.motion_event_annotated' }}
+                filename: >-
+                  {{ '/config/www/images/motion/' + id|string + '/detected.jpg' }}
+            - service: camera.snapshot
+              data_template:
+                entity_id: >-
+                  {{ 'camera.motion_event_animated' }}
+                filename: >-
+                  {{ '/config/www/images/motion/' + id|string + '/detected_animated.gif' }}
+            - service: camera.snapshot
+              data_template:
+                entity_id: >-
+                  {{ 'camera.motion_event_animated_mask' }}
+                filename: >-
+                  {{ '/config/www/images/motion/' + id|string + '/detected_animated_mask.gif' }}
             - alias: 'update_file_path camera.motion_detected: image'
               service: local_file.update_file_path
               data_template:
@@ -167,69 +202,91 @@
                   {{ 'camera.motion_detected_animated_mask' }}
                 file_path: >-
                   {{ '/config/www/images/motion/' + id|string + '/detected_animated_mask.gif' }}
-            - service: camera.snapshot
-              data_template:
-                entity_id: >-
-                  {{ 'camera.motion_event_annotated' }}
-                filename: >-
-                  {{ '/config/www/images/motion/' + id|string + '/detected.jpg' }}
-            - service: camera.snapshot
-              data_template:
-                entity_id: >-
-                  {{ 'camera.motion_event_animated' }}
-                filename: >-
-                  {{ '/config/www/images/motion/' + id|string + '/detected_animated.gif' }}
-            - service: camera.snapshot
-              data_template:
-                entity_id: >-
-                  {{ 'camera.motion_event_animated_mask' }}
-                filename: >-
-                  {{ '/config/www/images/motion/' + id|string + '/detected_animated_mask.gif' }}
         - alias: 'condition: specific camera'
           conditions:
             - condition: template
               value_template: >-
                 {{ specific|lower != 'null' }}
           sequence:
-            - alias: 'update_file_path camera.motion_detected: image'
+            - alias: 'snapshot: /config/www/images/motion/<camera>/detected.jpg'
+              service: camera.snapshot
+              data_template:
+                entity_id: >-
+                  {{ 'camera.motion_' + id|string + '_event_annotated' }}
+                filename: >-
+                  {{ '/config/www/images/motion/' + id|string + '/detected.jpg' }}
+            - alias: 'snapshot: /config/www/images/motion/<camera>/detected_animated.gif'
+              service: camera.snapshot
+              data_template:
+                entity_id: >- 
+                  {{ 'camera.motion_' + id|string + '_event_animated' }} 
+                filename: >-
+                  {{ '/config/www/images/motion/' + id|string + '/detected_animated.gif' }}
+            - alias: 'snapshot: /config/www/images/motion/<camera>/detected_animated_mask.gif'
+              service: camera.snapshot
+              data_template:
+                entity_id: >-
+                  {{ 'camera.motion_' + id|string + '_event_animated_mask' }}
+                filename: >-
+                  {{ '/config/www/images/motion/' + id|string + '/detected_animated_mask.gif' }}
+            - alias: 'update_file_path: camera.motion_<camera>_detected'
               service: local_file.update_file_path
               data_template:
                 entity_id: >-
                   {{ 'camera.motion_' + id|string + '_detected' }}
                 file_path: >-
                   {{ '/config/www/images/motion/' + id|string + '/detected.jpg' }}
-            - alias: 'update_file_path camera.motion_detected: animated'
+            - alias: 'update_file_path: camera.motion_<camera>_detected_animated'
               service: local_file.update_file_path
               data_template:
                 entity_id: >-
                   {{ 'camera.motion_' + id|string + '_detected_animated' }}
                 file_path: >-
                   {{ '/config/www/images/motion/' + id|string + '/detected_animated.gif' }}
-            - alias: 'update_file_path camera.motion_detected: animated_mask'
+            - alias: 'update_file_path: camera.motion_<camera>_detected_animated_mask'
               service: local_file.update_file_path
               data_template:
                 entity_id: >-
                   {{ 'camera.motion_' + id|string + '_detected_animated_mask' }}
                 file_path: >-
                   {{ '/config/www/images/motion/' + id|string + '/detected_animated_mask.gif' }}
-            - service: camera.snapshot
+            - alias: 'update_file_path: camera.motion_detected'
+              service: local_file.update_file_path
               data_template:
                 entity_id: >-
-                  {{ 'camera.motion_' + id|string + '_event_annotated' }}
-                filename: >-
+                  {{ 'camera.motion_detected' }}
+                file_path: >-
                   {{ '/config/www/images/motion/' + id|string + '/detected.jpg' }}
-            - service: camera.snapshot
+            - alias: 'update_file_path: camera.motion_detected_animated'
+              service: local_file.update_file_path
               data_template:
                 entity_id: >-
-                  {{ 'camera.motion_' + id|string + '_event_animated' }}
-                filename: >-
+                  {{ 'camera.motion_detected_animated' }}
+                file_path: >-
                   {{ '/config/www/images/motion/' + id|string + '/detected_animated.gif' }}
-            - service: camera.snapshot
+            - alias: 'update_file_path: camera.motion_detected_animated_mask'
+              service: local_file.update_file_path
               data_template:
                 entity_id: >-
-                  {{ 'camera.motion_' + id|string + '_event_animated_mask' }}
-                filename: >-
+                  {{ 'camera.motion_detected_animated_mask' }}
+                file_path: >-
                   {{ '/config/www/images/motion/' + id|string + '/detected_animated_mask.gif' }}
+    - choose:
+        - alias: 'no camera?'
+          conditions:
+            - condition: template
+              value_template: >-
+                {{ specific|lower == 'null' and general|lower == 'null' }}
+          sequence:
+            - alias: 'sequence: no camera error'
+              service: persistent_notification.create
+              data_template:
+                title: >-
+                  ERROR: no camera {{ id }}
+                notification_id: >-
+                  {{ 'motion_cameras_detected_snapshot_' + id|string }}
+                message: >-
+                  Neither general nor specific camera available; id: {{ id -}}
 
 - id: motion_cameras_detected_composite
   alias: motion_cameras_detected_composite

@@ -203,7 +203,7 @@ WEBCAMS := motion/webcams.json
 
 $(WEBCAMS): # motion/config.json
 	@echo "${MC}Making: $@${NC}"
-	@export MOTION_W3W_APIKEY="$(MOTION_W3W_APIKEY)" && ./motion/sh/mkwebcams.sh > $@
+	@export HOST_IPADDR=$(HOST_IPADDR) MOTION_W3W_APIKEY="$(MOTION_W3W_APIKEY)" && ./motion/sh/mkwebcams.sh > $@
 
 CAMERAS := $(shell jq -r '.[].name' $(WEBCAMS))
 

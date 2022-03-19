@@ -15,8 +15,8 @@
       entity_id: counter.motion_detected_entity_counter
 
 ## media
-- id: motion_detected_entity_media_animated
-  alias: motion_detected_entity_media_animated
+- id: motion_cameras_detected_entity_media_animated_snapshot
+  alias: motion_cameras_detected_entity_media_animated_snapshot
   initial_state: on
   trigger:
     - platform: state
@@ -87,8 +87,8 @@
           {{ '/media/Motion-Ã👁/' + year + '-' + month + '-' + day + '/entity/' + w + ' at ' + c + '.gif' }}
 
 ## snapshot
-- id: motion_detected_entity_snapshot
-  alias: motion_detected_entity_snapshot
+- id: motion_cameras_detected_entity_snapshot
+  alias: motion_cameras_detected_entity_snapshot
   initial_state: on
   trigger:
     - platform: state
@@ -100,40 +100,155 @@
       {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' %}
         {{ s }}
       {% else %}null{% endif %}
+    date: >-
+      {% set s = state_attr('binary_sensor.motion_cameras_detected_entity','date') %}
+      {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+        {{ s }}
+      {% else %}null{% endif %}
+    specific: >-
+      {% set s = state_attr('camera.motion_' + id|string + '_event_annotated','entity_picture') %}
+      {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+        {{ s }}
+      {% else %}null{% endif %}
+    general: >-
+      {% set s = state_attr('camera.motion_event_annotated','entity_picture') %}
+      {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+        {{ s }}
+      {% else %}null{% endif %}
   condition:
     condition: and
     conditions:
-      - condition: template
+      - alias: 'cameras_detected_entity?'
+        condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_cameras_detected_entity','on') }}
+      - alias: 'id good?'
+        condition: template
         value_template: >-
           {{ id|lower != 'null' }}
-      - condition: template
+      - alias: 'specific or general good?'
+        condition: template
         value_template: >-
-          {% set ep = state_attr('camera.motion_' + id|string + '_event_annotated','entity_picture') %}
-          {{ ep|lower == 'none' or ep|lower == 'unavailable' or ep|lower == 'null' or ep|lower == 'unknown' }}
-      - condition: template
-        value_template: >-
-          {% set s = states('camera.motion_event_annotated') %}
-          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'unknown' %}
-            {% set ep = state_attr('camera.motion_event_annotated','entity_picture') %}
-            {{ ep|lower != 'none' and ep|lower != 'unavailable' and ep|lower != 'null' and ep|lower != 'unknown' }}
-          {% else %}false{% endif %}
+          {{ specific|lower != 'null' or general|lower != 'null' }}
   action:
-    # annotated
-    - service: camera.snapshot
-      data_template:
-        entity_id: >-
-          {{ 'camera.motion_event_annotated' }}
-        filename: >-
-          {{ '/config/www/images/motion/' + id|string + '/detected_entity.jpg' }}
-    - service: local_file.update_file_path
-      data_template:
-        entity_id: >-
-          {{ 'camera.motion_detected_entity' }}
-        file_path: >-
-          {{ '/config/www/images/motion/' + id|string + '/detected_entity.jpg' }}
+    - choose:
+        - alias: 'condition: no specific camera'
+          conditions:
+            - condition: template
+              value_template: >-
+                {{ specific|lower == 'null' and general|lower != 'null' }}
+          sequence:
+            - service: camera.snapshot
+              data_template:
+                entity_id: >-
+                  {{ 'camera.motion_event_annotated' }}
+                filename: >-
+                  {{ '/config/www/images/motion/' + id|string + '/detected_entity.jpg' }}
+            - service: camera.snapshot
+              data_template:
+                entity_id: >-
+                  {{ 'camera.motion_event_animated' }}
+                filename: >- 
+                  {{ '/config/www/images/motion/' + id|string + '/detected_entity_animated.gif' }}
+            - service: camera.snapshot
+              data_template:
+                entity_id: >-
+                  {{ 'camera.motion_event_animated_mask' }}
+                filename: >-
+                  {{ '/config/www/images/motion/' + id|string + '/detected_entity_animated_mask.gif' }}
+            - alias: 'update_file_path camera.motion_detected: image'
+              service: local_file.update_file_path
+              data_template:
+                entity_id: >-
+                  {{ 'camera.motion_detected' }}
+                file_path: >-
+                  {{ '/config/www/images/motion/' + id|string + '/detected_entity.jpg' }}
+            - alias: 'update_file_path camera.motion_detected: animated'
+              service: local_file.update_file_path
+              data_template:
+                entity_id: >-
+                  {{ 'camera.motion_detected_animated' }}
+                file_path: >-
+                  {{ '/config/www/images/motion/' + id|string + '/detected_entity_animated.gif' }}
+            - alias: 'update_file_path camera.motion_detected: animated_mask'
+              service: local_file.update_file_path
+              data_template:
+                entity_id: >-
+                  {{ 'camera.motion_detected_animated_mask' }}
+                file_path: >-
+                  {{ '/config/www/images/motion/' + id|string + '/detected_entity_animated_mask.gif' }}
+        - alias: 'condition: specific camera'
+          conditions:
+            - condition: template
+              value_template: >-
+                {{ specific|lower != 'null' }}
+          sequence:
+            - service: camera.snapshot
+              alias: 'snapshot: /config/www/images/motion/<camera>/detected_entity.jpg'
+              data_template:
+                entity_id: >-
+                  {{ 'camera.motion_' + id|string + '_event_annotated' }}
+                filename: >-
+                  {{ '/config/www/images/motion/' + id|string + '/detected_entity.jpg' }}
+            - service: camera.snapshot
+              alias: 'snapshot: /config/www/images/motion/<camera>/detected_entity_animated.gif'
+              data_template:
+                entity_id: >-
+                  {{ 'camera.motion_' + id|string + '_event_animated' }}
+                filename: >-
+                  {{ '/config/www/images/motion/' + id|string + '/detected_entity_animated.gif' }}
+            - service: camera.snapshot
+              alias: 'snapshot: camera.motion_<camera>_event_animated_mask'
+              data_template:
+                entity_id: >-
+                  {{ 'camera.motion_' + id|string + '_event_animated_mask' }}
+                filename: >-
+                  {{ '/config/www/images/motion/' + id|string + '/detected_entity_animated_mask.gif' }}
+            - service: local_file.update_file_path
+              alias: 'update_file_path: camera.motion_<camera>_detected_entity'
+              data_template:
+                entity_id: >-
+                  {{ 'camera.motion_' + id|string + '_detected_entity' }}
+                file_path: >-
+                  {{ '/config/www/images/motion/' + id|string + '/detected_entity.jpg' }}
+            - service: local_file.update_file_path
+              alias: 'update_file_path: camera.motion_<camera>_detected_entity_animated'
+              data_template:
+                entity_id: >-
+                  {{ 'camera.motion_' + id|string + '_detected_entity_animated' }}
+                file_path: >-
+                  {{ '/config/www/images/motion/' + id|string + '/detected_entity_animated.gif' }}
+            - service: local_file.update_file_path
+              alias: 'update_file_path: camera.motion_<camera>_detected_entity_animated_mask'
+              data_template:
+                entity_id: >-
+                  {{ 'camera.motion_' + id|string + '_detected_entity_animated_mask' }}
+                file_path: >-
+                  {{ '/config/www/images/motion/' + id|string + '/detected_entity_animated_mask.gif' }}
+            - service: local_file.update_file_path
+              alias: 'update_file_path: camera.motion_detected_entity'
+              data_template:
+                entity_id: >-
+                  {{ 'camera.motion_detected_entity' }}
+                file_path: >-
+                  {{ '/config/www/images/motion/' + id|string + '/detected_entity.jpg' }}
+            - service: local_file.update_file_path
+              alias: 'update_file_path: camera.motion_detected_entity_animated'
+              data_template:
+                entity_id: >-
+                  {{ 'camera.motion_detected_entity_animated' }}
+                file_path: >-
+                  {{ '/config/www/images/motion/' + id|string + '/detected_entity_animated.gif' }}
+            - service: local_file.update_file_path
+              alias: 'update_file_path: camera.motion_detected_entity_animated_mask'
+              data_template:
+                entity_id: >-
+                  {{ 'camera.motion_detected_entity_animated_mask' }}
+                file_path: >-
+                  {{ '/config/www/images/motion/' + id|string + '/detected_entity_animated_mask.gif' }}
 
-- id: motion_detected_entity_composite
-  alias: motion_detected_entity_composite
+- id: motion_cameras_detected_entity_composite
+  alias: motion_cameras_detected_entity_composite
   initial_state: off
   trigger:
     - platform: state
@@ -176,97 +291,3 @@
         file_path: >-
           {{ '/config/www/images/motion/' + id|string + '/detected_entity_composite.jpg' }}
 
-- id: motion_detected_entity_animated
-  alias: motion_detected_entity_animated
-  initial_state: on
-  trigger:
-    - platform: state
-      entity_id: binary_sensor.motion_cameras_detected_entity
-      to: 'on'
-  variables:
-    id: >-
-      {% set s = state_attr('binary_sensor.motion_cameras_detected_entity','id') %}
-      {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' %}
-        {{ s }}
-      {% else %}null{% endif %}
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >-
-          {{ id|lower != 'null' }}
-      - condition: template
-        value_template: >-
-          {% set s = states('sensor.motion_detected_entity_camera') %}
-          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'unknown' }}
-      - condition: template
-        value_template: >-
-          {% set ep = state_attr('camera.motion_' + id|string + '_event_animated','entity_picture') %}
-          {{ ep|lower == 'none' or ep|lower == 'unavailable' or ep|lower == 'none' or ep|lower == 'unknown' }}
-      - condition: template
-        value_template: >-
-          {% set s = states('camera.motion_event_animated') %}
-          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'unknown' %}
-            {% set ep = state_attr('camera.motion_event_animated','entity_picture') %}
-            {{ ep|lower != 'none' and ep|lower != 'unavailable' and ep|lower != 'null' and ep|lower != 'unknown' }}
-          {% else %}false{% endif %}
-  action:
-    - service: camera.snapshot
-      data_template:
-        entity_id: >-
-          {{ 'camera.motion_event_animated' }}
-        filename: >-
-          {{ '/config/www/images/motion/' + id|string + '/detected_entity_animated.gif' }}
-    - service: local_file.update_file_path
-      data_template:
-        entity_id: >-
-          {{ 'camera.motion_detected_entity_animated' }}
-        file_path: >-
-          {{ '/config/www/images/motion' + id|string + '//detected_entity_animated.gif' }}
-
-- id: motion_detected_entity_animated_mask
-  alias: motion_detected_entity_animated_mask
-  initial_state: on
-  trigger:
-    - platform: state
-      entity_id: binary_sensor.motion_cameras_detected_entity
-      to: 'on'
-  variables:
-    id: >-
-      {% set s = state_attr('binary_sensor.motion_cameras_detected_entity','id') %}
-      {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' %}
-        {{ s }}
-      {% else %}null{% endif %}
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >-
-          {{ is_state('binary_sensor.motion_cameras_detected_entity','on') }}
-      - condition: template
-        value_template: >-
-          {{ id|lower != 'null' }}
-      - condition: template
-        value_template: >-
-          {% set ep = state_attr('camera.motion_' + id|string + '_event_animated_mask','entity_picture') %}
-          {{ ep|lower == 'none' or ep|lower == 'unavailable' or ep|lower == 'null' or ep|lower == 'unknown' }}
-      - condition: template
-        value_template: >-
-          {% set s = states('camera.motion_event_animated_mask') %}
-          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'unknown' %}
-            {% set ep = state_attr('camera.motion_event_animated_mask','entity_picture') %}
-            {{ ep|lower != 'none' and ep|lower != 'unavailable' and ep|lower != 'null' and ep|lower != 'unknown' }}
-          {% else %}false{% endif %}
-  action:
-    - service: camera.snapshot
-      data_template:
-        entity_id: >-
-          {{ 'camera.motion_event_animated_mask' }}
-        filename: >-
-          {{ '/config/www/images/motion/' + id|string + '/detected_entity_animated_mask.gif' }}
-    - service: local_file.update_file_path
-      data_template:
-        entity_id: >-
-          {{ 'camera.motion_detected_entity_animated_mask' }}
-        file_path: >-
-          {{ '/config/www/images/motion/' + id|string + '/detected_entity_animated_mask.gif' }}

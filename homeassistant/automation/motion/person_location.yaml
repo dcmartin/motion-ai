@@ -2,6 +2,100 @@
 # homeassistant/automation/motion/person_location.yaml
 ###
 
+- id: motion_person_location_sync
+  alias: motion_person_location_sync
+  initial_state: off
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_shellies_location
+      to: 'off'
+  action:
+    - service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_person_location
+        state: >-
+          {{ 'none' }}
+
+- id: motion_person_location_probability_state
+  alias: motion_person_location_probability_state
+  initial_state: on
+  mode: restart
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_person_location
+  variables:
+    state: >-
+      {% set s = state_attr('binary_sensor.motion_person_location','probability') %}
+      {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'unavailable' -%}
+        {{ '%0.2f'|format(s|float(0.0)) }}
+      {%- else -%}{{ 'null' }}{%- endif -%}
+  action:
+    - alias: 'set sensor.motion_person_location probability'
+      service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_person_location_probability
+        state: >-
+          {{ state }}
+
+- id: motion_person_location_probability_threshold
+  alias: motion_person_location_probability_threshold
+  initial_state: on
+  mode: restart
+  trigger:
+    - platform: state
+      entity_id:
+        - binary_sensor.motion_person_location
+        - input_number.motion_person_location_probability_threshold
+  variables:
+    threshold: >-
+      {% if 'input_number' in trigger.entity_id %}
+        {{ states(trigger.entity_id) }}
+      {% else %}
+        {% set s = states('sensor.motion_person_location_probability_mean_1w') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+          {% set mn = s|float(0.0) %}
+          {% set sd = states('sensor.motion_person_location_probability_stdev_1w')|float(0.0) %}
+          {% set d = states('input_number.motion_person_location_probability_threshold_deviation')|float(0.0) %}
+          {{ mn + sd * d }}
+        {% else %}
+          {{ state_attr('binary_sensor.motion_person_location','probability_threshold') }}
+        {% endif %}
+      {% endif %}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ not 'input_number' in trigger.entity_id and state_attr(trigger.entity_id,'probability_threshold')|float(0.0) != threshold|float(0.0) or true }}
+  action:
+    - alias: 'set motion_person_location.probability_threshold'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_person_location
+        probability_threshold: >-
+          {{ threshold }}
+
+- id: motion_person_location_probability_quartiles
+  alias: motion_person_location_probability_quartiles
+  initial_state: on
+  mode: restart
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_person_location_probability_quartiles_1w
+  variables:
+    quartiles: >-
+      {% set s = states('sensor.motion_person_location_probability_quartiles_1w') %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+         {{ s }}
+      {%- else -%}null{%- endif -%}
+  action:
+    - alias: 'set sensor.motion_person_location probability'
+      service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_person_location_probability
+        quartiles: >-
+          {{ quartiles }}
+
 - id: motion_person_location_previous
   alias: motion_person_location_previous
   initial_state: on
@@ -19,23 +113,23 @@
     movement: >-
       {% set s = states('sensor.motion_person_location_previous') %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-        {% set s = state_attr('sensor.motion_person_location_previous','latitude') %}
-        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-          {% set plat = s|float(0.0) %}
-          {% set s = state_attr('sensor.motion_person_location_previous','longitude') %}
-          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-            {% set plng = s|float(0.0) %}
-            {% set s = state_attr('sensor.motion_person_location','latitude') %}
-            {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-              {% set clat = s|float(0.0) %}
-              {% set s = state_attr('sensor.motion_person_location','longitude') %}
-              {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-                {% set clng = s|float(0.0) %}
-                {% set d = distance(plat, plng, clat, clng) %}
-                {% if d is number and d|int(0) > 0 and d|int(0) < 40075 %}
-                  {{- '%0.2f'|format(d|float(0.0) * 1000) -}}
+        {% set s = state_attr('sensor.motion_person_location_previous','latitude')|float(-1) %}
+        {% if s >= 0 %}
+          {% set plat = s %}
+          {% set s = state_attr('sensor.motion_person_location_previous','longitude')|float(-1) %}
+          {% if s >= 0 %}
+            {% set plng = s %}
+            {% set s = state_attr('sensor.motion_person_location','latitude')|float(-1) %}
+            {% if s >= 0 %}
+              {% set clat = s %}
+              {% set s = state_attr('sensor.motion_person_location','longitude')|float(-1) %}
+              {% if s >= 0 %}
+                {% set clng = s %}
+                {% set d = distance(plat, plng, clat, clng)|float(0) %}
+                {% if d > 0 and d < 40075 %}
+                  {{- '%0.2f'|format(d * 1000) -}}
                 {% else %}
-                  {{ range(0,state_attr('sensor.motion_person_location','gps_accuracy'))|random }}
+                  {{ range(0,state_attr('sensor.motion_person_location','gps_accuracy')|int(3))|random }}
                 {% endif %}
               {% else %}null{% endif %}
             {% else %}null{% endif %}
@@ -104,12 +198,12 @@
   initial_state: on
   trigger:
     - platform: state
-      entity_id: sensor.motion_person_location_where
+      entity_id: sensor.motion_smartphone_location
     - platform: time_pattern
       minutes: '/5'
   variables:
     person: >-
-      {% set s = state_attr('sensor.motion_person_location_where','sensor') %}
+      {% set s = state_attr('sensor.motion_smartphone_name','sensor') %}
       {% if s|lower != 'null' and s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' %}
         {{ s }}
       {% else %}null{% endif %}
@@ -126,7 +220,7 @@
         {{ state_attr(person,'source') }}
       {% else %}null{% endif %}
     zone: >-
-      {%- if latitude|lower != 'null' and longitude|lower != 'null' and is_state('binary_sensor.motion_person_zones','on') -%}
+      {%- if latitude|lower != 'null' and longitude|lower != 'null' and latitude|lower != 'none' and longitude|lower != 'none' and is_state('binary_sensor.motion_person_zones','on') -%}
         {%- set zones = state_attr('binary_sensor.motion_person_zones','zones') -%}
         {%- if zones|lower != 'unknown' and zones|lower != 'none' and zones|lower != 'unavailable' and zones is iterable and zones|length > 0 -%}
           {%- set s = closest(latitude,longitude,zones) -%}
@@ -136,7 +230,7 @@
               {%- set d = '%0.2f'|format(d|float(0.0) * 1000) -%}
             {%- else -%}{%- set d = null -%}{%- endif -%}
             {%- set r = s.attributes.radius -%}
-            {{- '{"name":"' + s.attributes.friendly_name + '","radius":' + r|string + ',"entity_id":"' + s.entity_id + '","inside":' + (d|int(0) < r|int(0))|lower + ',"distance":' + d|string + '}' -}}
+            {{- '{"name":"' + s.attributes.friendly_name + '","radius":' + r|string + ',"entity_id":"' + s.entity_id + '","inside":' + (d|int(0) < r|int(0))|string + ',"distance":' + d|string + '}' -}}
           {%- else -%}null{%- endif -%}
         {%- else -%}none{%- endif -%}
       {%- else -%}unknown{%- endif -%}
@@ -166,7 +260,7 @@
     conditions:
       - condition: template
         value_template: >
-          {% set s = states('sensor.motion_person_location_where') %}
+          {% set s = states('sensor.motion_smartphone_location') %}
           {{ s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'pending' }}
       - condition: template
         value_template: >
@@ -175,6 +269,18 @@
     - service: python_script.set_state
       data_template:
         entity_id: sensor.motion_person_location
+        entity_picture: >-
+          {%- set s = state_attr(person,'entity_picture') -%}
+          {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' -%}
+            {{ s }}
+          {% else %}{{- '/local/images/smartphone.png' -}}{%- endif -%}
+        id: >-
+          {{ states(person) }}
+        user_id: >-
+          {% set s = state_attr(person,'user_id') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' %}
+            {{ s }}
+          {% else %}null{% endif %}
         person: >-
           {{ person }}
         zone: >-
@@ -194,4 +300,62 @@
         timestamp: >-
           {{ utcnow().timestamp() }}
         state: >-
-          {{ states(person) }}
+          {{ 'on' }}
+
+- id: motion_person_location_on
+  alias: motion_person_location_on
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_person_location
+      to: 'on'
+  variables:
+    now: >-
+      {{ utcnow().timestamp() }}
+  action:
+    - alias: 'set sensor.motion_person_location start'
+      service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_person_location
+        allow_create: true
+        observations: >-
+          {{ state_attr('binary_sensor.motion_person_location','observations') }}
+        entities: >-
+          {{ state_attr('binary_sensor.motion_person_location','occured_observation_entities') }}
+        probability: >-
+          {{ state_attr('binary_sensor.motion_person_location','probability') }}
+        threshold: >-
+          {{ state_attr('binary_sensor.motion_person_location','probability_threshold') }}
+        start: >-
+          {{ now }}
+        state: >-
+          {{ states('binary_sensor.motion_person_location') }}
+
+- id: motion_person_location_off
+  alias: motion_person_location_off
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_person_location
+      to: 'off'
+  variables:
+    end: >-
+      {{ utcnow().timestamp() }}
+    start: >-
+      {{ state_attr('sensor.motion_person_location','start') }}
+    duration: >-
+      {%- if start|lower != 'none' and start|lower != 'unknown' and start|lower != 'null' and start|lower != 'unavailable' -%}
+        {{ '%0.1f'|format(end - start) }}
+      {%- else -%}null{%- endif -%}
+  action:
+    - alias: 'set sensor.motion_person_location end, duration'
+      service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_person_location
+        allow_create: true
+        end: >-
+          {{ end }}
+        duration: >-
+          {{ duration }}
+        state: >-
+          {{ states('binary_sensor.motion_person_location') }}

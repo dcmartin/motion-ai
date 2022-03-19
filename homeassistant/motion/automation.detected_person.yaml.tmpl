@@ -56,9 +56,49 @@
     - service: counter.increment
       entity_id: counter.motion_${MOTION_CAMERA}_detected_person_counter
 
+## media
+- id: motion_${MOTION_CAMERA}_detected_person_media_animated_snapshot
+  alias: motion_${MOTION_CAMERA}_detected_person_media_animated
+  initial_state: off
+  trigger:
+    platform: state
+    entity_id: counter.motion_${MOTION_CAMERA}_detected_person_counter
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ is_state('input_boolean.motion_media_save','on') }}
+      - condition: template
+        value_template: >-
+          {% if is_state('input_boolean.motion_media_mask','off') %}
+            {% set ep = state_attr('camera.motion_' + '${MOTION_CAMERA}' + '_event_animated','entity_picture') %}
+            {{ ep is none or ep|lower == 'unavailable' or ep|lower == 'none' or ep|lower == 'unknown' }}
+          {% else %}
+            {% set ep = state_attr('camera.motion_' + '${MOTION_CAMERA}' + '_event_animated_mask','entity_picture') %}
+            {{ ep is none or ep|lower == 'unavailable' or ep|lower == 'none' or ep|lower == 'unknown' }}
+          {% endif %}
+  action:
+    - service: camera.snapshot
+      data_template:
+        entity_id: >-
+          {% if is_state('input_boolean.motion_media_mask','off') %}
+            {{ 'camera.motion_${MOTION_CAMERA}_event_animated' }}
+          {% else %}
+            {{ 'camera.motion_${MOTION_CAMERA}_event_animated_mask' }}
+          {% endif %}
+        filename: >-
+          {% set s = states('sensor.motion_${MOTION_CAMERA}_detected_person_date')|int(0) %}
+          {% set c = '${MOTION_CAMERA}' %}
+          {% set w = s|timestamp_custom("%H:%M:%S") %}
+          {% set year = s|timestamp_custom("%Y") %}
+          {% set month = s|timestamp_custom("%b") %}
+          {% set day = s|timestamp_custom("%d") %}
+          {{ '/media/Motion-Ã👁 /' + year + '-' + month + '-' + day + '/person/' + w + ' at ' + c + '.gif' }}
+
 - id: motion_${MOTION_CAMERA}_detected_person_snapshot
   alias: motion_${MOTION_CAMERA}_detected_person_snapshot
-  initial_state: on
+  initial_state: off
   trigger:
     - platform: state
       entity_id: counter.motion_${MOTION_CAMERA}_detected_person_counter
@@ -172,43 +212,3 @@
           {{ 'camera.motion_${MOTION_CAMERA}_detected_person_composite' }}
         file_path: >-
           {{ '/config/www/images/motion/${MOTION_CAMERA}/detected_person_composite.jpg' }}
-
-## media
-- id: motion_${MOTION_CAMERA}_detected_person_media_animated
-  alias: motion_${MOTION_CAMERA}_detected_person_media_animated
-  initial_state: on
-  trigger:
-    platform: state
-    entity_id: counter.motion_${MOTION_CAMERA}_detected_person_counter
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >-
-          {{ is_state('input_boolean.motion_media_save','on') }}
-      - condition: template
-        value_template: >-
-          {% if is_state('input_boolean.motion_media_mask','off') %}
-            {% set ep = state_attr('camera.motion_' + '${MOTION_CAMERA}' + '_event_animated','entity_picture') %}
-            {{ ep is none or ep|lower == 'unavailable' or ep|lower == 'none' or ep|lower == 'unknown' }}
-          {% else %}
-            {% set ep = state_attr('camera.motion_' + '${MOTION_CAMERA}' + '_event_animated_mask','entity_picture') %}
-            {{ ep is none or ep|lower == 'unavailable' or ep|lower == 'none' or ep|lower == 'unknown' }}
-          {% endif %}
-  action:
-    - service: camera.snapshot
-      data_template:
-        entity_id: >-
-          {% if is_state('input_boolean.motion_media_mask','off') %}
-            {{ 'camera.motion_${MOTION_CAMERA}_event_animated' }}
-          {% else %}
-            {{ 'camera.motion_${MOTION_CAMERA}_event_animated_mask' }}
-          {% endif %}
-        filename: >-
-          {% set s = states('sensor.motion_${MOTION_CAMERA}_detected_person_date')|int(0) %}
-          {% set c = '${MOTION_CAMERA}' %}
-          {% set w = s|timestamp_custom("%H:%M:%S") %}
-          {% set year = s|timestamp_custom("%Y") %}
-          {% set month = s|timestamp_custom("%b") %}
-          {% set day = s|timestamp_custom("%d") %}
-          {{ '/media/Motion-Ã👁 /' + year + '-' + month + '-' + day + '/person/' + w + ' at ' + c + '.gif' }}

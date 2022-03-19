@@ -21,7 +21,7 @@ function get_config()
 
 W3W_APIKEY=${MOTION_W3W_APIKEY:-${W3W_APIKEY:-}}
 
-url='http://localhost:7999/cgi-bin/config'
+url='http://'${HOST_IPADDR:-localhost}':7999/cgi-bin/config'
 json="${0%/*}/../config.json"
 # get the configuration from the motion addon
 get_config "${url}" "${json}"

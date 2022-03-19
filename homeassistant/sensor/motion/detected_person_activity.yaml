@@ -2,65 +2,6 @@
 # homeassistant/sensor/motion/detected_person_activity.yaml
 ###
 
-## activity 
-
-- platform: template
-  sensors:
-    motion_person_activity_metrics:
-      friendly_name: 'Person activity metrics'
-      icon_template: 'mdi:account'
-      value_template: >-
-        {%- if states.sensor.motion_detected_person_date|lower != 'none'
-              and states('sensor.motion_detected_person_date')|lower != 'unknown'
-              and states('sensor.motion_detected_person_ago')|lower != 'unknown'
-              and states('sensor.motion_detected_person_ago_mean')|lower != 'unknown'
-              and states('sensor.motion_detected_person_ago_mean')|lower != 'null' -%}
-          {%- if states('sensor.motion_detected_person_ago')|lower == 'null' -%}
-            NONE
-          {%- else -%}
-            {%- set a = states('sensor.motion_detected_person_ago') -%}
-            {%- set am = states('sensor.motion_detected_person_ago_mean')|float(0.0) -%}
-            {%- set ad = states('sensor.motion_detected_person_ago_stdev')|float(0.0) -%}
-            {%- set as = states('input_number.motion_detected_person_ago_deviation')|float(0.0) -%}
-            Σ: {{ states('sensor.motion_detected_person_counter_today')|int(0) -}};
-            {{ a -}}s Δ; {{ am|int(0) -}}s μ
-          {%- endif -%}
-        {%- else -%}
-          Σ: {{ states('sensor.motion_detected_person_counter_today')|int(0) -}};
-          Δ: {{ states('input_number.motion_yolo_scan_interval')|int(0) }} seconds
-        {%- endif -%}
-
-- platform: template
-  sensors:
-    motion_person_activity_icon:
-      value_template: >-
-        {%- if states.sensor.motion_detected_person_date|lower != 'none'
-               and states('sensor.motion_detected_person_date')|lower != 'unknown'
-               and states('sensor.motion_detected_person_date')|lower != 'null'
-               and states.sensor.motion_detected_person_ago|lower != 'none'
-               and states('sensor.motion_detected_person_ago')|lower != 'unknown'
-               and states('sensor.motion_detected_person_ago')|lower != 'null' -%}
-          {%- if states('sensor.motion_detected_person_counter_today')|lower != 'unknown'
-                 and states('sensor.motion_detected_person_counter_today')|lower != 'null'
-                 and states('sensor.motion_detected_person_counter_today')|int(0) <= 0 -%}
-            {{ 'mdi:account-box' }}
-          {%- elif (states('sensor.motion_detected_person_ago')|int(0) / 3600)|int(0) > 0 -%}
-            {{ 'mdi:account-multiple-remove' }}
-          {%- elif is_state('binary_sensor.motion_detected_person_ago_high_persistent','on') -%}
-            {{ 'mdi:account-multiple-minus' }}
-          {%- elif is_state('binary_sensor.motion_detected_person_ago_high','on') -%}
-            {{ 'mdi:account-minus' }}
-          {%- elif is_state('binary_sensor.motion_detected_person_ago_low_persistent','on') -%}
-            {{ 'mdi:account-multiple-plus' }}
-          {%- elif is_state('binary_sensor.motion_detected_person_ago_low','on') -%}
-            {{ 'mdi:account-plus' }}
-          {%- else -%}
-            {{ 'mdi:account' }}
-          {%- endif -%}
-        {%- else -%}
-          {{ 'mdi:account-clock' }}
-        {%- endif -%}
- 
 # begin when
 - platform: template
   sensors:
@@ -102,15 +43,7 @@
 ## today
 
 - platform: history_stats
-  name: motion_today_person_ratio
-  entity_id: binary_sensor.motion_detected_person
-  state: 'on'
-  type: ratio
-  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
-  end: '{{ now() }}'
-
-- platform: history_stats
-  name: motion_today_person_counter
+  name: motion_detected_person_count_1d
   entity_id: binary_sensor.motion_detected_person
   state: 'on'
   type: count
@@ -118,7 +51,7 @@
   end: '{{ now() }}'
 
 - platform: history_stats
-  name: motion_today_person_time
+  name: motion_detected_person_time_1d
   entity_id: binary_sensor.motion_detected_person
   state: 'on'
   type: time
@@ -127,24 +60,12 @@
 
 - platform: template
   sensors:
-    motion_detected_person_ratio_today:
-      friendly_name: Today person ratio
-      unit_of_measurement: '%'
-      icon_template: 'mdi:percent'
-      value_template: >
-        {% set s = states('sensor.motion_today_person_ratio') %}
-        {% if s|lower != 'uknown' and s|lower != 'none' and s|lower != 'null ' %}
-          {{ s|float(0.0) }}
-        {%- else -%}null{%- endif -%}
-
-- platform: template
-  sensors:
-    motion_detected_person_counter_today:
+    motion_detected_person_count_today:
       friendly_name: Today person counter
       unit_of_measurement: '👱'
       icon_template: 'mdi:counter'
       value_template: >-
-        {% set s = states('sensor.motion_today_person_counter') %}
+        {% set s = states('sensor.motion_detected_person_count_1d') %}
         {% if s|lower != 'uknown' and s|lower != 'none' and s|lower != 'null ' %}
           {{ s|int(0) }}
         {%- else -%}null{%- endif -%}
@@ -156,7 +77,7 @@
       unit_of_measurement: 'h'
       icon_template: 'mdi:timer-outline'
       value_template: >
-        {% set s = states('sensor.motion_today_person_time') %}
+        {% set s = states('sensor.motion_detected_person_time_1d') %}
         {% if s|lower != 'uknown' and s|lower != 'none' and s|lower != 'null ' %}
           {{ s|float(0.0) }}
         {%- else -%}null{%- endif -%}
@@ -167,22 +88,43 @@
       friendly_name: Today person
       icon_template: 'mdi:account'
       value_template: >-
-        {% set c = states('sensor.motion_detected_person_counter_today') %}
-        {% set r = states('sensor.motion_detected_person_ratio_today') %}
+        {% set c = states('sensor.motion_detected_person_count_today') %}
         {% set t = states('sensor.motion_detected_person_time_today') %}
-        {% if c|lower != 'unknown' and r|lower != 'unknown' and t|lower != 'unknown' %}
-          {{ c -}}; {{ t }} hours; {{ r }}%
+        {% if c|lower != 'unknown' and t|lower != 'unknown' %}
+          {{ c -}}; {{ t }} hours
         {% else %}No persons detected today{% endif %}
 
-
-## activity level enumerated (Pending,Nominal,Low,High,Decreasing,Increasing,Nothing today,None: #h
+## activity 
 
 - platform: template
   sensors:
-    motion_person_activity_level:
-      friendly_name: 'Person activity'
-      icon_template: >-
-        {{ states('sensor.motion_person_activity_icon') }}
+    motion_detected_person_activity_metrics:
+      friendly_name: 'Person activity metrics'
+      icon_template: 'mdi:account'
+      value_template: >-
+        {%- if states.sensor.motion_detected_person_date|lower != 'none'
+              and states('sensor.motion_detected_person_date')|lower != 'unknown'
+              and states('sensor.motion_detected_person_ago')|lower != 'unknown'
+              and states('sensor.motion_detected_person_ago_mean')|lower != 'unknown'
+              and states('sensor.motion_detected_person_ago_mean')|lower != 'null' -%}
+          {%- if states('sensor.motion_detected_person_ago')|lower == 'null' -%}
+            NONE
+          {%- else -%}
+            {%- set a = states('sensor.motion_detected_person_ago') -%}
+            {%- set am = states('sensor.motion_detected_person_ago_mean')|float(0.0) -%}
+            {%- set ad = states('sensor.motion_detected_person_ago_stdev')|float(0.0) -%}
+            {%- set as = states('input_number.motion_detected_person_ago_deviation')|float(0.0) -%}
+            Σ: {{ states('sensor.motion_detected_person_count_today')|int(0) -}};
+            {{ a -}}s Δ; {{ am|int(0) -}}s μ
+          {%- endif -%}
+        {%- else -%}
+          Σ: {{ states('sensor.motion_detected_person_count_today')|int(0) -}};
+          Δ: {{ states('input_number.motion_yolo_scan_interval')|int(0) }} seconds
+        {%- endif -%}
+
+- platform: template
+  sensors:
+    motion_detected_person_activity_icon:
       value_template: >-
         {%- if states.sensor.motion_detected_person_date|lower != 'none'
                and states('sensor.motion_detected_person_date')|lower != 'unknown'
@@ -190,9 +132,45 @@
                and states.sensor.motion_detected_person_ago|lower != 'none'
                and states('sensor.motion_detected_person_ago')|lower != 'unknown'
                and states('sensor.motion_detected_person_ago')|lower != 'null' -%}
-          {%- if states('sensor.motion_detected_person_counter_today')|lower != 'unknown'
-                 and states('sensor.motion_detected_person_counter_today')|lower != 'null'
-                 and states('sensor.motion_detected_person_counter_today')|int(0) <= 0 -%}
+          {%- if states('sensor.motion_detected_person_count_today')|lower != 'unknown'
+                 and states('sensor.motion_detected_person_count_today')|lower != 'null'
+                 and states('sensor.motion_detected_person_count_today')|int(0) <= 0 -%}
+            {{ 'mdi:account-box' }}
+          {%- elif (states('sensor.motion_detected_person_ago')|int(0) / 3600)|int(0) > 0 -%}
+            {{ 'mdi:account-multiple-remove' }}
+          {%- elif is_state('binary_sensor.motion_detected_person_ago_high_persistent','on') -%}
+            {{ 'mdi:account-multiple-minus' }}
+          {%- elif is_state('binary_sensor.motion_detected_person_ago_high','on') -%}
+            {{ 'mdi:account-minus' }}
+          {%- elif is_state('binary_sensor.motion_detected_person_ago_low_persistent','on') -%}
+            {{ 'mdi:account-multiple-plus' }}
+          {%- elif is_state('binary_sensor.motion_detected_person_ago_low','on') -%}
+            {{ 'mdi:account-plus' }}
+          {%- else -%}
+            {{ 'mdi:account' }}
+          {%- endif -%}
+        {%- else -%}
+          {{ 'mdi:account-clock' }}
+        {%- endif -%}
+ 
+## activity level enumerated (Pending,Nominal,Low,High,Decreasing,Increasing,Nothing today,None: #h
+
+- platform: template
+  sensors:
+    motion_detected_person_activity_level:
+      friendly_name: 'Person activity'
+      icon_template: >-
+        {{ states('sensor.motion_detected_person_activity_icon') }}
+      value_template: >-
+        {%- if states.sensor.motion_detected_person_date|lower != 'none'
+               and states('sensor.motion_detected_person_date')|lower != 'unknown'
+               and states('sensor.motion_detected_person_date')|lower != 'null'
+               and states.sensor.motion_detected_person_ago|lower != 'none'
+               and states('sensor.motion_detected_person_ago')|lower != 'unknown'
+               and states('sensor.motion_detected_person_ago')|lower != 'null' -%}
+          {%- if states('sensor.motion_detected_person_count_today')|lower != 'unknown'
+                 and states('sensor.motion_detected_person_count_today')|lower != 'null'
+                 and states('sensor.motion_detected_person_count_today')|int(0) <= 0 -%}
             Nothing today
           {%- elif is_state('binary_sensor.motion_detected_person_ago_high_persistent','on') -%}
             Low

@@ -1,0 +1,249 @@
+###
+## sensor/motion/person_wakeup.yaml
+###
+
+- platform: template
+  sensors:
+    motion_person_wakeup:
+      friendly_name: 'Person wakeup'
+      icon_template: 'mdi:alarm'
+      unit_of_measurement: 'hours'
+      attribute_templates:
+        begin: >-
+          {{ state_attr('sensor.motion_schedule_wakeup','begin') }}
+        end: >-
+          {{ state_attr('sensor.motion_schedule_wakeup','end') }}
+        interval: >-
+         {% set s = state_attr('binary_sensor.motion_person_wakeup','begin') %}
+         {% if s|lower != 'none' and s|float(-1) > 0 %}
+           {% set begin = s|timestamp_custom("%H:%M",true) %}
+         {% endif %}
+         {% set s = state_attr('binary_sensor.motion_person_wakeup','end') %}
+         {% if s|lower != 'none' and s|float(-1) > 0 %}
+           {% set end = s|timestamp_custom("%H:%M",true) %}
+         {% endif %}
+         {{ begin|default('unknown')|string + ' - ' + end|default('unknown')|string }}
+      value_template: >-
+        {{ states('sensor.motion_person_wakeup_measurement') }}
+    motion_person_day:
+      friendly_name: 'Person day'
+      icon_template: 'mdi:alarm'
+      unit_of_measurement: 'boolean'
+      attribute_templates:
+        begin: >-
+          {% if not is_state('binary_sensor.motion_person_wakeup','unknown') %}
+            {{ state_attr('binary_sensor.motion_person_wakeup','timestamp') }}
+          {% else %}
+            {% set s = state_attr('sensor.motion_person_wakeup','end') %}
+            {{ s|float(0) + utcnow().replace(hour=0).replace(minute=0).replace(second=0)|as_timestamp }}
+          {% endif %}
+        end: >-
+          {% if not is_state('binary_sensor.motion_person_bedtime','unknown') %}
+            {{ state_attr('binary_sensor.motion_person_bedtime','timestamp') }}
+          {% else %} 
+            {% set s = state_attr('sensor.motion_person_bedtime','end') %}
+            {{ s|float(0) + utcnow().replace(hour=0).replace(minute=0).replace(second=0)|as_timestamp }}
+          {% endif %}
+        interval: >-
+         {% set s = state_attr('binary_sensor.motion_person_day','begin') %}
+         {% if s|lower != 'none' and s|float(-1) > 0 %}
+           {% set begin = s|timestamp_custom("%H:%M",true) %}
+         {% endif %}
+         {% set s = state_attr('binary_sensor.motion_person_day','end') %}
+         {% if s|lower != 'none' and s|float(-1) > 0 %}
+           {% set end = s|timestamp_custom("%H:%M",true) %}
+         {% endif %}
+         {{ begin|default('unknown')|string + ' - ' + end|default('unknown')|string }}
+      value_template: >-
+        {% if is_state('binary_sensor.motion_person_day','on') %}
+          {% set s = state_attr('binary_sensor.motion_person_day','end') %}
+          {% if s|lower != 'none' and s|float(-1.0) > 0.0 %}
+            {% set end = s|float %}
+            {% set s = state_attr('binary_sensor.motion_person_day','begin') %}
+            {% if s|lower != 'none' and s|float(-1.0) > 0.0 %}
+              {% set begin = s|float %}
+              {% set p = end > utcnow().timestamp() > begin %}
+            {% endif %}
+          {% endif %}
+        {% elif is_state('binary_sensor.motion_person_day','unknown') %}
+          {% set p = state_attr('sensor.motion_person_day','end') > utcnow().timestamp() > state_attr('sensor.motion_person_day','begin') %}
+        {% endif %}
+        {% if p is defined %}
+          {% if p|lower == 'true' %}on{% else %}off{% endif %}
+        {% else %}
+          {{ states('binary_sensor.motion_person_day') }}
+        {% endif %}
+    motion_person_wakeup_begin:
+      value_template: >-
+        {{ state_attr('sensor.motion_schedule_wakeup','begin') }}
+    motion_person_wakeup_end:
+      value_template: >-
+        {{ state_attr('sensor.motion_schedule_wakeup','end') }}
+    motion_person_wakeup_week:
+      friendly_name: 'Person wakeup (1w)'
+      icon_template: 'mdi:calendar-week'
+      attribute_templates:
+        count: >-
+          {{ states('sensor.motion_person_wakeup_count_1w') }}
+        coverage: >-
+          {{ state_attr('sensor.motion_person_wakeup_oldest_1w','age_coverage_ratio')|float(0) * 100 }}
+        usage: >-
+          {{ state_attr('sensor.motion_person_wakeup_oldest_1w','buffer_usage_ratio')|float(0) * 100 }}
+        duration: >-
+          {% set s = states('sensor.motion_person_wakeup_oldest_1w') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 %}
+            {{ utcnow().timestamp() - s|as_timestamp }}
+          {%- else -%}null{%- endif -%}
+        oldest: >-
+          {% set s = states('sensor.motion_person_wakeup_oldest_1w') %}
+          {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 -%}
+            {{ s|as_datetime|relative_time }}
+          {%- else -%}Pending{%- endif -%}
+      value_template: >-
+        {% set s = states('sensor.motion_person_wakeup_mean_1w')|float(-1) %}
+        {%- if s > 0 -%}{{ s }}{% else %}null{% endif %}
+    motion_person_wakeup_month:
+      friendly_name: 'Person bedtime (1m)'
+      icon_template: 'mdi:calendar-month'
+      attribute_templates:
+        count: >-
+          {{ states('sensor.motion_person_wakeup_count_1m') }}
+        coverage: >-
+          {{ state_attr('sensor.motion_person_wakeup_oldest_1m','age_coverage_ratio')|float(0) * 100 }}
+        usage: >-
+          {{ state_attr('sensor.motion_person_wakeup_oldest_1m','buffer_usage_ratio')|float(0) * 100 }}
+        duration: >-
+          {% set s = states('sensor.motion_person_wakeup_oldest_1m') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 %}
+            {{ utcnow().timestamp() - s|as_timestamp }}
+          {%- else -%}null{%- endif -%}
+        oldest: >-
+          {% set s = states('sensor.motion_person_wakeup_oldest_1m') %}
+          {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 -%}
+            {{ s|as_datetime|relative_time }}
+          {%- else -%}Pending{%- endif -%}
+      value_template: >-
+        {% set s = states('sensor.motion_person_wakeup_mean_1m')|float(-1) %}
+        {%- if s > 0 -%}{{ s }}{% else %}null{% endif %}
+
+# history
+
+- platform: history_stats
+  name: motion_person_active_count_day
+  entity_id: binary_sensor.motion_person_active
+  state: 'on'
+  type: count
+  start: >-
+    {{ state_attr('sensor.motion_person_day','begin')|float(0.0) }}
+  end: >-
+    {{ state_attr('sensor.motion_person_day','end')|float(0.0) }}
+
+- platform: history_stats
+  name: motion_person_active_time_day
+  entity_id: binary_sensor.motion_person_active
+  state: 'on'
+  type: time
+  start: >-
+    {{ state_attr('sensor.motion_person_day','begin')|float(0.0) }}
+  end: >-
+    {{ state_attr('sensor.motion_person_day','end')|float(0.0) }}
+
+# 1w
+
+- platform: statistics
+  name: motion_person_wakeup_mean_1w
+  entity_id: sensor.motion_person_wakeup
+  state_characteristic: mean
+  sampling_size: 10
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_person_wakeup_count_1w
+  entity_id: sensor.motion_person_wakeup
+  state_characteristic: count
+  sampling_size: 10
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_person_wakeup_oldest_1w
+  entity_id: sensor.motion_person_wakeup
+  state_characteristic: datetime_oldest
+  sampling_size: 10
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_person_wakeup_min_1w
+  entity_id: sensor.motion_person_wakeup
+  state_characteristic: value_min
+  sampling_size: 10
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_person_wakeup_max_1w
+  entity_id: sensor.motion_person_wakeup
+  state_characteristic: value_max
+  sampling_size: 10
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_person_wakeup_stdev_1w
+  entity_id: sensor.motion_person_wakeup
+  state_characteristic: standard_deviation
+  sampling_size: 10
+  max_age:
+    days: 7
+
+# 1m
+
+- platform: statistics
+  name: motion_person_wakeup_mean_1m
+  entity_id: sensor.motion_person_wakeup
+  state_characteristic: mean
+  sampling_size: 40
+  max_age:
+    days: 30
+
+- platform: statistics
+  name: motion_person_wakeup_count_1m
+  entity_id: sensor.motion_person_wakeup
+  state_characteristic: count
+  sampling_size: 40
+  max_age:
+    days: 30
+
+- platform: statistics
+  name: motion_person_wakeup_oldest_1m
+  entity_id: sensor.motion_person_wakeup
+  state_characteristic: datetime_oldest
+  sampling_size: 40
+  max_age:
+    days: 30
+
+- platform: statistics
+  name: motion_person_wakeup_min_1m
+  entity_id: sensor.motion_person_wakeup
+  state_characteristic: value_min
+  sampling_size: 40
+  max_age:
+    days: 30
+
+- platform: statistics
+  name: motion_person_wakeup_max_1m
+  entity_id: sensor.motion_person_wakeup
+  state_characteristic: value_max
+  sampling_size: 40
+  max_age:
+    days: 30
+
+- platform: statistics
+  name: motion_person_wakeup_stdev_1m
+  entity_id: sensor.motion_person_wakeup
+  state_characteristic: standard_deviation
+  sampling_size: 40
+  max_age:
+    days: 30

@@ -787,6 +787,8 @@
                   {{ 'binary_sensor.motion_cameras_detected' }}
                 sensor: >-
                   {{ sensor }}
+                count: >-
+                  {{ count }}
                 prior: >-
                   {{ prior }}
                 movement: >-
@@ -817,6 +819,18 @@
                 {{ entity|lower != 'null' }}
           sequence:
             - variables:
+                count: >-
+                  {% if results|lower != 'null' %}
+                    {% set option = states('input_select.motion_detect_animal') %}
+                    {% if option|lower == 'all' or option|lower == 'animal' %}
+                      {% set options = state_attr('input_select.motion_detect_animal','options') %}
+                      {% if options|lower != 'none' and options is iterable and options|count > 0 %}
+                        {{ results|selectattr('entity','in',options)|list|count }}
+                      {% endif %}
+                    {% else %}
+                      {{ results|selectattr('entity','==',option)|list|count }}
+                    {% endif %}
+                  {% else %}null{% endif %}
                 prior: >-
                   {% set s = state_attr('binary_sensor.motion_cameras_detected_entity','sensor') %}
                   {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' %}
@@ -860,8 +874,12 @@
                   {{ 'binary_sensor.motion_cameras_detected_entity' }}
                 sensor: >-
                   {{ sensor }}
+                count: >-
+                  {{ count }}
                 prior: >-
                   {{ prior }}
+                confidence: >-
+                  {{ entity|last }}
                 movement: >-
                   {{ movement }}
                 interval: >-
@@ -888,6 +906,18 @@
                 {{ animal|lower != 'null' }}
           sequence:
             - variables:
+                count: >-
+                  {% if results|lower != 'null' %}
+                    {% set option = states('input_select.motion_detect_animal') %}
+                    {% if option|lower == 'all' or option|lower == 'animal' %}
+                      {% set options = state_attr('input_select.motion_detect_animal','options') %}
+                      {% if options|lower != 'none' and options is iterable and options|count > 0 %}
+                        {{ results|selectattr('entity','in',options)|list|count }}
+                      {% endif %}
+                    {% else %}
+                      {{ results|selectattr('entity','==',option)|list|count }}
+                    {% endif %}
+                  {% else %}null{% endif %}
                 prior: >-
                   {% set s = state_attr('binary_sensor.motion_cameras_detected_animal','sensor') %}
                   {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' %}
@@ -931,8 +961,12 @@
                   {{ 'binary_sensor.motion_cameras_detected_animal' }}
                 sensor: >-
                   {{ sensor }}
+                count: >-
+                  {{ count }}
                 prior: >-
                   {{ prior }}
+                confidence: >-
+                  {{ animal|last }}
                 movement: >-
                   {{ movement }}
                 interval: >-
@@ -951,6 +985,33 @@
                   {{ state_attr(sensor,'gps_accuracy')|int(0) }}
                 state: >-
                   {{ 'on' }}
+            - choose:
+                - conditions:
+                    - condition: template
+                      value_template: >
+                        {{ is_state('input_select.motion_log_level','debug') }}
+                  sequence:
+                    - service: persistent_notification.create
+                      data_template:
+                        title: >-
+                          DEBUG: animal at {{ id }}
+                        notification_id: >-
+                          {{ 'detected-animal-at-' + id|string }}
+                        message: >-
+                          {{-
+                            '[![]('
+                            + '/local/images/motion/'
+                            + id|string
+                            + '/detected_animal'
+                            + '.jpg?e='
+                            + event.event|default(null)|string
+                            + ')]('
+                            + '/lovelace-experimental/'
+                            + id|string
+                            + ')'
+                            + '<br>'
+                          -}}
+                          Detected animal; camera: {{ id -}}; count: {{ count -}}; interval: {{ interval -}}; movement: {{ movement -}}; velocity: {{ velocity }}
     - choose:
         - alias: 'condition: vehicle detected?'
           conditions:
@@ -959,6 +1020,18 @@
                 {{ vehicle|lower != 'null' }}
           sequence:
             - variables:
+                count: >-
+                  {% if results|lower != 'null' %}
+                    {% set option = states('input_select.motion_detect_vehicle') %}
+                    {% if option|lower == 'all' or option|lower == 'vehicle' %}
+                      {% set options = state_attr('input_select.motion_detect_vehicle','options') %}
+                      {% if options|lower != 'none' and options is iterable and options|count > 0 %}
+                        {{ results|selectattr('entity','in',options)|list|count }}
+                      {% endif %}
+                    {% else %}
+                      {{ results|selectattr('entity','==',option)|list|count }}
+                    {% endif %}
+                  {% else %}null{% endif %}
                 prior: >-
                   {% set s = state_attr('binary_sensor.motion_cameras_detected_vehicle','sensor') %}
                   {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' %}
@@ -1002,8 +1075,12 @@
                   {{ 'binary_sensor.motion_cameras_detected_vehicle' }}
                 sensor: >-
                   {{ sensor }}
+                count: >-
+                  {{ count }}
                 prior: >-
                   {{ prior }}
+                confidence: >-
+                  {{ vehicle|last }}
                 movement: >-
                   {{ movement }}
                 interval: >-
@@ -1022,6 +1099,33 @@
                   {{ state_attr(sensor,'gps_accuracy')|int(0) }}
                 state: >-
                   {{ 'on' }}
+            - choose:
+                - conditions:
+                    - condition: template
+                      value_template: >
+                        {{ is_state('input_select.motion_log_level','debug') }}
+                  sequence:
+                    - service: persistent_notification.create
+                      data_template:
+                        title: >-
+                          DEBUG: vehicle at {{ id }}
+                        notification_id: >-
+                          {{ 'detected-vehicle-at-' + id|string }}
+                        message: >-
+                          {{-
+                            '[![]('
+                            + '/local/images/motion/'
+                            + id|string
+                            + '/detected_vehicle'
+                            + '.jpg?e='
+                            + event.event|default(null)|string
+                            + ')]('
+                            + '/lovelace-experimental/'
+                            + id|string
+                            + ')'
+                            + '<br>'
+                          -}}
+                          Detected vehicle; camera: {{ id -}}; count: {{ count -}}; interval: {{ interval -}}; movement: {{ movement -}}; velocity: {{ velocity }}
     - choose:
         - alias: 'condition: person detected?'
           conditions:
@@ -1030,6 +1134,18 @@
                 {{ person|lower != 'null' }}
           sequence:
             - variables:
+                count: >-
+                  {% if results|lower != 'null' %}
+                    {% set option = states('input_select.motion_detect_person') %}
+                    {% if option|lower == 'all' or option|lower == 'person' %}
+                      {% set options = state_attr('input_select.motion_detect_person','options') %}
+                      {% if options|lower != 'none' and options is iterable and options|count > 0 %}
+                        {{ results|selectattr('entity','in',options)|list|count }}
+                      {% endif %}
+                    {% else %}
+                      {{ results|selectattr('entity','==',option)|list|count }}
+                    {% endif %}
+                  {% else %}null{% endif %}
                 prior: >-
                   {% set s = state_attr('binary_sensor.motion_cameras_detected_person','sensor') %}
                   {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' %}
@@ -1073,8 +1189,12 @@
                   {{ 'binary_sensor.motion_cameras_detected_person' }}
                 sensor: >-
                   {{ sensor }}
+                count: >-
+                  {{ count }}
                 prior: >-
                   {{ prior }}
+                confidence: >-
+                  {{ person|last }}
                 movement: >-
                   {{ movement }}
                 interval: >-
@@ -1093,6 +1213,33 @@
                   {{ state_attr(sensor,'gps_accuracy')|int(0) }}
                 state: >-
                   {{ 'on' }}
+            - choose:
+                - conditions:
+                    - condition: template
+                      value_template: >
+                        {{ is_state('input_select.motion_log_level','debug') }}
+                  sequence:
+                    - service: persistent_notification.create
+                      data_template:
+                        title: >-
+                          DEBUG: person at {{ id }}
+                        notification_id: >-
+                          {{ 'detected-person-at-' + id|string }}
+                        message: >-
+                          {{-
+                            '[![]('
+                            + '/local/images/motion/'
+                            + id|string
+                            + '/detected_person'
+                            + '.jpg?e='
+                            + event.event|default(null)|string
+                            + ')]('
+                            + '/lovelace-experimental/'
+                            + id|string
+                            + ')'
+                            + '<br>'
+                          -}}
+                          Detected person; camera: {{ id -}}; count: {{ count -}}; interval: {{ interval -}}; movement: {{ movement -}}; velocity: {{ velocity }}
     - alias: 'set binary_sensor.motion_camera_<camera>_detected'
       service: python_script.set_state
       data_template:

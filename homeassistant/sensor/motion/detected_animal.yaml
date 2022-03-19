@@ -1313,21 +1313,6 @@
 
 - platform: template
   sensors:
-    motion_detected_animal_ago_relative:
-      friendly_name: '🐄 ago'
-      icon_template: 'mdi:cow'
-      value_template: >
-        {% set s = state_attr('binary_sensor.motion_cameras_detected_animal','sensor') %}
-        {%- if s|lower != 'none' -%}
-          {% set s = state_attr(s, 'date') %}
-          {%- if s|lower != 'none' and s|float(0.0) > 0.0 -%}
-            {%- set r = as_datetime(s|float(0.0)) -%}
-            {{- relative_time(r) -}}
-          {%- else -%}Pending{%- endif -%}
-        {%- else -%}Pending{%- endif -%}
-
-- platform: template
-  sensors:
     motion_detected_animal_ago:
       friendly_name: '🐄 ago (⧖)'
       icon_template: 'mdi:camera-timer'
@@ -1340,11 +1325,76 @@
             {{- (utcnow().timestamp() - s|float(0.0))|int(0) -}}
           {%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif -%}
+    motion_detected_animal_ago_status:
+      friendly_name: '🐄 ago'
+      icon_template: 'mdi:cow'
+      attribute_templates:
+        count: >-
+          {{ states('sensor.motion_detected_animal_ago_count') }}
+        min: >-
+          {{ states('sensor.motion_detected_animal_ago_min') }}
+        max: >-
+          {{ states('sensor.motion_detected_animal_ago_max') }}
+        mean: >-
+          {{ states('sensor.motion_detected_animal_ago_mean') }}
+        stdev: >-
+          {{ states('sensor.motion_detected_animal_ago_stdev') }}
+        oldest: >-
+          {{ states('sensor.motion_detected_animal_ago_oldest') }}
+        quartiles: >-
+          {{ states('sensor.motion_detected_animal_ago_quartiles_1w') }}
+        coverage: >-
+         {{ state_attr('sensor.motion_detected_animal_ago_oldest','age_coverage_ratio')|float(0) * 100 }}
+        usage: >-
+         {{ state_attr('sensor.motion_detected_animal_ago_oldest','buffer_usage_ratio')|float(0) * 100 }}
+      value_template: >
+        {% set s = state_attr('binary_sensor.motion_cameras_detected_animal','sensor') %}
+        {%- if s|lower != 'none' -%}
+          {% set s = state_attr(s, 'date') %}
+          {%- if s|lower != 'none' and s|float(0.0) > 0.0 -%}
+            {%- set r = as_datetime(s|float(0.0)) -%}
+            {{- relative_time(r) -}}
+          {%- else -%}Pending{%- endif -%}
+        {%- else -%}Pending{%- endif -%}
+
+- platform: statistics
+  name: motion_detected_animal_ago_quartiles_1w
+  entity_id: sensor.motion_detected_animal_ago
+  state_characteristic: quantiles
+  quantile_intervals: 4
+  quantile_method: inclusive
+  sampling_size: 10000
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_detected_animal_ago_oldest
+  entity_id: sensor.motion_detected_animal_ago
+  state_characteristic: datetime_oldest
+  sampling_size: 100
+  max_age:
+    days: 1
+
+- platform: statistics
+  name: motion_detected_animal_ago_count
+  entity_id: sensor.motion_detected_animal_ago
+  state_characteristic: count
+  sampling_size: 100
+  max_age:
+    days: 1
 
 - platform: statistics
   name: motion_detected_animal_ago_min
   entity_id: sensor.motion_detected_animal_ago
   state_characteristic: value_min
+  sampling_size: 100
+  max_age:
+    days: 1
+
+- platform: statistics
+  name: motion_detected_animal_ago_max
+  entity_id: sensor.motion_detected_animal_ago
+  state_characteristic: value_max
   sampling_size: 100
   max_age:
     days: 1
@@ -1372,39 +1422,3 @@
   sampling_size: 100
   max_age:
     days: 1
-
-## 1m
-#- platform: statistics
-#  name: motion_detected_animal_ago_mean_1m
-#  entity_id: sensor.motion_detected_animal_ago
-#  state_characteristic: mean
-#  sampling_size: 20
-#  max_age:
-#    minutes: 1
-#
-## 5m
-#- platform: statistics
-#  name: motion_detected_animal_ago_mean_5m
-#  entity_id: sensor.motion_detected_animal_ago
-#  state_characteristic: mean
-#  sampling_size: 100
-#  max_age:
-#    minutes: 5
-#
-## 15m
-#- platform: statistics
-#  name: motion_detected_animal_ago_mean_15m
-#  entity_id: sensor.motion_detected_animal_ago
-#  state_characteristic: mean
-#  sampling_size: 300
-#  max_age:
-#    minutes: 15
-#
-## 30m
-#- platform: statistics
-#  name: motion_detected_animal_ago_mean_30m
-#  entity_id: sensor.motion_detected_animal_ago
-#  state_characteristic: mean
-#  sampling_size: 600
-#  max_age:
-#    minutes: 30

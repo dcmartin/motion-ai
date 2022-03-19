@@ -2,27 +2,6 @@
 # homeassistant/automation/motion/person_activity.yaml
 ###
 
-- id: motion_person_active_ago_state
-  alias: motion_person_active_ago_state
-  initial_state: on
-  mode: restart
-  trigger:
-    - platform: state
-      entity_id: sensor.motion_person_active_ago_measurement
-  variables:
-    state: >-
-      {% set s = states('sensor.motion_person_active_ago_measurement') %}
-      {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'unavailable' -%}
-        {{ '%0.1f'|format(s|float(0.0)) }}
-      {%- else -%}{{ 'null' }}{%- endif -%}
-  action:
-    - alias: 'set sensor.motion_person_active ago'
-      service: python_script.set_state
-      data_template:
-        entity_id: sensor.motion_person_active_ago
-        state: >-
-          {{ state }}
-
 - id: motion_person_active_probability_state
   alias: motion_person_active_probability_state
   initial_state: on
@@ -44,10 +23,31 @@
         state: >-
           {{ state }}
 
+- id: motion_person_active_average_state
+  alias: motion_person_active_average_state
+  initial_state: on
+  mode: restart
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_person_active_average_measurement
+  variables:
+    state: >-
+      {% set s = states('sensor.motion_person_active_average_measurement') %}
+      {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'unavailable' -%}
+        {{ '%0.1f'|format(s|float(0.0)) }}
+      {%- else -%}{{ 'null' }}{%- endif -%}
+  action:
+    - alias: 'set sensor.motion_person_active ago'
+      service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_person_active_average
+        state: >-
+          {{ state }}
+
 - id: motion_person_active_probability_threshold
   alias: motion_person_active_probability_threshold
   initial_state: on
-  mode: queued
+  mode: restart
   trigger:
     - platform: state
       entity_id:
@@ -82,27 +82,6 @@
         probability_threshold: >-
           {{ threshold }}
 
-- id: motion_person_active_ago_quartiles
-  alias: motion_person_active_ago_quartiles
-  initial_state: on
-  mode: restart
-  trigger:
-    - platform: state
-      entity_id: sensor.motion_person_active_ago_quartiles_1w
-  variables:
-    quartiles: >-
-      {% set s = states('sensor.motion_person_active_ago_quartiles_1w') %}
-      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unknown' and s|lower != 'unavailable' %}
-         {{ s }}
-      {%- else -%}null{%- endif -%}
-  action:
-    - alias: 'set sensor.motion_person_active ago'
-      service: python_script.set_state
-      data_template:
-        entity_id: sensor.motion_person_active_ago
-        quartiles: >-
-          {{ quartiles }}
-
 - id: motion_person_active_probability_quartiles
   alias: motion_person_active_probability_quartiles
   initial_state: on
@@ -121,6 +100,27 @@
       service: python_script.set_state
       data_template:
         entity_id: sensor.motion_person_active_probability
+        quartiles: >-
+          {{ quartiles }}
+
+- id: motion_person_active_average_quartiles
+  alias: motion_person_active_average_quartiles
+  initial_state: on
+  mode: restart
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_person_active_average_quartiles_1w
+  variables:
+    quartiles: >-
+      {% set s = states('sensor.motion_person_active_average_quartiles_1w') %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+         {{ s }}
+      {%- else -%}null{%- endif -%}
+  action:
+    - alias: 'set sensor.motion_person_active average'
+      service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_person_active_average
         quartiles: >-
           {{ quartiles }}
 
@@ -236,6 +236,7 @@
 - id: motion_person_active_on
   alias: motion_person_active_on
   initial_state: on
+  mode: queued
   trigger:
     - platform: state
       entity_id: binary_sensor.motion_person_active
@@ -243,16 +244,45 @@
   variables:
     now: >-
       {{ utcnow().timestamp() }}
+    evidence: >-
+      {%- set s = state_attr('binary_sensor.motion_person_active','observations') -%}
+      {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
+        {%- set s = s|selectattr('to_state','==','on')|list -%}
+        {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
+          {%- set s = s|map(attribute='entity_id')|list -%}
+          {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
+            {%- set eids = s -%}
+            [{%- for i in eids -%}
+              {%- if not loop.first -%},{%- endif -%}
+              {%- set s = state_attr(i,'evidence') -%}
+              {%- if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' -%}
+                {%- set e = s -%}
+              {%- else -%}
+                {%- set e = '"null"' -%}
+              {%- endif -%}
+              {"source":"{{- i -}}","evidence":{{- e -}},"state":"{{- states(i) -}}"}
+            {%- endfor -%}]
+          {%- else -%}[]{%- endif -%}
+        {%- else -%}[]{%- endif -%}
+      {%- else -%}[]{%- endif -%}
   action:
-    - alias: 'set sensor.motion_person_active start; reset end, duration'
+    - alias: 'set sensor.motion_person_active start w/ evidence,probability,threshold,observations'
       service: python_script.set_state
       data_template:
         entity_id: sensor.motion_person_active
         allow_create: true
         start: >-
           {{ now }}
+        evidence: >-
+          {{ evidence }}
+        probability: >-
+          {{ state_attr('binary_sensor.motion_person_active','probability') }}
+        threshold: >-
+          {{ state_attr('binary_sensor.motion_person_active','probability_threshold') }}
+        observations: >-
+          {{ state_attr('binary_sensor.motion_person_active','observations') }}
         state: >-
-          {{ states('binary_sensor.motion_person_active') }}
+          {{ 'on' }}
 
 - id: motion_person_active_off
   alias: motion_person_active_off
@@ -271,7 +301,7 @@
         {{ '%0.1f'|format(end - start) }}
       {%- else -%}null{%- endif -%}
   action:
-    - alias: 'set sensor.motion_person_active end, duration'
+    - alias: 'set sensor.motion_person_active end w/ duration'
       service: python_script.set_state
       data_template:
         entity_id: sensor.motion_person_active
@@ -281,154 +311,4 @@
         duration: >-
           {{ duration }}
         state: >-
-          {{ states('binary_sensor.motion_person_active') }}
-
-# occupancy
-
-- id: motion_person_occupancy_probability_threshold
-  alias: motion_person_occupancy_probability_threshold
-  initial_state: on
-  mode: queued
-  trigger:
-    - platform: state
-      entity_id:
-        - binary_sensor.motion_person_occupancy
-        - input_number.motion_person_occupancy_probability_threshold
-  variables:
-    threshold: >-
-      {% if 'input_number' in trigger.entity_id %}
-        {{ states(trigger.entity_id) }}
-      {% else %}
-        {% set s = states('sensor.motion_person_occupancy_probability_mean_1w') %}
-        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-          {% set mn = s|float(0.0) %}
-          {% set sd = states('sensor.motion_person_occupancy_probability_stdev_1w')|float(0.0) %}
-          {% set d = states('input_number.motion_person_occupancy_probability_threshold_deviation')|float(0.0) %}
-          {{ mn + sd * d }}
-        {% else %}
-          {{ state_attr('binary_sensor.motion_person_occupancy','probability_threshold') }}
-        {% endif %}
-      {% endif %}
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >
-          {{ not 'input_number' in trigger.entity_id and state_attr(trigger.entity_id,'probability_threshold')|float(0.0) != threshold|float(0.0) or true }}
-  action:
-    - alias: 'set motion_person_occupancy.probability_threshold'
-      service: python_script.set_state
-      data_template:
-        entity_id: binary_sensor.motion_person_occupancy
-        probability_threshold: >-
-          {{ threshold }}
-
-# smartphone
-
-- id: motion_person_location_probability_threshold
-  alias: motion_person_location_probability_threshold
-  initial_state: on
-  mode: queued
-  trigger:
-    - platform: state
-      entity_id:
-        - binary_sensor.motion_person_location
-        - input_number.motion_person_location_probability_threshold
-  variables:
-    threshold: >-
-      {% if 'input_number' in trigger.entity_id %}
-        {{ states(trigger.entity_id) }}
-      {% else %}
-        {% set s = states('sensor.motion_person_location_probability_mean_1w') %}
-        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-          {% set mn = s|float(0.0) %}
-          {% set sd = states('sensor.motion_person_location_probability_stdev_1w')|float(0.0) %}
-          {% set d = states('input_number.motion_person_location_probability_threshold_deviation')|float(0.0) %}
-          {{ mn + sd * d }}
-        {% else %}
-          {{ state_attr('binary_sensor.motion_person_location','probability_threshold') }}
-        {% endif %}
-      {% endif %}
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >
-          {{ not 'input_number' in trigger.entity_id and state_attr(trigger.entity_id,'probability_threshold')|float(0.0) != threshold|float(0.0) or true }}
-  action:
-    - alias: 'set motion_person_location.probability_threshold'
-      service: python_script.set_state
-      data_template:
-        entity_id: binary_sensor.motion_person_location
-        probability_threshold: >-
-          {{ threshold }}
-
-## NIGHT DAY
-
-# last_night
-
-- alias: motion_person_active_last_night
-  initial_state: on
-  mode: single
-  trigger:
-    - platform: state
-      entity_id: sensor.motion_sun
-      to: 'day'
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >-
-          {{ states('sensor.motion_sun')|lower == 'day' }}
-  action:
-    - alias: 'set sensor.motion_person_active last_night'
-      service: python_script.set_state
-      data_template:
-        entity_id: sensor.motion_person_active
-        last_night: >-
-          {
-            "timestamp": {{- states.sensor.motion_person_active_count_night.last_changed|as_timestamp(default='null') -}},
-            "when":"{{- states.sensor.motion_person_active_count_night.last_changed|as_timestamp(0)|timestamp_custom('%a %b %d %I:%M %p %Z',true) -}}",
-            "count":{{- states('sensor.motion_person_active_count_night')|int(0) -}},
-            "time":{{- states('sensor.motion_person_active_time_night')|float(0) -}}
-          }
-    - alias: 'update active count day'
-      service: homeassistant.update_entity
-      entity_id: sensor.motion_person_active_count_day
-    - alias: 'update active time day'
-      service: homeassistant.update_entity
-      entity_id: sensor.motion_person_active_time_day
-
-# last_day
-
-- alias: motion_person_active_last_day
-  initial_state: on
-  mode: single
-  trigger:
-    - platform: state
-      entity_id: sensor.motion_sun
-      to: 'night'
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >-
-          {{ states('sensor.motion_sun')|lower == 'night' }}
-  action:
-    - alias: 'set sensor.motion_person_active last_day'
-      service: python_script.set_state
-      data_template:
-        entity_id: sensor.motion_person_active
-        last_day: >-
-          {
-            "timestamp": {{- states.sensor.motion_person_active_count_day.last_changed|as_timestamp(default='null') -}},
-            "when":"{{- states.sensor.motion_person_active_count_day.last_changed|as_timestamp(0)|timestamp_custom('%a %b %d %I:%M %p %Z',true) -}}",
-            "count":{{- states('sensor.motion_person_active_count_day')|int(0) -}},
-            "time":{{- states('sensor.motion_person_active_time_day')|float(0) -}}
-          }
-    - alias: 'update active count night'
-      service: homeassistant.update_entity
-      entity_id: sensor.motion_person_active_count_night
-    - alias: 'update active time night'
-      service: homeassistant.update_entity
-      entity_id: sensor.motion_person_active_time_night
+          {{ 'off' }}
