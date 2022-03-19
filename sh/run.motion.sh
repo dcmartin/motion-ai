@@ -107,11 +107,17 @@ echo "${OPTIONS}" > ${HOME}/${LABEL}/data/options.json
 echo "Removing any existing container: ${LABEL}" &> /dev/stderr
 docker rm -f ${LABEL} &> /dev/null
 
+HOST_PORT=7999
+CONTAINER_PORT=7999
+
 # start up
 echo "Starting new container: ${LABEL}; image: ${IMAGE}" &> /dev/stderr
 CID=$(docker run -d \
   --privileged \
   --network=host \
+  --publish=7999:7999 \
+  --publish=8080:8080 \
+  --publish=8090:8090 \
   --name ${LABEL} \
   --mount type=tmpfs,destination=/tmpfs,tmpfs-size=256000,tmpfs-mode=1777 \
   --mount type=bind,type=bind,source=${HOME}/${LABEL}/data,target=/data \
