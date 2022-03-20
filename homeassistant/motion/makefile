@@ -326,6 +326,7 @@ WEBCAM_CAMERAS: $(WEBCAM_CAMERA_TEMPLATE) ${WEBCAMS_JSON}
 	  export MOTION_CAMERA_USERNAME=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.username?" $(WEBCAMS_JSON)); \
 	  export MOTION_CAMERA_PASSWORD=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.password?" $(WEBCAMS_JSON)); \
 	  export MOTION_CAMERA_MJPEG=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.mjpeg_url?" $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_MJPEG_URL=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.mjpeg_url?" $(WEBCAMS_JSON) | sed "s|\(.*\)://\(.*\)|\1://$${MOTION_CAMERA_USERNAME}:$${MOTION_CAMERA_PASSWORD}@\2|"); \
 	  export MOTION_CAMERA_STREAM_USERPASS=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.netcam_userpass?" $(WEBCAMS_JSON)); \
 	  export MOTION_CAMERA_STREAM_SOURCE=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.netcam_url?" $(WEBCAMS_JSON) | sed "s|\(.*\)://\(.*\)|\1://$${MOTION_CAMERA_STREAM_USERPASS}@\2|"); \
 	  VAL=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.netcam_still?" $(WEBCAMS_JSON)); if [ "$${VAL:-null}" == 'null' ]; then VAL="$${MOTION_CAMERA_MJPEG}"; fi; export MOTION_CAMERA_NETCAM_STILL="$${VAL}"; \
