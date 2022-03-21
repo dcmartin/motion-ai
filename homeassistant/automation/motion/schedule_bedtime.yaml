@@ -2,8 +2,8 @@
 # homeassistant/automation/motion/bedtime.yaml
 ###
 
-- id: motion_schedule_bedtime_begin
-  alias: motion_schedule_bedtime_begin
+- id: motion_schedule_bedtime_begin_change
+  alias: motion_schedule_bedtime_begin_change
   mode: single
   initial_state: on
   trigger:
@@ -67,13 +67,13 @@
         value: >-
           {{ begin }}
 
-- id: motion_schedule_bedtime_end
-  alias: motion_schedule_bedtime_end
+- id: motion_schedule_bedtime_end_change
+  alias: motion_schedule_bedtime_end_change
   mode: single
   initial_state: on
   trigger:
-    - platform: time
-      at: input_datetime.motion_schedule_bedtime_end
+    - platform: state
+      entity_id: input_datetime.motion_schedule_bedtime_end
   variables:
     begin: >-
       {{ state_attr('input_datetime.motion_schedule_bedtime_begin','timestamp')|int(0) }}
@@ -132,10 +132,10 @@
         value: >-
           {{ end }}
 
-# reset sensor.motion_schedule_bedtime_detected at bedtime_begin
+# reset at bedtime
 
-- id: motion_schedule_bedtime_detected_reset
-  alias: motion_schedule_bedtime_detected_reset
+- id: motion_schedule_bedtime_detected_begin
+  alias: motion_schedule_bedtime_detected_begin
   mode: single
   initial_state: on
   trigger:
@@ -148,7 +148,7 @@
         state: >-
           {{ 'null' }}
 
-# set sensor.motion_schedule_bedtime_detected when person detected after bedtime_begin and before bedtime_end
+# active during bedtime
 
 - id: motion_schedule_bedtime_detected
   alias: motion_schedule_bedtime_detected
@@ -165,12 +165,16 @@
       {{ as_timestamp(now().replace(hour=0).replace(minute=0).replace(second=0))|int(0) }}
     timestamp: >-
       {{ as_timestamp(states.sensor.motion_detected_person_count_today.last_updated)|int(0) }}
-    today: >-
-      {{ timestamp - midnight }}
     begin: >-
       {{ state_attr('input_datetime.motion_schedule_bedtime_begin','timestamp') }}
     end: >-
       {{ state_attr('input_datetime.motion_schedule_bedtime_end','timestamp') }}
+    current: >-
+      {{ states('sensor.motion_schedule_bedtime_detected') }}
+    state: >-
+      {{ timestamp - midnight }}
+    when: >-
+      {{ state_attr('sensor.motion_schedule_bedtime_detected','timestamp')|timestamp_custom('%H:%M',true,'unknown') }}
   condition:
     condition: and
     conditions:
@@ -179,11 +183,10 @@
           {{ trigger.to_state.state != trigger.from_state.state }}
       - condition: template
         value_template: >
-          {{ is_state('sensor.motion_schedule_bedtime_detected_time','null') or
-             is_state('sensor.motion_schedule_bedtime_detected_time','Pending') }}
+          {{ current|lower == 'null' or current|lower == 'pending' }}
       - condition: template
         value_template: >-
-          {{ count|int(-1) > 0 and begin|int(-1) > 0 and end|int(-1) > 0 and end|int(0) > state|int(0) > begin|int(0) }}
+          {{ count|int(0) > 0 and end|int(0) > state|int(0) > begin|int(0) }}
   action:
     - service: python_script.set_state
       data_template:
@@ -191,12 +194,12 @@
         timestamp: >-
           {{ timestamp }}
         today: >-
-          {{ today }}
+          {{ state }}
 
-# complete bedtime
+# bedtime end
 
-- id: motion_schedule_bedtime_complete
-  alias: motion_schedule_bedtime_complete
+- id: motion_schedule_bedtime_end
+  alias: motion_schedule_bedtime_end
   mode: single
   initial_state: on
   trigger:

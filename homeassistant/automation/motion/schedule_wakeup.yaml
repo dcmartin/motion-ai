@@ -2,8 +2,8 @@
 # homeassistant/automation/motion/wakeup.yaml
 ###
 
-- id: motion_schedule_wakeup_begin
-  alias: motion_schedule_wakeup_begin
+- id: motion_schedule_wakeup_begin_change
+  alias: motion_schedule_wakeup_begin_change
   mode: single
   initial_state: on
   trigger:
@@ -67,13 +67,13 @@
         value: >-
           {{ begin }}
 
-- id: motion_schedule_wakeup_end
-  alias: motion_schedule_wakeup_end
+- id: motion_schedule_wakeup_end_change
+  alias: motion_schedule_wakeup_end_change
   mode: single
   initial_state: on
   trigger:
-    - platform: time
-      at: input_datetime.motion_schedule_wakeup_end
+    - platform: state
+      entity_id: input_datetime.motion_schedule_wakeup_end
   variables:
     begin: >-
       {{ state_attr('input_datetime.motion_schedule_wakeup_begin','timestamp')|int(0) }}
@@ -134,8 +134,8 @@
 
 # reset sensor.motion_schedule_wakeup_detected at wakeup_begin
 
-- id: motion_schedule_wakeup_detected_reset
-  alias: motion_schedule_wakeup_detected_reset
+- id: motion_schedule_wakeup_detected_begin
+  alias: motion_schedule_wakeup_detected_begin
   mode: single
   initial_state: on
   trigger:
@@ -169,23 +169,21 @@
       {{ state_attr('input_datetime.motion_schedule_wakeup_begin','timestamp') }}
     end: >-
       {{ state_attr('input_datetime.motion_schedule_wakeup_end','timestamp') }}
+    current: >-
+      {{ states('sensor.motion_schedule_wakeup_detected') }}
     state: >-
       {{ timestamp - midnight }}
     when: >-
-      {{ state_attr('sensor.motion_schedule_bedtime_detected','timestamp')|timestamp_custom('%H:%M',true,'unknown') }}
+      {{ state_attr('sensor.motion_schedule_wakeup_detected','timestamp')|timestamp_custom('%H:%M',true,'unknown') }}
   condition:
     condition: and
     conditions:
       - condition: template
         value_template: >
-          {{ trigger.to_state.state != trigger.from_state.state }}
-      - condition: template
-        value_template: >
-          {{ is_state('sensor.motion_schedule_wakeup_detected_time','null') or
-             is_state('sensor.motion_schedule_wakeup_detected_time','Pending') }}
+          {{ current|lower == 'null' or current|lower == 'pending' }}
       - condition: template
         value_template: >-
-          {{ count|int(-1) > 0 and begin|int(-1) > 0 and end|int(-1) > 0 and end|int(0) > state|int(0) > begin|int(0) }}
+          {{ count|int(0) > 0 and end|int(0) > state|int(0) > begin|int(0) }}
   action:
     - service: python_script.set_state
       data_template:
@@ -193,6 +191,29 @@
         timestamp: >-
           {{ timestamp }}
         whem: >-
+          {{ when }}
+        state: >-
+          {{ state }}
+
+# wakeup end
+
+- id: motion_schedule_wakeup_end
+  alias: motion_schedule_wakeup_end
+  mode: single
+  initial_state: off
+  trigger:
+    - platform: time
+      at: input_datetime.motion_schedule_wakeup_end
+  variables:
+    state: >-
+      {{ states('sensor.motion_schedule_wakeup_detected') }}
+    when: >-
+      {{ state_attr('sensor.motion_schedule_wakeup_detected','timestamp')|timestamp_custom('%H:%M',true,'unknown') }}
+  action:
+    - service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_schedule_wakeup_detected
+        when: >-
           {{ when }}
         state: >-
           {{ state }}
