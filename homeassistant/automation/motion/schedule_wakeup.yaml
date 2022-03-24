@@ -174,7 +174,7 @@
     state: >-
       {{ timestamp - midnight }}
     when: >-
-      {{ state_attr('sensor.motion_schedule_wakeup_detected','timestamp')|timestamp_custom('%H:%M',true,'unknown') }}
+      {{ state_attr('sensor.motion_schedule_wakeup_detected','timestamp')|timestamp_custom('%a %b %d %I:%M:%S %p %Z',true,'unknown') }}
   condition:
     condition: and
     conditions:
@@ -205,15 +205,25 @@
     - platform: time
       at: input_datetime.motion_schedule_wakeup_end
   variables:
-    state: >-
+    current: >-
       {{ states('sensor.motion_schedule_wakeup_detected') }}
-    when: >-
-      {{ state_attr('sensor.motion_schedule_wakeup_detected','timestamp')|timestamp_custom('%H:%M',true,'unknown') }}
+    timestamp: >-
+      {{ as_timestamp(states.sensor.motion_detected_person_count_today.last_updated)|int(0) }}
+    last: >-
+      {{ timestamp|timestamp_custom('%a %b %d %I:%M:%S %p %Z',true,'unknown') }}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ current|lower == 'null' }}
   action:
     - service: python_script.set_state
       data_template:
         entity_id: sensor.motion_schedule_wakeup_detected
-        when: >-
-          {{ when }}
+        timestamp: >-
+          {{ timestamp }}
+        last: >-
+          {{ last }}
         state: >-
-          {{ state }}
+          {{ 'off' }}
