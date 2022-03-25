@@ -2,174 +2,19 @@
 # automation/motion/person_bedtime.yaml
 ###
 
-- id: motion_person_bedtime_begin
-  alias: motion_person_bedtime_begin
-  mode: single
-  initial_state: on
-  trigger:
-    - platform: time
-      at: sensor.motion_person_bedtime_begin
-  variables:
-    begin: >-
-      {% set s = state_attr('sensor.motion_person_bedtime','begin') %}
-      {% if s|lower != 'none' and s|int(-1) >= 0 %}
-        {{ s|int(0) }}
-      {% else %}null{% endif %}
-    end: >-
-      {% set s = state_attr('sensor.motion_person_bedtime','end') %}
-      {% if s|lower != 'none' and s|int(-1) >= 0 %}
-        {{ s|int(0) }}
-      {% else %}null{% endif %}
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >-
-          {{ begin|lower != 'null' and end|lower != 'null' }}
-  action:
-    - service: python_script.set_state
-      data_template:
-        entity_id: binary_sensor.motion_person_bedtime
-        begin: >-
-          {{ begin }}
-        end: >-
-          {{ end }}
-        timestamp: >-
-          {{ 'null' }}
-        state: >-
-          {{ 'unknown' }}
-    - alias: 'reset night to unknown'
-      service: python_script.set_state
-      data_template:
-        entity_id: binary_sensor.motion_person_night
-        state: >-
-          {{ 'unknown' }}
-
-- id: motion_person_bedtime_update
-  alias: motion_person_bedtime_update
-  mode: single
-  initial_state: on
-  trigger:
-    - platform: state
-      entity_id: binary_sensor.motion_person_active
-      to: 'on'
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >-
-          {{ not is_state('binary_sensor.motion_person_bedtime','off') }}
-      - condition: template
-        value_template: >-
-          {{ state_attr('sensor.motion_person_bedtime','end')|float(0) > utcnow().timestamp() > state_attr('sensor.motion_person_bedtime','begin')|float(0) }}
-  variables:
-    count: >-
-      {% set s = states('sensor.motion_person_active_count_day') %}
-      {% if s|lower != 'none' and s|int(-1) > 0 %}
-        {{ s|int(0) }}
-      {% else %}null{% endif %}
-    time: >-
-      {% set s = states('sensor.motion_person_active_time_day') %}
-      {% if s|lower != 'none' and s|float(-1) > 0 %}
-        {{ s|float(0) }}
-      {% else %}null{% endif %}
-    timestamp: >-
-      {{- utcnow().timestamp() -}}
-  action:
-    - service: python_script.set_state
-      data_template:
-        entity_id: binary_sensor.motion_person_bedtime
-        count: >-
-          {{ count }}
-        time: >-
-          {{- time -}}
-        timestamp: >-
-          {{- timestamp -}}
-        state: >-
-          {{- 'on' -}}
-
-- id: motion_person_bedtime_end
-  alias: motion_person_bedtime_end
-  mode: single
-  initial_state: on
-  trigger:
-    - platform: time
-      at: sensor.motion_person_bedtime_end
-  variables:
-    count: >-
-      {% set s = states('binary_sensor.motion_person_bedtime','count') %}
-      {% if s|lower != 'none' and s|int(-1) > 0 %}
-        {{ s|int(0) }}
-      {% else %}null{% endif %}
-    time: >-
-      {% set s = states('binary_sensor.motion_person_bedtime','time') %}
-      {% if s|lower != 'none' and s|float(-1) > 0 %}
-        {{ s|float(0) }}
-      {% else %}null{% endif %}
-    timestamp: >-
-      {% set s = states('binary_sensor.motion_person_bedtime','timestamp') %}
-      {% if s|lower != 'none' and s|float(-1) > 0 %}
-        {{ s|float(0) }}
-      {% else %}null{% endif %}
-  action:
-    - service: python_script.set_state
-      data_template:
-        entity_id: binary_sensor.motion_person_bedtime
-        end: >-
-          {{ timestamp }}
-        state: >-
-          {{ 'off' }}
-    - service: python_script.set_state
-      data_template:
-        entity_id: binary_sensor.motion_person_day
-        count: >-
-          {{ count }}
-        time: >-
-          {{- time -}}
-        end: >-
-          {{ timestamp }}
-        state: >-
-          {{ 'off' }}
-
-- id: motion_person_bedtime_complete
-  alias: motion_person_bedtime_complete
-  mode: single
-  initial_state: on
-  trigger:
-    - platform: state
-      entity_id: binary_sensor.motion_person_bedtime
-      to: 'off'
-  variables:
-    when: >-
-      {%- set s = state_attr('binary_sensor.motion_person_bedtime','timestamp') -%}
-      {%- if s|lower != 'none' and s|float(-1) > 0 -%}
-        {%- set s = s|timestamp_custom('%a %b %d %I:%M %p %Z',true,'unknown') -%}
-      {%- endif -%}
-      {{- s -}}
-  action:
-    - alias: 'set binary_sensor.motion_person_bedtime when'
-      service: python_script.set_state
-      data_template:
-        entity_id: binary_sensor.motion_person_bedtime
-        when: >-
-          {{- when -}}
-
 - id: motion_person_night_begin
   alias: motion_person_night_begin
   mode: single
   initial_state: on
   trigger:
     - platform: state
-      entity_id: binary_sensor.motion_person_bedtime
-      attribute: 'when'
+      entity_id: binary_sensor.motion_schedule_bedtime_detected
+      to: 'on'
   variables:
     begin: >-
-      {{- state_attr('binary_sensor.motion_person_bedtime','timestamp') -}}
+      {{- state_attr('sensor.motion_schedule_bedtime_detected','timestamp') -}}
     end: >-
-      {% set s = state_attr('binary_sensor.motion_person_wakeup','end') %}
-      {% if not (s|lower != 'none' and s|float(0.0) > 0) %}
-        {% set s = state_attr('sensor.motion_person_wakeup','end') %}
-      {% endif %}
+      {% set s = states('sensor.motion_schedule_wakeup_end') %}
       {% set s = s + utcnow().replace(hour=0).replace(minute=0).replace(second=0)|as_timestamp + 86400 %}
       {{ s }}
   action:
@@ -196,19 +41,11 @@
   initial_state: on
   trigger:
     - platform: state
-      entity_id: binary_sensor.motion_person_wakeup
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >-
-          {{ not is_state('binary_sensor.motion_person_wakeup','unknown') }}
-      - condition: template
-        value_template: >-
-          {{ state_attr('binary_sensor.motion_person_wakeup','timestamp')|int(-1) > 0 }}
+      entity_id: binary_sensor.motion_schedule_wakeup_detected
+      to: 'on'
   variables:
     timestamp: >-
-      {{ state_attr('binary_sensor.motion_person_wakeup','timestamp') }}
+      {{ state_attr('sensor.motion_schedule_wakeup_detected','timestamp') }}
     count: >-
       {% set s = states('sensor.motion_person_active_count_night') %}
       {% if s|lower != 'none' and s|int(-1) > 0 %}
@@ -219,12 +56,6 @@
       {% if s|lower != 'none' and s|int(-1) > 0 %}
         {{ s|int(0) }}
       {% else %}null{% endif %}
-    when: >-
-      {%- set s = state_attr('binary_sensor.motion_person_night','end') -%}
-      {%- if s|lower != 'none' and s|float(-1) > 0 -%}
-        {%- set s = s|timestamp_custom('%a %b %d %I:%M %p %Z',true,'unknown') -%}
-      {%- endif -%}
-      {{- s -}}
   action:
     - alias: 'set binary_sensor.motion_person_night off'
       service: python_script.set_state
@@ -236,50 +67,5 @@
           {{- count -}}
         time: >-
           {{- time -}}
-        when: >-
-          {{- when -}}
         state: >-
           {{- 'off' -}}
-    - choose:
-        - conditions:
-            - condition: template
-              value_template: >
-                {{ trigger.to_state|lower == 'off' and trigger.from_state|lower == 'unknown' }}
-          sequence:
-            - alias: 'set binary_sensor.motion_alarm_wakeup_none'
-              service: python_script.set_state
-              data_template:
-                entity_id: binary_sensor.motion_alarm_wakeup_none
-                state: >-
-                  {{- 'on' -}}
-        - conditions:
-            - condition: template
-              value_template: >
-                {{ trigger.to_state|lower == 'off' and trigger.from_state|lower == 'unknown' }}
-            - condition: template
-              value_template: >
-                {{ is_state('input_select.motion_log_level','debug') }}
-          sequence:
-            - service: persistent_notification.create
-              data_template:
-                title: >-
-                  DEBUG: no wakeup detected
-                notification_id: >-
-                  {{ 'no-wakeup-detected' }}
-                message: >-
-                  {{-
-                    '[![]('
-                    + '/local/images/genie.png'
-                    + ')]('
-                    + '/lovelace-wakeup'
-                    + ')'
-                    + '<br>'
-                  -}}
-                  {{- 'No wakeup detected at '
-                     + utcnow().timestamp()|timestamp_custom('%a %b %d %I:%M %p %Z',true,'unknown')|string
-                     + '; last night: '
-                     + count|string
-                     + '; time: '
-                     + time|string
-                     + ' hours'
-                  -}}

@@ -18,12 +18,8 @@
     condition: and
     conditions:
       - condition: template
-        value_template: >
-          {{ trigger.to_state.state != trigger.from_state.state }}
-      - condition: template
         value_template: >-
-          {% set s = states('sensor.motion_schedule_bedtime_detected_mean') %}
-          {{ s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s != null }}
+          {{ is_state('input_boolean.motion_schedule_bedtime_undetected_notify','on') }}
   action:
     - service: persistent_notification.create
       data_template:
@@ -59,24 +55,44 @@
     condition: and
     conditions:
       - condition: template
-        value_template: >
-          {{ trigger.to_state.state != trigger.from_state.state }}
+        value_template: >-
+          {{ is_state('input_boolean.motion_schedule_bedtime_detected_notify','on') }}
       - condition: template
         value_template: >-
           {% set s = states('sensor.motion_schedule_bedtime_detected') %}
-          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null and s|int(0) > 0 }}
+          {{ s|int(0) > 0 }}
+  variables:
+    id: >-
+      {% set id = 'bedtime' %}
+      {{ id }}
+    mean: >-
+      {% set mean = states('sensor.motion_schedule_' + id|string + '_detected_mean_time') %}
+      {{ mean }}
+    interval: >-
+      {% set interval = states('sensor.motion_schedule_' + id|string + '_interval') %}
+      {{ interval }}
+    timestamp: >-
+      {% set timestamp = state_attr('sensor.motion_schedule_' + id|string + '_detected','timestamp') %}
+      {{ timestamp }}
+    date: >-
+      {% set date = timestamp|timestamp_custom('%a %b %d',true,'unknown') %}
+      {{ date }}
+    time: >-
+      {% set time = timestamp|timestamp_custom('%r',true,'unknown') %}
+      {{ time }}
+    history: >-
+      {% set s = 'sensor.motion_schedule_' + id|string + '_detected_days' %}
+      {% set history = states(s) + ' ' + state_attr(s,'unit_of_measurement')|string %}
+      {{ history }}
   action:
     - service: persistent_notification.create
       data_template:
         title: >-
-          ALERT: {{ 'Bedtime at: ' + utcnow().timestamp()|int|timestamp_custom("%I:%M:%S %p",true,'unknown') }}
+          {{ 'ALERT: ' + id|string + ' for ' + date|string }}
         notification_id: >-
-          bedtime_notify
+          {{ id|string + '_notify' }}
         message: >-
-          {{ 'Last person detected at '
-              + state_attr('sensor.motion_schedule_bedtime_detected','timestamp')|int|timestamp_custom("%a %b %d",true,'unknown') 
-              + '; Interval: ' + states('sensor.motion_schedule_bedtime_interval')|string
-              + '; Average: ' + states('sensor.motion_schedule_bedtime_detected_mean_time')|string }}
+          {{ 'Detected ' + id|string + ' at ' + time|string + '; Average: ' + mean|string + '; History: ' + history|string + '; Interval: ' + interval|string }}
 
 ##
 # alert selected
@@ -93,8 +109,8 @@
     condition: and
     conditions:
       - condition: template
-        value_template: >
-          {{ trigger.to_state.state != trigger.from_state.state }}
+        value_template: >-
+          {{ is_state('input_boolean.motion_schedule_bedtime_undetected_notify','on') }}
       - condition: template
         value_template: >
           {{- not is_state('input_select.motion_smartphone_name','all') and not is_state('input_select.motion_smartphone_name','none') -}}
@@ -124,8 +140,8 @@
     condition: and
     conditions:
       - condition: template
-        value_template: >
-          {{ trigger.to_state.state != trigger.from_state.state }}
+        value_template: >-
+          {{ is_state('input_boolean.motion_schedule_bedtime_undetected_notify','on') }}
       - condition: template
         value_template: >
           {{- is_state('input_select.motion_smartphone_name','all') -}}
