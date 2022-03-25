@@ -1,5 +1,5 @@
 ###
-# automation/motion/person_wakeup.yaml
+# automation/motion/person_day.yaml
 ###
 
 - id: motion_person_day_begin
@@ -9,12 +9,17 @@
   trigger:
     - platform: state
       entity_id: binary_sensor.motion_schedule_wakeup_detected
-      to: 'on'
   variables:
     begin: >-
       {{- state_attr('sensor.motion_schedule_wakeup_detected','timestamp')|float(0) -}}
     end: >-
       {{ states('sensor.motion_schedule_bedtime_end')|float(0) + utcnow().replace(hour=0).replace(minute=0).replace(second=0)|as_timestamp }}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ not is_state('binary_sensor.motion_schedule_bedtime_detected','unknown') }}
   action:
     - alias: 'set binary_sensor.motion_person_day ON - begin,end'
       service: python_script.set_state
@@ -28,10 +33,10 @@
           {{- 'on' -}}
     - alias: 'update active count day'
       service: homeassistant.update_entity
-      entity_id: sensor.motion_person_active_count_day
+      entity_id: sensor.motion_person_day_active_count
     - alias: 'update active time day'
       service: homeassistant.update_entity
-      entity_id: sensor.motion_person_active_time_day
+      entity_id: sensor.motion_person_day_active_time
 
 - id: motion_person_day_end
   alias: motion_person_day_end
@@ -40,15 +45,14 @@
   trigger:
     platform: state
     entity_id: binary_sensor.motion_schedule_bedtime_detected
-    to: 'on'
   variables:
     count: >-
-      {% set s = states('sensor.motion_person_active_count_day') %}
+      {% set s = states('sensor.motion_person_day_active_count') %}
       {% if s|lower != 'none' and s|int(-1) > 0 %}
         {{ s|int(0) }}
       {% else %}null{% endif %}
     time: >-
-      {% set s = states('sensor.motion_person_active_time_day') %}
+      {% set s = states('sensor.motion_person_day_active_time') %}
       {% if s|lower != 'none' and s|int(-1) > 0 %}
         {{ s|int(0) }}
       {% else %}null{% endif %}
@@ -58,6 +62,12 @@
         {%- set s = s|timestamp_custom('%a %b %d %I:%M %p %Z',true,'unknown') -%}
       {%- endif -%}
       {{- s -}}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ not is_state('binary_sensor.motion_schedule_bedtime_detected','unknown') }}
   action:
     - alias: 'set binary_sensor.motion_person_day off'
       service: python_script.set_state

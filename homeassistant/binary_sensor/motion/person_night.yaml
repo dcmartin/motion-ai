@@ -1,41 +1,33 @@
 ###
-# binary_sensor/motion/person_bedtime.yaml
+# binary_sensor/motion/person_night.yaml
 ###
 
 - platform: template
   sensors:
-    motion_person_bedtime:
-      friendly_name: 'Person bedtime'
-      icon_template: 'mdi:clock'
-      attribute_templates:
-        timestamp: >-
-          {# timestamp of last person_active during bedtime interval; set through automation #}
-          {{ 'none' }}
-        begin: >-
-          {# timestamp of bedtime interval begin; set through automation #}
-          {{ 'none' }}
-        end: >-
-          {# timestamp of bedtime interval end; set through automation #}
-          {{ 'none' }}
-      value_template: >-
-        {# person_active during bedtime interval; set through automation #}
-        {{ 'unknown' }}
     motion_person_night:
       friendly_name: 'Person night'
       icon_template: 'mdi:clock'
       attribute_templates:
-        start: >-
-          {# history_stats start timestamp; set through automation #}
-          {{ 'none' }}
+        begin: >-
+          {% if is_state('binary_sensor.motion_schedule_bedtime_detected','on') %}
+            {{ state_attr('sensor.motion_schedule_bedtime_detected','timestamp') }}
+          {% else %}
+            {% set s = state_attr('input_datetime.motion_schedule_bedtime_end','timestamp') %}
+            {{ s|float(0) + utcnow().replace(hour=0).replace(minute=0).replace(second=0)|as_timestamp }}
+          {% endif %}
         end: >-
-          {# history_stats end timestamp; set through automation #}
-          {{ 'none' }}
+          {% if is_state('binary_sensor.motion_schedule_wakeup_detected','on') %}
+            {{ state_attr('sensor.motion_schedule_wakeup_detected','timestamp') }}
+          {% else %}
+            {% set s = state_attr('input_datetime.motion_schedule_wakeup_end','timestamp') %}
+            {{ s|float(0) + utcnow().replace(hour=0).replace(minute=0).replace(second=0)|as_timestamp + 86400 }}
+          {% endif %}
         count: >-
-          {# history_stats count at end; set through automation #}
-          {{ 'none' }}
+          {{ states('sensor.motion_person_night_active_count') }}
         time: >-
-          {# history_stats time at end; set through automation #}
-          {{ 'none' }}
+          {{ states('sensor.motion_person_night_active_time') }}
       value_template: >-
-        {# set through automation #}
-        {{ 'unknown' }}
+        {% set end = state_attr('binary_sensor.motion_person_night','end')|float(0) %}
+        {% set begin = state_attr('binary_sensor.motion_person_night','begin')|float(0) %}
+        {% set now = utcnow().timestamp() %}
+        {{ end > now > begin }}

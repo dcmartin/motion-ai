@@ -1,5 +1,5 @@
 ###
-# automation/motion/person_bedtime.yaml
+# automation/motion/person_night.yaml
 ###
 
 - id: motion_person_night_begin
@@ -9,7 +9,6 @@
   trigger:
     - platform: state
       entity_id: binary_sensor.motion_schedule_bedtime_detected
-      to: 'on'
   variables:
     begin: >-
       {{- state_attr('sensor.motion_schedule_bedtime_detected','timestamp') -}}
@@ -17,6 +16,12 @@
       {% set s = states('sensor.motion_schedule_wakeup_end') %}
       {% set s = s + utcnow().replace(hour=0).replace(minute=0).replace(second=0)|as_timestamp + 86400 %}
       {{ s }}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ not is_state('binary_sensor.motion_schedule_bedtime_detected','unknown') }}
   action:
     - alias: 'set binary_sensor.motion_person_night begin,end'
       service: python_script.set_state
@@ -30,10 +35,10 @@
           {{- 'on' -}}
     - alias: 'update active count night'
       service: homeassistant.update_entity
-      entity_id: sensor.motion_person_active_count_night
+      entity_id: sensor.motion_person_night_active_count
     - alias: 'update active time night'
       service: homeassistant.update_entity
-      entity_id: sensor.motion_person_active_time_night
+      entity_id: sensor.motion_person_night_active_time
 
 - id: motion_person_night_end
   alias: motion_person_night_end
@@ -42,20 +47,25 @@
   trigger:
     - platform: state
       entity_id: binary_sensor.motion_schedule_wakeup_detected
-      to: 'on'
   variables:
     timestamp: >-
       {{ state_attr('sensor.motion_schedule_wakeup_detected','timestamp') }}
     count: >-
-      {% set s = states('sensor.motion_person_active_count_night') %}
+      {% set s = states('sensor.motion_person_night_active_count') %}
       {% if s|lower != 'none' and s|int(-1) > 0 %}
         {{ s|int(0) }}
       {% else %}null{% endif %}
     time: >-
-      {% set s = states('sensor.motion_person_active_time_night') %}
+      {% set s = states('sensor.motion_person_night_active_time') %}
       {% if s|lower != 'none' and s|int(-1) > 0 %}
         {{ s|int(0) }}
       {% else %}null{% endif %}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ not is_state('binary_sensor.motion_schedule_wakeup_detected','unknown') }}
   action:
     - alias: 'set binary_sensor.motion_person_night off'
       service: python_script.set_state
