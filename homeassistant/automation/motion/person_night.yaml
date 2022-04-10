@@ -9,6 +9,7 @@
   trigger:
     - platform: state
       entity_id: binary_sensor.motion_schedule_bedtime_detected
+      to: 'on'
   variables:
     begin: >-
       {{- state_attr('sensor.motion_schedule_bedtime_detected','timestamp') -}}
@@ -16,12 +17,6 @@
       {% set s = states('sensor.motion_schedule_wakeup_end') %}
       {% set s = s + utcnow().replace(hour=0).replace(minute=0).replace(second=0)|as_timestamp + 86400 %}
       {{ s }}
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >-
-          {{ not is_state('binary_sensor.motion_schedule_bedtime_detected','unknown') }}
   action:
     - alias: 'set binary_sensor.motion_person_night begin,end'
       service: python_script.set_state
@@ -47,6 +42,7 @@
   trigger:
     - platform: state
       entity_id: binary_sensor.motion_schedule_wakeup_detected
+      to: 'on'
   variables:
     count: >-
       {% set s = states('sensor.motion_person_night_active_count') %}
@@ -58,17 +54,16 @@
       {% if s|lower != 'none' and s|int(-1) > 0 %}
         {{ s|int(0) }}
       {% else %}null{% endif %}
+    begin: >-
+      {%- set s = state_attr('sensor.motion_schedule_bedtime_detected','timestamp') -%}
+      {%- if s|lower != 'none' and s|float(-1) > 0 -%}
+        {{- s|float(0) -}}
+      {% else %}null{% endif %}
     end: >-
       {%- set s = state_attr('sensor.motion_schedule_wakeup_detected','timestamp') -%}
       {%- if s|lower != 'none' and s|float(-1) > 0 -%}
         {{- s|float(0) -}}
       {% else %}null{% endif %}
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >-
-          {{ not is_state('binary_sensor.motion_schedule_wakeup_detected','unknown') }}
   action:
     - alias: 'set binary_sensor.motion_person_night off'
       service: python_script.set_state
@@ -99,6 +94,8 @@
         entity_id: sensor.motion_person_active
         last_night: >-
           {
+            "begin":{{- state_attr('binary_sensor.motion_person_night','begin')|timestamp_custom("%a %b %d %H:%M",true,'unknown') }},
+            "end":{{- state_attr('binary_sensor.motion_person_night','end')|timestamp_custom("%a %b %d %H:%M",true,'unknown') }},
             "count":{{- state_attr('binary_sensor.motion_person_night','count')|int(0) }},
             "time":{{- state_attr('binary_sensor.motion_person_night','time')|int(0) }}
           }

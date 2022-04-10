@@ -9,17 +9,12 @@
   trigger:
     - platform: state
       entity_id: binary_sensor.motion_schedule_wakeup_detected
+      to: 'on'
   variables:
     begin: >-
       {{- state_attr('sensor.motion_schedule_wakeup_detected','timestamp')|float(0) -}}
     end: >-
       {{ states('sensor.motion_schedule_bedtime_end')|float(0) + utcnow().replace(hour=0).replace(minute=0).replace(second=0)|as_timestamp }}
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >-
-          {{ not is_state('binary_sensor.motion_schedule_bedtime_detected','unknown') }}
   action:
     - alias: 'set binary_sensor.motion_person_day ON - begin,end'
       service: python_script.set_state
@@ -43,8 +38,9 @@
   mode: single
   initial_state: on
   trigger:
-    platform: state
-    entity_id: binary_sensor.motion_schedule_bedtime_detected
+    - platform: state
+      entity_id: binary_sensor.motion_schedule_bedtime_detected
+      to: 'on'
   variables:
     count: >-
       {% set s = states('sensor.motion_person_day_active_count') %}
@@ -61,13 +57,6 @@
       {%- if s|lower != 'none' and s|float(-1) > 0 -%}
         {{- s|float(0) -}}
       {% else %}null{% endif %}
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >-
-          {# may be on or off, but not unknown #}
-          {{ not is_state('binary_sensor.motion_schedule_bedtime_detected','unknown') }}
   action:
     - alias: 'set binary_sensor.motion_person_day off'
       service: python_script.set_state
@@ -98,6 +87,8 @@
         entity_id: sensor.motion_person_active
         last_day: >-
           {
+            "begin":{{- state_attr('binary_sensor.motion_person_day','begin')|timestamp_custom("%a %b %d %H:%M",true,'unknown') }},
+            "end":{{- state_attr('binary_sensor.motion_person_day','end')|timestamp_custom("%a %b %d %H:%M",true,'unknown') }},
             "count":{{- state_attr('binary_sensor.motion_person_day','count')|int(0) }},
             "time":{{- state_attr('binary_sensor.motion_person_day','time')|int(0) }}
           }
