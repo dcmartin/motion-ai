@@ -12,12 +12,32 @@
       to: 'on'
   variables:
     begin: >-
-      {{- state_attr('sensor.motion_schedule_bedtime_detected','timestamp') -}}
+      {%- set s = state_attr('sensor.motion_schedule_bedtime_detected','timestamp') -%}
+      {%- if s|float(-1) > 0 -%}
+        {{- s|float(0) -}}
+      {%- else -%}null{%- endif -%}
     end: >-
       {% set s = states('sensor.motion_schedule_wakeup_end') %}
       {% set s = s + utcnow().replace(hour=0).replace(minute=0).replace(second=0)|as_timestamp + 86400 %}
       {{ s }}
   action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+               {{ begin|lower == 'null' }}
+            - condition: template
+              value_template: >
+                {{ is_state('input_select.motion_log_level','debug') }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: Night begin unspecified
+                notification_id: >-
+                  {{ 'night_begin' }}
+                message: >-
+                  Night begin unspecified: {{ begin -}}; end: {{ end -}}
     - alias: 'set binary_sensor.motion_person_night begin,end'
       service: python_script.set_state
       data_template:
