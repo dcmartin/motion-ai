@@ -149,55 +149,43 @@
           {{ state_attr('input_datetime.motion_schedule_wakeup_begin','timestamp') }}
         end: >-
           {{ state_attr('input_datetime.motion_schedule_wakeup_end','timestamp') }}
+        timestamp: >-
+          {{ 'null' }}
+        today: >-
+          {{ 'null' }}
+        when: >-
+          {{ 'unknown' }}
         state: >-
           {{ 'null' }}
+    - service: automation.turn_on
+      entity_id: automation.motion_schedule_wake_detected
 
-# set sensor.motion_schedule_wakeup_detected when person detected after wakeup_begin and before wakeup_end
+# detected
 
 - id: motion_schedule_wakeup_detected
   alias: motion_schedule_wakeup_detected
   mode: single
-  initial_state: on
+  initial_state: off
   trigger:
-    platform: state
-    entity_id: 
-      - sensor.motion_person_active_count_today
+    - platform: state
+      entity_id: binary_sensor.motion_person_active
+      to: 'on'
   variables:
-    count: >-
-      {{ states('sensor.motion_person_active_count_today') }}
-    midnight: >-
-      {{ as_timestamp(now().replace(hour=0).replace(minute=0).replace(second=0))|int(0) }}
     timestamp: >-
-      {{ as_timestamp(states.sensor.motion_person_active_count_today.last_updated)|int(0) }}
-    begin: >-
-      {{ state_attr('input_datetime.motion_schedule_wakeup_begin','timestamp') }}
-    end: >-
-      {{ state_attr('input_datetime.motion_schedule_wakeup_end','timestamp') }}
-    current: >-
-      {{ states('sensor.motion_schedule_wakeup_detected') }}
-    today: >-
-      {{ timestamp - midnight }}
+      {{ utcnow().timestamp() }}
     when: >-
-      {{ state_attr('sensor.motion_schedule_wakeup_detected','timestamp')|timestamp_custom('%a %b %d %I:%M:%S %p %Z',true,'unknown') }}
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >
-          {{ current|int(0) == 0 }}
-      - condition: template
-        value_template: >-
-          {{ count|int(0) > 0 }}
-      - condition: template
-        value_template: >-
-          {{ end|int(0) > today|int(0) > begin|int(0) }}
+      {{ timestamp|timestamp_custom('%a %b %d %I:%M:%S %p %Z',true,'unknown') }}
+    today: >-
+      {{ timestamp - as_timestamp(now().replace(hour=0).replace(minute=0).replace(second=0)) }}
   action:
     - service: python_script.set_state
       data_template:
         entity_id: sensor.motion_schedule_wakeup_detected
+        today: >-
+          {{ today }}
         timestamp: >-
           {{ timestamp }}
-        whem: >-
+        when: >-
           {{ when }}
         state: >-
           {{ today }}
@@ -212,25 +200,27 @@
     - platform: time
       at: input_datetime.motion_schedule_wakeup_end
   variables:
-    current: >-
-      {{ states('sensor.motion_schedule_wakeup_detected') }}
-    timestamp: >-
-      {{ as_timestamp(states.sensor.motion_person_active_count_today.last_updated)|int(0) }}
-    last: >-
-      {{ timestamp|timestamp_custom('%a %b %d %I:%M:%S %p %Z',true,'unknown') }}
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >
-          {{ current|int(0) == 0 }}
+    state: >-
+      {{ states('sensor.motion_schedule_wakeup_detected')|float('off') }}
+    today: >-
+      {{ timestamp - as_timestamp(now().replace(hour=0).replace(minute=0).replace(second=0)) }}
   action:
+    - service: automation.turn_off
+      entity_id: automation.motion_schedule_wake_detected
+    - condition: template
+      value_template: >
+        {{ state == 'off' }}
+    - variables:
+        timestamp: >-
+          {{ utcnow().timestamp() }}
+        when: >-
+          {{ timestamp|timestamp_custom('%a %b %d %I:%M:%S %p %Z',true,'unknown') }}
     - service: python_script.set_state
       data_template:
         entity_id: sensor.motion_schedule_wakeup_detected
         timestamp: >-
           {{ timestamp }}
-        last: >-
-          {{ last }}
+        when: >-
+          {{ when }}
         state: >-
-          {{ 'off' }}
+          {{ state }}

@@ -149,48 +149,32 @@
           {{ state_attr('input_datetime.motion_schedule_bedtime_begin','timestamp') }}
         end: >-
           {{ state_attr('input_datetime.motion_schedule_bedtime_end','timestamp') }}
+        timestamp: >-
+          {{ 'null' }}
+        today: >-
+          {{ 'null' }}
+        when: >-
+          {{ 'null' }}
         state: >-
           {{ 'null' }}
+    - service: automation.turn_on
+      entity_id: automation.motion_schedule_bedtime_detected
 
 # active during bedtime
 
 - id: motion_schedule_bedtime_detected
   alias: motion_schedule_bedtime_detected
   mode: single
-  initial_state: on
+  initial_state: off
   trigger:
-    platform: state
-    entity_id: 
-      - sensor.motion_person_active_count_today
+    - platform: state
+      entity_id: binary_sensor.motion_person_active
+      to: 'on'
   variables:
-    count: >-
-      {{ states('sensor.motion_person_active_count_today') }}
-    midnight: >-
-      {{ as_timestamp(now().replace(hour=0).replace(minute=0).replace(second=0))|int(0) }}
     timestamp: >-
-      {{ as_timestamp(states.sensor.motion_person_active_count_today.last_updated)|int(0) }}
-    begin: >-
-      {{ state_attr('input_datetime.motion_schedule_bedtime_begin','timestamp') }}
-    end: >-
-      {{ state_attr('input_datetime.motion_schedule_bedtime_end','timestamp') }}
-    current: >-
-      {{ states('sensor.motion_schedule_bedtime_detected') }}
+      {{ utcnow().timestamp() }}
     today: >-
-      {{ timestamp - midnight }}
-    when: >-
-      {{ state_attr('sensor.motion_schedule_bedtime_detected','timestamp')|timestamp_custom('%a %b %d %I:%M:%S %p %Z',true,'unknown') }}
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >
-          {{ current|int(0) == 0 }}
-      - condition: template
-        value_template: >-
-          {{ count|int(0) > 0 }}
-      - condition: template
-        value_template: >-
-          {{ end|int(0) > today|int(0) > begin|int(0) }}
+      {{ timestamp - as_timestamp(now().replace(hour=0).replace(minute=0).replace(second=0)) }}
   action:
     - service: python_script.set_state
       data_template:
@@ -210,13 +194,15 @@
     - platform: time
       at: input_datetime.motion_schedule_bedtime_end
   variables:
-    last: >-
-      {{ state_attr('sensor.motion_schedule_bedtime_detected','today') }}
+    today: >-
+      {{ state_attr('sensor.motion_schedule_bedtime_detected','today')|float('off') }}
     timestamp: >-
-      {{ state_attr('sensor.motion_schedule_bedtime_detected','timestamp') }}
+      {{ state_attr('sensor.motion_schedule_bedtime_detected','timestamp')|float(utcnow().timestamp()) }}
     when: >-
       {{ timestamp|timestamp_custom('%a %b %d %I:%M:%S %p %Z',true,'unknown') }}
   action:
+    - service: automation.turn_off
+      entity_id: automation.motion_schedule_bedtime_detected
     - service: python_script.set_state
       data_template:
         entity_id: sensor.motion_schedule_bedtime_detected
@@ -225,4 +211,4 @@
         when: >-
           {{ when }}
         state: >-
-          {{ last }}
+          {{ today }}
