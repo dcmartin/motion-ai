@@ -2,28 +2,49 @@
 # binary_sensor/motion/person_occupancy.yaml
 ###
 
+## STATUS
+
+- platform: template
+  sensors:
+    motion_person_occupancy_expired:
+      friendly_name: 'Location occupancy expired'
+      icon_template: >-
+        {% if is_state('binary_sensor.motion_person_occupancy_expired','on') %}
+          {{ 'mdi:map-marker-off-outline' }}
+        {% else %}{{ 'mdi:map-marker-outline' }}{% endif %}
+      value_template: >-
+        {% set s = states('input_number.motion_person_occupancy_expired') %}
+        {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unavailable' and s|lower != 'unknown' %}
+          {% set timeout = s|float(0.0) * 60 %}
+          {% set s = states.sensor.motion_person_occupancy.last_updated|default('unknown') %}
+          {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unavailable' and s|lower != 'unknown' %}
+            {% set updated = as_timestamp(s,0) %}
+            {{ is_state('binary_sensor.motion_person_occupancy','on') and utcnow().timestamp() - updated > timeout }}
+          {% else %}on{% endif %}
+        {% else %}on{% endif %}
+
 - platform: bayesian
   name: motion_person_occupancy
   prior: 0.3
   probability_threshold: 0.7
   observations:
     - platform: state
-      entity_id: sensor.motion_person_occupancy
+      entity_id: sensor.motion_person_occupancy_status
       prob_given_true: 0.9
       prob_given_false: 0.1
       to_state: 'on'
     - platform: state
-      entity_id: sensor.motion_person_occupancy
+      entity_id: sensor.motion_person_occupancy_status
       prob_given_true: 0.1
       prob_given_false: 0.5
       to_state: 'off'
     - platform: state
-      entity_id: sensor.motion_person_occupancy
+      entity_id: sensor.motion_person_occupancy_status
       prob_given_true: 0.0
       prob_given_false: 0.2
       to_state: 'unknown'
     - platform: state
-      entity_id: sensor.motion_person_occupancy
+      entity_id: sensor.motion_person_occupancy_status
       prob_given_true: 0.5
       prob_given_false: 0.2
       to_state: 'expired'
@@ -47,27 +68,6 @@
       prob_given_true: 0.8
       prob_given_false: 0.2
       to_state: 'on'
-
-## STATUS
-
-- platform: template
-  sensors:
-    motion_person_occupancy_expired:
-      friendly_name: 'Location occupancy expired'
-      icon_template: >-
-        {% if is_state('binary_sensor.motion_person_occupancy_expired','on') %}
-          {{ 'mdi:map-marker-off-outline' }}
-        {% else %}{{ 'mdi:map-marker-outline' }}{% endif %}
-      value_template: >-
-        {% set s = states('input_number.motion_person_occupancy_expired') %}
-        {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unavailable' and s|lower != 'unknown' %}
-          {% set timeout = s|float(0.0) * 60 %}
-          {% set s = states.sensor.motion_person_occupancy.last_updated|default('unknown') %}
-          {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unavailable' and s|lower != 'unknown' %}
-            {% set updated = as_timestamp(s,0) %}
-            {{ is_state('binary_sensor.motion_person_occupancy','on') and utcnow().timestamp() - updated > timeout }}
-          {% else %}on{% endif %}
-        {% else %}on{% endif %}
 
 ## MOVEMENT
 

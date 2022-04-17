@@ -9,6 +9,10 @@
   trigger:
     - platform: state
       entity_id: binary_sensor.motion_person_occupancy
+      to:
+    - platform: state
+      entity_id: binary_sensor.motion_person_occupancy
+      attribute: 'probability'
   variables:
     state: >-
       {% set s = state_attr('binary_sensor.motion_person_occupancy','probability') %}
@@ -29,9 +33,10 @@
   mode: queued
   trigger:
     - platform: state
-      entity_id:
-        - binary_sensor.motion_person_occupancy
-        - input_number.motion_person_occupancy_probability_threshold
+      entity_id: binary_sensor.motion_person_occupancy
+      to:
+    - platform: state
+      entity_id: input_number.motion_person_occupancy_probability_threshold
   variables:
     threshold: >-
       {% if 'input_number' in trigger.entity_id %}
@@ -67,6 +72,7 @@
   trigger:
     - platform: state
       entity_id: sensor.motion_person_occupancy
+      to:
   condition:
     condition: and
     conditions:
@@ -162,21 +168,33 @@
         state: >-
           {{ states('sensor.motion_person_occupancy') }}
 
-- id: motion_person_occupancy
-  alias: motion_person_occupancy
+#- id: motion_person_occupancy_sync
+#  alias: motion_person_occupancy_sync
+#  initial_state: off
+#  trigger:
+#    - platform: state
+#      entity_id: binary_sensor.motion_shellies_occupancy
+#      to: 'off'
+#  action:
+#    - service: python_script.set_state
+#      data_template:
+#        entity_id: sensor.motion_person_occupancy
+#        state: >-
+#          {{ 'none' }}
+
+- id: motion_person_occupancy_on_off
+  alias: motion_person_occupancy_on_off
   initial_state: on
   trigger:
     - platform: state
       entity_id: sensor.motion_shellies_occupancy
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >
-          {% set s = states('sensor.motion_shellies_occupancy') %}
-          {# s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'pending' #}
-          {{ s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' }}
+      to:
   variables:
+    to_state: >-
+      {% set s = trigger.to_state %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ 'on' }}
+      {% else %}{{ 'off' }}{% endif %}
     sensor: >-
       {% set s = state_attr('sensor.motion_shellies_occupancy','sensor') %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
@@ -231,7 +249,7 @@
           {{- '%0.2f'|format(s|float(0.0) * 1000) -}}
         {% else %}null{% endif %}
       {% else %}null{% endif %}
-    gps: >-
+    at_home: >-
       {% if latitude|lower != 'null' and longitude|lower != 'null' %}
         {% set s = state_attr('zone.home','radius') %}
         {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int(0) > 0 %}
@@ -239,22 +257,24 @@
         {% else %}null{% endif %}
       {% else %}null{% endif %}
     area: >-
-      {% set s = area_name(sensor) %}
-      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-        {{ s }}
+      {% if sensor|lower != 'null' %}
+        {% set s = area_name(sensor) %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+          {{ s }}
+        {% else %}null{% endif %}
       {% else %}null{% endif %}
     probability: >-
       {{ state_attr('binary_sensor.motion_person_occupancy','probability') }}
   action:
-    - alias: 'choose: notify on id or gps'
+    - alias: 'choose: notify on id or at_home'
       choose:
-        - alias: 'condition: id unknown and gps bad?'
+        - alias: 'condition: id unknown and at_home bad?'
           conditions:
             - condition: template
               value_template: >
-                {{ id|lower == 'null' and gps|lower != 'true' }}
+                {{ id|lower == 'null' and at_home|lower != 'true' }}
           sequence:
-            - alias: 'notify id and gps bad'
+            - alias: 'notify id and at_home bad'
               service: persistent_notification.create
               data_template:
                 title: >-
@@ -262,22 +282,22 @@
                 notification_id: >-
                   {{ sensor|string + '_person_occupancy' }}
                 message: >-
-                  Motion sensor (MAC: **mac**) invalid; id: {{ id -}}; GPS: {{ latitude,longitude -}}; distance: {{ distance }} 
-        - alias: 'condition: gps bad?'
+                  Motion sensor **{{- trigger.to_state -}}** invalid; id: {{ id -}}; GPS: {{ latitude,longitude -}}; distance: {{ distance }}
+        - alias: 'condition: at_home bad?'
           conditions:
             - condition: template
               value_template: >
-                {{ gps|lower != 'true' }}
+                {{ at_home|lower != 'true' }}
           sequence:
-            - alias: 'notify gps bad'
+            - alias: 'notify at_home bad'
               service: persistent_notification.create
               data_template:
                 title: >-
-                  NOTICE: bad location
+                  NOTICE: sensor not at home
                 notification_id: >-
                   {{ sensor|string + '_person_occupancy' }}
                 message: >-
-                  Motion sensor **location** invalid; id: **{{- id -}}**; GPS: {{ latitude,longitude -}}; distance: {{ distance }} 
+                  Motion sensor **{{- trigger.to_state -}}** invalid; id: **{{- id -}}**; GPS: {{ latitude,longitude -}}; distance: {{ distance }}
         - alias: 'condition: id unknown?'
           conditions:
             - condition: template
@@ -288,19 +308,54 @@
               service: persistent_notification.create
               data_template:
                 title: >-
-                  NOTICE: bad identifier
+                  NOTICE: sensor bad identifier
                 notification_id: >-
                   {{ sensor|string + '_person_occupancy' }}
                 message: >-
-                  Motion sensor **identifier** invalid; id: **{{- id -}}**
-    - alias: 'choose: update based on location'
+                  Motion sensor **{{- trigger.to_state -}}** invalid; id: **{{- id -}}**
+    - alias: 'update if id is good'
       choose:
-        - alias: 'condition: id is good and gps is bad'
-          conditions:
+        - conditions:
             - condition: template
               value_template: >-
-                {{ id|lower != 'null' and gps|lower != 'true' }}
+                {{ id|lower != 'null' }}
           sequence:
+            - variables:
+                lat: >-
+                  {% if at_home|lower != 'true' %}
+                    {{ state_attr('zone.home','latitude') }}
+                  {% else %}{{ latitude }}{% endif %}
+                long: >-
+                  {% if at_home|lower != 'true' %}
+                    {{ state_attr('zone.home','longitude') }}
+                  {% else %}{{ longitude }}{% endif %}
+                now: >-
+                  {{ utcnow().timestamp() }}
+                evidence: >-
+                  {%- set s = state_attr('binary_sensor.motion_person_occupancy','observations') -%}
+                  {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
+                    {%- set s = s|selectattr('to_state','==','on')|map(attribute='entity_id')|list -%}
+                    {%- if s is iterable and s|list|count > 0 -%}
+                      {%- set eids = s -%}
+                      [{%- for i in eids -%}
+                        {%- if not loop.first -%},{%- endif -%}
+                        {"source":"{{- i -}}","evidence":
+                        {%- set s = state_attr(i,'sensor') -%}
+                        {%- if s|lower != 'none' -%}
+                          {%- set sensor = s -%}
+                          {%- set id = state_attr(sensor,'id') -%}
+                          {%- set ago = state_attr(sensor,'ago') -%}
+                          {%- set settings = state_attr(sensor,'settings') -%}
+                          {%- if settings|lower != 'none' and 'motion' in settings -%}
+                            {%- set sensitivity = settings.motion.sensitivity|default(None) -%}
+                            {%- set blind_time = settings.motion.blind_time|default(None) -%}
+                            {"sensor":"{{- sensor -}}","name":"{{- id -}}","ago":{{- ago -}},"sensitivity":{{- sensitivity -}},"blind_time":{{- blind_time -}}},
+                          {%- else -%}"null",{%- endif -%}
+                        {%- else -%}"null",{%- endif -%}
+                        "state":"{{- states(i) -}}"}
+                      {%- endfor -%}]
+                    {%- else -%}[]{%- endif -%}
+                  {%- else -%}[]{%- endif -%}
             - alias: 'service: set_state sensor.motion_person_occupancy'
               service: python_script.set_state
               data_template:
@@ -311,101 +366,32 @@
                   {{ sensor }}
                 prior: >-
                   {{ state_attr('sensor.motion_person_occupancy_previous','sensor') }}
-                latitude: >-
-                  {{ state_attr('zone.home','latitude') }}
-                longitude: >-
-                  {{ state_attr('zone.home','longitude') }}
                 area: >-
                   {{ area }}
                 ago: >-
                   {{ ago }}
-                probability: >-
-                  {{ probability }}
-                state: >-
-                  {{ 'on' }}
-        - alias: 'condition: id is good and gps is good'
-          conditions:
-            - condition: template
-              value_template: >-
-                {{ id|lower != 'null' and gps|lower == 'true' }}
-          sequence:
-            - alias: 'service: set_state sensor.motion_person_occupancy'
-              service: python_script.set_state
-              data_template:
-                entity_id: sensor.motion_person_occupancy
-                id: >-
-                  {{ id }}
-                sensor: >-
-                  {{ sensor }}
-                prior: >-
-                  {{ state_attr('sensor.motion_person_occupancy_previous','sensor') }}
-                area: >-
-                  {{ area }}
-                ago: >-
-                  {{ ago }}
+                at_home: >-
+                  {{ at_home }}
                 latitude: >-
-                  {{ latitude }}
+                  {{ lat }}
                 longitude: >-
-                  {{ longitude  }}
+                  {{ long }}
                 distance: >-
                   {{ distance }}
                 probability: >-
                   {{ probability }}
+                start: >-
+                  {{ now }}
+                evidence: >-
+                  {{ evidence }}
+                probability: >-
+                  {{ state_attr('binary_sensor.motion_person_occupancy','probability') }}
+                threshold: >-
+                  {{ state_attr('binary_sensor.motion_person_occupancy','probability_threshold') }}
+                observations: >-
+                  {{ state_attr('binary_sensor.motion_person_occupancy','observations') }}
                 state: >-
-                  {{ 'on' }}
-
-- id: motion_person_occupancy_on
-  alias: motion_person_occupancy_on
-  mode: queued
-  initial_state: on
-  trigger:
-    - platform: state
-      entity_id: binary_sensor.motion_person_occupancy
-      to: 'on'
-  variables:
-    now: >-
-      {{ utcnow().timestamp() }}
-    evidence: >-
-      {%- set s = state_attr('binary_sensor.motion_person_occupancy','observations') -%}
-      {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
-        {%- set s = s|selectattr('to_state','==','on')|map(attribute='entity_id')|list -%}
-        {%- if s is iterable and s|list|count > 0 -%}
-          {%- set eids = s -%}
-          [{%- for i in eids -%}
-            {%- if not loop.first -%},{%- endif -%}
-            {"source":"{{- i -}}","evidence":
-            {%- set s = state_attr(i,'sensor') -%}
-            {%- if s|lower != 'none' -%}
-              {%- set sensor = s -%}
-              {%- set id = state_attr(sensor,'id') -%}
-              {%- set ago = state_attr(sensor,'ago') -%}
-              {%- set settings = state_attr(sensor,'settings') -%}
-              {%- if settings|lower != 'none' and 'motion' in settings -%}
-                {%- set sensitivity = settings.motion.sensitivity|default(None) -%}
-                {%- set blind_time = settings.motion.blind_time|default(None) -%}
-                {"sensor":"{{- sensor -}}","name":"{{- id -}}","ago":{{- ago -}},"sensitivity":{{- sensitivity -}},"blind_time":{{- blind_time -}}},
-              {%- else -%}"null",{%- endif -%}
-            {%- else -%}"null",{%- endif -%}
-            "state":"{{- states(i) -}}"}
-          {%- endfor -%}]
-        {%- else -%}[]{%- endif -%}
-      {%- else -%}[]{%- endif -%}
-  action:
-    - alias: 'set sensor.motion_person_occupancy start'
-      service: python_script.set_state
-      data_template:
-        entity_id: sensor.motion_person_occupancy
-        allow_create: true
-        start: >-
-          {{ now }}
-        evidence: >-
-          {{ evidence }}
-        probability: >-
-          {{ state_attr('binary_sensor.motion_person_occupancy','probability') }}
-        threshold: >-
-          {{ state_attr('binary_sensor.motion_person_occupancy','probability_threshold') }}
-        observations: >-
-          {{ state_attr('binary_sensor.motion_person_occupancy','observations') }}
+                  {{ to_state }}
 
 - id: motion_person_occupancy_off
   alias: motion_person_occupancy_off
@@ -433,3 +419,6 @@
           {{ end }}
         duration: >-
           {{ duration }}
+        state: >-
+          {{ trigger.to_state }}
+
