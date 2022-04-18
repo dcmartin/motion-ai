@@ -2,7 +2,7 @@
 # homeassistant/automation/motion/smartphone_notify.yaml
 ###
 
-- id: motion_smartphone_location_unknown_notify
+- id: motion_smartphone_location_notify
   alias: motion_smartphone_location_unknown_notify
   initial_state: on
   trigger:
@@ -18,21 +18,33 @@
       value_template: >
         {{ is_state('sensor.motion_smartphone_location','unknown') }}
   variables:
+    name: >-
+      {% set s = state_attr('sensor.motion_person','sensor') -%}
+      {%- if s|lower != 'none' -%}
+        {%- set s = state_attr(s,'friendly_name') -%}
+        {%- if s|lower == 'none' -%}
+          {%- set s = states('sensor.motion_person') -%}
+        {%- endif -%}
+      {%- endif -%}
+      {{- s }}
     title: >-
-      NOTICE: Smartphone not found
+      NOTICE: {{ name -}}'s smartphone location
     message: >-
-      The location from smartphone is unknown; at {{ utcnow().timestamp()|int|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+      {{ name -}}'s smartphone {{ states('sensor.motion_person_device') }} location is unknown;
+      at {{ utcnow().timestamp()|int|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}};
+      last update: {{ (utcnow().timestamp() - states('sensor.motion_person_ago')|float)|as_datetime|relative_time }} ago
   action:
     - alias: 'notify'
       service: persistent_notification.create
       data_template:
         title: >-
           {{ title }}
-        notification_id: motion_smartphone_location_unknown
+        notification_id: >-
+          {{ 'motion_smartphone_location-' + states('sensor.motion_person_device') }}
         message: >-
           {{ message }}
 
-- id: motion_smartphone_location_unknown_dismiss
+- id: motion_smartphone_location_dismiss
   alias: motion_smartphone_location_unknown_dismiss
   initial_state: on
   trigger:
@@ -47,7 +59,8 @@
     - alias: 'dismiss'
       service: persistent_notification.dismiss
       data_template:
-        notification_id: motion_smartphone_location_unknown
+        notification_id: >-
+          {{ 'motion_smartphone_location-' + states('sensor.motion_person_device') }}
 
 
 
