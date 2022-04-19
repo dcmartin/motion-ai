@@ -192,9 +192,9 @@
   variables:
     to_state: >-
       {% set s = trigger.to_state %}
-      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-        {{ 'on' }}
-      {% else %}{{ 'off' }}{% endif %}
+      {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ s }}
+      {% else %}null{% endif %}
     sensor: >-
       {% set s = state_attr('sensor.motion_shellies_occupancy','sensor') %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
@@ -313,12 +313,12 @@
                   {{ sensor|string + '_person_occupancy' }}
                 message: >-
                   Motion sensor **{{- trigger.to_state -}}** invalid; id: **{{- id -}}**
-    - alias: 'update if id is good'
+    - alias: 'update attributes if id is good'
       choose:
         - conditions:
             - condition: template
               value_template: >-
-                {{ id|lower != 'null' }}
+                {{ id|lower != 'null' and to_state|lower != 'unknown' }}
           sequence:
             - variables:
                 lat: >-
@@ -356,7 +356,7 @@
                       {%- endfor -%}]
                     {%- else -%}[]{%- endif -%}
                   {%- else -%}[]{%- endif -%}
-            - alias: 'service: set_state sensor.motion_person_occupancy'
+            - alias: 'service: set_state sensor.motion_person_occupancy attributes'
               service: python_script.set_state
               data_template:
                 entity_id: sensor.motion_person_occupancy
@@ -388,6 +388,17 @@
                   {{ state_attr('binary_sensor.motion_person_occupancy','probability_threshold') }}
                 observations: >-
                   {{ state_attr('binary_sensor.motion_person_occupancy','observations') }}
+    - alias: 'update state if id is good'
+      choose:
+        - conditions:
+            - condition: template
+              value_template: >-
+                {{ id|lower != 'null' }}
+          sequence:
+            - alias: 'service: set_state sensor.motion_person_occupancy'
+              service: python_script.set_state
+              data_template:
+                entity_id: sensor.motion_person_occupancy
                 state: >-
                   {{ to_state }}
 
