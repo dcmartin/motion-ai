@@ -20,13 +20,16 @@
       - condition: template
         value_template: >-
           {{ is_state('input_boolean.motion_schedule_bedtime_undetected_notify','on') }}
+  variables:
+    when: >-
+      {{ utcnow().timestamp()|int|timestamp_custom("%a %b %d %I:%M:%S %p",true,'unknown') }}
   action:
     - service: persistent_notification.create
       data_template:
         title: >-
-          CRITICAL: {{ 'Bedtime undetected! ' + utcnow().timestamp()|int|timestamp_custom("%a %b %d %I:%M:%S %p",true,'unknown') }}
+          CRITICAL: Bedtime undetected!
         notification_id: >-
-          bedtime_notify
+          bedtime-undetected-notify
         message: >-
           {%- set stdev = states('sensor.motion_schedule_bedtime_detected_stdev')|float(0.0) -%}
           {%- set min = states('sensor.motion_schedule_bedtime_detected_min')|float(0.0) -%}
@@ -39,7 +42,9 @@
           {%- set d = (stdev/3600)|int|string + 'h' + (stdev%60)|int|string + 'm' -%}
           {%- set e = '%02d'|format((min/3600)|int(0))|string + ':' + '%02d'|format((min%60)|int(0))|string -%}
           {%- set l = '%02d'|format((max/3600)|int(0))|string + ':' + '%02d'|format((max%60)|int(0))|string -%}
-          {{- 'NO BEDTIME DETECTED; interval: ' + states('sensor.motion_schedule_bedtime_interval')|string + '; normal: ' + m + ' +/- ' + d + '; early: ' +  e + '; late: ' +  l + '; last: ' + c -}}
+          {{ 'NO BEDTIME DETECTED: at ' + when|string + '; interval: ' + states('sensor.motion_schedule_bedtime_interval')|string }}
+          {{ 'Typical: ' + m + ' +/- ' + d + '; history: ' + c }}
+          {{ 'Early: ' +  e + '; : Late' +  l }}
 
 # notify when sensor.motion_schedule_bedtime_detected is set by automation.motion_schedule_bedtime_detected
 
