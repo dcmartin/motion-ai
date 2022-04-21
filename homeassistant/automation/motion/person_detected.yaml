@@ -439,8 +439,8 @@
         state: >-
           {{ states('sensor.motion_person_detected') }}
 
-- id: motion_person_detected
-  alias: motion_person_detected
+- id: motion_person_detected_cameras
+  alias: motion_person_detected_cameras
   initial_state: on
   mode: single
   trigger:
@@ -492,12 +492,15 @@
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
         {{ s }}
       {% else %}null{% endif %}
-    probability: >-
-      {{ state_attr('binary_sensor.motion_person_detected','probability') }}
     gps_accuracy: >-
       {% set s = state_attr(sensor,'gps_accuracy') %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
         {{ s }}
+      {% else %}null{% endif %}
+    sensors: >-
+      {% set s = state_attr('binary_sensor.motion_person_detected','observations') %}
+      {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unavailable' and s|lower != 'unknown' and s is iterable and s|length > 0 %}
+        {{ s|map(attribute="entity_id")|sort|unique|list }}
       {% else %}null{% endif %}
     results: >-
       {% set s = state_attr(sensor,'results') %}
@@ -528,38 +531,14 @@
       {% if p is defined %}
         {{ '%0.2f'|format(p|float(0.0)) }}
       {% else %}null{% endif %}
-    sensors: >-
-      {% set s = state_attr('binary_sensor.motion_person_detected','observations') %}
-      {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unavailable' and s|lower != 'unknown' and s is iterable and s|length > 0 %}
-        {{ s|map(attribute="entity_id")|sort|unique|list }}
-      {% else %}null{% endif %}
   action:
-    - alias: 'choose: notify on id or gps'
-      choose:
-        - alias: 'condition: id null or gps bad?'
-          conditions:
-            - condition: template
-              value_template: >
-                {{ id|lower == 'null' or gps|lower != 'true' }}
-          sequence:
-            - alias: 'notify invalid id or gps'
-              service: persistent_notification.create
-              data_template:
-                title: >-
-                  NOTICE: Detected location
-                notification_id: >-
-                  {{ sensor|string + '_person_detected' }}
-                message: >-
-                  Person detection camera id or location invalid; id: {{ id -}}; GPS: {{ latitude,longitude -}}; distance: {{ distance }}
-    - alias: 'choose: id and/or gps'
-      choose:
-        - alias: 'conditions: id good and gps bad'
-          conditions:
+    - choose:
+        - conditions:
             - condition: template
               value_template: >-
                 {{ id|lower != 'null' and gps|lower != 'true' }}
           sequence:
-            - alias: 'set sensor.motion_person_detected'
+            - alias: 'set sensor.motion_person_detected with home gps'
               service: python_script.set_state
               data_template:
                 entity_id: sensor.motion_person_detected
@@ -583,17 +562,14 @@
                   {{ '%0.1f'|format(ago|float(0.0)) }}
                 area: >-
                   {{ area }}
-                probability: >-
-                  {{ probability }}
                 state: >-
                   {{ 'on' }}
-        - alias: 'conditions: id good and gps good'
-          conditions:
+        - conditions:
             - condition: template
               value_template: >-
                 {{ id|lower != 'null' and gps|lower == 'true' }}
           sequence:
-            - alias: 'set sensor.motion_person_detected'
+            - alias: 'set sensor.motion_person_detected with sensor gps'
               service: python_script.set_state
               data_template:
                 entity_id: sensor.motion_person_detected
@@ -619,7 +595,35 @@
                   {{ '%0.1f'|format(ago|float(0.0)) }}
                 area: >-
                   {{ area }}
-                probability: >-
-                  {{ probability }}
                 state: >-
                   {{ 'on' }}
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ id|lower == 'null' or gps|lower != 'true' }}
+          sequence:
+            - alias: 'NOTIFY: invalid id or gps'
+              service: persistent_notification.create
+              data_template:
+                title: >-
+                  NOTICE: Detected location
+                notification_id: >-
+                  {{ sensor|string + '_person_detected' }}
+                message: >-
+                  Person detection camera id or location invalid; id: {{ id -}}; GPS: {{ latitude,longitude -}}; distance: {{ distance }}
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ is_state('input_select.motion_log_level','debug') }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: Person detected
+                notification_id: >-
+                  {{ sensor|string + '-person-detected-' + id|string }}
+                message: >-
+                  Person camera id: {{ id -}}; GPS: {{ latitude,longitude -}}; distance: {{ distance }}
+
