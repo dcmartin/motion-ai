@@ -82,6 +82,60 @@
         quartiles: >-
           {{ quartiles }}
 
+- id: motion_person_location_on
+  alias: motion_person_location_on
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_person_location
+      to: 'on'
+  variables:
+    now: >-
+      {{ utcnow().timestamp() }}
+  action:
+    - alias: 'set sensor.motion_person_location start'
+      service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_person_location
+        allow_create: true
+        observations: >-
+          {{ state_attr('binary_sensor.motion_person_location','observations') }}
+        entities: >-
+          {{ state_attr('binary_sensor.motion_person_location','occured_observation_entities') }}
+        probability: >-
+          {{ state_attr('binary_sensor.motion_person_location','probability') }}
+        threshold: >-
+          {{ state_attr('binary_sensor.motion_person_location','probability_threshold') }}
+        start: >-
+          {{ now }}
+
+- id: motion_person_location_off
+  alias: motion_person_location_off
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_person_location
+      to: 'off'
+  variables:
+    end: >-
+      {{ utcnow().timestamp() }}
+    start: >-
+      {{ state_attr('sensor.motion_person_location','start') }}
+    duration: >-
+      {%- if start|lower != 'none' and start|lower != 'unknown' and start|lower != 'null' and start|lower != 'unavailable' -%}
+        {{ '%0.1f'|format(end - start) }}
+      {%- else -%}null{%- endif -%}
+  action:
+    - alias: 'set sensor.motion_person_location end, duration'
+      service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_person_location
+        allow_create: true
+        end: >-
+          {{ end }}
+        duration: >-
+          {{ duration }}
+
 - id: motion_person_location_previous
   alias: motion_person_location_previous
   initial_state: on
@@ -179,8 +233,8 @@
         state: >-
           {{ states('sensor.motion_person_location') }}
 
-- id: motion_person_location
-  alias: motion_person_location
+- id: motion_person_location_smartphone
+  alias: motion_person_location_smartphone
   initial_state: on
   trigger:
     - platform: state
@@ -194,6 +248,8 @@
         {% set person = s %}
         {{ person }}
       {% else %}null{% endif %}
+    id: >-
+      {{ states(person) }}
     latitude: >-
       {% if person|lower != 'null' %}
         {% set latitude = state_attr(person,'latitude') %}
@@ -263,15 +319,15 @@
           {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' -%}
             {{ s }}
           {% else %}{{- '/local/images/smartphone.png' -}}{%- endif -%}
+        person: >-
+          {{ person }}
         id: >-
-          {{ states(person) }}
+          {{ id }}
         user_id: >-
           {% set s = state_attr(person,'user_id') %}
           {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' %}
             {{ s }}
           {% else %}null{% endif %}
-        person: >-
-          {{ person }}
         zone: >-
           {{ zone }}
         latitude: >-
@@ -290,57 +346,22 @@
           {{ utcnow().timestamp() }}
         state: >-
           {{ states('sensor.motion_smartphone_location') }}
-
-- id: motion_person_location_on
-  alias: motion_person_location_on
-  initial_state: on
-  trigger:
-    - platform: state
-      entity_id: binary_sensor.motion_person_location
-      to: 'on'
-  variables:
-    now: >-
-      {{ utcnow().timestamp() }}
-  action:
-    - alias: 'set sensor.motion_person_location start'
-      service: python_script.set_state
-      data_template:
-        entity_id: sensor.motion_person_location
-        allow_create: true
-        observations: >-
-          {{ state_attr('binary_sensor.motion_person_location','observations') }}
-        entities: >-
-          {{ state_attr('binary_sensor.motion_person_location','occured_observation_entities') }}
-        probability: >-
-          {{ state_attr('binary_sensor.motion_person_location','probability') }}
-        threshold: >-
-          {{ state_attr('binary_sensor.motion_person_location','probability_threshold') }}
-        start: >-
-          {{ now }}
-
-- id: motion_person_location_off
-  alias: motion_person_location_off
-  initial_state: on
-  trigger:
-    - platform: state
-      entity_id: binary_sensor.motion_person_location
-      to: 'off'
-  variables:
-    end: >-
-      {{ utcnow().timestamp() }}
-    start: >-
-      {{ state_attr('sensor.motion_person_location','start') }}
-    duration: >-
-      {%- if start|lower != 'none' and start|lower != 'unknown' and start|lower != 'null' and start|lower != 'unavailable' -%}
-        {{ '%0.1f'|format(end - start) }}
-      {%- else -%}null{%- endif -%}
-  action:
-    - alias: 'set sensor.motion_person_location end, duration'
-      service: python_script.set_state
-      data_template:
-        entity_id: sensor.motion_person_location
-        allow_create: true
-        end: >-
-          {{ end }}
-        duration: >-
-          {{ duration }}
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ is_state('input_select.motion_log_level','debug') }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: Smartphone {{ id }}
+                notification_id: >-
+                  {{ 'person-location-' + person|string }}
+                message: >-
+                  {{- '[![]('
+                     + '/local/images/motion/icons/notification-alert.png?v=1'
+                     + ')]('
+                     + '/lovelace/smartphone'
+                     + ')' }}
+                  Smartphone id: {{ id -}}; GPS: {{ gps -}}; distance: {{ distance -}}; sensor: {{ sensor }}

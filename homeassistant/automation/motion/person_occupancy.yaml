@@ -208,6 +208,20 @@
         {%- else -%}[]{%- endif -%}
       {%- else -%}[]{%- endif -%}
   action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ is_state('input_select.motion_log_level','debug') }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: Person occupancy ON
+                notification_id: >-
+                  {{ 'person-occupancy' }}
+                message: >-
+                  At: {{ now|timestamp_custom("%H:%M",true,'unknown') }}; probability: {{ probability -}}; threshold: {{ threshold -}}
     - alias: 'set sensor.motion_person_occupancy start w/ observations, entities, probabiltiy, threshold, evidence'
       service: python_script.set_state
       data_template:
@@ -223,20 +237,6 @@
           {{ state_attr('binary_sensor.motion_person_occupancy','probability_threshold') }}
         observations: >-
           {{ state_attr('binary_sensor.motion_person_occupancy','observations') }}
-    - choose:
-        - conditions:
-            - condition: template
-              value_template: >
-                {{ is_state('input_select.motion_log_level','debug') }}
-          sequence:
-            - service: persistent_notification.create
-              data_template:
-                title: >-
-                  DEBUG: Person occupancy ON
-                notification_id: >-
-                  {{ 'person-occupancy' }}
-                message: >-
-                  At: {{ now|timestamp_custom("%H:%M",true,'unknown') }}; probability: {{ probability -}}; threshold: {{ threshold -}}
 
 - id: motion_person_occupancy_off
   alias: motion_person_occupancy_off
@@ -255,15 +255,6 @@
         {{ now - s|float(0.0) }}
       {% else %}null{% endif %}
   action:
-    - alias: 'set sensor.motion_person_occupancy end, duration'
-      service: python_script.set_state
-      data_template:
-        entity_id: sensor.motion_person_occupancy
-        allow_create: true
-        end: >-
-          {{ now }}
-        duration: >-
-          {{ duration }}
     - choose:
         - conditions:
             - condition: template
@@ -278,6 +269,15 @@
                   {{ 'person-occupancy' }}
                 message: >-
                   At: {{ now|timestamp_custom("%H:%M",true,'unknown') }}; duration: {{ duration -}}
+    - alias: 'set sensor.motion_person_occupancy end, duration'
+      service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_person_occupancy
+        allow_create: true
+        end: >-
+          {{ now }}
+        duration: >-
+          {{ duration }}
 
 - id: motion_person_occupancy_shellies
   alias: motion_person_occupancy_shellies
@@ -349,6 +349,16 @@
               value_template: >-
                 {{ id|lower != 'null' and gps|lower != 'true' }}
           sequence:
+            - alias: 'NOTIFY: invalid gps'
+              service: persistent_notification.create
+              data_template:
+                title: >-
+                  NOTICE: Location {{ id }}
+                notification_id: >-
+                  {{ 'person-occupancy-' + id|string }}
+                message: >-
+                  Occupancy sensor **{{ id }}** location invalid; distance: {{ '%0.1d'|format(distance|float/1000) }} Km.
+                  Using **Home** _zone_ as default.
             - alias: 'set sensor.motion_person_occupancy with home gps'
               service: python_script.set_state
               data_template:
@@ -404,29 +414,18 @@
         - conditions:
             - condition: template
               value_template: >
-                {{ id|lower == 'null' or gps|lower != 'true' }}
-          sequence:
-            - alias: 'NOTIFY: invalid id or gps'
-              service: persistent_notification.create
-              data_template:
-                title: >-
-                  NOTICE: person occupancy sensor
-                notification_id: >-
-                  {{ sensor|string + '_person_occupancy' }}
-                message: >-
-                  Person occupancy sensor id or location invalid; sensor: {{ sensor -}}; id: {{ id -}}; GPS: {{ latitude,longitude -}}; distance: {{ distance }}
-    - choose:
-        - conditions:
-            - condition: template
-              value_template: >
                 {{ is_state('input_select.motion_log_level','debug') }}
           sequence:
             - service: persistent_notification.create
               data_template:
                 title: >-
-                  DEBUG: Person occupancy
+                  DEBUG: Occupancy {{ id }}
                 notification_id: >-
-                  {{ sensor|string + '-person-occupancy-' + id|string }}
+                  {{ 'person-occupancy-' + sensor|string }}
                 message: >-
-                  Motion sensor id: {{ id -}}; GPS: {{ latitude,longitude -}}; distance: {{ distance }}
-
+                  {{- '[![]('
+                     + '/local/images/motion/icons/notification-alert.png?v=1'
+                     + ')]('
+                     + '/lovelace/interior'
+                     + ')' }}
+                  Sensor id: {{ id -}}; GPS: {{ gps -}}; distance: {{ distance -}}; sensor: {{ sensor }}
