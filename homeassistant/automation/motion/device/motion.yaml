@@ -1,0 +1,147 @@
+###
+# homeassistant/automation/motion/device/motion.yaml
+###
+
+- id: motion_device_motion_ids
+  alias: motion_device_motion_ids
+  mode: restart
+  initial_state: on
+  trigger:
+    - platform: time_pattern
+      minutes: '/5'
+    - platform: homeassistant
+      event: start
+  variables:
+    all: >-
+      [{%- for state in states.binary_sensor if 'device_class' in state.attributes and state.attributes.device_class=='motion' and not '.motion_' in state.entity_id -%}
+        {%- if not loop.first -%},{% endif -%}
+        "{{- device_attr(device_id(state.entity_id),'name') -}}"
+      {%- endfor -%}]
+    ids: >-
+      {%- if all != [] and all is iterable and all|count > 0 -%}
+        {{- all|sort|unique|list -}}
+      {% else %}null{% endif %}
+    total: >-
+      {% set s = ids %}
+      {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+        {{ s|count }}
+      {%- else -%}0{%- endif %}
+    update: >-
+      {% set s = ids %}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
+        [{%- for i in s -%}
+          {% set o = loop %}
+          {%- for state in (states.button|list + states.switch|list) if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'update' -%}
+            {%- if not o.first or not loop.first -%},{%- endif -%}
+            {%- set v = state.state -%}
+            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}"}
+          {%- endfor -%}
+        {%- endfor -%}]
+      {%- else -%}null{%- endif %}
+    restart: >-
+      {% set s = ids %}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
+        [{%- for i in s -%}
+          {% set o = loop %}
+          {%- for state in (states.button|list + states.switch|list) if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'restart' -%}
+            {%- if not o.first or not loop.first -%},{%- endif -%}
+            {%- set v = state.state -%}
+            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}"}
+          {%- endfor -%}
+        {%- endfor -%}]
+      {%- else -%}null{%- endif %}
+    controls: >-
+      {% set s = ids %}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
+        [{%- for i in s -%}
+          {% set o = loop %}
+          {%- for state in (states.button|list + states.switch|list) if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'null' -%}
+            {%- if not o.first or not loop.first -%},{%- endif -%}
+            {%- set v = state.state -%}
+            {%- set ctl = state.entity_id|regex_replace('^.*\.'+i+'_','') -%}
+            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","control":"{{- ctl -}}"}
+          {%- endfor -%}
+        {%- endfor -%}]
+      {%- else -%}null{%- endif %}
+    status: >-
+      {% set s = ids -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
+        [{%- for i in s -%}
+          {% set o = loop %}
+          {%- for state in states.binary_sensor if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'motion' -%}
+            {%- if not o.first or not loop.first -%},{%- endif -%}
+            {%- set v = state.state -%}
+            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}"}
+          {%- endfor -%}
+        {%- endfor -%}]
+      {%- else -%}null{%- endif %}
+    areas: >-
+      {% set s = status %}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
+        [{% for i in s if 'entity_id' in i and not i.entity_id is none -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {"area":"{{- area_id(i.entity_id) -}}","value":{{- states(i.entity_id)|float(none) -}}}
+        {%- endfor -%}]
+      {%- else -%}null{%- endif %}
+    positive: >-
+      {% set s = status %}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
+        [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,'on') -%}
+          {%- if not loop.first -%},{%- endif -%}
+          "{{- i.id -}}"
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
+    negative: >-
+      {% set s = status %}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
+        [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,'off') -%}
+          {%- if not loop.first -%},{%- endif -%}
+          "{{- i.id -}}"
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
+    values: >-
+      {% set s = status %}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
+        [{% for i in s if 'entity_id' in i and not i.entity_id is none -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {% if is_state(i.entity_id,'on') %}1{% else %}0{% endif %}
+        {%- endfor -%}]
+      {%- else -%}null{%- endif %}
+    value: >-
+      {% set s = values %}
+      {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ s|sum|int(0) > 0 }}
+      {% else %}null{% endif %}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+         {{ ids|lower != 'null' }}
+  action:
+    - alias: 'update sensor.motion_device_motion ids'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_motion
+        ids: >-
+          {{ ids }}
+        total: >-
+          {{ total }}
+        update: >-
+          {{ update }}
+        restart: >-
+          {{ restart }}
+        controls: >-
+          {{ controls }}
+        status: >-
+          {{ status }}
+        areas: >-
+          {{ areas }}
+        values: >-
+          {{ values }}
+        positive: >-
+          {{ positive }}
+        negative: >-
+          {{ negative }}
+        state: >-
+          {{ value }}
