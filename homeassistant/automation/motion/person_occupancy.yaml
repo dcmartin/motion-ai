@@ -190,20 +190,15 @@
             {"source":"{{- i -}}","evidence":
             {%- set s = state_attr(i,'sensor') -%}
             {%- if s|lower != 'none' -%}
-              {%- set sensor = s -%}
-              {%- set e = state_attr(sensor,'event') -%}
-              {%- if e|lower != 'none' and 'camera' in e -%}
-                {%- set c = e.camera|default('none') -%}
-                {%- if c|lower != 'none' -%}
-                  {%- set t = states('sensor.motion_detected_person_threshold')|float -%}
-                  {%- set tc = states('sensor.motion_detected_person_threshold_confirmed')|float -%}
-                  {%- set n = state_attr(sensor,'results')|selectattr('entity','==','person')|selectattr('confidence','>',t)|list|count -%}
-                  {%- set b = state_attr(sensor,'results')|selectattr('entity','==','person')|map(attribute='confidence')|max -%}
-                  {"sensor":"{{- sensor -}}","name":"{{- c -}}","count":{{- n|int -}},"confidence":{{- b|int -}},"threshold":{{- t|int -}},"confirmed":{{- tc|int -}},"state":"{{- states(sensor) -}}"},
-                {%- endif -%}
-              {%- endif -%}
-            {%- else -%}"null",{%- endif -%}
-            "state":"{{- states(i) -}}"}
+              {%- if s|lower != 'none' -%}
+                {"sensor":"{{- s -}}","state":"{{- states(s) -}}","updated":{{- states[s].last_updated|as_timestamp(none) -}}}
+              {%- else -%}none{%- endif -%}
+            {%- else -%}
+              {%- set s = state_attr(i,'evidence') -%}
+              {%- if s|lower != 'none' -%}
+                {{- s -}}
+              {%- else -%}none{%- endif -%}
+            {%- endif -%}}
           {%- endfor -%}]
         {%- else -%}[]{%- endif -%}
       {%- else -%}[]{%- endif -%}
@@ -441,7 +436,7 @@
     latest: >-
       {% set s = state_attr('binary_sensor.motion_device_motion','status') %}
       {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
-        {% set s = s|selectattr('state','==','off')|sort(attribute='updated',reverse=true) %}
+        {% set s = s|selectattr('state','==','on')|sort(attribute='updated',reverse=true) %}
         {% if s is iterable and s|count > 0 %}
           {{ s|first }}
         {%- else -%}none{%- endif %}
@@ -654,8 +649,8 @@
       service: python_script.set_state
       data_template:
         entity_id: sensor.motion_person_occupancy
-        sensor: >-
-          {{ sensor }}
+#        sensor: >-
+#          {{ sensor }}
         state: >-
           {{ 'off' }}
     - choose:
