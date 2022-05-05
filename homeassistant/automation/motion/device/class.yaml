@@ -1,0 +1,87 @@
+###
+# homeassistant/automation/motion/device/class.yaml
+###
+
+- id: motion_device_class_ids
+  alias: motion_device_class_ids
+  mode: restart
+  initial_state: on
+  trigger:
+    - platform: time_pattern
+      minutes: '/5'
+    - platform: homeassistant
+      event: start
+  variables:
+    sensors: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','sensors') %}
+      {%- if s|lower != 'none' -%}
+        [{%- for i in s if not state_attr('sensor.motion_device_' + i,'ids') is string and state_attr('sensor.motion_device_' + i,'ids')|lower != 'none' -%}
+          {% set r = state_attr('sensor.motion_device_' + i,'ids') %}
+          {%- for j in r  -%}
+            {%- if not loop.first -%},{%- endif -%}
+            "{{- j -}}"
+          {%- endfor -%}
+          {%- if not loop.last -%},{%- endif -%}
+        {%- endfor -%}]
+      {% else %}null{% endif %}
+    binary_sensors: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','binary_sensors') %}
+      {%- if s|lower != 'none' -%}
+        [{%- for i in s if not state_attr('binary_sensor.motion_device_' + i,'ids') is string and state_attr('binary_sensor.motion_device_' + i,'ids')|lower != 'none' -%}
+          {% set r = state_attr('binary_sensor.motion_device_' + i,'ids') %}
+          {%- for j in r  -%}
+            {%- if not loop.first -%},{%- endif -%}
+            "{{- j -}}"
+          {%- endfor -%}
+          {%- if not loop.last -%},{%- endif -%}
+        {%- endfor -%}]
+      {% else %}null{% endif %}
+    ids: >-
+      {%- set s = sensors + binary_sensors -%}
+      {{- s|sort|unique|list -}}
+    total: >-
+      {% set s = ids %}
+      {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+        {{ s|count }}
+      {%- else -%}0{%- endif %}
+    status: >-
+      {% set s = ids -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
+        [{%- for i in s -%}
+          {% set o = loop %}
+          {%- for state in states if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string != 'null' -%}
+            {%- if not o.first or not loop.first -%},{%- endif -%}
+            {%- set v = state.state -%}
+            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}"}
+          {%- endfor -%}
+        {%- endfor -%}]
+      {%- else -%}null{%- endif %}
+    areas: >-
+      {% set s = status %}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
+        [{% for i in s if 'entity_id' in i and not i.entity_id is none -%}
+          {%- if not loop.first -%},{%- endif -%}
+          "{{- area_id(i.entity_id) -}}"
+        {%- endfor -%}]
+      {%- else -%}null{%- endif %}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+         {{ ids|lower != 'null' }}
+  action:
+    - alias: 'update sensor.motion_device_class ids'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        ids: >-
+          {{ ids }}
+        total: >-
+          {{ total }}
+        status: >-
+          {{ status }}
+        areas: >-
+          {{ areas|sort|unique|list }}
+        state: >-
+          {{ 'on' }}
