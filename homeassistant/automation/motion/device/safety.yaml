@@ -2,13 +2,81 @@
 # homeassistant/automation/motion/device/safety.yaml
 ###
 
+- id: motion_device_safety_status
+  alias: motion_device_safety_status
+  mode: restart
+  initial_state: on
+  trigger:
+    - platform: time_pattern
+      seconds: '/10'
+    - platform: state
+      entity_id: sensor.motion_device_safety
+      attribute: 'ids'
+  variables:
+    ids: >-
+      {{ state_attr('sensor.motion_device_safety','ids') }}
+    status: >-
+      {% set s = ids -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
+        [{%- for i in s -%}
+          {% set o = loop %}
+          {%- for state in states.binary_sensor if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'safety' -%}
+            {%- if not o.first or not loop.first -%},{%- endif -%}
+            {%- set v = state.state -%}
+            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
+          {%- endfor -%}
+        {%- endfor -%}]
+      {%- else -%}null{%- endif %}
+    positive: >-
+      {% set s = status %}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
+        [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,'on') -%}
+          {%- if not loop.first -%},{%- endif -%}
+          "{{- state_attr(i.entity_id,'friendly_name') -}}"
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
+    negative: >-
+      {% set s = status %}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
+        [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,'off') -%}
+          {%- if not loop.first -%},{%- endif -%}
+          "{{- state_attr(i.entity_id,'friendly_name') -}}"
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
+    values: >-
+      {% set s = status %}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
+        [{% for i in s if 'entity_id' in i and not i.entity_id is none -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {% if is_state(i.entity_id,'on') %}1{% else %}0{% endif %}
+        {%- endfor -%}]
+      {%- else -%}null{%- endif %}
+    value: >-
+      {% set s = values %}
+      {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {% if s|sum|int(0) > 0 %}on{% else %}off{% endif %}
+      {% else %}null{% endif %}
+  action:
+    - alias: 'update sensor.motion_device_safety ids'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_safety
+        status: >-
+          {{ status }}
+        positive: >-
+          {{ positive }}
+        negative: >-
+          {{ negative }}
+        state: >-
+          {{ value }}
+
 - id: motion_device_safety_binary_sensors
   alias: motion_device_safety_binary_sensors
   mode: restart
   initial_state: on
   trigger:
     - platform: time_pattern
-      minutes: '/1'
+      minutes: '/5'
     - platform: homeassistant
       event: start
   variables:
@@ -57,8 +125,8 @@
           {% set o = loop %}
           {%- for state in (states.button|list + states.switch|list) if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'null' -%}
             {%- if not o.first or not loop.first -%},{%- endif -%}
-            {%- set v = state.state -%}
-            {%- set ctl = state.entity_id|regex_replace('^.*\.'+i+'_','') -%}
+            {%- set ctl = state_attr(state.entity_id,'friendly_name') -%}
+            {%- set ctl = ctl|replace(i+' ','') -%}
             {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","control":"{{- ctl -}}"}
           {%- endfor -%}
         {%- endfor -%}]
@@ -74,7 +142,7 @@
           {%- endfor -%}
         {%- endfor -%}]
       {%- else -%}null{%- endif %}
-    status: >-
+    areas: >-
       {% set s = ids -%}
       {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
         [{%- for i in s -%}
@@ -82,47 +150,10 @@
           {%- for state in states.binary_sensor if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'safety' -%}
             {%- if not o.first or not loop.first -%},{%- endif -%}
             {%- set v = state.state -%}
-            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
+            {"area":"{{- area_id(state.entity_id) -}}","state":"{{- state.state -}}"}
           {%- endfor -%}
         {%- endfor -%}]
       {%- else -%}null{%- endif %}
-    areas: >-
-      {% set s = status %}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
-        [{% for i in s if 'entity_id' in i and not i.entity_id is none -%}
-          {%- if not loop.first -%},{%- endif -%}
-          {"area":"{{- area_id(i.entity_id) -}}","value":{{- states(i.entity_id)|float(none) -}}}
-        {%- endfor -%}]
-      {%- else -%}null{%- endif %}
-    positive: >-
-      {% set s = status %}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
-        [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,'on') -%}
-          {%- if not loop.first -%},{%- endif -%}
-          "{{- state_attr(i.entity_id,'friendly_name') -}}"
-        {%- endfor -%}]
-      {%- else -%}none{%- endif %}
-    negative: >-
-      {% set s = status %}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
-        [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,'off') -%}
-          {%- if not loop.first -%},{%- endif -%}
-          "{{- state_attr(i.entity_id,'friendly_name') -}}"
-        {%- endfor -%}]
-      {%- else -%}none{%- endif %}
-    values: >-
-      {% set s = status %}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
-        [{% for i in s if 'entity_id' in i and not i.entity_id is none -%}
-          {%- if not loop.first -%},{%- endif -%}
-          {% if is_state(i.entity_id,'on') %}1{% else %}0{% endif %}
-        {%- endfor -%}]
-      {%- else -%}null{%- endif %}
-    value: >-
-      {% set s = values %}
-      {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
-        {% if s|sum|int(0) > 0 %}on{% else %}off{% endif %}
-      {% else %}null{% endif %}
   action:
     - alias: 'update sensor.motion_device_safety ids'
       service: python_script.set_state
@@ -149,4 +180,4 @@
         negative: >-
           {{ negative }}
         state: >-
-          {{ value }}
+          {{ states('sensor.motion_device_safety') }}
