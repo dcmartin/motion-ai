@@ -12,8 +12,8 @@
     - platform: homeassistant
       event: start
   variables:
-    sensors: >-
-      {% set s = state_attr('binary_sensor.motion_device_class','sensor_list') %}
+    sensor_ids: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','sensors') %}
       {%- if s|lower != 'none' -%}
         [{%- for i in s if not state_attr('sensor.motion_device_' + i,'ids') is string and state_attr('sensor.motion_device_' + i,'ids')|lower != 'none' -%}
           {% set r = state_attr('sensor.motion_device_' + i,'ids') %}
@@ -24,8 +24,8 @@
           {%- if not loop.last -%},{%- endif -%}
         {%- endfor -%}]
       {% else %}null{% endif %}
-    binary_sensors: >-
-      {% set s = state_attr('binary_sensor.motion_device_class','binary_sensor_list') %}
+    binary_sensor_ids: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','binary_sensors') %}
       {%- if s|lower != 'none' -%}
         [{%- for i in s if not state_attr('binary_sensor.motion_device_' + i,'ids') is string and state_attr('binary_sensor.motion_device_' + i,'ids')|lower != 'none' -%}
           {% set r = state_attr('binary_sensor.motion_device_' + i,'ids') %}
@@ -36,8 +36,15 @@
           {%- if not loop.last -%},{%- endif -%}
         {%- endfor -%}]
       {% else %}null{% endif %}
+    ids: >-
+      {{- (sensor_ids + binary_sensor_ids)|sort|unique|list -}}
+    total: >-
+      {% set s = ids %}
+      {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+        {{ s|count }}
+      {%- else -%}0{%- endif %}
     measurement: >-
-      [{% for i in sensors if
+      [{% for i in state_attr('binary_sensor.motion_device_class','sensors') if
         states('sensor.motion_device_' + i|string)|lower != 'null'
         and states('sensor.motion_device_' + i|string)|lower != 'unknown'
         and states('sensor.motion_device_' + i|string)|lower != 'none' %}
@@ -47,7 +54,7 @@
         {"class":"{{- i -}}","entity_id":"{{- e -}}","state":"{{- v -}}"}
       {% endfor %}]
     status: >-
-      [{% for i in binary_sensors if
+      [{% for i in state_attr('binary_sensor.motion_device_class','binary_sensors') if
         states('binary_sensor.motion_device_' + i|string)|lower != 'null'
         and states('binary_sensor.motion_device_' + i|string)|lower != 'unknown'
         and states('binary_sensor.motion_device_' + i|string)|lower != 'none' %}
@@ -56,15 +63,7 @@
         {%- set v = states(e) %}
         {"class":"{{- i -}}","entity_id":"{{- e -}}","state":"{{- v -}}"}
       {% endfor %}]
-    ids: >-
-      {%- set s = sensors + binary_sensors -%}
-      {{- s|sort|unique|list -}}
-    total: >-
-      {% set s = ids %}
-      {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
-        {{ s|count }}
-      {%- else -%}0{%- endif %}
-    devices: >-
+    entities: >-
       {% set s = ids -%}
       {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
         [{%- for i in s -%}
@@ -72,17 +71,14 @@
           {%- for state in states if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string != 'null' -%}
             {%- if not o.first or not loop.first -%},{%- endif -%}
             {%- set v = state.state -%}
-            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}"}
+            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","area":"{{- area_id(state.entity_id) -}}"}
           {%- endfor -%}
         {%- endfor -%}]
       {%- else -%}null{%- endif %}
     areas: >-
-      {% set s = status %}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
-        [{% for i in s if 'entity_id' in i and not i.entity_id is none -%}
-          {%- if not loop.first -%},{%- endif -%}
-          "{{- area_id(i.entity_id) -}}"
-        {%- endfor -%}]
+      {% set s = entities %}
+      {%- if s|lower != 'null' and not s is string and s is iterable and s|count > 0 -%}
+        {{ s|map(attribute='area')|reject('==','None')|sort|unique|list }}
       {%- else -%}null{%- endif %}
   action:
     - alias: 'update sensor.motion_device_class ids'
@@ -97,9 +93,9 @@
           {{ measurement }}
         status: >-
           {{ status }}
-        devices: >-
-          {{ devices }}
+        entities: >-
+          {{ entities }}
         areas: >-
-          {{ areas|sort|unique|list }}
+          {{ areas }}
         state: >-
-          {{ 'on' }}
+          {{ total|int(0) > 0 }}
