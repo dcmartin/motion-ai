@@ -13,7 +13,7 @@
       event: start
   variables:
     sensors: >-
-      {% set s = state_attr('binary_sensor.motion_device_class','sensors') %}
+      {% set s = state_attr('binary_sensor.motion_device_class','sensor_list') %}
       {%- if s|lower != 'none' -%}
         [{%- for i in s if not state_attr('sensor.motion_device_' + i,'ids') is string and state_attr('sensor.motion_device_' + i,'ids')|lower != 'none' -%}
           {% set r = state_attr('sensor.motion_device_' + i,'ids') %}
@@ -25,7 +25,7 @@
         {%- endfor -%}]
       {% else %}null{% endif %}
     binary_sensors: >-
-      {% set s = state_attr('binary_sensor.motion_device_class','binary_sensors') %}
+      {% set s = state_attr('binary_sensor.motion_device_class','binary_sensor_list') %}
       {%- if s|lower != 'none' -%}
         [{%- for i in s if not state_attr('binary_sensor.motion_device_' + i,'ids') is string and state_attr('binary_sensor.motion_device_' + i,'ids')|lower != 'none' -%}
           {% set r = state_attr('binary_sensor.motion_device_' + i,'ids') %}
@@ -36,6 +36,26 @@
           {%- if not loop.last -%},{%- endif -%}
         {%- endfor -%}]
       {% else %}null{% endif %}
+    measurement: >-
+      [{% for i in sensors if
+        states('sensor.motion_device_' + i|string)|lower != 'null'
+        and states('sensor.motion_device_' + i|string)|lower != 'unknown'
+        and states('sensor.motion_device_' + i|string)|lower != 'none' %}
+        {%- if not loop.first -%},{%- endif -%}
+        {%- set e = 'sensor.motion_device_' + i|string %}
+        {%- set v = states(e) %}
+        {"class":"{{- i -}}","entity_id":"{{- e -}}","state":"{{- v -}}"}
+      {% endfor %}]
+    status: >-
+      [{% for i in binary_sensors if
+        states('binary_sensor.motion_device_' + i|string)|lower != 'null'
+        and states('binary_sensor.motion_device_' + i|string)|lower != 'unknown'
+        and states('binary_sensor.motion_device_' + i|string)|lower != 'none' %}
+        {%- if not loop.first -%},{%- endif -%}
+        {%- set e = 'binary_sensor.motion_device_' + i|string %}
+        {%- set v = states(e) %}
+        {"class":"{{- i -}}","entity_id":"{{- e -}}","state":"{{- v -}}"}
+      {% endfor %}]
     ids: >-
       {%- set s = sensors + binary_sensors -%}
       {{- s|sort|unique|list -}}
@@ -44,7 +64,7 @@
       {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
         {{ s|count }}
       {%- else -%}0{%- endif %}
-    status: >-
+    devices: >-
       {% set s = ids -%}
       {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
         [{%- for i in s -%}
@@ -73,8 +93,12 @@
           {{ ids }}
         total: >-
           {{ total }}
+        measurement: >-
+          {{ measurement }}
         status: >-
           {{ status }}
+        devices: >-
+          {{ devices }}
         areas: >-
           {{ areas|sort|unique|list }}
         state: >-
