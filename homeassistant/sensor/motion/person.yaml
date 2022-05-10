@@ -105,10 +105,6 @@
         {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'auto' -%}
           {%- set p = s -%}
         {%- endif -%}
-        {%- set s = states.sensor.motion_person.state -%}
-        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'auto' -%}
-          {%- set p = s -%}
-        {%- endif -%}
         {%- set s = states('sensor.motion_person_selected') -%}
         {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'auto' -%}
           {%- set p = s -%}
@@ -145,6 +141,23 @@
           {%- if s|lower != 'none' and s|lower != 'null' and s|lower != 'unavailable' and s|lower != 'unknown' -%}
             {{- s -}}
           {%- else -%}{{- '/local/images/icons/smartphone.png' -}}{%- endif %}
+        zone: >-
+          {% set lat = state_attr('device_tracker.' + states('sensor.motion_person_device_calculator'),'latitude') -%}
+          {% set lng = state_attr('device_tracker.' + states('sensor.motion_person_device_calculator'),'longitude') -%}
+          {%- if lat|lower != 'null' and lng|lower != 'null' and lat|lower != 'none' and lng|lower != 'none' and is_state('binary_sensor.motion_person_zones','on') -%}
+            {%- set zones = state_attr('binary_sensor.motion_person_zones','zones') -%}
+            {%- if zones|lower != 'unknown' and zones|lower != 'none' and zones|lower != 'unavailable' and zones is iterable and zones|length > 0 -%}
+              {%- set s = closest(lat,lng,zones) %}
+              {%- if s|lower != 'none' and s.entity_id|lower != 'none' and s.entity_id|string in zones -%}
+                {%- set d = distance(lat, lng, s) -%}
+                {%- if d|lower != 'none' and d|lower != 'null' and d|lower != 'unknown' and d|lower != 'unavailable' and d|int(0) is number and d|int(0) < 40075 -%}
+                  {%- set d = '%0.2f'|format(d|float(0.0) * 1000) -%}
+                {%- else -%}{%- set d = null -%}{%- endif -%}
+                {%- set r = s.attributes.radius|default(None) -%}
+                {{- '{"name":"' + s.attributes.friendly_name + '","radius":' + r|string + ',"entity_id":"' + s.entity_id + '","inside":' + (d|int(0) < r|int(0))|string + ',"distance":' + d|string + '}' -}}
+              {%- else -%}unknown{%- endif -%}
+            {%- else -%}none{%- endif -%}
+          {%- else -%}null{%- endif -%}
       value_template: >-
         {%- set s = states('sensor.motion_person_device_calculator') -%}
         {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 -%}
@@ -229,7 +242,7 @@
       attribute_templates:
         entity_picture: >-
           {% if is_state('binary_sensor.motion_person_zones','on') -%}
-            {% set s = state_attr('sensor.motion_person_smartphone','zone') %}
+            {% set s = state_attr('sensor.motion_person_device','zone') %}
             {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and 'entity_id' in s %}
               {% set s = state_attr(s.entity_id,'entity_picture') %}
               {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
@@ -240,42 +253,42 @@
           {{- p|default('/local/images/map-marker-radius.png',true) -}}
         entity_id: >-
           {% if is_state('binary_sensor.motion_person_zones','on') -%}
-            {% set s = state_attr('sensor.motion_person_smartphone','zone') %}
+            {% set s = state_attr('sensor.motion_person_device','zone') %}
             {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and 'entity_id' in s %}
               {{ s.entity_id }}
             {%- else -%}none{%- endif -%}
           {%- else -%}unknown{%- endif -%}
         name: >-
           {% if is_state('binary_sensor.motion_person_zones','on') -%}
-            {% set s = state_attr('sensor.motion_person_smartphone','zone') %}
+            {% set s = state_attr('sensor.motion_person_device','zone') %}
             {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and 'entity_id' in s %}
               {{ state_attr(s.entity_id,'friendly_name') }}
             {%- else -%}none{%- endif -%}
           {%- else -%}unknown{%- endif -%}
         radius: >-
           {% if is_state('binary_sensor.motion_person_zones','on') -%}
-            {% set s = state_attr('sensor.motion_person_smartphone','zone') %}
+            {% set s = state_attr('sensor.motion_person_device','zone') %}
             {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and 'entity_id' in s %}
               {{ state_attr(s.entity_id,'radius') }}
             {%- else -%}none{%- endif -%}
           {%- else -%}unknown{%- endif -%}
         latitude: >-
           {% if is_state('binary_sensor.motion_person_zones','on') -%}
-            {% set s = state_attr('sensor.motion_person_smartphone','zone') %}
+            {% set s = state_attr('sensor.motion_person_device','zone') %}
             {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and 'entity_id' in s %}
               {{ state_attr(s.entity_id,'latitude') }}
             {%- else -%}none{%- endif -%}
           {%- else -%}unknown{%- endif -%}
         longitude: >-
           {% if is_state('binary_sensor.motion_person_zones','on') -%}
-            {% set s = state_attr('sensor.motion_person_smartphone','zone') %}
+            {% set s = state_attr('sensor.motion_person_device','zone') %}
             {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and 'entity_id' in s %}
               {{ state_attr(s.entity_id,'longitude') }}
             {%- else -%}none{%- endif -%}
           {%- else -%}unknown{%- endif -%}
         status: >-
           {% if is_state('binary_sensor.motion_person_zones','on') -%}
-            {%- set zone = state_attr('sensor.motion_person_smartphone','zone') -%}
+            {%- set zone = state_attr('sensor.motion_person_device','zone') -%}
             {%- if zone|lower != 'unknown' and zone|lower != 'none' and zone|lower != 'unavailable' and zone|lower != 'null' and zone|length > 0 -%}
               {{ state_attr('person.' + states('sensor.motion_person'),'friendly_name')|string + ' is ' }}
               {%- if zone|lower != 'unknown' and zone|lower != 'none' and zone|lower != 'unavailable' and zone|lower != 'null' and zone|length > 0 -%}
@@ -304,7 +317,7 @@
           {%- else -%}unknown{%- endif %}
       value_template: >-
         {% if is_state('binary_sensor.motion_person_zones','on') -%}
-          {% set s = state_attr('sensor.motion_person_smartphone','zone') %}
+          {% set s = state_attr('sensor.motion_person_device','zone') %}
           {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and 'entity_id' in s %}
             {{ s.entity_id|replace('zone.','') }}
           {%- else -%}none{%- endif -%}
