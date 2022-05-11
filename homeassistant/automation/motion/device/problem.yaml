@@ -2,73 +2,20 @@
 # homeassistant/automation/motion/device/problem.yaml
 ###
 
-- id: motion_device_problem_status
-  alias: motion_device_problem_status
+
+## rescan
+
+- id: motion_device_problem_rescan
+  alias: motion_device_problem_rescan
   mode: single
   initial_state: on
   trigger:
-    - platform: time_pattern
-      seconds: '/15'
-    - platform: state
-      entity_id: binary_sensor.motion_device_problem
-      attribute: 'ids'
-  variables:
-    ids: >-
-      {{ state_attr('binary_sensor.motion_device_problem','ids') }}
-    status: >-
-      {% set s = ids -%}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
-        [{%- for i in s -%}
-          {% set o = loop %}
-          {%- for state in states.binary_sensor if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'problem' -%}
-            {%- if not o.first or not loop.first -%},{%- endif -%}
-            {%- set v = state.state -%}
-            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
-          {%- endfor -%}
-        {%- endfor -%}]
-      {%- else -%}null{%- endif %}
-    positive: >-
-      {% set s = status %}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
-        [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,'on') -%}
-          {%- if not loop.first -%},{%- endif -%}
-          "{{- state_attr(i.entity_id,'friendly_name') -}}"
-        {%- endfor -%}]
-      {%- else -%}none{%- endif %}
-    negative: >-
-      {% set s = status %}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
-        [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,'off') -%}
-          {%- if not loop.first -%},{%- endif -%}
-          "{{- state_attr(i.entity_id,'friendly_name') -}}"
-        {%- endfor -%}]
-      {%- else -%}none{%- endif %}
-    values: >-
-      {% set s = status %}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
-        [{% for i in s if 'entity_id' in i and not i.entity_id is none -%}
-          {%- if not loop.first -%},{%- endif -%}
-          {% if is_state(i.entity_id,'on') %}1{% else %}0{% endif %}
-        {%- endfor -%}]
-      {%- else -%}null{%- endif %}
-    value: >-
-      {% set s = values %}
-      {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
-        {% if s|sum|int(0) > 0 %}on{% else %}off{% endif %}
-      {% else %}null{% endif %}
   action:
-    - alias: 'update sensor.motion_device_problem state'
-      service: python_script.set_state
+    - service: automation.trigger
       data_template:
-        entity_id: binary_sensor.motion_device_problem
-        status: >-
-          {{ status }}
-        positive: >-
-          {{ positive }}
-        negative: >-
-          {{ negative }}
-        state: >-
-          {{ value }}
+        entity_id: automation.motion_device_problem_binary_sensors
+
+## binary_sensors
 
 - id: motion_device_problem_binary_sensors
   alias: motion_device_problem_binary_sensors
@@ -150,7 +97,7 @@
           {%- for state in states.binary_sensor if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'problem' -%}
             {%- if not o.first or not loop.first -%},{%- endif -%}
             {%- set v = state.state -%}
-            {"area":"{{- area_id(state.entity_id) -}}","state":"{{- state.state -}}"}
+            {"id":"{{- i -}}","area":"{{- area_id(state.entity_id) -}}","state":"{{- state.state -}}"}
           {%- endfor -%}
         {%- endfor -%}]
       {%- else -%}null{%- endif %}
@@ -175,3 +122,339 @@
           {{ areas }}
         state: >-
           {{ states('binary_sensor.motion_device_problem') }}
+
+## update status
+
+- id: motion_device_problem_status
+  alias: motion_device_problem_status
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: time_pattern
+      seconds: '/15'
+    - platform: state
+      entity_id: binary_sensor.motion_device_problem
+      attribute: 'ids'
+  variables:
+    ids: >-
+      {{ state_attr('binary_sensor.motion_device_problem','ids') }}
+    status: >-
+      {% set s = ids -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
+        [{%- for i in s -%}
+          {% set o = loop %}
+          {%- for state in states.binary_sensor if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'problem' -%}
+            {%- if not o.first or not loop.first -%},{%- endif -%}
+            {%- set v = state.state -%}
+            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
+          {%- endfor -%}
+        {%- endfor -%}]
+      {%- else -%}null{%- endif %}
+    positive: >-
+      {% set s = status %}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
+        [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,'on') -%}
+          {%- if not loop.first -%},{%- endif -%}
+          "{{- state_attr(i.entity_id,'friendly_name') -}}"
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
+    negative: >-
+      {% set s = status %}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
+        [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,'off') -%}
+          {%- if not loop.first -%},{%- endif -%}
+          "{{- state_attr(i.entity_id,'friendly_name') -}}"
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
+    values: >-
+      {% set s = status %}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
+        [{% for i in s if 'entity_id' in i and not i.entity_id is none -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {% if is_state(i.entity_id,'on') %}1{% else %}0{% endif %}
+        {%- endfor -%}]
+      {%- else -%}null{%- endif %}
+    value: >-
+      {% set s = values %}
+      {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {% if s|sum|int(0) > 0 %}on{% else %}off{% endif %}
+      {% else %}null{% endif %}
+  action:
+    - alias: 'update sensor.motion_device_problem state'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_problem
+        status: >-
+          {{ status }}
+        positive: >-
+          {{ positive }}
+        negative: >-
+          {{ negative }}
+        state: >-
+          {{ value }}
+
+## update, restart, and other contols
+
+- id: motion_device_problem_self_test
+  alias: motion_device_problem_self_test
+  mode: single
+  initial_state: on
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test if self_test is on'
+        condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_problem_self_test','on') }}
+  variables:
+    entity_ids: >-
+      {{ state_attr('binary_sensor.motion_device_problem_self_test','entity_ids') }}
+  action:
+    - alias: 'test problem sensors'
+      repeat:
+        while:
+          - alias: 'test if not done'
+            condition: template
+            value_template: >-
+              {% set s = entity_ids[repeat.index - 1]|default('unknown') %}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - alias: 'pressing button'
+            service: button.press
+            data_template:
+              entity_id: >-
+                {{ entity_ids[repeat.index - 1] }}
+
+- id: motion_device_problem_mute
+  alias: motion_device_problem_mute
+  mode: single
+  initial_state: on
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_problem_mute','on') }}
+  variables:
+    entity_ids: >-
+      {{ state_attr('binary_sensor.motion_device_problem_mute','entity_ids') }}
+  action:
+    - alias: 'mute problem sensors'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = entity_ids[repeat.index - 1]|default('unknown') %}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - service: button.press
+            data_template:
+              entity_id: >-
+                {{ entity_ids[repeat.index - 1] }}
+
+- id: motion_device_problem_unmute
+  alias: motion_device_problem_unmute
+  mode: single
+  initial_state: on
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_problem_unmute','on') }}
+  variables:
+    entity_ids: >-
+      {{ state_attr('binary_sensor.motion_device_problem_unmute','entity_ids') }}
+  action:
+    - alias: 'unmute problem sensors'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = entity_ids[repeat.index - 1]|default('unknown') %}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - service: button.press
+            data_template:
+              entity_id: >-
+                {{ entity_ids[repeat.index - 1] }}
+
+- id: motion_device_problem_restart
+  alias: motion_device_problem_restart
+  mode: single
+  initial_state: on
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_problem_restart','on') }}
+  variables:
+    entity_ids: >-
+      {{ state_attr('binary_sensor.motion_device_problem_restart','entity_ids') }}
+  action:
+    - alias: 'restart problem sensors'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = entity_ids[repeat.index - 1]|default('unknown') %}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - service: button.press
+            data_template:
+              entity_id: >-
+                {{ entity_ids[repeat.index - 1] }}
+
+- id: motion_device_problem_update
+  alias: motion_device_problem_update
+  mode: single
+  initial_state: on
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_problem_update','on') }}
+  variables:
+    entity_ids: >-
+      {{ state_attr('binary_sensor.motion_device_problem_update','entity_ids') }}
+  action:
+    - alias: 'update problem sensors'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = entity_ids[repeat.index - 1]|default('unknown') %}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - service: button.press
+            data_template:
+              entity_id: >-
+                {{ entity_ids[repeat.index - 1] }}
+
+## notification
+
+- id: motion_device_problem_missing
+  alias: motion_device_problem_missing
+  mode: single
+  initial_state: off
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_problem_exist
+    - platform: state
+      entity_id: automation.motion_device_problem_binary_sensors
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.motion_device_problem_exist','off') }}
+      - condition: template
+        value_template: >
+          {{ is_state_attr('automation.motion_device_problem_binary_sensors','current',0) }}
+  variables:
+    ip: >-
+      {{ none }}
+    latitude: >-
+      {{ none }}
+    longitude: >-
+      {{ none }}
+    title: >-
+      {{ 'Problem sensor not found' }}
+    notification_id: >-
+      {{ 'device-problem-notify' }}
+    message: >-
+      The problem sensor could not be found; please setup the integration by clicking [here](/config/integrations) or on the image below.
+      {{- '<br>' -}}
+      {{- '[![](/local/images/icons/notification-alert.png)](/config/integrations)' -}}
+      {%- if ip|lower != 'none' and ip|lower != 'null' -%}
+        {{- '[![](https://img.shields.io/badge/location-reset-green.svg)]('
+        + 'http://' + states('input_text.motion_shellies_username')
+        + ':'
+        + states('input_text.motion_shellies_password')
+        + '@'
+        + ip|string + '/settings?timezone=utc&lat=' + state_attr('zone.home','latitude')|string + '&lng=' + state_attr('zone.home','longitude')|string + ')' -}}
+      {%- endif -%}
+      {%- if latitude|float(-1) > 0 and longitude|float(-1) > 0 -%}
+        {{- '[![](https://img.shields.io/badge/device-map-blue.svg)]('
+          + 'https://www.google.com/maps/@'
+          + latitude|string + ',' + longitude|string + ',15z'
+          + ')' -}}
+      {%- endif -%}
+      {{-  '[![](https://img.shields.io/badge/home-map-blue.svg)]('
+        + 'https://www.google.com/maps/@'
+        + state_attr('zone.home','latitude')|string + ',' + state_attr('zone.home','longitude')|string + ',22z'
+        + ')' -}}
+  action:
+    - alias: 'notify missing problem sensor'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+- id: motion_device_problem_found
+  alias: motion_device_problem_found
+  mode: single
+  initial_state: off
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_problem_exist
+      to: 'on'
+  variables:
+    ids: >-
+      {{ state_attr('binary_sensor.motion_device_problem','ids') }}
+    areas: >-
+      {{ state_attr('binary_sensor.motion_device_problem','areas')|map(attribute='area')|list }}
+    ip: >-
+      {{ none }}
+    latitude: >-
+      {{ none }}
+    longitude: >-
+      {{ none }}
+    title: >-
+      {{ 'Problem sensor found' }}
+    notification_id: >-
+      {{ 'device-problem-notify' }}
+    message: >-
+      Problem sensor(s) found; ids: {{ ids -}}; areas: {{ areas }}
+      {{- '<br>' -}}
+      {{- '[![](/local/images/SHGS-1.png)](/config/integrations)' -}}
+      {%- if ip|lower != 'none' and ip|lower != 'null' -%}
+        {{- '[![](https://img.shields.io/badge/location-reset-green.svg)]('
+        + 'http://' + states('input_text.motion_shellies_username')
+        + ':'
+        + states('input_text.motion_shellies_password')
+        + '@'
+        + ip|string + '/settings?timezone=utc&lat=' + state_attr('zone.home','latitude')|string + '&lng=' + state_attr('zone.home','longitude')|string + ')' -}}
+      {%- endif -%}
+      {%- if latitude|float(-1) > 0 and longitude|float(-1) > 0 -%}
+        {{- '[![](https://img.shields.io/badge/device-map-blue.svg)]('
+          + 'https://www.google.com/maps/@'
+          + latitude|string + ',' + longitude|string + ',15z'
+          + ')' -}}
+      {%- endif -%}
+      {{-  '[![](https://img.shields.io/badge/home-map-blue.svg)]('
+        + 'https://www.google.com/maps/@'
+        + state_attr('zone.home','latitude')|string + ',' + state_attr('zone.home','longitude')|string + ',22z'
+        + ')' -}}
+  action:
+    - alias: 'notify found problem sensor'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
