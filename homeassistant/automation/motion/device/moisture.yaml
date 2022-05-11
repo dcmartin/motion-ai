@@ -366,13 +366,14 @@
     longitude: >-
       {{ none }}
     title: >-
-      {{ 'Moisture sensor not found' }}
+      {{ 'Sensor not found' }}
     notification_id: >-
       {{ 'device-moisture-notify' }}
     message: >-
-      The moisture sensor could not be found; please setup the integration by clicking [here](/config/integrations) or on the image below.
-      {{- '<br>' -}}
       {{- '[![](/local/images/SHWT-1.png)](/config/integrations)' -}}
+      {{- '<br>' -}}
+      The moisture sensor could not be found; please setup the integration by clicking [here](/config/integrations) or on the image below.
+      {{- '<hr>' -}}
       {%- if ip|lower != 'none' and ip|lower != 'null' -%}
         {{- '[![](https://img.shields.io/badge/location-reset-green.svg)]('
         + 'http://' + states('input_text.motion_shellies_username')
@@ -422,13 +423,14 @@
     longitude: >-
       {{ none }}
     title: >-
-      {{ 'Moisture sensor found' }}
+      {{ 'Sensor found' }}
     notification_id: >-
       {{ 'device-moisture-notify' }}
     message: >-
-      Moisture sensor(s) found; ids: {{ ids -}}; areas: {{ areas }}
-      {{- '<br>' -}}
       {{- '[![](/local/images/SHWT-1.png)](/config/integrations)' -}}
+      {{- '<br>' -}}
+      Sensor(s) for moisture found; ids: {{ ids -}}; areas: {{ areas }}
+      {{- '<hr>' -}}
       {%- if ip|lower != 'none' and ip|lower != 'null' -%}
         {{- '[![](https://img.shields.io/badge/location-reset-green.svg)]('
         + 'http://' + states('input_text.motion_shellies_username')
@@ -449,6 +451,124 @@
         + ')' -}}
   action:
     - alias: 'notify found moisture sensor'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+- id: motion_device_moisture_detected
+  alias: motion_device_moisture_detected
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_moisture
+      to: 'on'
+  variables:
+    ids: >-
+      {% set ids = state_attr('binary_sensor.motion_device_moisture','ids') %}
+      {{ ids }}
+    positive: >-
+      {% set positive = state_attr('binary_sensor.motion_device_moisture','positive') %}
+      {{ positive }}
+    which: >-
+      {% if ids|count|int(0) > 0 and positive|count|int(0) > 0 %}
+        {% for i in ids %}
+          {% for p in positive if i in p %}
+            {{ i }}
+          {% endfor %}
+        {% endfor %}
+      {% else %}null{% endif %}
+    area: >-
+      {% if which|lower != 'null' and which|lower != 'none' and which|string|length > 0 -%}
+        {%- set s = state_attr('binary_sensor.motion_device_moisture','areas')|list -%}
+        {%- if s|lower != 'none' and not s is string and s is iterable -%}
+          {%- set s = s|selectattr('id','==',which)|list -%}
+          {%- if s|lower != 'none' and not s is string -%}
+            {%- set s = s|map(attribute='area')|list -%}
+            {%- if s|lower != 'none' and s|count > 0 -%}
+              {{- s|first -}}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+      {%- else -%}null{%- endif %}
+    ip: >-
+      {% set ip = none %}
+      {{ ip }}
+    latitude: >-
+      {% set latitude = none %}
+      {{ latitude }}
+    longitude: >-
+      {% set longitude = none %}
+      {{ longitude }}
+    icon: >-
+      {% set icon = 'notification-alert' %}
+      {{ icon }}
+    action: >-
+      {% set action = 'moisture-okay' %}
+      {{ action }}
+    url: >-
+      {% set url = '/lovelace/moisture-okay' %}
+      {{ url }}
+    title: >-
+      {% set title = 'Age@Home: moisture alarm' %}
+      {{ title }}
+    body: >-
+      Your home moisture alarm was triggered. 
+      We have notified **{{- state_attr('sensor.motion_role_primary','friendly_name') -}}** about your moisture alarm.
+    notification_id: >-
+      {{ 'device-moisture-notify-detected' }}
+    footer: >-
+      {{- '<hr>' -}}
+      {%- if ip|lower != 'none' and ip|lower != 'null' -%}
+        {{- '[![](https://img.shields.io/badge/location-reset-green.svg)]('
+        + 'http://' + states('input_text.motion_shellies_username')
+        + ':'
+        + states('input_text.motion_shellies_password')
+        + '@'
+        + ip|string + '/settings?timezone=utc&lat=' + state_attr('zone.home','latitude')|string + '&lng=' + state_attr('zone.home','longitude')|string + ')' -}}
+      {%- endif -%}
+      {%- if latitude|float(-1) > 0 and longitude|float(-1) > 0 -%}
+        {{- '[![](https://img.shields.io/badge/sensor-map-blue.svg)]('
+          + 'https://www.google.com/maps/@'
+          + latitude|string + ',' + longitude|string + ',15z'
+          + ')' -}}
+      {%- endif -%}
+      {{-  '[![](https://img.shields.io/badge/home-map-blue.svg)]('
+        + 'https://www.google.com/maps/@'
+        + state_attr('zone.home','latitude')|string + ',' + state_attr('zone.home','longitude')|string + ',22z'
+        + ')' -}}
+      {{-  '[![](https://img.shields.io/badge/person-map-blue.svg)]('
+        + 'https://www.google.com/maps/@'
+        + state_attr('sensor.motion_person','latitude')|string + ',' + state_attr('sensor.motion_person','longitude')|string + ',22z'
+        + ')' -}}
+    message: >-
+      {{- '[![](/local/images/icons/' + icon + '.png)](' + '/lovelace/support' + ')' -}}
+      {{- '<br>' -}}
+      {%- if which|lower != 'none' and which|lower != 'null' -%}Sensor: "{{- which -}}"{%- if area|lower != 'null' -%}; area: "{{ area -}}"{%- endif -%}{% endif %}
+      {{- '<br>' -}}
+      {{- body -}}
+      {{- '<p>' -}}
+      {%- if action|lower != 'none' and action|lower != 'null' -%}
+        If you are fine handling this situation on your own, click the **{{- action -}}** button below.
+        <br>
+        {{-  '[![](https://img.shields.io/badge/' + action + '-green.svg)](' + 'url' + ')' -}}
+      {%- endif -%}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.motion_device_moisture','on') }}
+      - condition: template
+        value_template: >
+          {{ which|lower != 'none' and which|lower != 'null' and which|length > 0 }}
+  action:
+    - alias: 'notify moisture sensor activated'
       service: persistent_notification.create
       data_template:
         title: >-
