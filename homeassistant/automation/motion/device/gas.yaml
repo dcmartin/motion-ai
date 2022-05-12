@@ -469,6 +469,58 @@
       entity_id: binary_sensor.motion_device_gas
       to: 'on'
   variables:
+    last: >-
+      {% set last = state_attr('binary_sensor.motion_device_gas','status')|selectattr('state','==','on')|sort(attribute='updated',reverse=true)|list %}
+      {{ last  }}
+    did: >-
+      {% set did = none %}
+      {% if last|lower != 'none' and last|lower != 'null' and last is iterable and last|count > 0 %}
+        {% set did = last|map(attribute='entity_id')|first|device_id %}
+      {%- endif %}
+      {{ did }}
+    which: >-
+      {% set which = none %}
+      {% if last|lower != 'none' and last|lower != 'null' and last is iterable and last|count > 0 %}
+        {% set which = last|map(attribute='id')|first %}
+      {%- endif %}
+      {{ which }}
+    where: >-
+      {% set where = none %}
+      {% if which|lower != 'none' and which|lower != 'null' %}
+        {% set s = state_attr('binary_sensor.motion_device_gas','areas') %}
+        {% if s|lower != 'none' %}
+          {% set where = s|selectattr('id','==',which)|map(attribute='area')|first %}
+        {%- endif %}
+      {%- endif %}
+      {{ where }}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ which|lower != 'none' and which|lower != 'null' and which|length > 0 }}
+  action:
+    - alias: 'update binary_sensor.motion_device_gas which, where, did'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_gas
+        which: >-
+          {{ which }}
+        where: >-
+          {{ where }}
+        did: >-
+          {{ did }}
+    - alias: 'trigger motion notification'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_gas_detected_notify
+
+- id: motion_device_gas_detected_notify
+  alias: motion_device_gas_detected_notify
+  mode: single
+  initial_state: on
+  trigger:
+  variables:
     ids: >-
       {% set ids = state_attr('binary_sensor.motion_device_gas','ids') %}
       {{ ids }}
@@ -476,48 +528,14 @@
       {% set positive = state_attr('binary_sensor.motion_device_gas','positive') %}
       {{ positive }}
     which: >-
-      {% if ids|count|int(0) > 0 and positive|count|int(0) > 0 %}
-        {% for i in ids %}
-          {% for p in positive if i in p %}
-            {{ i }}
-          {% endfor %}
-        {% endfor %}
-      {% else %}null{% endif %}
+      {% set which = state_attr('binary_sensor.motion_device_gas','which') %}
+      {{ which }}
     where: >-
-      {% if which|lower != 'null' and which|lower != 'none' and which|string|length > 0 -%}
-        {%- set s = state_attr('binary_sensor.motion_device_gas','areas')|list -%}
-        {%- if s|lower != 'none' and not s is string and s is iterable -%}
-          {%- set s = s|selectattr('id','==',which)|list -%}
-          {%- if s|lower != 'none' and not s is string -%}
-            {%- set s = s|map(attribute='area')|list -%}
-            {%- if s|lower != 'none' and s|count > 0 -%}
-              {{- s|first -}}
-            {%- else -%}null{%- endif -%}
-          {%- else -%}null{%- endif -%}
-        {%- else -%}null{%- endif -%}
-      {%- else -%}null{%- endif %}
+      {% set where = state_attr('binary_sensor.motion_device_gas','where') %}
+      {{ where }}
     did: >-
-      {% if which|lower != 'null' and which|lower != 'none' and which|string|length > 0 -%}
-        {%- set s = state_attr('binary_sensor.motion_device_gas','status')|list -%}
-        {%- if s|lower != 'none' and not s is string and s is iterable -%}
-          {%- set s = s|selectattr('id','==',which)|list -%}
-          {%- if s|lower != 'none' and not s is string -%}
-            {%- set s = s|map(attribute='entity_id')|list -%}
-            {%- if s|lower != 'none' and s|count > 0 -%}
-              {{- device_id(s|first) }}
-            {%- else -%}null{%- endif -%}
-          {%- else -%}null{%- endif -%}
-        {%- else -%}null{%- endif -%}
-      {%- else -%}null{%- endif %}
-    ip: >-
-      {% set ip = none %}
-      {{ ip }}
-    latitude: >-
-      {% set latitude = none %}
-      {{ latitude }}
-    longitude: >-
-      {% set longitude = none %}
-      {{ longitude }}
+      {% set did = state_attr('binary_sensor.motion_device_gas','did') %}
+      {{ did }}
     icon: >-
       {% set icon = 'notification-alert' %}
       {{ icon }}
@@ -534,9 +552,10 @@
       {{ 'device-gas-on-notify' }}
     header: >-
       {{- '[![](/local/images/icons/' + icon + '.png)](' + '/lovelace/support' + ')' -}}
+      {{- '<hr>' -}}
     footer: >-
+      {{ '<hr>' }}
       {%- if did|lower != 'none' and did|lower != 'null' -%}
-        {{- '<hr>' -}}
         {{- '[![](https://img.shields.io/badge/device-info-blue.svg)]('
           + '/config/devices/device/'
           + did
@@ -545,24 +564,13 @@
     body: >-
       Your home gas alarm was triggered; sensor: {{ which -}}; where: {{ where -}}.
       We have notified **{{- state_attr('sensor.motion_role_primary','friendly_name') -}}** about your gas alarm.
-      {%- if action|lower != 'none' and action|lower != 'null' -%}
-        <br>If you are fine handling this situation on your own, click the **{{- action -}}** button below.<p>
-        {{-  '[![](https://img.shields.io/badge/' + action + '-green.svg)](' + 'url' + ')' -}}
-      {%- endif -%}
+      If you are fine handling this situation on your own, click the **{{- action -}}** button below.
+      {{- '<p>' -}}
+      {{-  '[![](https://img.shields.io/badge/' + action + '-green.svg)](' + 'url' + ')' -}}
     message: >-
       {{- header -}}
-      {{- '<br>' -}}
       {{- body -}}
       {{- footer -}}
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >
-          {{ is_state('binary_sensor.motion_device_gas','on') }}
-      - condition: template
-        value_template: >
-          {{ which|lower != 'none' and which|lower != 'null' and which|length > 0 }}
   action:
     - alias: 'notify gas sensor activated'
       service: persistent_notification.create
