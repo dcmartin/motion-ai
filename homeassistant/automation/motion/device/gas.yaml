@@ -525,7 +525,7 @@
     - alias: 'trigger motion notification'
       service: automation.trigger
       data_template:
-        entity_id: automation.motion_device_gas_detected_notify
+        entity_id: automation.motion_device_gas_on_notify
 
 - id: motion_device_gas_on_notify
   alias: motion_device_gas_on_notify
@@ -604,6 +604,13 @@
     title: >-
       {% set title = states('input_text.motion_app') + ': gas alarm' %}
       {{ title }}
+    which: >-
+      {% set which = none %}
+      {% set s = state_attr('binary_sensor.motion_device_gas','status')|selectattr('state','==','off')|sort(attribute='updated',reverse=true)|list %}
+      {% if s|lower != 'none' and s|lower != 'null' and not s is string and s is iterable and s|count > 0 %}
+        {% set which = s|map(attribute='id')|first  %}
+      {%- endif %}
+      {{ which }}
     notification_id: >-
       {{ 'device-gas-status-' + which|string }}
     icon: >-
@@ -615,7 +622,7 @@
     footer: >-
       {{ '<hr>' }}
     body: >-
-      Your home gas alarm has cleared.
+      Your home gas alarm has cleared; sensor: {{ which -}}.
     message: >-
       {{- header -}}
       {{- body -}}
@@ -672,10 +679,3 @@
             data_template:
               notification_id: >-
                 {{ ids[repeat.index - 1] }}
-
-
-    - alias: 'dismiss gas sensor'
-      service: persistent_notification.dismiss
-      data_template:
-        notification_id: >-
-          {{- notification_id -}}
