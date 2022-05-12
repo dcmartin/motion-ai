@@ -483,7 +483,7 @@
           {% endfor %}
         {% endfor %}
       {% else %}null{% endif %}
-    area: >-
+    where: >-
       {% if which|lower != 'null' and which|lower != 'none' and which|string|length > 0 -%}
         {%- set s = state_attr('binary_sensor.motion_device_gas','areas')|list -%}
         {%- if s|lower != 'none' and not s is string and s is iterable -%}
@@ -492,6 +492,19 @@
             {%- set s = s|map(attribute='area')|list -%}
             {%- if s|lower != 'none' and s|count > 0 -%}
               {{- s|first -}}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+      {%- else -%}null{%- endif %}
+    did: >-
+      {% if which|lower != 'null' and which|lower != 'none' and which|string|length > 0 -%}
+        {%- set s = state_attr('binary_sensor.motion_device_gas','status')|list -%}
+        {%- if s|lower != 'none' and not s is string and s is iterable -%}
+          {%- set s = s|selectattr('id','==',which)|list -%}
+          {%- if s|lower != 'none' and not s is string -%}
+            {%- set s = s|map(attribute='entity_id')|list -%}
+            {%- if s|lower != 'none' and s|count > 0 -%}
+              {{- device_id(s|first) }}
             {%- else -%}null{%- endif -%}
           {%- else -%}null{%- endif -%}
         {%- else -%}null{%- endif -%}
@@ -509,55 +522,38 @@
       {% set icon = 'notification-alert' %}
       {{ icon }}
     action: >-
-      {% set action = 'gas-okay' %}
+      {% set action = 'motion-okay' %}
       {{ action }}
     url: >-
-      {% set url = '/lovelace/gas-okay' %}
+      {% set url = '/lovelace/motion-okay' %}
       {{ url }}
     title: >-
       {% set title = states('input_text.motion_app') + ': gas alarm' %}
       {{ title }}
-    body: >-
-      Your home gas alarm was triggered. 
-      We have notified **{{- state_attr('sensor.motion_role_primary','friendly_name') -}}** about your gas alarm.
     notification_id: >-
-      {{ 'device-gas-notify-detected' }}
+      {{ 'device-gas-on-notify' }}
+    header: >-
+      {{- '[![](/local/images/icons/' + icon + '.png)](' + '/lovelace/support' + ')' -}}
     footer: >-
-      {{- '<hr>' -}}
-      {%- if ip|lower != 'none' and ip|lower != 'null' -%}
-        {{- '[![](https://img.shields.io/badge/location-reset-green.svg)]('
-        + 'http://' + states('input_text.motion_shellies_username')
-        + ':'
-        + states('input_text.motion_shellies_password')
-        + '@'
-        + ip|string + '/settings?timezone=utc&lat=' + state_attr('zone.home','latitude')|string + '&lng=' + state_attr('zone.home','longitude')|string + ')' -}}
-      {%- endif -%}
-      {%- if latitude|float(-1) > 0 and longitude|float(-1) > 0 -%}
-        {{- '[![](https://img.shields.io/badge/sensor-map-blue.svg)]('
-          + 'https://www.google.com/maps/@'
-          + latitude|string + ',' + longitude|string + ',15z'
+      {%- if did|lower != 'none' and did|lower != 'null' -%}
+        {{- '<hr>' -}}
+        {{- '[![](https://img.shields.io/badge/device-info-blue.svg)]('
+          + '/config/devices/device/'
+          + did
           + ')' -}}
       {%- endif -%}
-      {{-  '[![](https://img.shields.io/badge/home-map-blue.svg)]('
-        + 'https://www.google.com/maps/@'
-        + state_attr('zone.home','latitude')|string + ',' + state_attr('zone.home','longitude')|string + ',22z'
-        + ')' -}}
-      {{-  '[![](https://img.shields.io/badge/person-map-blue.svg)]('
-        + 'https://www.google.com/maps/@'
-        + state_attr('sensor.motion_person','latitude')|string + ',' + state_attr('sensor.motion_person','longitude')|string + ',22z'
-        + ')' -}}
-    message: >-
-      {{- '[![](/local/images/icons/' + icon + '.png)](' + '/lovelace/support' + ')' -}}
-      {{- '<br>' -}}
-      Sensor: {{ which -}}; area: {{ area -}}
-      {{- '<hr>' -}}
-      {{- body -}}
-      {{- '<p>' -}}
+    body: >-
+      Your home gas alarm was triggered; sensor: {{ which -}}; where: {{ where -}}.
+      We have notified **{{- state_attr('sensor.motion_role_primary','friendly_name') -}}** about your gas alarm.
       {%- if action|lower != 'none' and action|lower != 'null' -%}
-        If you are fine handling this situation on your own, click the **{{- action -}}** button below.
-        <br>
+        <br>If you are fine handling this situation on your own, click the **{{- action -}}** button below.<p>
         {{-  '[![](https://img.shields.io/badge/' + action + '-green.svg)](' + 'url' + ')' -}}
       {%- endif -%}
+    message: >-
+      {{- header -}}
+      {{- '<br>' -}}
+      {{- body -}}
+      {{- footer -}}
   condition:
     condition: and
     conditions:
