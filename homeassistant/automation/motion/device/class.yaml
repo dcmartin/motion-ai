@@ -23,7 +23,7 @@
           {%- endfor -%}
           {%- if not loop.last -%},{%- endif -%}
         {%- endfor -%}]
-      {% else %}null{% endif %}
+      {% else %}[]{% endif %}
     binary_sensor_ids: >-
       {% set s = state_attr('binary_sensor.motion_device_class','binary_sensor_list') %}
       {%- if s|lower != 'none' -%}
@@ -35,7 +35,7 @@
           {%- endfor -%}
           {%- if not loop.last -%},{%- endif -%}
         {%- endfor -%}]
-      {% else %}null{% endif %}
+      {% else %}[]{% endif %}
     ids: >-
       {{- (sensor_ids + binary_sensor_ids)|sort|unique|list -}}
     total: >-
@@ -44,25 +44,31 @@
         {{ s|count }}
       {%- else -%}0{%- endif %}
     measurement: >-
-      { {%- for i in state_attr('binary_sensor.motion_device_class','sensor_list') if
-        states('sensor.motion_device_' + i|string)|lower != 'null'
-        and states('sensor.motion_device_' + i|string)|lower != 'unknown'
-        and states('sensor.motion_device_' + i|string)|lower != 'none' %}
-        {%- if not loop.first -%},{%- endif -%}
-        {%- set e = 'sensor.motion_device_' + i|string %}
-        {%- set n = state_attr(e,'ids')|count|default(none) %}
-        "{{- i -}}":{{- n -}}
-      {%- endfor -%} }
+      {% set s = state_attr('binary_sensor.motion_device_class','sensor_list')%}
+      {%- if s|lower != 'null' and not s is string and s is iterable and s|count > 0 -%}
+        { {%- for i in s  if
+          states('sensor.motion_device_' + i|string)|lower != 'null'
+          and states('sensor.motion_device_' + i|string)|lower != 'unknown'
+          and states('sensor.motion_device_' + i|string)|lower != 'none' %}
+          {%- if not loop.first -%},{%- endif -%}
+          {%- set e = 'sensor.motion_device_' + i|string %}
+          {%- set n = state_attr(e,'ids')|count|default(none) %}
+          "{{- i -}}":{{- n -}}
+        {%- endfor -%} }
+      {%- else -%}none{%- endif %}
     status: >-
-      { {%- for i in state_attr('binary_sensor.motion_device_class','binary_sensor_list') if
-        states('binary_sensor.motion_device_' + i|string)|lower != 'null'
-        and states('binary_sensor.motion_device_' + i|string)|lower != 'unknown'
-        and states('binary_sensor.motion_device_' + i|string)|lower != 'none' %}
-        {%- if not loop.first -%},{%- endif -%}
-        {%- set e = 'binary_sensor.motion_device_' + i|string %}
-        {%- set n = state_attr(e,'ids')|count|default(none) %}
-        "{{- i -}}":{{- n -}}
+      {% set s = state_attr('binary_sensor.motion_device_class','binary_sensor_list')%}
+        {%- if s|lower != 'null' and not s is string and s is iterable and s|count > 0 -%}
+        { {%- for i in state_attr('binary_sensor.motion_device_class','binary_sensor_list') if
+          states('binary_sensor.motion_device_' + i|string)|lower != 'null'
+          and states('binary_sensor.motion_device_' + i|string)|lower != 'unknown'
+          and states('binary_sensor.motion_device_' + i|string)|lower != 'none' %}
+          {%- if not loop.first -%},{%- endif -%}
+          {%- set e = 'binary_sensor.motion_device_' + i|string %}
+          {%- set n = state_attr(e,'ids')|count|default(none) %}
+          "{{- i -}}":{{- n -}}
       {%- endfor -%} }
+      {%- else -%}none{%- endif %}
     entities: >-
       {% set s = ids -%}
       {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
