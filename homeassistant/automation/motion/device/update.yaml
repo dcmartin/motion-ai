@@ -2,6 +2,9 @@
 # homeassistant/automation/motion/device/update.yaml
 ###
 
+
+## rescan
+
 - id: motion_device_update_rescan
   alias: motion_device_update_rescan
   mode: single
@@ -12,73 +15,7 @@
       data_template:
         entity_id: automation.motion_device_update_binary_sensors
 
-- id: motion_device_update_status
-  alias: motion_device_update_status
-  mode: single
-  initial_state: on
-  trigger:
-    - platform: time_pattern
-      seconds: '/15'
-    - platform: state
-      entity_id: binary_sensor.motion_device_update
-      attribute: 'ids'
-  variables:
-    ids: >-
-      {{ state_attr('binary_sensor.motion_device_update','ids') }}
-    status: >-
-      {% set s = ids -%}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
-        [{%- for i in s -%}
-          {% set o = loop %}
-          {%- for state in states.binary_sensor if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'update' -%}
-            {%- if not o.first or not loop.first -%},{%- endif -%}
-            {%- set v = state.state -%}
-            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
-          {%- endfor -%}
-        {%- endfor -%}]
-      {%- else -%}null{%- endif %}
-    positive: >-
-      {% set s = status %}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
-        [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,'on') -%}
-          {%- if not loop.first -%},{%- endif -%}
-          "{{- state_attr(i.entity_id,'friendly_name') -}}"
-        {%- endfor -%}]
-      {%- else -%}none{%- endif %}
-    negative: >-
-      {% set s = status %}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
-        [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,'off') -%}
-          {%- if not loop.first -%},{%- endif -%}
-          "{{- state_attr(i.entity_id,'friendly_name') -}}"
-        {%- endfor -%}]
-      {%- else -%}none{%- endif %}
-    values: >-
-      {% set s = status %}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
-        [{% for i in s if 'entity_id' in i and not i.entity_id is none -%}
-          {%- if not loop.first -%},{%- endif -%}
-          {% if is_state(i.entity_id,'on') %}1{% else %}0{% endif %}
-        {%- endfor -%}]
-      {%- else -%}null{%- endif %}
-    value: >-
-      {% set s = values %}
-      {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
-        {% if s|sum|int(0) > 0 %}on{% else %}off{% endif %}
-      {% else %}null{% endif %}
-  action:
-    - alias: 'update sensor.motion_device_update state'
-      service: python_script.set_state
-      data_template:
-        entity_id: binary_sensor.motion_device_update
-        status: >-
-          {{ status }}
-        positive: >-
-          {{ positive }}
-        negative: >-
-          {{ negative }}
-        state: >-
-          {{ value }}
+## binary_sensors
 
 - id: motion_device_update_binary_sensors
   alias: motion_device_update_binary_sensors
@@ -160,10 +97,29 @@
           {%- for state in states.binary_sensor if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'update' -%}
             {%- if not o.first or not loop.first -%},{%- endif -%}
             {%- set v = state.state -%}
-            {"area":"{{- area_id(state.entity_id) -}}","state":"{{- state.state -}}"}
+            {"id":"{{- i -}}","area":"{{- area_id(state.entity_id) -}}","state":"{{- state.state -}}"}
           {%- endfor -%}
         {%- endfor -%}]
       {%- else -%}null{%- endif %}
+    status: >-
+      {% set s = ids -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
+        [{%- for i in s -%}
+          {% set o = loop %}
+          {%- for state in states.binary_sensor if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'update' -%}
+            {%- if not o.first or not loop.first -%},{%- endif -%}
+            {%- set v = state.state -%}
+            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
+          {%- endfor -%}
+        {%- endfor -%}]
+      {%- else -%}null{%- endif %}
+    devices: >-
+      [{% for i in ids -%}
+        {%- set j = status|selectattr('id','==',i)|map(attribute='entity_id')|first %}
+        {%- set k = areas|selectattr('id','==',i)|map(attribute='area')|first %}
+        {%- if not loop.first -%},{%- endif -%}
+        {"id":"{{- i -}}","did":"{{- device_id(j) -}}","area":"{{- k -}}"}
+      {%- endfor -%}]
   action:
     - alias: 'update sensor.motion_device_update ids, etc..'
       service: python_script.set_state
@@ -173,6 +129,8 @@
           {{ ids }}
         total: >-
           {{ total }}
+        devices: >-
+          {{ devices }}
         update: >-
           {{ update }}
         restart: >-
@@ -185,3 +143,570 @@
           {{ areas }}
         state: >-
           {{ states('binary_sensor.motion_device_update') }}
+
+## update status
+
+- id: motion_device_update_status
+  alias: motion_device_update_status
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: time_pattern
+      seconds: '/15'
+    - platform: state
+      entity_id: binary_sensor.motion_device_update
+      attribute: 'ids'
+  variables:
+    ids: >-
+      {{ state_attr('binary_sensor.motion_device_update','ids') }}
+    status: >-
+      {% set s = ids -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
+        [{%- for i in s -%}
+          {% set o = loop %}
+          {%- for state in states.binary_sensor if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'update' -%}
+            {%- if not o.first or not loop.first -%},{%- endif -%}
+            {%- set v = state.state -%}
+            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
+          {%- endfor -%}
+        {%- endfor -%}]
+      {%- else -%}null{%- endif %}
+    positive: >-
+      {% set s = status %}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
+        [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,'on') -%}
+          {%- if not loop.first -%},{%- endif -%}
+          "{{- state_attr(i.entity_id,'friendly_name') -}}"
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
+    negative: >-
+      {% set s = status %}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
+        [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,'off') -%}
+          {%- if not loop.first -%},{%- endif -%}
+          "{{- state_attr(i.entity_id,'friendly_name') -}}"
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
+    values: >-
+      {% set s = status %}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
+        [{% for i in s if 'entity_id' in i and not i.entity_id is none -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {% if is_state(i.entity_id,'on') %}1{% else %}0{% endif %}
+        {%- endfor -%}]
+      {%- else -%}null{%- endif %}
+    value: >-
+      {% set s = values %}
+      {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {% if s|sum|int(0) > 0 %}on{% else %}off{% endif %}
+      {% else %}null{% endif %}
+  action:
+    - alias: 'update sensor.motion_device_update state'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_update
+        status: >-
+          {{ status }}
+        positive: >-
+          {{ positive }}
+        negative: >-
+          {{ negative }}
+        state: >-
+          {{ value }}
+
+## update, restart, and other contols
+
+- id: motion_device_update_self_test
+  alias: motion_device_update_self_test
+  mode: single
+  initial_state: on
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test if self_test is on'
+        condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_update_self_test','on') }}
+  variables:
+    entity_ids: >-
+      {{ state_attr('binary_sensor.motion_device_update_self_test','entity_ids') }}
+  action:
+    - alias: 'test update sensors'
+      repeat:
+        while:
+          - alias: 'test if not done'
+            condition: template
+            value_template: >-
+              {% set s = entity_ids[repeat.index - 1]|default('unknown') %}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - alias: 'pressing button'
+            service: button.press
+            data_template:
+              entity_id: >-
+                {{ entity_ids[repeat.index - 1] }}
+
+- id: motion_device_update_mute
+  alias: motion_device_update_mute
+  mode: single
+  initial_state: on
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_update_mute','on') }}
+  variables:
+    entity_ids: >-
+      {{ state_attr('binary_sensor.motion_device_update_mute','entity_ids') }}
+  action:
+    - alias: 'mute update sensors'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = entity_ids[repeat.index - 1]|default('unknown') %}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - service: button.press
+            data_template:
+              entity_id: >-
+                {{ entity_ids[repeat.index - 1] }}
+
+- id: motion_device_update_unmute
+  alias: motion_device_update_unmute
+  mode: single
+  initial_state: on
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_update_unmute','on') }}
+  variables:
+    entity_ids: >-
+      {{ state_attr('binary_sensor.motion_device_update_unmute','entity_ids') }}
+  action:
+    - alias: 'unmute update sensors'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = entity_ids[repeat.index - 1]|default('unknown') %}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - service: button.press
+            data_template:
+              entity_id: >-
+                {{ entity_ids[repeat.index - 1] }}
+
+- id: motion_device_update_restart
+  alias: motion_device_update_restart
+  mode: single
+  initial_state: on
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_update_restart','on') }}
+  variables:
+    entity_ids: >-
+      {{ state_attr('binary_sensor.motion_device_update_restart','entity_ids') }}
+  action:
+    - alias: 'restart update sensors'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = entity_ids[repeat.index - 1]|default('unknown') %}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - service: button.press
+            data_template:
+              entity_id: >-
+                {{ entity_ids[repeat.index - 1] }}
+
+- id: motion_device_update_update
+  alias: motion_device_update_update
+  mode: single
+  initial_state: on
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_update_update','on') }}
+  variables:
+    entity_ids: >-
+      {{ state_attr('binary_sensor.motion_device_update_update','entity_ids') }}
+  action:
+    - alias: 'update update sensors'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = entity_ids[repeat.index - 1]|default('unknown') %}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - service: button.press
+            data_template:
+              entity_id: >-
+                {{ entity_ids[repeat.index - 1] }}
+
+# missing
+
+- id: motion_device_update_missing
+  alias: motion_device_update_missing
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_update_exist
+    - platform: state
+      entity_id: automation.motion_device_update_binary_sensors
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.motion_device_update_exist','off') }}
+      - condition: template
+        value_template: >
+          {{ is_state_attr('automation.motion_device_update_binary_sensors','current',0) }}
+  variables:
+    ip: >-
+      {{ none }}
+    latitude: >-
+      {{ none }}
+    longitude: >-
+      {{ none }}
+    notification_id: >-
+      {{ 'device-update-notify' }}
+    icon: >-
+      {% set icon = 'notification-update-missing' %}
+      {{ icon }}
+    header: >-
+      {{- '[![](/local/images/icons/' + icon + '.png)]()' -}}
+      {{- '<hr>' -}}
+    footer: >-
+      {{- '<hr>' -}}
+    title: >-
+      {{ 'Sensor not found' }}
+    body: >-
+      The update sensor could not be found; please setup the integration by clicking [here](/config/integrations).
+    message: >-
+      {{ header }}
+      {{ body }}
+      {{ footer }}
+  action:
+    - alias: 'notify missing update sensor'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+# found
+
+- id: motion_device_update_found
+  alias: motion_device_update_found
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_update_exist
+      to: 'on'
+  variables:
+    ids: >-
+      {% set ids = state_attr('binary_sensor.motion_device_update','ids') %}
+      {{ ids }}
+    devices: >-
+      {% set devices = state_attr('binary_sensor.motion_device_update','devices') %}
+      {{ devices }}
+    title: >-
+      {{ 'Sensor found: update' }}
+    notification_id: >-
+      {{ 'device-update-notify' }}
+    icon: >-
+      {% set icon = 'notification-update-found' %}
+      {{ icon }}
+    header: >-
+      {{- '[![](/local/images/icons/' + icon + '.png)]()' -}}
+      {{- '<hr>' -}}
+    footer: >-
+      {{- '<hr>' -}}
+    body: >-
+      Sensor(s) for update found:
+      {{- '<p>' -}}
+      {%- for i in devices -%}
+        {%- if not loop.first -%}<br>{%- endif -%}
+        [{{ i.id }}](/config/devices/device/{{- i.did -}}) in [{{ i.area }}](/config/areas/area/{{- i.area -}})
+      {%- endfor %}
+    message: >-
+      {{ header }}
+      {{ body }}
+      {{ footer }}
+  action:
+    - alias: 'notify found update sensor'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+- id: motion_device_update_found_dismiss
+  alias: motion_device_update_found_dismiss
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_update_exist
+      to: 'on'
+      for:
+        minutes: >-
+          {{ states('input_number.motion_device_class_dismiss')|int(5) }}
+  variables:
+    notification_id: >-
+      {{ 'device-update-notify' }}
+  action:
+    - alias: 'dismiss update found notification'
+      service: persistent_notification.dismiss
+      data_template:
+        notification_id: >-
+          {{ notification_id }}
+
+# detected
+
+- id: motion_device_update_detected
+  alias: motion_device_update_detected
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_update
+      to: 'on'
+  variables:
+    devices: >-
+      {% set devices = none %}
+      {% set s = state_attr('binary_sensor.motion_device_update','devices') %}
+      {% if s|lower != 'none' and s|lower != 'null' and not s is string and s is iterable and s|count > 0 %}
+        {% set devices = s %}
+      {%- endif %}
+      {{ devices }}
+    last: >-
+      {% set last = none %}
+      {% set s = state_attr('binary_sensor.motion_device_update','status')|selectattr('state','==','on')|sort(attribute='updated',reverse=true)|list %}
+      {% if s|lower != 'none' and s|lower != 'null' and not s is string and s is iterable and s|count > 0 %}
+        {% set last = s %}
+      {%- endif %}
+      {{ last  }}
+    which: >-
+      {% set which = none %}
+      {% if last|lower != 'none' %}
+        {% set which = last|map(attribute='id')|first %}
+      {%- endif %}
+      {{ which }}
+    did: >-
+      {% set did = none %}
+      {% if devices|lower != 'none'  and which|lower != 'none' %}
+        {% set did = devices|selectattr('id','==',which)|map(attribute='did')|first %}
+      {%- endif %}
+      {{ did }}
+    where: >-
+      {% set where = none %}
+      {% if devices|lower != 'none'  and which|lower != 'none' %}
+        {% set where = devices|selectattr('id','==',which)|map(attribute='area')|first %}
+      {%- endif %}
+      {{ where }}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ which|lower != 'none' and which|lower != 'null' and which|length > 0 }}
+  action:
+    - alias: 'update binary_sensor.motion_device_update which, where, did'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_update
+        which: >-
+          {{ which }}
+        where: >-
+          {{ where }}
+        did: >-
+          {{ did }}
+    - alias: 'trigger motion notification'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_update_on_notify
+
+# detected notify
+
+- id: motion_device_update_on_notify
+  alias: motion_device_update_on_notify
+  mode: single
+  initial_state: on
+  trigger:
+  variables:
+    ids: >-
+      {% set ids = state_attr('binary_sensor.motion_device_update','ids') %}
+      {{ ids }}
+    positive: >-
+      {% set positive = state_attr('binary_sensor.motion_device_update','positive') %}
+      {{ positive }}
+    which: >-
+      {% set which = state_attr('binary_sensor.motion_device_update','which') %}
+      {{ which }}
+    where: >-
+      {% set where = state_attr('binary_sensor.motion_device_update','where') %}
+      {{ where }}
+    did: >-
+      {% set did = state_attr('binary_sensor.motion_device_update','did') %}
+      {{ did }}
+    action: >-
+      {% set action = 'motion-okay' %}
+      {{ action }}
+    url: >-
+      {% set url = '/lovelace/motion-okay' %}
+      {{ url }}
+    title: >-
+      {% set title = states('input_text.motion_app') + ': update alarm' %}
+      {{ title }}
+    notification_id: >-
+      {{ 'device-update-status-' + which|string }}
+    icon: >-
+      {% set icon = 'notification-update-detected' %}
+      {{ icon }}
+    header: >-
+      {{- '[![](/local/images/icons/' + icon + '.png)]()' -}}
+      {{- '<hr>' -}}
+    footer: >-
+      {{ '<hr>' }}
+      {%- if did|lower != 'none' and did|lower != 'null' -%}
+        {{- '[![](https://img.shields.io/badge/device-info-blue.svg)](' + '/config/devices/device/' + did + ')' -}}
+      {%- endif -%}
+    body: >-
+      Your home update alarm was triggered; sensor: {{ which -}}; where: {{ where -}}.
+      We have notified **{{- state_attr('sensor.motion_role_primary','friendly_name') -}}** about your update alarm.
+      If you are fine handling this situation on your own, click the **{{- action -}}** button below.
+      {{- '<p>' -}}
+      {{-  '[![](https://img.shields.io/badge/' + action + '-green.svg)](' + url + ')' -}}
+    message: >-
+      {{- header -}}
+      {{- body -}}
+      {{- footer -}}
+  action:
+    - alias: 'notify update sensor activated'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+# cleared notify
+
+- id: motion_device_update_off_notify
+  alias: motion_device_update_off_notify
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_update
+      from: 'on'
+      to: 'off'
+  variables:
+    title: >-
+      {% set title = states('input_text.motion_app') + ': update alarm' %}
+      {{ title }}
+    which: >-
+      {% set which = none %}
+      {% set s = state_attr('binary_sensor.motion_device_update','status')|selectattr('state','==','off')|sort(attribute='updated',reverse=true)|list %}
+      {% if s|lower != 'none' and s|lower != 'null' and not s is string and s is iterable and s|count > 0 %}
+        {% set which = s|map(attribute='id')|first  %}
+      {%- endif %}
+      {{ which }}
+    notification_id: >-
+      {{ 'device-update-status-' + which|string }}
+    icon: >-
+      {% set icon = 'notification-update-cleared' %}
+      {{ icon }}
+    header: >-
+      {{- '[![](/local/images/icons/' + icon + '.png)]()' -}}
+      {{- '<hr>' -}}
+    footer: >-
+      {{ '<hr>' }}
+    body: >-
+      Your home update alarm has cleared; sensor: {{ which -}}.
+    message: >-
+      {{- header -}}
+      {{- body -}}
+      {{- footer -}}
+  action:
+    - alias: 'notify update sensor activated'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+# cleared dismissed
+
+- id: motion_device_update_off_dismiss
+  alias: motion_device_update_off_dismiss
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_update
+      to: 'off'
+      for:
+        minutes: >-
+          {{ states('input_number.motion_device_class_dismiss')|int(5) }}
+  variables:
+    ids: >-
+      {%- set ids = state_attr('binary_sensor.motion_device_update','ids') -%}
+      {%- if ids|lower != 'none' and not ids is string and ids is iterable and ids|count > 0 -%}
+        [{%- for i in ids -%}
+          {%- if not loop.first -%},{%- endif -%}
+          "{{- 'device-update-status-' + i|string -}}"
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ ids|lower != 'none' and ids is iterable and ids|count > 0 }}
+  action:
+    - alias: 'dismiss update status'
+      repeat:
+        while:
+          - alias: 'test if not done'
+            condition: template
+            value_template: >-
+              {% set s = ids[repeat.index - 1]|default('unknown') %}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - alias: 'dismissing persistent notification'
+            service: persistent_notification.dismiss
+            data_template:
+              notification_id: >-
+                {{ ids[repeat.index - 1] }}
