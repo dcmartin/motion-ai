@@ -3,22 +3,8 @@
 ###
 
 
-## rescan
-
 - id: motion_device_plug_rescan
   alias: motion_device_plug_rescan
-  mode: single
-  initial_state: on
-  trigger:
-  action:
-    - service: automation.trigger
-      data_template:
-        entity_id: automation.motion_device_plug_binary_sensors
-
-## binary_sensors
-
-- id: motion_device_plug_binary_sensors
-  alias: motion_device_plug_binary_sensors
   mode: restart
   initial_state: on
   trigger:
@@ -173,7 +159,7 @@
           {%- endfor -%}
         {%- endfor -%}]
       {%- else -%}none{%- endif %}
-    positive: >-
+    good: >-
       {% set s = status %}
       {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string and s is iterable -%}
         [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,'on') -%}
@@ -181,7 +167,7 @@
           "{{- state_attr(i.entity_id,'friendly_name') -}}"
         {%- endfor -%}]
       {%- else -%}none{%- endif %}
-    negative: >-
+    bad: >-
       {% set s = status %}
       {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string and s is iterable -%}
         [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,'off') -%}
@@ -209,10 +195,10 @@
         entity_id: binary_sensor.motion_device_plug
         status: >-
           {{ status }}
-        positive: >-
-          {{ positive }}
-        negative: >-
-          {{ negative }}
+        good: >-
+          {{ good }}
+        bad: >-
+          {{ bad }}
         state: >-
           {{ value }}
 
@@ -371,7 +357,7 @@
     - platform: state
       entity_id: binary_sensor.motion_device_plug_exist
     - platform: state
-      entity_id: automation.motion_device_plug_binary_sensors
+      entity_id: automation.motion_device_plug_rescan
   condition:
     condition: and
     conditions:
@@ -383,7 +369,7 @@
           {{ is_state_attr('automation.motion_device_plug_binary_sensors','current',0) }}
       - condition: template
         value_template: >
-          {{ 'plug' in state_attr('binary_sensor.motion_device_class','binary_sensors') }}
+          {{ is_state_attr('binary_sensor.motion_device_plug_exist','required','on') }}
   variables:
     ip: >-
       {{ none }}
@@ -504,14 +490,14 @@
 
 # detected
 
-- id: motion_device_plug_detected
-  alias: motion_device_plug_detected
+- id: motion_device_plug_bad
+  alias: motion_device_plug_bad
   mode: single
   initial_state: on
   trigger:
     - platform: template
       value_template: >-
-        {{ is_state_attr('binary_sensor.motion_device_plug','bad',states('binary_sensor.motion_device_plug')) }}
+        {{ is_state_attr('binary_sensor.motion_device_plug_exist','bad',states('binary_sensor.motion_device_plug')) }}
   variables:
     devices: >-
       {% set devices = none %}
@@ -562,15 +548,18 @@
           {{ where }}
         did: >-
           {{ did }}
+    - condition: template
+      value_template: >
+        {{ is_state_attr('binary_sensor.motion_device_plug_exist','alarm','on') }}
     - alias: 'trigger motion notification'
       service: automation.trigger
       data_template:
-        entity_id: automation.motion_device_plug_on_notify
+        entity_id: automation.motion_device_plug_bad_notify
 
 # detected notify
 
-- id: motion_device_plug_on_notify
-  alias: motion_device_plug_on_notify
+- id: motion_device_plug_bad_notify
+  alias: motion_device_plug_bad_notify
   mode: single
   initial_state: on
   trigger:
@@ -578,9 +567,6 @@
     ids: >-
       {% set ids = state_attr('binary_sensor.motion_device_plug','ids') %}
       {{ ids }}
-    positive: >-
-      {% set positive = state_attr('binary_sensor.motion_device_plug','positive') %}
-      {{ positive }}
     which: >-
       {% set which = state_attr('binary_sensor.motion_device_plug','which') %}
       {{ which }}
@@ -622,12 +608,6 @@
       {{- header -}}
       {{- body -}}
       {{- footer -}}
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >
-          {{ is_state_attr('binary_sensor.motion_device_plug','alarm','on') }}
   action:
     - alias: 'notify plug sensor activated'
       service: persistent_notification.create
@@ -641,14 +621,14 @@
 
 # cleared notify
 
-- id: motion_device_plug_off_notify
-  alias: motion_device_plug_off_notify
+- id: motion_device_plug_good_notify
+  alias: motion_device_plug_good_notify
   mode: single
   initial_state: on
   trigger:
     - platform: template
       value_template: >-
-        {{ is_state_attr('binary_sensor.motion_device_plug','good',states('binary_sensor.motion_device_plug')) }}
+        {{ is_state_attr('binary_sensor.motion_device_plug_exist','good',states('binary_sensor.motion_device_plug')) }}
   variables:
     which: >-
       {% set which = none %}
@@ -689,14 +669,14 @@
 
 # cleared dismissed
 
-- id: motion_device_plug_off_dismiss
-  alias: motion_device_plug_off_dismiss
+- id: motion_device_plug_good_dismiss
+  alias: motion_device_plug_good_dismiss
   mode: single
   initial_state: on
   trigger:
     - platform: template
       value_template: >-
-        {{ is_state_attr('binary_sensor.motion_device_plug','good',states('binary_sensor.motion_device_plug')) }}
+        {{ is_state_attr('binary_sensor.motion_device_plug_exist','good',states('binary_sensor.motion_device_plug')) }}
       for:
         minutes: >-
           {{ states('input_number.motion_device_class_dismiss')|int(5) }}
