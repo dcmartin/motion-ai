@@ -172,10 +172,10 @@
             {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
           {%- endfor -%}
         {%- endfor -%}]
-      {%- else -%}null{%- endif %}
+      {%- else -%}none{%- endif %}
     positive: >-
       {% set s = status %}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string and s is iterable -%}
         [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,'on') -%}
           {%- if not loop.first -%},{%- endif -%}
           "{{- state_attr(i.entity_id,'friendly_name') -}}"
@@ -183,7 +183,7 @@
       {%- else -%}none{%- endif %}
     negative: >-
       {% set s = status %}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string and s is iterable -%}
         [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,'off') -%}
           {%- if not loop.first -%},{%- endif -%}
           "{{- state_attr(i.entity_id,'friendly_name') -}}"
@@ -191,7 +191,7 @@
       {%- else -%}none{%- endif %}
     values: >-
       {% set s = status %}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string and s is iterable -%}
         [{% for i in s if 'entity_id' in i and not i.entity_id is none -%}
           {%- if not loop.first -%},{%- endif -%}
           {% if is_state(i.entity_id,'on') %}1{% else %}0{% endif %}
@@ -439,8 +439,12 @@
       {% set devices = state_attr('binary_sensor.motion_device_motion','devices') %}
       {{ devices }}
     title: >-
-      {% set title = states('input_text.motion_app') + ': motion sensor found' %}
-      {{ title }}
+      {%- if devices|lower != 'none' -%}
+        {% set title = states('input_text.motion_app') + ': motion sensor found' %}
+        {{ title }}
+      {%- else %}
+        ERROR: Sensor(s) for motion found: {{ devices }}
+      {%- endif %}
     notification_id: >-
       {{ 'device-motion-notify' }}
     icon: >-
@@ -452,12 +456,16 @@
     footer: >-
       {{- '<hr>' -}}
     body: >-
-      Sensor(s) for motion found:
-      {{- '<p>' -}}
-      {%- for i in devices -%}
-        {%- if not loop.first -%}<br>{%- endif -%}
-        [{{ i.id }}](/config/devices/device/{{- i.did -}}) in [{{ i.area }}](/config/areas/area/{{- i.area -}})
-      {%- endfor %}
+      {%- if devices|lower != 'none' and devices is iterable and devices|count > 0 -%}
+        Sensor(s) for motion found:
+        {{- '<p>' -}}
+        {%- for i in devices -%}
+          {%- if not loop.first -%}<br>{%- endif -%}
+          [{{ i.id }}](/config/devices/device/{{- i.did -}}) in [{{ i.area }}](/config/areas/area/{{- i.area -}})
+        {%- endfor %}
+      {%- else %}
+        Sensor(s) for motion found: {{ devices }}
+      {%- endif %}
     message: >-
       {{ header }}
       {{ body }}
