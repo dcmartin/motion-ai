@@ -160,10 +160,10 @@
         {%- endfor -%}]
       {%- else -%}none{%- endif %}
     high: >-
-      {% if 'connectivity' in state_attr('binary_sensor.motion_device_class','high') %}
+      {% if state_attr('binary_sensor.motion_device_connectivity_exist','high')|float('none') != 'none' %}
         {% set s = status %}
         {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
-          {% set n = states('input_number.motion_device_connectivity_high')|float(0) %}
+          {% set n = state_attr('binary_sensor..motion_device_connectivity_exist','high')|float(0) %}
           [{% for i in s if 'entity_id' in i and states(i.entity_id)|float(n) > n -%}
             {%- if not loop.first -%},{%- endif -%}
             "{{- state_attr(i.entity_id,'friendly_name') }} at {{ states(i.entity_id)|int('unknown') -}}°"
@@ -171,10 +171,10 @@
         {%- else -%}none{%- endif %}
       {%- else -%}none{%- endif %}
     low: >-
-      {% if 'connectivity' in state_attr('binary_sensor.motion_device_class','low') %}
+      {% if state_attr('binary_sensor.motion_device_connectivity_exist','low')|float('none') != 'none' %}
         {% set s = status %}
         {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
-          {% set n = states('input_number.motion_device_connectivity_low')|float(0) %}
+          {% set n = state_attr('binary_sensor.motion_device_connectivity_exist','low')|float(0) %}
           [{% for i in s if 'entity_id' in i and states(i.entity_id)|float(n) < n -%}
             {%- if not loop.first -%},{%- endif -%}
             "{{- state_attr(i.entity_id,'friendly_name') }} at {{ states(i.entity_id)|int('unknown') -}}°"
@@ -182,10 +182,10 @@
         {%- else -%}none{%- endif %}
       {%- else -%}none{%- endif %}
     good: >-
-      {% set s = status %}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
-        {% set good = state_attr('binary_sensor.motion_device_connectivity_exist','good') %}
-        {%- if good|lower != 'none' -%}
+      {% set good = state_attr('binary_sensor.motion_device_connectivity_exist','good') %}
+      {%- if good|lower != 'none' -%}
+        {% set s = status %}
+        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
           [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,good) -%}
             {%- if not loop.first -%},{%- endif -%}
             "{{- state_attr(i.entity_id,'friendly_name') -}}"
@@ -193,10 +193,10 @@
         {%- else -%}none{%- endif %}
       {%- else -%}none{%- endif %}
     bad: >-
-      {% set s = status %}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
-        {% set bad = state_attr('binary_sensor.motion_device_connectivity_exist','bad') %}
-        {%- if bad|lower != 'none' -%}
+      {% set bad = state_attr('binary_sensor.motion_device_connectivity_exist','bad') %}
+      {%- if bad|lower != 'none' -%}
+        {% set s = status %}
+        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
           [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,bad) -%}
             {%- if not loop.first -%},{%- endif -%}
             "{{- state_attr(i.entity_id,'friendly_name') -}}"
@@ -204,31 +204,44 @@
         {%- else -%}none{%- endif %}
       {%- else -%}none{%- endif %}
     values: >-
-      {% set s = status %}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
-        {% set good = state_attr('binary_sensor.motion_device_connectivity_exist','good') %}
-        {% set bad = state_attr('binary_sensor.motion_device_connectivity_exist','bad') %}
-        {%- if good|lower != 'none' and bad|lower != 'none' -%}
-          [{% for i in s if 'entity_id' in i and not i.entity_id is none -%}
-            {%- if not loop.first -%},{%- endif -%}
-            {% if is_state(i.entity_id,good) %}1{% elif is_state(i.entity_id,bad) %}0{% else %}none{% endif %}
-          {%- endfor -%}]
-        {%- else -%}
-          [{% for i in s if 'entity_id' in i and not i.entity_id is none -%}
-            {%- if not loop.first -%},{%- endif -%}
-            {{- states(i.entity_id)|float -}}
-          {%- endfor -%}]
-        {%- endif %}
+      {% set g = state_attr('binary_sensor.motion_device_connectivity_exist','good') %}
+      {% set b = state_attr('binary_sensor.motion_device_connectivity_exist','bad') %}
+      {%- if g|lower != 'none' and b|lower != 'none' -%}
+        [{% for i in status if 'entity_id' in i and not i.entity_id is none -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {% if is_state(i.entity_id,g) %}1{% elif is_state(i.entity_id,b) %}0{% else %}none{% endif %}
+        {%- endfor -%}]
+      {%- else -%}
+        [{% for i in status if 'entity_id' in i and not i.entity_id is none -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {{- states(i.entity_id)|float(none) -}}
+        {%- endfor -%}]
       {%- endif %}
     value: >-
-      {% set s = values %}
-      {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
-        {% set good = state_attr('binary_sensor.motion_device_connectivity_exist','good') %}
-        {% set bad = state_attr('binary_sensor.motion_device_connectivity_exist','bad') %}
-        {%- if good|lower != 'none' and bad|lower != 'none' -%}
-          {% if sum|int(0) > 0 %}on{% else %}off{% endif %}
-        {% else %}unknown{% endif %}
-      {% else %}none{% endif %}
+      {% if bad|lower != 'none' and not bad is string and bad is iterable -%}
+        {%- if bad|count > 0 -%}
+          {%- set result = 'on' -%}
+        {%- else -%}
+          {%- set result = 'off' -%}
+        {%- endif -%}
+      {%- endif -%}
+      {%- if low|lower != 'none' and not low is string and low is iterable -%}
+        {%- if low|count > 0 -%}
+          {%- set result = 'on' -%}
+        {%- else -%}
+          {%- set result = 'off' -%}
+        {%- endif -%}
+      {%- endif -%}
+      {%- if high|lower != 'none' and not high is string and high is iterable -%}
+        {%- if high|count > 0 -%}
+          {%- set result = 'on' -%}
+        {%- else -%}
+          {%- set result = 'off' -%}
+        {%- endif -%}
+      {%- endif -%}
+      {%- if result is defined -%}
+        {{- result -}}
+      {%- else -%}unknown{%- endif %}
   action:
     - alias: 'update binary_sensor.motion_device_connectivity state'
       service: python_script.set_state
