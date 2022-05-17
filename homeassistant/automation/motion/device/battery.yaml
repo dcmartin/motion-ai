@@ -2,94 +2,8 @@
 # homeassistant/automation/motion/device/battery.yaml
 ###
 
-## sensor measurement
-
-- id: motion_device_battery_measurement
-  alias: motion_device_battery_measurement
-  mode: single
-  initial_state: on
-  trigger:
-    - platform: time_pattern
-      seconds: '/15'
-    - platform: state
-      entity_id: sensor.motion_device_battery
-      attribute: 'ids'
-  variables:
-    ids: >-
-      {{ state_attr('sensor.motion_device_battery','ids') }}
-    measurement: >-
-      {% set s = ids %}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
-        [{%- for i in s -%}
-          {% set o = loop %}
-          {%- for state in states.sensor if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'battery' -%}
-            {%- if not o.first or not loop.first -%},{%- endif -%}
-            {%- set v = state.state -%}
-            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
-          {%- else -%}{% if o.first %}None{% endif %}{%- endfor -%}
-        {%- endfor -%}]
-      {%- else -%}null{%- endif %}
-    values: >-
-      {% set s = measurement %}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
-        [{% for i in s -%}
-          {%- if not loop.first -%},{%- endif -%}
-          {{- states(i.entity_id)|float(None) -}}
-        {%- endfor -%}]
-      {%- else -%}null{%- endif %}
-    min: >-
-      {% set s = values %}
-      {% if s|lower != 'none' and not s is string %}
-        {% set s = s|select('number')|default('null') %}
-        {% if s|lower != 'null' %}
-          {{ s|min }}
-        {% else %}null{% endif %}
-      {% else %}null{% endif %}
-    max: >-
-      {% set s = values %}
-      {% if s|lower != 'none' and not s is string %}
-        {% set s = s|select('number')|default('null') %}
-        {% if s|lower != 'null' %}
-          {{ s|max }}
-        {% else %}null{% endif %}
-      {% else %}null{% endif %}
-    value: >-
-      {% set s = values %}
-      {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
-        {% set s = s|select('number')|default('null') %}
-        {% if s|lower != 'null' %}
-          {{ '%0.2f'|format(s|average) }}
-        {% else %}null{% endif %}
-      {% else %}null{% endif %}
-  action:
-    - alias: 'update sensor.motion_device_battery state'
-      service: python_script.set_state
-      data_template:
-        entity_id: sensor.motion_device_battery
-        measurement: >-
-          {{ measurement }}
-        min: >-
-          {{ min }}
-        max: >-
-          {{ max }}
-        state: >-
-          {{ value }}
-
 - id: motion_device_battery_rescan
   alias: motion_device_battery_rescan
-  mode: single
-  initial_state: on
-  trigger:
-  action:
-    - service: automation.trigger
-      data_template:
-        entity_id: automation.motion_device_battery_sensors
-    - service: automation.trigger
-      data_template:
-        entity_id: automation.motion_device_battery_binary_sensors
-
-- id: motion_device_battery_sensors
-  alias: motion_device_battery_sensors
   mode: restart
   initial_state: on
   trigger:
@@ -99,14 +13,14 @@
       event: start
   variables:
     all: >-
-      [{%- for state in states.sensor if 'device_class' in state.attributes and device_id(state.entity_id)|lower != 'none' and state.attributes.device_class=='battery' and not '.motion_' in state.entity_id -%}
+      [{%- for state in (states.sensor|list + states.binary_sensor|list) if 'device_class' in state.attributes and device_id(state.entity_id)|lower != 'none' and state.attributes.device_class=='battery' and not '.motion_' in state.entity_id -%}
         {%- if not loop.first -%},{% endif -%}
         "{{- device_attr(device_id(state.entity_id),'name') -}}"
       {%- endfor -%}]
     ids: >-
       {%- if all != [] and all is iterable and all|count > 0 -%}
         {{- all|sort|unique|list -}}
-      {% else %}null{% endif %}
+      {% else %}none{% endif %}
     total: >-
       {% set s = ids %}
       {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
@@ -165,18 +79,40 @@
       {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
         [{%- for i in s -%}
           {% set o = loop %}
-          {%- for state in states.sensor if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'battery' -%}
+          {%- for state in (states.sensor|list + states.binary_sensor|list) if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'battery' -%}
             {%- if not o.first or not loop.first -%},{%- endif -%}
             {%- set v = state.state -%}
-            {"area":"{{- area_id(state.entity_id) -}}","state":"{{- state.state -}}"}
+            {"id":"{{- i -}}","area":"{{- area_id(state.entity_id) -}}","state":"{{- state.state -}}"}
           {%- endfor -%}
         {%- endfor -%}]
-      {%- else -%}null{%- endif %}
+      {%- else -%}none{%- endif %}
+    status: >-
+      {% set s = ids %}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
+        [{%- for i in s -%}
+          {% set o = loop %}
+          {%- for state in (states.sensor|list + states.binary_sensor|list) if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'battery' -%}
+            {%- if not o.first or not loop.first -%},{%- endif -%}
+            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
+          {%- else -%}{% if o.first %}None{% endif %}{%- endfor -%}
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
+    devices: >-
+      {%- if ids|lower != 'unknown' and ids|lower != 'none' and not s is string and ids is iterable 
+             and status|lower != 'none' and not status is string and status is iterable
+             and areas|lower != 'none' and not areas is string and areas is iterable  -%}
+        [{% for i in ids -%}
+          {%- set j = status|selectattr('id','==',i)|map(attribute='entity_id')|first %}
+          {%- set k = areas|selectattr('id','==',i)|map(attribute='area')|first %}
+          {%- if not loop.first -%},{%- endif -%}
+          {"id":"{{- i -}}","did":"{{- device_id(j) -}}","area":"{{- k -}}"}
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
   action:
-    - alias: 'update sensor.motion_device_battery ids, etc..'
+    - alias: 'update binary_sensor.motion_device_battery ids, etc..'
       service: python_script.set_state
       data_template:
-        entity_id: sensor.motion_device_battery
+        entity_id: binary_sensor.motion_device_battery
         ids: >-
           {{ ids }}
         total: >-
@@ -191,10 +127,12 @@
           {{ test }}
         areas: >-
           {{ areas }}
+        devices: >-
+          {{ devices }}
         state: >-
-          {{ states('sensor.motion_device_battery') }}
+          {{ states('binary_sensor.motion_device_battery') }}
 
-###
+## update status
 
 - id: motion_device_battery_status
   alias: motion_device_battery_status
@@ -208,164 +146,655 @@
       attribute: 'ids'
   variables:
     ids: >-
-      {{ state_attr('binary_sensor.motion_device_battery','ids') }}
+      {% set ids = state_attr('binary_sensor.motion_device_battery','ids') %}
+      {{ ids }}
     status: >-
-      {% set s = ids -%}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
+      {% set s = ids %}
+      {%- if s|lower != 'none' and s|lower != 'unknown' and s is iterable -%}
         [{%- for i in s -%}
           {% set o = loop %}
-          {%- for state in states.binary_sensor if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'battery' -%}
+          {%- for state in (states.sensor|list + states.binary_sensor|list) if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'battery' -%}
             {%- if not o.first or not loop.first -%},{%- endif -%}
-            {%- set v = state.state -%}
             {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
-          {%- endfor -%}
-        {%- endfor -%}]
-      {%- else -%}null{%- endif %}
-    positive: >-
-      {% set s = status %}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
-        [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,'on') -%}
-          {%- if not loop.first -%},{%- endif -%}
-          "{{- state_attr(i.entity_id,'friendly_name') -}}"
+          {%- else -%}{% if o.first %}None{% endif %}{%- endfor -%}
         {%- endfor -%}]
       {%- else -%}none{%- endif %}
-    negative: >-
+    high: >-
+      {% if state_attr('binary_sensor.motion_device_battery_exist','high')|float('none') != 'none' %}
+        {% set s = status %}
+        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+          {% set n = state_attr('binary_sensor.motion_device_battery_exist','high')|float(0) %}
+          [{% for i in s if 'entity_id' in i and states(i.entity_id)|float(n) > n -%}
+            {%- if not loop.first -%},{%- endif -%}
+            "{{- state_attr(i.entity_id,'friendly_name') }} at {{ states(i.entity_id)|int('unknown') -}}{{ state_attr(i.entity_id,'unit_of_measurement') -}}"
+          {%- endfor -%}]
+        {%- else -%}none{%- endif %}
+      {%- else -%}none{%- endif %}
+    low: >-
+      {% if state_attr('binary_sensor.motion_device_battery_exist','low')|float('none') != 'none' %}
+        {% set s = status %}
+        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+          {% set n = state_attr('binary_sensor.motion_device_battery_exist','low')|float(0) %}
+          [{% for i in s if 'entity_id' in i and states(i.entity_id)|float(n) < n -%}
+            {%- if not loop.first -%},{%- endif -%}
+            "{{- state_attr(i.entity_id,'friendly_name') }} at {{ states(i.entity_id)|int('unknown') -}}{{ state_attr(i.entity_id,'unit_of_measurement') -}}"
+          {%- endfor -%}]
+        {%- else -%}none{%- endif %}
+      {%- else -%}none{%- endif %}
+    good: >-
+      {% set good = state_attr('binary_sensor.motion_device_battery_exist','good') %}
+      {%- if good|lower != 'none' -%}
+        {% set s = status %}
+        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+          [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,good) -%}
+            {%- if not loop.first -%},{%- endif -%}
+            "{{- state_attr(i.entity_id,'friendly_name') -}}"
+          {%- endfor -%}]
+        {%- else -%}none{%- endif %}
+      {%- else -%}none{%- endif %}
+    bad: >-
+      {% set bad = state_attr('binary_sensor.motion_device_battery_exist','bad') %}
+      {%- if bad|lower != 'none' -%}
+        {% set s = status %}
+        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+          [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,bad) -%}
+            {%- if not loop.first -%},{%- endif -%}
+            "{{- state_attr(i.entity_id,'friendly_name') -}}"
+          {%- endfor -%}]
+        {%- else -%}none{%- endif %}
+      {%- else -%}none{%- endif %}
+    activity: >-
+      {% set activity = state_attr('binary_sensor.motion_device_battery_exist','activity') %}
+      {%- if activity|lower != 'none' -%}
+        {% set s = status %}
+        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+          [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,activity) -%}
+            {%- if not loop.first -%},{%- endif -%}
+            "{{- state_attr(i.entity_id,'friendly_name') -}}"
+          {%- endfor -%}]
+        {%- else -%}none{%- endif %}
+      {%- else -%}none{%- endif %}
+    unavailable: >-
       {% set s = status %}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
-        [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,'off') -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+        [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,'unavailable') -%}
           {%- if not loop.first -%},{%- endif -%}
           "{{- state_attr(i.entity_id,'friendly_name') -}}"
         {%- endfor -%}]
       {%- else -%}none{%- endif %}
     values: >-
-      {% set s = status %}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
-        [{% for i in s if 'entity_id' in i and not i.entity_id is none -%}
+      {% set g = state_attr('binary_sensor.motion_device_battery_exist','good') %}
+      {% set b = state_attr('binary_sensor.motion_device_battery_exist','bad') %}
+      {%- if g|lower != 'none' and b|lower != 'none' -%}
+        [{% for i in status if 'entity_id' in i and not i.entity_id is none -%}
           {%- if not loop.first -%},{%- endif -%}
-          {% if is_state(i.entity_id,'on') %}1{% else %}0{% endif %}
+          {% if is_state(i.entity_id,g) %}1{% elif is_state(i.entity_id,b) %}0{% else %}none{% endif %}
         {%- endfor -%}]
-      {%- else -%}null{%- endif %}
+      {%- else -%}
+        [{% for i in status if 'entity_id' in i and not i.entity_id is none -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {{- states(i.entity_id)|float(none) -}}
+        {%- endfor -%}]
+      {%- endif %}
     value: >-
-      {% set s = values %}
-      {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
-        {% if s|sum|int(0) > 0 %}on{% else %}off{% endif %}
-      {% else %}null{% endif %}
+      {% if bad|lower != 'none' and not bad is string and bad is iterable -%}
+        {%- if bad|count > 0 -%}
+          {%- set result = 'on' -%}
+        {%- else -%}
+          {%- set result = 'off' -%}
+        {%- endif -%}
+      {%- endif -%}
+      {%- if low|lower != 'none' and not low is string and low is iterable -%}
+        {%- if low|count > 0 -%}
+          {%- set result = 'on' -%}
+        {%- else -%}
+          {%- set result = 'off' -%}
+        {%- endif -%}
+      {%- endif -%}
+      {%- if high|lower != 'none' and not high is string and high is iterable -%}
+        {%- if high|count > 0 -%}
+          {%- set result = 'on' -%}
+        {%- else -%}
+          {%- set result = 'off' -%}
+        {%- endif -%}
+      {%- endif -%}
+      {%- if activity|lower != 'none' and not activity is string and activity is iterable -%}
+        {%- if activity|count > 0 -%}
+          {%- set result = 'on' -%}
+        {%- else -%}
+          {%- set result = 'off' -%}
+        {%- endif -%}
+      {%- endif -%}
+      {%- if result is defined -%}
+        {{- result -}}
+      {%- else -%}unknown{%- endif %}
   action:
-    - alias: 'update sensor.motion_device_battery state'
+    - alias: 'update binary_sensor.motion_device_battery state'
       service: python_script.set_state
       data_template:
         entity_id: binary_sensor.motion_device_battery
         status: >-
           {{ status }}
-        positive: >-
-          {{ positive }}
-        negative: >-
-          {{ negative }}
+        high: >-
+          {{ high }}
+        low: >-
+          {{ low }}
+        good: >-
+          {{ good }}
+        bad: >-
+          {{ bad }}
+        activity: >-
+          {{ activity }}
+        unavailable: >-
+          {{ unavailable }}
+        values: >-
+          {{ values }}
         state: >-
           {{ value }}
 
-- id: motion_device_battery_binary_sensors
-  alias: motion_device_battery_binary_sensors
-  mode: restart
+## update, restart, and other contols
+
+- id: motion_device_battery_self_test
+  alias: motion_device_battery_self_test
+  mode: single
   initial_state: on
   trigger:
-    - platform: time_pattern
-      minutes: '/5'
-    - platform: homeassistant
-      event: start
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test if self_test is on'
+        condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_battery_self_test','on') }}
   variables:
-    all: >-
-      [{%- for state in states.binary_sensor if 'device_class' in state.attributes and device_id(state.entity_id)|lower != 'none' and state.attributes.device_class=='battery' and not '.motion_' in state.entity_id -%}
-        {%- if not loop.first -%},{% endif -%}
-        "{{- device_attr(device_id(state.entity_id),'name') -}}"
-      {%- endfor -%}]
-    ids: >-
-      {%- if all != [] and all is iterable and all|count > 0 -%}
-        {{- all|sort|unique|list -}}
-      {% else %}null{% endif %}
-    total: >-
-      {% set s = ids %}
-      {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
-        {{ s|count }}
-      {%- else -%}0{%- endif %}
-    update: >-
-      {% set s = ids %}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
-        [{%- for i in s -%}
-          {% set o = loop %}
-          {%- for state in (states.button|list + states.switch|list) if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'update' -%}
-            {%- if not o.first or not loop.first -%},{%- endif -%}
-            {%- set v = state.state -%}
-            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}"}
-          {%- endfor -%}
-        {%- endfor -%}]
-      {%- else -%}null{%- endif %}
-    restart: >-
-      {% set s = ids %}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
-        [{%- for i in s -%}
-          {% set o = loop %}
-          {%- for state in (states.button|list + states.switch|list) if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'restart' -%}
-            {%- if not o.first or not loop.first -%},{%- endif -%}
-            {%- set v = state.state -%}
-            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}"}
-          {%- endfor -%}
-        {%- endfor -%}]
-      {%- else -%}null{%- endif %}
-    controls: >-
-      {% set s = ids %}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
-        [{%- for i in s -%}
-          {% set o = loop %}
-          {%- for state in (states.button|list + states.switch|list) if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'null' -%}
-            {%- if not o.first or not loop.first -%},{%- endif -%}
-            {%- set ctl = state_attr(state.entity_id,'friendly_name') -%}
-            {%- set ctl = ctl|replace(i+' ','') -%}
-            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","control":"{{- ctl -}}"}
-          {%- endfor -%}
-        {%- endfor -%}]
-      {%- else -%}null{%- endif %}
-    test: >-
-      {% set s = ids %}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
-        [{%- for i in s -%}
-          {% set o = loop %}
-          {%- for state in states.sensor if device_attr(state.entity_id, 'name') == i and state.attributes.self_test|default('none')|string != 'none' -%}
-            {%- if not o.first or not loop.first -%},{%- endif -%}
-            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
-          {%- endfor -%}
-        {%- endfor -%}]
-      {%- else -%}null{%- endif %}
-    areas: >-
-      {% set s = ids -%}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
-        [{%- for i in s -%}
-          {% set o = loop %}
-          {%- for state in states.binary_sensor if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'battery' -%}
-            {%- if not o.first or not loop.first -%},{%- endif -%}
-            {%- set v = state.state -%}
-            {"area":"{{- area_id(state.entity_id) -}}","state":"{{- state.state -}}"}
-          {%- endfor -%}
-        {%- endfor -%}]
-      {%- else -%}null{%- endif %}
+    entity_ids: >-
+      {{ state_attr('binary_sensor.motion_device_battery_self_test','entity_ids') }}
   action:
-    - alias: 'update sensor.motion_device_battery ids, etc..'
+    - alias: 'test battery sensors'
+      repeat:
+        while:
+          - alias: 'test if not done'
+            condition: template
+            value_template: >-
+              {% set s = entity_ids[repeat.index - 1]|default('unknown') %}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - alias: 'pressing button'
+            service: button.press
+            data_template:
+              entity_id: >-
+                {{ entity_ids[repeat.index - 1] }}
+
+- id: motion_device_battery_mute
+  alias: motion_device_battery_mute
+  mode: single
+  initial_state: on
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_battery_mute','on') }}
+  variables:
+    entity_ids: >-
+      {{ state_attr('binary_sensor.motion_device_battery_mute','entity_ids') }}
+  action:
+    - alias: 'mute battery sensors'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = entity_ids[repeat.index - 1]|default('unknown') %}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - service: button.press
+            data_template:
+              entity_id: >-
+                {{ entity_ids[repeat.index - 1] }}
+
+- id: motion_device_battery_unmute
+  alias: motion_device_battery_unmute
+  mode: single
+  initial_state: on
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_battery_unmute','on') }}
+  variables:
+    entity_ids: >-
+      {{ state_attr('binary_sensor.motion_device_battery_unmute','entity_ids') }}
+  action:
+    - alias: 'unmute battery sensors'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = entity_ids[repeat.index - 1]|default('unknown') %}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - service: button.press
+            data_template:
+              entity_id: >-
+                {{ entity_ids[repeat.index - 1] }}
+
+- id: motion_device_battery_restart
+  alias: motion_device_battery_restart
+  mode: single
+  initial_state: on
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_battery_restart','on') }}
+  variables:
+    entity_ids: >-
+      {{ state_attr('binary_sensor.motion_device_battery_restart','entity_ids') }}
+  action:
+    - alias: 'restart battery sensors'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = entity_ids[repeat.index - 1]|default('unknown') %}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - service: button.press
+            data_template:
+              entity_id: >-
+                {{ entity_ids[repeat.index - 1] }}
+
+- id: motion_device_battery_update
+  alias: motion_device_battery_update
+  mode: single
+  initial_state: on
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_battery_update','on') }}
+  variables:
+    entity_ids: >-
+      {{ state_attr('binary_sensor.motion_device_battery_update','entity_ids') }}
+  action:
+    - alias: 'update battery sensors'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = entity_ids[repeat.index - 1]|default('unknown') %}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - service: button.press
+            data_template:
+              entity_id: >-
+                {{ entity_ids[repeat.index - 1] }}
+
+## notifications
+
+- id: motion_device_battery_missing
+  alias: motion_device_battery_missing
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_battery_exist
+    - platform: state
+      entity_id: automation.motion_device_battery_rescan
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.motion_device_battery_exist','off') }}
+      - condition: template
+        value_template: >
+          {{ is_state_attr('automation.motion_device_battery_rescan','current',0) }}
+      - condition: template
+        value_template: >
+          {{ is_state_attr('binary_sensor.motion_device_battery_exist','required','on') }}
+  variables:
+    ip: >-
+      {{ none }}
+    latitude: >-
+      {{ none }}
+    longitude: >-
+      {{ none }}
+    notification_id: >-
+      {{ 'device-battery-notify' }}
+    icon: >-
+      {% set icon = 'notification-battery-missing' %}
+      {{ icon }}
+    header: >-
+      {{- '[![](/local/images/icons/' + icon + '.png)]()' -}}
+      {{- '<hr>' -}}
+    footer: >-
+      {{- '<hr>' -}}
+    title: >-
+      {% set title = states('input_text.motion_app') + ': battery sensor not found' %}
+      {{ title }}
+    body: >-
+      The battery sensor could not be found; please setup the integration by clicking [here](/config/integrations).
+    message: >-
+      {{ header }}
+      {{ body }}
+      {{ footer }}
+  action:
+    - alias: 'notify missing battery sensor'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+# found
+
+- id: motion_device_battery_found
+  alias: motion_device_battery_found
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_battery_exist
+      to: 'on'
+  variables:
+    ids: >-
+      {% set ids = state_attr('binary_sensor.motion_device_battery','ids') %}
+      {{ ids }}
+    devices: >-
+      {% set devices = state_attr('binary_sensor.motion_device_battery','devices') %}
+      {{ devices }}
+    title: >-
+      {% set title = states('input_text.motion_app') + ': battery sensor found' %}
+      {{ title }}
+    notification_id: >-
+      {{ 'device-battery-notify' }}
+    icon: >-
+      {% set icon = 'notification-battery-found' %}
+      {{ icon }}
+    header: >-
+      {{- '[![](/local/images/icons/' + icon + '.png)]()' -}}
+      {{- '<hr>' -}}
+    footer: >-
+      {{- '<hr>' -}}
+    body: >-
+      Sensor(s) for battery found:
+      {{- '<p>' -}}
+      {% if devices|lower != 'none' %}
+        {%- for i in devices -%}
+          {%- if not loop.first -%}<br>{%- endif -%}
+          [{{ i.id }}](/config/devices/device/{{- i.did -}}) in [{{ i.area }}](/config/areas/area/{{- i.area -}})
+        {%- endfor %}
+      {%- endif %}
+    message: >-
+      {{ header }}
+      {{ body }}
+      {{ footer }}
+  action:
+    - alias: 'notify found battery sensor'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+- id: motion_device_battery_found_dismiss
+  alias: motion_device_battery_found_dismiss
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_battery_exist
+      to: 'on'
+      for:
+        minutes: >-
+          {{ states('input_number.motion_device_class_dismiss')|int(5) }}
+  variables:
+    notification_id: >-
+      {{ 'device-battery-notify' }}
+  action:
+    - alias: 'dismiss battery found notification'
+      service: persistent_notification.dismiss
+      data_template:
+        notification_id: >-
+          {{ notification_id }}
+
+# detected
+
+- id: motion_device_battery_alarm_bad
+  alias: motion_device_battery_alarm_bad
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: template
+      value_template: >-
+        {{ not is_state_attr('binary_sensor.motion_device_battery_exist','bad','none')
+           and is_state_attr('binary_sensor.motion_device_battery_exist','bad',states('binary_sensor.motion_device_battery')) }}
+  variables:
+    devices: >-
+      {% set devices = none %}
+      {% set s = state_attr('binary_sensor.motion_device_battery','devices') %}
+      {% if s|lower != 'none' and s|lower != 'null' and not s is string and s is iterable and s|count > 0 %}
+        {% set devices = s %}
+      {%- endif %}
+      {{ devices }}
+    last: >-
+      {% set last = none %}
+      {% set s = state_attr('binary_sensor.motion_device_battery','status')|selectattr('state','==',state_attr('binary_sensor.motion_device_battery_exist','bad'))|sort(attribute='updated',reverse=true)|list %}
+      {% if s|lower != 'none' and s|lower != 'null' and not s is string and s is iterable and s|count > 0 %}
+        {% set last = s %}
+      {%- endif %}
+      {{ last  }}
+    which: >-
+      {% set which = none %}
+      {% if last|lower != 'none' %}
+        {% set which = last|map(attribute='id')|first %}
+      {%- endif %}
+      {{ which }}
+    did: >-
+      {% set did = none %}
+      {% if devices|lower != 'none'  and which|lower != 'none' %}
+        {% set did = devices|selectattr('id','==',which)|map(attribute='did')|first %}
+      {%- endif %}
+      {{ did }}
+    where: >-
+      {% set where = none %}
+      {% if devices|lower != 'none'  and which|lower != 'none' %}
+        {% set where = devices|selectattr('id','==',which)|map(attribute='area')|first %}
+      {%- endif %}
+      {{ where }}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ which|lower != 'none' and which|lower != 'null' and which|length > 0 }}
+  action:
+    - alias: 'update binary_sensor.motion_device_battery which, where, did'
       service: python_script.set_state
       data_template:
         entity_id: binary_sensor.motion_device_battery
-        ids: >-
-          {{ ids }}
-        total: >-
-          {{ total }}
-        update: >-
-          {{ update }}
-        restart: >-
-          {{ restart }}
-        controls: >-
-          {{ controls }}
-        test: >-
-          {{ test }}
-        areas: >-
-          {{ areas }}
-        state: >-
-          {{ states('binary_sensor.motion_device_battery') }}
+        which: >-
+          {{ which }}
+        where: >-
+          {{ where }}
+        did: >-
+          {{ did }}
+    - condition: template
+      value_template: >
+        {{ is_state_attr('binary_sensor.motion_device_battery_exist','alarm','on') }}
+    - alias: 'trigger motion notification'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_battery_bad_notify
+
+# detected notify
+
+- id: motion_device_battery_bad_notify
+  alias: motion_device_battery_bad_notify
+  mode: single
+  initial_state: on
+  trigger:
+  variables:
+    ids: >-
+      {% set ids = state_attr('binary_sensor.motion_device_battery','ids') %}
+      {{ ids }}
+    which: >-
+      {% set which = state_attr('binary_sensor.motion_device_battery','which') %}
+      {{ which }}
+    where: >-
+      {% set where = state_attr('binary_sensor.motion_device_battery','where') %}
+      {{ where }}
+    did: >-
+      {% set did = state_attr('binary_sensor.motion_device_battery','did') %}
+      {{ did }}
+    action: >-
+      {% set action = 'battery-okay' %}
+      {{ action }}
+    url: >-
+      {% set url = '/lovelace/battery-okay' %}
+      {{ url }}
+    title: >-
+      {% set title = states('input_text.motion_app') + ': battery alarm' %}
+      {{ title }}
+    notification_id: >-
+      {{ 'device-battery-status-' + which|string }}
+    icon: >-
+      {% set icon = 'notification-battery-detected' %}
+      {{ icon }}
+    header: >-
+      {{- '[![](/local/images/icons/' + icon + '.png)]()' -}}
+      {{- '<hr>' -}}
+    footer: >-
+      {{ '<hr>' }}
+      {%- if did|lower != 'none' and did|lower != 'null' -%}
+        {{- '[![](https://img.shields.io/badge/device-info-blue.svg)](' + '/config/devices/device/' + did + ')' -}}
+      {%- endif -%}
+    body: >-
+      Your home battery alarm was triggered; sensor: {{ which -}}; where: {{ where -}}.
+      We have notified **{{- state_attr('sensor.motion_role_primary','friendly_name') -}}** about your battery alarm.
+      If you are fine handling this situation on your own, click the **{{- action -}}** button below.
+      {{- '<p>' -}}
+      {{-  '[![](https://img.shields.io/badge/' + action + '-green.svg)](' + url + ')' -}}
+    message: >-
+      {{- header -}}
+      {{- body -}}
+      {{- footer -}}
+  action:
+    - alias: 'notify battery sensor activated'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+# cleared notify
+
+- id: motion_device_battery_good_notify
+  alias: motion_device_battery_good_notify
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: template
+      value_template: >-
+        {{ is_state_attr('binary_sensor.motion_device_battery_exist','good',states('binary_sensor.motion_device_battery')) }}
+  variables:
+    which: >-
+      {% set which = none %}
+      {% set s = state_attr('binary_sensor.motion_device_battery','status')|selectattr('state','==','off')|sort(attribute='updated',reverse=true)|list %}
+      {% if s|lower != 'none' and s|lower != 'null' and not s is string and s is iterable and s|count > 0 %}
+        {% set which = s|map(attribute='id')|first  %}
+      {%- endif %}
+      {{ which }}
+    notification_id: >-
+      {{ 'device-battery-status-' + which|string }}
+    icon: >-
+      {% set icon = 'notification-battery-cleared' %}
+      {{ icon }}
+    title: >-
+      {% set title = states('input_text.motion_app') + ': battery cleared' %}
+      {{ title }}
+    header: >-
+      {{- '[![](/local/images/icons/' + icon + '.png)]()' -}}
+      {{- '<hr>' -}}
+    footer: >-
+      {{ '<hr>' }}
+    body: >-
+      Your home battery alarm has cleared; sensor: {{ which -}}.
+    message: >-
+      {{- header -}}
+      {{- body -}}
+      {{- footer -}}
+  action:
+    - condition: template
+      value_template: >
+        {{ is_state_attr('binary_sensor.motion_device_battery_exist','alarm','on') }}
+    - alias: 'notify battery sensor activated'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+# cleared dismissed
+
+- id: motion_device_battery_good_dismiss
+  alias: motion_device_battery_good_dismiss
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: template
+      value_template: >-
+        {{ is_state_attr('binary_sensor.motion_device_battery_exist','good',states('binary_sensor.motion_device_battery')) }}
+      for:
+        minutes: >-
+          {{ states('input_number.motion_device_class_dismiss')|int(5) }}
+  variables:
+    ids: >-
+      {%- set ids = state_attr('binary_sensor.motion_device_battery','ids') -%}
+      {%- if ids|lower != 'none' and not ids is string and ids is iterable and ids|count > 0 -%}
+        [{%- for i in ids -%}
+          {%- if not loop.first -%},{%- endif -%}
+          "{{- 'device-battery-status-' + i|string -}}"
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ ids|lower != 'none' and ids is iterable and ids|count > 0 }}
+  action:
+    - alias: 'dismiss battery status'
+      repeat:
+        while:
+          - alias: 'test if not done'
+            condition: template
+            value_template: >-
+              {% set s = ids[repeat.index - 1]|default('unknown') %}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - alias: 'dismissing persistent notification'
+            service: persistent_notification.dismiss
+            data_template:
+              notification_id: >-
+                {{ ids[repeat.index - 1] }}
