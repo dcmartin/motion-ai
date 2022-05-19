@@ -473,7 +473,7 @@
       {% set icon = 'notification-gas-missing' %}
       {{ icon }}
     header: >-
-      {{- '[![](/local/images/icons/' + icon + '.png)]()' -}}
+      {{- '[![](/local/images/icons/' + icon + '.png?v1)]()' -}}
       {{- '<hr>' -}}
     footer: >-
       {{- '<hr>' -}}
@@ -523,7 +523,7 @@
       {% set icon = 'notification-gas-found' %}
       {{ icon }}
     header: >-
-      {{- '[![](/local/images/icons/' + icon + '.png)]()' -}}
+      {{- '[![](/local/images/icons/' + icon + '.png?v1)]()' -}}
       {{- '<hr>' -}}
     footer: >-
       {{- '<hr>' -}}
@@ -676,7 +676,7 @@
       {% set icon = 'notification-gas-detected' %}
       {{ icon }}
     header: >-
-      {{- '[![](/local/images/icons/' + icon + '.png)]()' -}}
+      {{- '[![](/local/images/icons/' + icon + '.png?v1)]()' -}}
       {{- '<hr>' -}}
     footer: >-
       {{ '<hr>' }}
@@ -731,7 +731,7 @@
       {% set title = states('input_text.motion_app') + ': gas cleared' %}
       {{ title }}
     header: >-
-      {{- '[![](/local/images/icons/' + icon + '.png)]()' -}}
+      {{- '[![](/local/images/icons/' + icon + '.png?v1)]()' -}}
       {{- '<hr>' -}}
     footer: >-
       {{ '<hr>' }}
@@ -851,7 +851,7 @@
       {% set icon = 'notification-gas-low' %}
       {{ icon }}
     header: >-
-      {{- '[![](/local/images/icons/' + icon + '.png)]()' -}}
+      {{- '[![](/local/images/icons/' + icon + '.png?v1)]()' -}}
       {{- '<hr>' -}}
     footer: >-
       {{ '<hr>' }}
@@ -937,7 +937,7 @@
       {% set icon = 'notification-gas-high' %}
       {{ icon }}
     header: >-
-      {{- '[![](/local/images/icons/' + icon + '.png)]()' -}}
+      {{- '[![](/local/images/icons/' + icon + '.png?v1)]()' -}}
       {{- '<hr>' -}}
     footer: >-
       {{ '<hr>' }}
@@ -948,6 +948,90 @@
         {%- for i in high -%}
           {%- if not loop.first -%}<br>{%- endif -%}
           [{{ i.id }}](/config/devices/device/{{- device_id(high[loop.index-1].entity_id) -}}) in [{{ area_id(high[loop.index-1].entity_id) }}](/config/areas/area/{{- area_id(high[loop.index-1].entity_id) -}})
+        {%- endfor %}
+      {%- endif %}
+      <p>
+      We have notified **{{- state_attr('sensor.motion_role_primary','friendly_name') -}}** about your gas alarm.
+      <br>
+      If you are fine handling this situation on your own, click the **{{- action -}}** button below.
+      {{- '<p>' -}}
+      {{-  '[![](https://img.shields.io/badge/' + action + '-green.svg)](' + url + ')' -}}
+    message: >-
+      {{- header -}}
+      {{- body -}}
+      {{- footer -}}
+  action:
+    - alias: 'notify gas sensor activated'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+- id: motion_device_gas_alarm_activity
+  alias: motion_device_gas_alarm_activity
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_gas_activity'
+      to: 'on'
+  variables:
+    activity: >-
+      {{ state_attr('binary_sensor.motion_device_gas','activity') }}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ activity|lower != 'none' and activity|lower != 'null' and activity|length > 0 }}
+  action:
+    - condition: template
+      value_template: >
+        {{ is_state_attr('binary_sensor.motion_device_gas_exist','alarm','on') }}
+    - alias: 'trigger motion notification'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_gas_activity_notify
+
+- id: motion_device_gas_activity_notify
+  alias: motion_device_gas_activity_notify
+  mode: single
+  initial_state: on
+  trigger:
+  variables:
+    activity: >-
+      {% set activity = state_attr('binary_sensor.motion_device_gas','activity') %}
+      {{ activity }}
+    action: >-
+      {% set action = 'gas-okay' %}
+      {{ action }}
+    url: >-
+      {% set url = '/lovelace/gas-okay' %}
+      {{ url }}
+    title: >-
+      {% set title = states('input_text.motion_app') + ': gas activity alarm' %}
+      {{ title }}
+    notification_id: >-
+      {{ 'device-gas-activity' }}
+    icon: >-
+      {% set icon = 'notification-gas-activity' %}
+      {{ icon }}
+    header: >-
+      {{- '[![](/local/images/icons/' + icon + '.png?v1)]()' -}}
+      {{- '<hr>' -}}
+    footer: >-
+      {{ '<hr>' }}
+    body: >-
+      Your home gas alarm was triggered:
+      {{- '<p>' -}}
+      {% if activity|lower != 'none' and not activity is string and activity is iterable and activity|count > 0 %}
+        {%- for i in activity -%}
+          {%- if not loop.first -%}<br>{%- endif -%}
+          [{{ i.id }}](/config/devices/device/{{- device_id(activity[loop.index-1].entity_id) -}}) in [{{ area_id(activity[loop.index-1].entity_id) }}](/config/areas/area/{{- area_id(activity[loop.index-1].entity_id) -}})
         {%- endfor %}
       {%- endif %}
       <p>
