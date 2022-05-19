@@ -211,14 +211,11 @@
               "{{- j -}}"
             {%- endfor -%}
           {%- endfor -%}]
-        group: >-
+        activity_sensors: >-
           {%- set s = state_attr('binary_sensor.motion_device_class','sensor_list')|list + state_attr('binary_sensor.motion_device_class','binary_sensor_list')|list -%}
-          [{%- for i in s|sort|unique if is_state('binary_sensor.motion_device_' + i + '_group','on') -%}
+          [{%- for i in s|sort|unique if is_state_attr('binary_sensor.motion_device_' + i + '_exist','activity','on') -%}
             {%- if not loop.first -%},{%- endif -%}
-            {%- for j in state_attr(','ids') -%}
-              {%- if not loop.first -%},{%- endif -%}
-              "{{- binary_sensor.motion_device_' + i + '_activity' -}}"
-            {%- endfor -%}
+            "{{- 'binary_sensor.motion_device_' + i|string + '_activity' -}}"
           {%- endfor -%}]
     - alias: 'update binary_sensor.motion_device_class_unavailable'
       service: python_script.set_state
@@ -228,12 +225,12 @@
           {{ unavailable|sort|unique|list }}
         state: >-
           {% if unavailable|count|int(0) > 0 %}on{% else %}off{% endif %}
-    - alias: 'set group.motion_device_class_activity'
-      service: python_script.group_set_entities
+    - alias: 'set group.motion_device_class_activity sensors'
+      service: python_script.set_state
       data_template:
         entity_id: group.motion_device_class_activity
-        entities: >-
-          {{ group }}
+        entity_ids: >-
+          {{ activity_sensors }}
 
 - id: motion_device_class_activity
   alias: motion_device_class_activity
@@ -244,8 +241,9 @@
       seconds: '/30'
     - platform: state
       entity_id: 'group.motion_device_class_activity'
+      attribute: 'entity_id'
   variables:
-    activity: >-
+    ids: >-
       {%- set s = state_attr('binary_sensor.motion_device_class','sensor_list')|list + state_attr('binary_sensor.motion_device_class','binary_sensor_list')|list -%}
       [{%- for i in s|sort|unique if is_state('binary_sensor.motion_device_' + i + '_activity','on') -%}
         {%- if not loop.first -%},{%- endif -%}
@@ -260,9 +258,9 @@
       data_template:
         entity_id: binary_sensor.motion_device_class_activity
         ids: >-
-          {{ activity|sort|unique|list }}
+          {{ ids|sort|unique|list }}
         state: >-
-          {% if activity|count|int(0) > 0 %}on{% else %}off{% endif %}
+          {% if ids|count|int(0) > 0 %}on{% else %}off{% endif %}
 
 - id: motion_device_class_unavailable
   alias: motion_device_class_unavailable
