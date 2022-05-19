@@ -166,7 +166,7 @@
           {% set n = state_attr('binary_sensor.motion_device_presence_exist','high')|float(0) %}
           [{% for i in s if 'entity_id' in i and states(i.entity_id)|float(n) > n -%}
             {%- if not loop.first -%},{%- endif -%}
-            "{{- state_attr(i.entity_id,'friendly_name') }} at {{ states(i.entity_id)|int('unknown') -}}{{ state_attr(i.entity_id,'unit_of_measurement') -}}"
+            {"id":"{{- i -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- i.last_updated|as_timestamp(None) -}}}
           {%- endfor -%}]
         {%- else -%}none{%- endif %}
       {%- else -%}none{%- endif %}
@@ -177,7 +177,7 @@
           {% set n = state_attr('binary_sensor.motion_device_presence_exist','low')|float(0) %}
           [{% for i in s if 'entity_id' in i and states(i.entity_id)|float(n) < n -%}
             {%- if not loop.first -%},{%- endif -%}
-            "{{- state_attr(i.entity_id,'friendly_name') }} at {{ states(i.entity_id)|int('unknown') -}}{{ state_attr(i.entity_id,'unit_of_measurement') -}}"
+            {"id":"{{- i -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- i.last_updated|as_timestamp(None) -}}}
           {%- endfor -%}]
         {%- else -%}none{%- endif %}
       {%- else -%}none{%- endif %}
@@ -188,7 +188,7 @@
         {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
           [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,good) -%}
             {%- if not loop.first -%},{%- endif -%}
-            "{{- state_attr(i.entity_id,'friendly_name') -}}"
+            {"id":"{{- i -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- i.last_updated|as_timestamp(None) -}}}
           {%- endfor -%}]
         {%- else -%}none{%- endif %}
       {%- else -%}none{%- endif %}
@@ -199,7 +199,7 @@
         {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
           [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,bad) -%}
             {%- if not loop.first -%},{%- endif -%}
-            "{{- state_attr(i.entity_id,'friendly_name') -}}"
+            {"id":"{{- i -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- i.last_updated|as_timestamp(None) -}}}
           {%- endfor -%}]
         {%- else -%}none{%- endif %}
       {%- else -%}none{%- endif %}
@@ -210,7 +210,7 @@
         {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
           [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,activity) -%}
             {%- if not loop.first -%},{%- endif -%}
-            "{{- state_attr(i.entity_id,'friendly_name') -}}"
+            {"id":"{{- i -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- i.last_updated|as_timestamp(None) -}}}
           {%- endfor -%}]
         {%- else -%}none{%- endif %}
       {%- else -%}none{%- endif %}
@@ -219,7 +219,7 @@
       {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
         [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,'unavailable') -%}
           {%- if not loop.first -%},{%- endif -%}
-          "{{- state_attr(i.entity_id,'friendly_name') -}}"
+          {"id":"{{- i -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- i.last_updated|as_timestamp(None) -}}}
         {%- endfor -%}]
       {%- else -%}none{%- endif %}
     values: >-
@@ -798,3 +798,181 @@
             data_template:
               notification_id: >-
                 {{ ids[repeat.index - 1] }}
+
+## low
+
+- id: motion_device_presence_alarm_low
+  alias: motion_device_presence_alarm_low
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_presence_low'
+      to: 'on'
+  variables:
+    low: >-
+      {{ state_attr('binary_sensor.motion_device_presence','low') }}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ low|lower != 'none' and low|lower != 'null' and low|length > 0 }}
+  action:
+    - condition: template
+      value_template: >
+        {{ is_state_attr('binary_sensor.motion_device_presence_exist','alarm','on') }}
+    - alias: 'trigger motion notification'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_presence_low_notify
+
+- id: motion_device_presence_low_notify
+  alias: motion_device_presence_low_notify
+  mode: single
+  initial_state: on
+  trigger:
+  variables:
+    low: >-
+      {% set low = state_attr('binary_sensor.motion_device_presence','low') %}
+      {{ low }}
+    dids: >-
+      {% set dids = state_attr('binary_sensor.motion_device_presence_low','dids') %}
+      {{ dids }}
+    action: >-
+      {% set action = 'presence-low-okay' %}
+      {{ action }}
+    url: >-
+      {% set url = '/lovelace/presence-okay' %}
+      {{ url }}
+    title: >-
+      {% set title = states('input_text.motion_app') + ': presence low alarm' %}
+      {{ title }}
+    notification_id: >-
+      {{ 'device-presence-low' }}
+    icon: >-
+      {% set icon = 'notification-presence-low' %}
+      {{ icon }}
+    header: >-
+      {{- '[![](/local/images/icons/' + icon + '.png)]()' -}}
+      {{- '<hr>' -}}
+    footer: >-
+      {{ '<hr>' }}
+      {%- if did|lower != 'none' and did|lower != 'null' -%}
+        {{- '[![](https://img.shields.io/badge/device-info-blue.svg)](' + '/config/devices/device/' + did + ')' -}}
+      {%- endif -%}
+    body: >-
+      Your home presence alarm was triggered:
+      {{- '<p>' -}}
+      {% if low|lower != 'none' %}
+        {%- for i in low -%}
+          {%- if not loop.first -%}<br>{%- endif -%}
+          [{{ i }}](/config/devices/device/{{- dids[loop.index] -}}) in [{{ area_id(dids[loop.index]) }}](/config/areas/area/{{- i.area -}})
+        {%- endfor %}
+      {%- endif %}
+      <p>
+      We have notified **{{- state_attr('sensor.motion_role_primary','friendly_name') -}}** about your presence alarm.
+      If you are fine handling this situation on your own, click the **{{- action -}}** button below.
+      {{- '<p>' -}}
+      {{-  '[![](https://img.shields.io/badge/' + action + '-green.svg)](' + url + ')' -}}
+    message: >-
+      {{- header -}}
+      {{- body -}}
+      {{- footer -}}
+  action:
+    - alias: 'notify presence sensor activated'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+- id: motion_device_presence_alarm_high
+  alias: motion_device_presence_alarm_high
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_presence_high'
+      to: 'on'
+  variables:
+    high: >-
+      {{ state_attr('binary_sensor.motion_device_presence','high') }}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ high|lower != 'none' and high|lower != 'null' and high|length > 0 }}
+  action:
+    - condition: template
+      value_template: >
+        {{ is_state_attr('binary_sensor.motion_device_presence_exist','alarm','on') }}
+    - alias: 'trigger motion notification'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_presence_high_notify
+
+- id: motion_device_presence_high_notify
+  alias: motion_device_presence_high_notify
+  mode: single
+  initial_state: on
+  trigger:
+  variables:
+    high: >-
+      {% set high = state_attr('binary_sensor.motion_device_presence','high') %}
+      {{ high }}
+    dids: >-
+      {% set dids = state_attr('binary_sensor.motion_device_presence_high','dids') %}
+      {{ dids }}
+    action: >-
+      {% set action = 'presence-high-okay' %}
+      {{ action }}
+    url: >-
+      {% set url = '/lovelace/presence-okay' %}
+      {{ url }}
+    title: >-
+      {% set title = states('input_text.motion_app') + ': presence high alarm' %}
+      {{ title }}
+    notification_id: >-
+      {{ 'device-presence-high' }}
+    icon: >-
+      {% set icon = 'notification-presence-high' %}
+      {{ icon }}
+    header: >-
+      {{- '[![](/local/images/icons/' + icon + '.png)]()' -}}
+      {{- '<hr>' -}}
+    footer: >-
+      {{ '<hr>' }}
+    body: >-
+      Your home presence alarm was triggered:
+      {{- '<p>' -}}
+      {% if high|lower != 'none' %}
+        {%- for i in high -%}
+          {%- if not loop.first -%}<br>{%- endif -%}
+          [{{ i }}](/config/devices/device/{{- dids[loop.index] -}}) in [{{ area_id(dids[loop.index]) }}](/config/areas/area/{{- i.area -}})
+        {%- endfor %}
+      {%- endif %}
+      <p>
+      We have notified **{{- state_attr('sensor.motion_role_primary','friendly_name') -}}** about your presence alarm.
+      If you are fine handling this situation on your own, click the **{{- action -}}** button below.
+      {{- '<p>' -}}
+      {{-  '[![](https://img.shields.io/badge/' + action + '-green.svg)](' + url + ')' -}}
+    message: >-
+      {{- header -}}
+      {{- body -}}
+      {{- footer -}}
+  action:
+    - alias: 'notify presence sensor activated'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
