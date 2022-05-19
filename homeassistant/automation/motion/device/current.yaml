@@ -131,6 +131,20 @@
           {{ devices }}
         state: >-
           {{ states('binary_sensor.motion_device_current') }}
+    - variables:
+        entities: >-
+          {%- if status|lower != 'null' and not status is string and status is iterable and status|count > 0 -%}
+            {{- status|map(attribute='entity_id')|list -}}
+          {%- else -%}none{%- endif %}
+    - condition: template
+      value_template: >
+        {{ entities|lower != 'none' }}
+    - alias: 'set group.motion_device_class_current sensors'
+      service: group.set
+      data_template:
+        object_id: motion_device_class_current
+        entities: >-
+          {{ entities }}
 
 ## update status
 
@@ -139,8 +153,8 @@
   mode: single
   initial_state: on
   trigger:
-    - platform: time_pattern
-      seconds: '/15'
+    - platform: state
+      entity_id: group.motion_device_class_current
     - platform: state
       entity_id: binary_sensor.motion_device_current
       attribute: 'ids'
@@ -166,7 +180,7 @@
           {% set n = state_attr('binary_sensor.motion_device_current_exist','high')|float(0) %}
           [{% for i in s if 'entity_id' in i and states(i.entity_id)|float(n) > n -%}
             {%- if not loop.first -%},{%- endif -%}
-            "{{- state_attr(i.entity_id,'friendly_name') }} at {{ states(i.entity_id)|int('unknown') -}}{{ state_attr(i.entity_id,'unit_of_measurement') -}}"
+            {"id":"{{- i.id -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- i.last_updated|as_timestamp(None) -}}}
           {%- endfor -%}]
         {%- else -%}none{%- endif %}
       {%- else -%}none{%- endif %}
@@ -177,7 +191,7 @@
           {% set n = state_attr('binary_sensor.motion_device_current_exist','low')|float(0) %}
           [{% for i in s if 'entity_id' in i and states(i.entity_id)|float(n) < n -%}
             {%- if not loop.first -%},{%- endif -%}
-            "{{- state_attr(i.entity_id,'friendly_name') }} at {{ states(i.entity_id)|int('unknown') -}}{{ state_attr(i.entity_id,'unit_of_measurement') -}}"
+            {"id":"{{- i.id -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- i.last_updated|as_timestamp(None) -}}}
           {%- endfor -%}]
         {%- else -%}none{%- endif %}
       {%- else -%}none{%- endif %}
@@ -188,7 +202,7 @@
         {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
           [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,good) -%}
             {%- if not loop.first -%},{%- endif -%}
-            "{{- state_attr(i.entity_id,'friendly_name') -}}"
+            {"id":"{{- i.id -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- i.last_updated|as_timestamp(None) -}}}
           {%- endfor -%}]
         {%- else -%}none{%- endif %}
       {%- else -%}none{%- endif %}
@@ -199,9 +213,28 @@
         {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
           [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,bad) -%}
             {%- if not loop.first -%},{%- endif -%}
-            "{{- state_attr(i.entity_id,'friendly_name') -}}"
+            {"id":"{{- i.id -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- i.last_updated|as_timestamp(None) -}}}
           {%- endfor -%}]
         {%- else -%}none{%- endif %}
+      {%- else -%}none{%- endif %}
+    activity: >-
+      {% set activity = state_attr('binary_sensor.motion_device_current_exist','activity') %}
+      {%- if activity|lower != 'none' -%}
+        {% set s = status %}
+        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+          [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,activity) -%}
+            {%- if not loop.first -%},{%- endif -%}
+            {"id":"{{- i.id -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- i.last_updated|as_timestamp(None) -}}}
+          {%- endfor -%}]
+        {%- else -%}none{%- endif %}
+      {%- else -%}none{%- endif %}
+    unavailable: >-
+      {% set s = status %}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+        [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,'unavailable') -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {"id":"{{- i.id -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- i.last_updated|as_timestamp(None) -}}}
+        {%- endfor -%}]
       {%- else -%}none{%- endif %}
     values: >-
       {% set g = state_attr('binary_sensor.motion_device_current_exist','good') %}
@@ -239,6 +272,13 @@
           {%- set result = 'off' -%}
         {%- endif -%}
       {%- endif -%}
+      {%- if activity|lower != 'none' and not activity is string and activity is iterable -%}
+        {%- if activity|count > 0 -%}
+          {%- set result = 'on' -%}
+        {%- else -%}
+          {%- set result = 'off' -%}
+        {%- endif -%}
+      {%- endif -%}
       {%- if result is defined -%}
         {{- result -}}
       {%- else -%}unknown{%- endif %}
@@ -257,6 +297,10 @@
           {{ good }}
         bad: >-
           {{ bad }}
+        activity: >-
+          {{ activity }}
+        unavailable: >-
+          {{ unavailable }}
         values: >-
           {{ values }}
         state: >-
@@ -443,7 +487,7 @@
       {% set icon = 'notification-current-missing' %}
       {{ icon }}
     header: >-
-      {{- '[![](/local/images/icons/' + icon + '.png)]()' -}}
+      {{- '[![](/local/images/icons/' + icon + '.png?v1)]()' -}}
       {{- '<hr>' -}}
     footer: >-
       {{- '<hr>' -}}
@@ -493,7 +537,7 @@
       {% set icon = 'notification-current-found' %}
       {{ icon }}
     header: >-
-      {{- '[![](/local/images/icons/' + icon + '.png)]()' -}}
+      {{- '[![](/local/images/icons/' + icon + '.png?v1)]()' -}}
       {{- '<hr>' -}}
     footer: >-
       {{- '<hr>' -}}
@@ -646,7 +690,7 @@
       {% set icon = 'notification-current-detected' %}
       {{ icon }}
     header: >-
-      {{- '[![](/local/images/icons/' + icon + '.png)]()' -}}
+      {{- '[![](/local/images/icons/' + icon + '.png?v1)]()' -}}
       {{- '<hr>' -}}
     footer: >-
       {{ '<hr>' }}
@@ -701,7 +745,7 @@
       {% set title = states('input_text.motion_app') + ': current cleared' %}
       {{ title }}
     header: >-
-      {{- '[![](/local/images/icons/' + icon + '.png)]()' -}}
+      {{- '[![](/local/images/icons/' + icon + '.png?v1)]()' -}}
       {{- '<hr>' -}}
     footer: >-
       {{ '<hr>' }}
@@ -714,7 +758,7 @@
   action:
     - condition: template
       value_template: >
-        {{ is_state_attr('binary_sensor.motion_device_current_exist','alarm','on') }}
+        {{ which|lower != 'none' and is_state_attr('binary_sensor.motion_device_current_exist','alarm','on') }}
     - alias: 'notify current sensor activated'
       service: persistent_notification.create
       data_template:
@@ -768,3 +812,260 @@
             data_template:
               notification_id: >-
                 {{ ids[repeat.index - 1] }}
+
+## low
+
+- id: motion_device_current_alarm_low
+  alias: motion_device_current_alarm_low
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_current_low'
+      to: 'on'
+  variables:
+    low: >-
+      {{ state_attr('binary_sensor.motion_device_current','low') }}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ low|lower != 'none' and low|lower != 'null' and low|length > 0 }}
+  action:
+    - condition: template
+      value_template: >
+        {{ is_state_attr('binary_sensor.motion_device_current_exist','alarm','on') }}
+    - alias: 'trigger motion notification'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_current_low_notify
+
+- id: motion_device_current_low_notify
+  alias: motion_device_current_low_notify
+  mode: single
+  initial_state: on
+  trigger:
+  variables:
+    low: >-
+      {% set low = state_attr('binary_sensor.motion_device_current','low') %}
+      {{ low }}
+    action: >-
+      {% set action = 'current-okay' %}
+      {{ action }}
+    url: >-
+      {% set url = '/lovelace/current-okay' %}
+      {{ url }}
+    title: >-
+      {% set title = states('input_text.motion_app') + ': current low alarm' %}
+      {{ title }}
+    notification_id: >-
+      {{ 'device-current-low' }}
+    icon: >-
+      {% set icon = 'notification-current-low' %}
+      {{ icon }}
+    header: >-
+      {{- '[![](/local/images/icons/' + icon + '.png?v1)]()' -}}
+      {{- '<hr>' -}}
+    footer: >-
+      {{ '<hr>' }}
+      {%- if did|lower != 'none' and did|lower != 'null' -%}
+        {{- '[![](https://img.shields.io/badge/device-info-blue.svg)](' + '/config/devices/device/' + did + ')' -}}
+      {%- endif -%}
+    body: >-
+      Your home current alarm was triggered:
+      {{- '<p>' -}}
+      {% if low|lower != 'none' and not low is string and low is iterable and low|count > 0 %}
+        {%- for i in low -%}
+          {%- if not loop.first -%}<br>{%- endif -%}
+          [{{ i.id }}](/config/devices/device/{{- device_id(low[loop.index-1].entity_id) -}}) is {{ states(low[loop.index-1].entity_id) -}}{{- state_attr(low[loop.index-1].entity_id,'unit_of_measurement') }} in [{{ area_id(low[loop.index-1].entity_id) }}](/config/areas/area/{{- area_id(low[loop.index-1].entity_id) -}})
+        {%- endfor %}
+      {%- endif %}
+      <p>
+      We have notified **{{- state_attr('sensor.motion_role_primary','friendly_name') -}}** about your current alarm.
+      If you are fine handling this situation on your own, click the **{{- action -}}** button below.
+      {{- '<p>' -}}
+      {{-  '[![](https://img.shields.io/badge/' + action + '-green.svg)](' + url + ')' -}}
+    message: >-
+      {{- header -}}
+      {{- body -}}
+      {{- footer -}}
+  action:
+    - alias: 'notify current sensor activated'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+- id: motion_device_current_alarm_high
+  alias: motion_device_current_alarm_high
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_current_high'
+      to: 'on'
+  variables:
+    high: >-
+      {{ state_attr('binary_sensor.motion_device_current','high') }}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ high|lower != 'none' and high|lower != 'null' and high|length > 0 }}
+  action:
+    - condition: template
+      value_template: >
+        {{ is_state_attr('binary_sensor.motion_device_current_exist','alarm','on') }}
+    - alias: 'trigger motion notification'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_current_high_notify
+
+- id: motion_device_current_high_notify
+  alias: motion_device_current_high_notify
+  mode: single
+  initial_state: on
+  trigger:
+  variables:
+    high: >-
+      {% set high = state_attr('binary_sensor.motion_device_current','high') %}
+      {{ high }}
+    action: >-
+      {% set action = 'current-okay' %}
+      {{ action }}
+    url: >-
+      {% set url = '/lovelace/current-okay' %}
+      {{ url }}
+    title: >-
+      {% set title = states('input_text.motion_app') + ': current high alarm' %}
+      {{ title }}
+    notification_id: >-
+      {{ 'device-current-high' }}
+    icon: >-
+      {% set icon = 'notification-current-high' %}
+      {{ icon }}
+    header: >-
+      {{- '[![](/local/images/icons/' + icon + '.png?v1)]()' -}}
+      {{- '<hr>' -}}
+    footer: >-
+      {{ '<hr>' }}
+    body: >-
+      Your home current alarm was triggered:
+      {{- '<p>' -}}
+      {% if high|lower != 'none' and not high is string and high is iterable and high|count > 0 %}
+        {%- for i in high -%}
+          {%- if not loop.first -%}<br>{%- endif -%}
+          [{{ i.id }}](/config/devices/device/{{- device_id(high[loop.index-1].entity_id) -}}) is {{ states(high[loop.index-1].entity_id) -}}{{- state_attr(high[loop.index-1].entity_id,'unit_of_measurement') }} in [{{ area_id(high[loop.index-1].entity_id) }}](/config/areas/area/{{- area_id(high[loop.index-1].entity_id) -}})
+        {%- endfor %}
+      {%- endif %}
+      <p>
+      We have notified **{{- state_attr('sensor.motion_role_primary','friendly_name') -}}** about your current alarm.
+      <br>
+      If you are fine handling this situation on your own, click the **{{- action -}}** button below.
+      {{- '<p>' -}}
+      {{-  '[![](https://img.shields.io/badge/' + action + '-green.svg)](' + url + ')' -}}
+    message: >-
+      {{- header -}}
+      {{- body -}}
+      {{- footer -}}
+  action:
+    - alias: 'notify current sensor activated'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+- id: motion_device_current_alarm_activity
+  alias: motion_device_current_alarm_activity
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_current_activity'
+      to: 'on'
+  variables:
+    activity: >-
+      {{ state_attr('binary_sensor.motion_device_current','activity') }}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ activity|lower != 'none' and activity|lower != 'null' and activity|length > 0 }}
+  action:
+    - condition: template
+      value_template: >
+        {{ is_state_attr('binary_sensor.motion_device_current_exist','alarm','on') }}
+    - alias: 'trigger motion notification'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_current_activity_notify
+
+- id: motion_device_current_activity_notify
+  alias: motion_device_current_activity_notify
+  mode: single
+  initial_state: on
+  trigger:
+  variables:
+    activity: >-
+      {% set activity = state_attr('binary_sensor.motion_device_current','activity') %}
+      {{ activity }}
+    action: >-
+      {% set action = 'current-okay' %}
+      {{ action }}
+    url: >-
+      {% set url = '/lovelace/current-okay' %}
+      {{ url }}
+    title: >-
+      {% set title = states('input_text.motion_app') + ': current activity alarm' %}
+      {{ title }}
+    notification_id: >-
+      {{ 'device-current-activity' }}
+    icon: >-
+      {% set icon = 'notification-current-activity' %}
+      {{ icon }}
+    header: >-
+      {{- '[![](/local/images/icons/' + icon + '.png?v1)]()' -}}
+      {{- '<hr>' -}}
+    footer: >-
+      {{ '<hr>' }}
+    body: >-
+      Your home current alarm was triggered:
+      {{- '<p>' -}}
+      {% if activity|lower != 'none' and not activity is string and activity is iterable and activity|count > 0 %}
+        {%- for i in activity -%}
+          {%- if not loop.first -%}<br>{%- endif -%}
+          [{{ i.id }}](/config/devices/device/{{- device_id(activity[loop.index-1].entity_id) -}}) in [{{ area_id(activity[loop.index-1].entity_id) }}](/config/areas/area/{{- area_id(activity[loop.index-1].entity_id) -}})
+        {%- endfor %}
+      {%- endif %}
+      <p>
+      We have notified **{{- state_attr('sensor.motion_role_primary','friendly_name') -}}** about your current alarm.
+      <br>
+      If you are fine handling this situation on your own, click the **{{- action -}}** button below.
+      {{- '<p>' -}}
+      {{-  '[![](https://img.shields.io/badge/' + action + '-green.svg)](' + url + ')' -}}
+    message: >-
+      {{- header -}}
+      {{- body -}}
+      {{- footer -}}
+  action:
+    - alias: 'notify current sensor activated'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
