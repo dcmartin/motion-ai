@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CLASS=( battery connectivity current door energy gas humidity illuminance light moisture motion occupancy opening plug power presence problem safety smoke tamper temperature update vibration voltage )
+CLASS=( battery connectivity current device door energy gas humidity illuminance light moisture motion occupancy opening plug power presence problem safety smoke tamper temperature update vibration voltage )
 NOTIFICATION=( activity cleared found good bad high low missing unavailable )
 
 for i in ${CLASS[@]}; do 
