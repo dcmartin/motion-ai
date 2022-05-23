@@ -2,6 +2,87 @@
 # homeassistant/automation/motion/person/device_notify.yaml
 ###
 
+# person device missing
+
+- id: motion_person_device_missing
+  alias: motion_person_device_missing
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_person_device_status
+      to: 'Pending'
+    - platform: time_pattern
+      minutes: '/15'
+    - platform: homeassistant
+      event: start
+  condition:
+    - condition: template
+      value_template: >
+        {{ is_state('sensor.motion_person_device_status','Pending') }}
+    - condition: template
+      value_template: >
+        {{ is_state('binary_sensor.motion_person_configure','on') }}
+  action:
+    - alias: 'trigger motion notification'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_person_device_missing_notify
+    - condition: template
+      value_template: >
+        {{ states('input_select.motion_log_level') in ['debug','info','notice','alert'] }}
+    - alias: 'alert person device unspecified'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          ALERT: {{ state_attr(state_attr('sensor.motion_person','sensor'),'friendly_name') -}}'s device unspecified
+        notification_id: >-
+          {{ 'motion_person_device_configuration' }}
+        message: >-
+          {{ name -}}'s device is unknown;
+          at {{ utcnow().timestamp()|int|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}
+
+- id: motion_person_device_missing_notify
+  alias: motion_person_device_missing_notify
+  mode: single
+  initial_state: on
+  trigger:
+  variables:
+    notification_id: >-
+      {{ 'device-temperature-notify' }}
+    icon: >-
+      {% set icon = 'notification-temperature-missing' %}
+      {{ icon }}
+    header: >-
+      {{- '[![](/local/images/icons/' + icon + '.png?v1)]()' -}}
+      {{- '<hr>' -}}
+    footer: >-
+      {{- '<hr>' -}}
+    title: >-
+      {% set title = states('input_text.motion_app') + ': temperature sensor not found' %}
+      {{ title }}
+    body: >-
+      The person device could is missing:
+      <br>
+      To configure {{ state_attr(state_attr('sensor.motion_person','sensor'),'friendly_name') -}}'s device click the **{{- action -}}** button below.
+      {{- '<p>' -}}
+      {{-  '[![](https://img.shields.io/badge/' + action + '-green.svg)](' + url + ')' -}}
+    message: >-
+      {{ header }}
+      {{ body }}
+      {{ footer }}
+  action:
+    - alias: 'notify person device missing'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+# person device location unknown
+
 - id: motion_person_device_location_notify_unknown
   alias: motion_person_device_location_notify_unknown
   initial_state: on
