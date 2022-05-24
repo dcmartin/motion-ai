@@ -1,0 +1,55 @@
+###
+# homeassistant/automation/motion/person_detected_notify.yaml
+###
+
+## detected
+
+- id: motion_person_detected_unknown_notify
+  alias: motion_person_detected_unknown_notify
+  initial_state: off
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_person_detected
+      to: 'unknown'
+    - platform: time_pattern
+      minutes: '/15'
+    - platform: homeassistant
+      event: start
+  condition:
+    - condition: template
+      value_template: >
+        {{ is_state('sensor.motion_person_detected','unknown') }}
+  variables:
+    title: >-
+      ALERT: Detected location unknown
+    message: >-
+      The location from person detection is unknown; at {{ utcnow().timestamp()|int|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+  action:
+    - condition: template
+      value_template: >
+        {{ states('input_select.motion_log_level') in ['debug','info','notice','alert'] }}
+    - alias: 'notify'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{ title }}
+        notification_id: motion_person_detected_unknown
+        message: >-
+          {{ message }}
+
+- id: motion_person_detected_unknown_dismiss
+  alias: motion_person_detected_unknown_dismiss
+  initial_state: on
+  trigger:
+    platform: state
+    entity_id: sensor.motion_person_detected
+    from: 'unknown'
+  condition:
+    - condition: template
+      value_template: >
+        {{ not is_state('sensor.motion_person_detected','unknown') }}
+  action:
+    - alias: 'dismiss'
+      service: persistent_notification.dismiss
+      data_template:
+        notification_id: motion_person_detected_unknown
