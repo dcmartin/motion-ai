@@ -2,6 +2,84 @@
 # homeassistant/automation/motion/shellies.yaml
 ###
 
+- id: motion_shellies_automation_enable
+  alias: motion_shellies_automation_enable
+  initial_state: on
+  trigger:
+    platform: state
+    entity_id: group.motion_shellies
+    attribute: 'entity_id'
+  variables:
+    automations: >-
+      {% set automation = ['motion_shellies_mqtt_publish_announce','motion_shellies_offline_timeout','motion_shellies_offline_timeout','motion_shellies_energy_power_off','motion_shellies_light_power_off','motion_shellies_plug_power_off'] %}
+      {{ automations }}
+  condition:
+    - condition: template
+      value_template: >-
+        {% set s = state_attr('group.motion_shellies','entity_id') %}
+        {{ s|lower != 'none' and not s is string and s is iterable and s|count > 0 }}
+  action:
+    - alias: 'enable automations for shellies'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = automations[repeat.index-1]|default('') %}
+              {{ s|string != '' }}
+        sequence:
+          - variables:
+              automation: >-
+                {% set s = automations[repeat.index-1] %}
+                {{ 'automation.' + s|string }}
+          - condition: template
+            value_template: >-
+              {% set s = automations[repeat.index-1] %}
+              {{ states(s)|lower == 'off' }}
+          - alias: 'enable automation'
+            service: automation.turn_on
+            data_template:
+              entity_id: >-
+                {{ automation }}
+
+- id: motion_shellies_automation_disable
+  alias: motion_shellies_automation_disable
+  initial_state: on
+  trigger:
+    platform: state
+    entity_id: group.motion_shellies
+    attribute: 'entity_id'
+  variables:
+    automations: >-
+      {% set automation = ['motion_shellies_mqtt_publish_announce','motion_shellies_offline_timeout','motion_shellies_offline_timeout','motion_shellies_energy_power_off','motion_shellies_light_power_off','motion_shellies_plug_power_off'] %}
+      {{ automations }}
+  condition:
+    - condition: template
+      value_template: >-
+        {% set s = state_attr('group.motion_shellies','entity_id') %}
+        {{ s|lower == 'none' or s is string or not s is iterable or not s|count > 0 }}
+  action:
+    - alias: 'disable automations for shellies'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = automations[repeat.index-1]|default('') %}
+              {{ s|string != '' }}
+        sequence:
+          - variables:
+              automation: >-
+                {% set s = automations[repeat.index-1] %}
+                {{ 'automation.' + s|string }}
+          - condition: template
+            value_template: >-
+              {% set s = automations[repeat.index-1] %}
+              {{ states(s)|lower == 'on' }}
+          - alias: 'disable automation'
+            service: automation.turn_off
+            data_template:
+              entity_id: >-
+                {{ automation }}
+
 - id: motion_shellies_settings_login_failure
   alias: motion_shellies_settings_login_failure
   initial_state: on

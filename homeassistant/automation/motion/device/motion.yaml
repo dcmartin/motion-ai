@@ -2,9 +2,112 @@
 # homeassistant/automation/motion/device/motion.yaml
 ###
 
+- id: motion_device_motion_automation_enable
+  alias: motion_device_motion_automation_enable
+  initial_state: on
+  trigger:
+    platform: state
+    entity_id: group.motion_device_class_motion
+    attribute: 'entity_id'
+  condition:
+    - condition: template
+      value_template: >-
+        {% set s = state_attr('group.motion_device_class_motion','entity_id') %}
+        {{ s|lower != 'none' and not s is string and s is iterable and s|count > 0 }}
+  variables:
+    automations: >-
+      {% set automations = ['motion_device_motion_activity_notify','motion_device_motion_alarm_activity','motion_device_motion_alarm_bad','motion_device_motion_alarm_high_off','motion_device_motion_alarm_high_on','motion_device_motion_alarm_low_off','motion_device_motion_alarm_low_on','motion_device_motion_bad_notify','motion_device_motion_good_dismiss','motion_device_motion_good_notify','motion_device_motion_high_dismiss','motion_device_motion_high_notify','motion_device_motion_low_dismiss','motion_device_motion_low_notify','motion_device_motion_mute','motion_device_motion_restart','motion_device_motion_self_test','motion_device_motion_status','motion_device_motion_unmute','motion_device_motion_update'] %}
+      {{ automations }}
+  action:
+    - alias: 'enable automations for device_motion'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = automations[repeat.index-1]|default('') %}
+              {{ s|string != '' }}
+        sequence:
+          - variables:
+              automation: >-
+                {% set s = automations[repeat.index-1] %}
+                {{ 'automation.' + s|string }}
+          - condition: template
+            value_template: >-
+              {% set s = automations[repeat.index-1] %}
+              {{ states(s)|lower == 'off' }}
+          - alias: 'enable automation'
+            service: automation.turn_on
+            data_template:
+              entity_id: >-
+                {{ automation }}
+          - condition: template
+            value_template: >
+              {{ states('input_select.motion_log_level') in ['debug'] }}
+          - service: persistent_notification.create
+            data_template:
+              title: >-
+                {% set s = automations[repeat.index-1] %}
+                DEBUG: enabling {{ s }}
+              notification_id: >
+                {{- 'debug-automation-motion' -}}
+              message: >-
+                Automation enabled: {{ automation }}
+
+- id: motion_device_motion_automation_disable
+  alias: motion_device_motion_automation_disable
+  initial_state: on
+  trigger:
+    platform: state
+    entity_id: group.motion_device_class_motion
+    attribute: 'entity_id'
+  condition:
+    - condition: template
+      value_template: >-
+        {% set s = state_attr('group.motion_device_class_motion','entity_id') %}
+        {{ sensors|lower == 'none' or sensors is string or not sensors is iterable or not sensors|count > 0 }}
+  variables:
+    automations: >-
+      {% set automations = ['motion_device_motion_activity_notify','motion_device_motion_alarm_activity','motion_device_motion_alarm_bad','motion_device_motion_alarm_high_off','motion_device_motion_alarm_high_on','motion_device_motion_alarm_low_off','motion_device_motion_alarm_low_on','motion_device_motion_bad_notify','motion_device_motion_good_dismiss','motion_device_motion_good_notify','motion_device_motion_high_dismiss','motion_device_motion_high_notify','motion_device_motion_low_dismiss','motion_device_motion_low_notify','motion_device_motion_mute','motion_device_motion_restart','motion_device_motion_self_test','motion_device_motion_status','motion_device_motion_unmute','motion_device_motion_update'] %}
+      {{ automations }}
+  action:
+    - alias: 'disable automations for device_motion'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = automations[repeat.index-1]|default('') %}
+              {{ s|string != '' }}
+        sequence:
+          - variables:
+              automation: >-
+                {% set s = automations[repeat.index-1] %}
+                {{ 'automation.' + s|string }}
+          - condition: template
+            value_template: >-
+              {% set s = automations[repeat.index-1] %}
+              {{ states(s)|lower == 'on' }}
+          - alias: 'disable automation'
+            service: automation.turn_off
+            data_template:
+              entity_id: >-
+                {{ automation }}
+          - condition: template
+            value_template: >
+              {{ states('input_select.motion_log_level') in ['debug'] }}
+          - service: persistent_notification.create
+            data_template:
+              title: >-
+                {% set s = automations[repeat.index-1] %}
+                DEBUG: disabling {{ s }}
+              notification_id: >
+                {{- 'debug-automation-motion' -}}
+              message: >-
+                Automation disables: {{ automation }}
+
 - id: motion_device_motion_rescan
   alias: motion_device_motion_rescan
   mode: single
+  max_exceeded: silent
   initial_state: on
   trigger:
     - platform: time_pattern
@@ -151,7 +254,8 @@
 - id: motion_device_motion_status
   alias: motion_device_motion_status
   mode: single
-  initial_state: on
+  max_exceeded: silent
+  initial_state: off
   trigger:
     - platform: state
       entity_id: binary_sensor.motion_device_motion_exist
@@ -315,7 +419,7 @@
 - id: motion_device_motion_self_test
   alias: motion_device_motion_self_test
   mode: single
-  initial_state: on
+  initial_state: off
   trigger:
   condition:
     condition: and
@@ -346,7 +450,7 @@
 - id: motion_device_motion_mute
   alias: motion_device_motion_mute
   mode: single
-  initial_state: on
+  initial_state: off
   trigger:
   condition:
     condition: and
@@ -374,7 +478,7 @@
 - id: motion_device_motion_unmute
   alias: motion_device_motion_unmute
   mode: single
-  initial_state: on
+  initial_state: off
   trigger:
   condition:
     condition: and
@@ -402,7 +506,7 @@
 - id: motion_device_motion_restart
   alias: motion_device_motion_restart
   mode: single
-  initial_state: on
+  initial_state: off
   trigger:
   condition:
     condition: and
@@ -430,7 +534,7 @@
 - id: motion_device_motion_update
   alias: motion_device_motion_update
   mode: single
-  initial_state: on
+  initial_state: off
   trigger:
   condition:
     condition: and
@@ -595,7 +699,7 @@
 - id: motion_device_motion_alarm_bad
   alias: motion_device_motion_alarm_bad
   mode: single
-  initial_state: on
+  initial_state: off
   trigger:
     - platform: template
       value_template: >-
@@ -664,7 +768,7 @@
 - id: motion_device_motion_bad_notify
   alias: motion_device_motion_bad_notify
   mode: single
-  initial_state: on
+  initial_state: off
   trigger:
   variables:
     ids: >-
@@ -727,7 +831,7 @@
 - id: motion_device_motion_good_notify
   alias: motion_device_motion_good_notify
   mode: single
-  initial_state: on
+  initial_state: off
   trigger:
     - platform: template
       value_template: >-
@@ -778,7 +882,7 @@
 - id: motion_device_motion_good_dismiss
   alias: motion_device_motion_good_dismiss
   mode: single
-  initial_state: on
+  initial_state: off
   trigger:
     - platform: template
       value_template: >-
@@ -822,7 +926,7 @@
 - id: motion_device_motion_alarm_low_on
   alias: motion_device_motion_alarm_low_on
   mode: single
-  initial_state: on
+  initial_state: off
   trigger:
     - platform: state
       entity_id: 'binary_sensor.motion_device_motion_low'
@@ -848,7 +952,7 @@
 - id: motion_device_motion_alarm_low_off
   alias: motion_device_motion_alarm_low_off
   mode: single
-  initial_state: on
+  initial_state: off
   trigger:
     - platform: state
       entity_id: 'binary_sensor.motion_device_motion_low'
@@ -865,7 +969,7 @@
 - id: motion_device_motion_low_notify
   alias: motion_device_motion_low_notify
   mode: single
-  initial_state: on
+  initial_state: off
   trigger:
   variables:
     low: >-
@@ -923,7 +1027,7 @@
 - id: motion_device_motion_low_dismiss
   alias: motion_device_motion_low_dismiss
   mode: single
-  initial_state: on
+  initial_state: off
   trigger:
   variables:
     notification_id: >-
@@ -940,7 +1044,7 @@
 - id: motion_device_motion_alarm_high_on
   alias: motion_device_motion_alarm_high_on
   mode: single
-  initial_state: on
+  initial_state: off
   trigger:
     - platform: state
       entity_id: 'binary_sensor.motion_device_motion_high'
@@ -966,7 +1070,7 @@
 - id: motion_device_motion_alarm_high_off
   alias: motion_device_motion_alarm_high_off
   mode: single
-  initial_state: on
+  initial_state: off
   trigger:
     - platform: state
       entity_id: 'binary_sensor.motion_device_motion_high'
@@ -983,7 +1087,7 @@
 - id: motion_device_motion_high_notify
   alias: motion_device_motion_high_notify
   mode: single
-  initial_state: on
+  initial_state: off
   trigger:
   variables:
     high: >-
@@ -1041,7 +1145,7 @@
 - id: motion_device_motion_high_dismiss
   alias: motion_device_motion_high_dismiss
   mode: single
-  initial_state: on
+  initial_state: off
   trigger:
   variables:
     notification_id: >-
@@ -1058,7 +1162,7 @@
 - id: motion_device_motion_alarm_activity
   alias: motion_device_motion_alarm_activity
   mode: single
-  initial_state: on
+  initial_state: off
   trigger:
     - platform: state
       entity_id: 'binary_sensor.motion_device_motion_activity'
@@ -1084,7 +1188,7 @@
 - id: motion_device_motion_activity_notify
   alias: motion_device_motion_activity_notify
   mode: single
-  initial_state: on
+  initial_state: off
   trigger:
   variables:
     activity: >-
