@@ -1,0 +1,75 @@
+###
+# homeassistant/automation/motion/device/class.yaml
+###
+
+- id: motion_device_class_unavailable_notify
+  alias: motion_device_class_unavailable_notify
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_class_unavailable'
+      to: 'on'
+  variables:
+    ids: >-
+      {% set ids = state_attr('binary_sensor.motion_device_class_unavailable','ids') %}
+      {{ ids }}
+    title: >-
+      {% set title = states('input_text.motion_app') + ': device(s) unavailable' %}
+      {{ title }}
+    notification_id: >-
+      {{ 'device-unavailable-notify' }}
+    icon: >-
+      {% set icon = 'notification-device-unavailable' %}
+      {{ icon }}
+    header: >-
+      {{- '[![](/local/images/icons/' + icon + '.png)]()' -}}
+      {{- '<hr>' -}}
+    footer: >-
+      {{- '<hr>' -}}
+    body: >-
+      Devices(s) unavailable:
+      {% if ids|lower != 'none' %}
+        {{- '<p>' -}}
+        {%- for i in ids if i|lower != 'none' -%}
+          {%- if not loop.first -%}<br>{%- endif -%}
+          {% set s = state_attr('binary_sensor.motion_device_class','devices')|selectattr('id','==',i) %}
+          {% if s|lower != 'none' and not s is string and 'id' in s %}
+            [{{ i }}](/config/devices/device/{{- s.did -}}) in [{{ s.area }}](/config/areas/area/{{- s.area -}})
+          {% else %}
+            [{{ i }}](/config/devices) 
+          {%- endif %}
+        {%- endfor %}
+      {% else %}unknown{%- endif %}
+    message: >-
+      {{ header }}
+      {{ body }}
+      {{ footer }}
+  action:
+    - alias: 'notify unavailable device'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+- id: motion_device_class_unavailable_dismiss
+  alias: motion_device_class_unavailable_dismiss
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_class_unavailable'
+      to: 'off'
+  variables:
+    notification_id: >-
+      {{ 'device-unavailable-notify' }}
+  action:
+    - alias: 'dismiss inactive device'
+      service: persistent_notification.dismiss
+      data_template:
+        notification_id: >-
+          {{- notification_id -}}

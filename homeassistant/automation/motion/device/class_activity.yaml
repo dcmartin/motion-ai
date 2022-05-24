@@ -1,0 +1,110 @@
+###
+# homeassistant/automation/motion/device/class_activity.yaml
+###
+
+- id: motion_device_class_activity_test
+  alias: motion_device_class_activity_test
+  mode: single
+  initial_state: off
+  trigger:
+    - platform: time_pattern
+      seconds: '/30'
+    - platform: state
+      entity_id: 'group.motion_device_class_activity'
+      attribute: 'entity_id'
+    - platform: state
+      entity_id: 'group.motion_device_class_activity'
+      to: 'on'
+  variables:
+    activity: >-
+      {%- set s = state_attr('binary_sensor.motion_device_class','sensor_list')|list + state_attr('binary_sensor.motion_device_class','binary_sensor_list')|list -%}
+      [{%- for i in s|sort|unique if is_state('binary_sensor.motion_device_' + i + '_activity','on') -%}
+        {%- if not loop.first -%},{%- endif -%}
+        {%- for j in state_attr('binary_sensor.motion_device_' + i + '_activity','ids') -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {"id":"{{- j -}}","class":"{{- i -}}"}
+        {%- endfor -%}
+      {%- endfor -%}]
+  action:
+    - alias: 'update binary_sensor.motion_device_class_activity'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class_activity
+        ids: >-
+          {{ activity|map(attribute='id')|sort|unique|list }}
+        details: >-
+          {{ activity }}
+        state: >-
+          {% if activity|count|int(0) > 0 %}on{% else %}off{% endif %}
+
+- id: motion_device_class_activity_notify
+  alias: motion_device_class_activity_notify
+  mode: single
+  initial_state: off
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_class_activity'
+      to: 'on'
+  variables:
+    ids: >-
+      {% set ids = state_attr('binary_sensor.motion_device_class_activity','ids') %}
+      {{ ids }}
+    title: >-
+      {% set title = states('input_text.motion_app') + ': device(s) activity' %}
+      {{ title }}
+    notification_id: >-
+      {{ 'device-activity-notify' }}
+    icon: >-
+      {% set icon = 'notification-device-activity' %}
+      {{ icon }}
+    header: >-
+      {{- '[![](/local/images/icons/' + icon + '.png)]()' -}}
+      {{- '<hr>' -}}
+    footer: >-
+      {{- '<hr>' -}}
+    body: >-
+      Devices(s) activity:
+      {% if ids|lower != 'none' %}
+        {{- '<p>' -}}
+        {%- for i in ids if i|lower != 'none' -%}
+          {%- if not loop.first -%}<br>{%- endif -%}
+          {% set s = state_attr('binary_sensor.motion_device_class','devices')|selectattr('id','==',i) %}
+          {% if s|lower != 'none' and not s is string and 'id' in s %}
+            [{{ i }}](/config/devices/device/{{- s.did -}}) in [{{ s.area }}](/config/areas/area/{{- s.area -}})
+          {% else %}
+            [{{ i }}](/config/devices)
+          {%- endif %}
+        {%- endfor %}
+      {% else %}unknown{%- endif %}
+    message: >-
+      {{ header }}
+      {{ body }}
+      {{ footer }}
+  action:
+    - alias: 'notify activity device'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+- id: motion_device_class_activity_dismiss
+  alias: motion_device_class_activity_dismiss
+  mode: single
+  initial_state: off
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_class_activity'
+      to: 'off'
+  variables:
+    notification_id: >-
+      {{ 'device-activity-notify' }}
+  action:
+    - alias: 'dismiss activity device'
+      service: persistent_notification.dismiss
+      data_template:
+        notification_id: >-
+          {{- notification_id -}}
