@@ -37,6 +37,7 @@ HOST_LATITUDE ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.HOST_LATITUDE' $
 HOST_LONGITUDE ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.HOST_LONGITUDE' $(SETUP)) && echo "${TS}++ HOST_LONGITUDE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard HOST_LONGITUDE),$(shell v=$$(cat HOST_LONGITUDE) && echo "${TG}== HOST_LONGITUDE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="0.0" && echo "${TB}** HOST_LONGITUDE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 
 ## MOTION
+MOTION_APP ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_APP' $(SETUP)) && echo "${TS}++ MOTION_APP: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_APP),$(shell v=$$(cat MOTION_APP) && echo "${TG}== MOTION_APP: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='Motion Ã👁' && echo "${TB}** MOTION_APP unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 MOTION_GROUP ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_GROUP' $(SETUP)) && echo "${TS}++ MOTION_GROUP: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_GROUP),$(shell v=$$(cat MOTION_GROUP) && echo "${TG}== MOTION_GROUP: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='motion' && echo "${TB}** MOTION_GROUP unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 MOTION_DEVICE ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_DEVICE' $(SETUP)) && echo "${TS}++ MOTION_DEVICE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_DEVICE),$(shell v=$$(cat MOTION_DEVICE) && echo "${TG}== MOTION_DEVICE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v=$$(echo $(HOST_NAME) | sed -e "s/-//g" -e "s/ /_/g") && echo "${TB}** MOTION_DEVICE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 MOTION_CLIENT ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_CLIENT' $(SETUP)) && echo "${TS}++ MOTION_CLIENT: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_CLIENT),$(shell v=$$(cat MOTION_CLIENT) && echo "${TG}== MOTION_CLIENT: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='$(MOTION_DEVICE)' && echo "${TB}** MOTION_CLIENT unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
@@ -227,6 +228,7 @@ $(PACKAGES): makefile
 	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
 	  MARIADB_HOST="$(MARIADB_HOST)" \
 	  MARIADB_PASSWORD="$(MARIADB_PASSWORD)" \
+	  MOTION_APP="$(MOTION_APP)" \
 	  MOTION_GROUP="$(MOTION_GROUP)" \
 	  MOTION_DEVICE="$(MOTION_DEVICE)" \
 	  MOTION_CLIENT="$(MOTION_CLIENT)" \
@@ -328,6 +330,7 @@ secrets.yaml: secrets.yaml.tmpl
           MOTION_FACE_DETECTED_SPEAK="$(MOTION_FACE_DETECTED_SPEAK)" \
           MOTION_FACE_DETECTED_TUNE="$(MOTION_FACE_DETECTED_TUNE)" \
 	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
+	  MOTION_APP="$(MOTION_APP)" \
 	  MOTION_GROUP="$(MOTION_GROUP)" \
 	  MOTION_LOG_LEVEL="$(MOTION_LOG_LEVEL)" \
 	  MOTION_NOTIFY_SMARTPHONE="$(MOTION_NOTIFY_SMARTPHONE)" \
