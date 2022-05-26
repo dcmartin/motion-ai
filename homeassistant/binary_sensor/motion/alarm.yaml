@@ -52,6 +52,30 @@
         {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' %}
           {{ s|count > 0 }}
         {% else %}null{% endif %}
+    motion_alarm_unavailable:
+      attribute_templates:
+        count: >-
+          {% set s = state_attr('binary_sensor.motion_alarm','unavailable') %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' %}
+            {{ s|count }}
+          {% else %}null{% endif %}
+      value_template: >-
+        {% set s = state_attr('binary_sensor.motion_alarm','unavailable') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' %}
+          {{ s|count > 0 }}
+        {% else %}null{% endif %}
+    motion_alarm_found:
+      attribute_templates:
+        count: >-
+          {% set s = state_attr('binary_sensor.motion_alarm','found') %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' %}
+            {{ s|count }}
+          {% else %}null{% endif %}
+      value_template: >-
+        {% set s = state_attr('binary_sensor.motion_alarm','found') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' %}
+          {{ s|count > 0 }}
+        {% else %}null{% endif %}
     motion_alarm:
       unique_id: motion_alarm
       friendly_name: Alarms
@@ -140,11 +164,33 @@
             ["{{- t -}}",{{- utcnow().timestamp() - state.last_updated|as_timestamp -}},"{{- i -}}","{{- m -}}"]
             {%- if loop.last -%}]{%- endif -%}
           {%- endfor -%}
+        unavailable: >-
+          {%- for state in states.persistent_notification|sort(reverse=true,attribute='last_updated')
+            if state.state_with_unit|lower == 'notifying' and 'unavailable' in state.attributes.title and states('input_text.motion_app') in state.attributes.title -%}
+            {%- if not loop.first -%},{% else %}[{%- endif -%}
+            {%- set i = state.entity_id|replace('persistent_notification.','') -%}
+            {%- set t = state.attributes.title -%}
+            {%- set m = state.attributes.message -%}
+            ["{{- t -}}",{{- utcnow().timestamp() - state.last_updated|as_timestamp -}},"{{- i -}}","{{- m -}}"]
+            {%- if loop.last -%}]{%- endif -%}
+          {%- endfor -%}
+        found: >-
+          {%- for state in states.persistent_notification|sort(reverse=true,attribute='last_updated')
+            if state.state_with_unit|lower == 'notifying' and 'found' in state.attributes.title and states('input_text.motion_app') in state.attributes.title -%}
+            {%- if not loop.first -%},{% else %}[{%- endif -%}
+            {%- set i = state.entity_id|replace('persistent_notification.','') -%}
+            {%- set t = state.attributes.title -%}
+            {%- set m = state.attributes.message -%}
+            ["{{- t -}}",{{- utcnow().timestamp() - state.last_updated|as_timestamp -}},"{{- i -}}","{{- m -}}"]
+            {%- if loop.last -%}]{%- endif -%}
+          {%- endfor -%}
         count: >-
           {{ state_attr('binary_sensor.motion_alarm_bad','count')|int(0) +
            state_attr('binary_sensor.motion_alarm_high','count')|int(0) +
            state_attr('binary_sensor.motion_alarm_low','count')|int(0) +
-           state_attr('binary_sensor.motion_alarm_missing','count')|int(0) }}
+           state_attr('binary_sensor.motion_alarm_missing','count')|int(0) +
+           state_attr('binary_sensor.motion_alarm_unavailable','count')|int(0) +
+           state_attr('binary_sensor.motion_alarm_found','count')|int(0) }}
         notification_id: >-
           {% set s = states('binary_sensor.motion_alarm') %}
           {% if s|lower == 'off' or s|lower == 'on' %}
@@ -168,6 +214,16 @@
               and state_attr('binary_sensor.motion_alarm','missing')|length > 0
               and state_attr('binary_sensor.motion_alarm','missing')|reject('none')|list|length > 0 -%}
               {{- (state_attr('binary_sensor.motion_alarm','missing')|first)[2] -}}
+            {%- elif state_attr('binary_sensor.motion_alarm','unavailable')|lower != 'none'
+              and not state_attr('binary_sensor.motion_alarm','unavailable') is string
+              and state_attr('binary_sensor.motion_alarm','unavailable')|length > 0
+              and state_attr('binary_sensor.motion_alarm','unavailable')|reject('none')|list|length > 0 -%}
+              {{- (state_attr('binary_sensor.motion_alarm','unavailable')|first)[2] -}}
+            {%- elif state_attr('binary_sensor.motion_alarm','found')|lower != 'none'
+              and not state_attr('binary_sensor.motion_alarm','found') is string
+              and state_attr('binary_sensor.motion_alarm','found')|length > 0
+              and state_attr('binary_sensor.motion_alarm','found')|reject('none')|list|length > 0 -%}
+              {{- (state_attr('binary_sensor.motion_alarm','found')|first)[2] -}}
             {%- else -%}null{%- endif %}
           {%- else -%}null{%- endif %}
         title: >-
@@ -193,6 +249,16 @@
               and state_attr('binary_sensor.motion_alarm','missing')|length > 0
               and state_attr('binary_sensor.motion_alarm','missing')|reject('none')|list|length > 0 -%}
               {{- state_attr('binary_sensor.motion_alarm','missing')|first|first -}}
+            {%- elif state_attr('binary_sensor.motion_alarm','unavailable')|lower != 'none'
+              and not state_attr('binary_sensor.motion_alarm','unavailable') is string
+              and state_attr('binary_sensor.motion_alarm','unavailable')|length > 0
+              and state_attr('binary_sensor.motion_alarm','unavailable')|reject('none')|list|length > 0 -%}
+              {{- state_attr('binary_sensor.motion_alarm','unavailable')|first|first -}}
+            {%- elif state_attr('binary_sensor.motion_alarm','found')|lower != 'none'
+              and not state_attr('binary_sensor.motion_alarm','found') is string
+              and state_attr('binary_sensor.motion_alarm','found')|length > 0
+              and state_attr('binary_sensor.motion_alarm','found')|reject('none')|list|length > 0 -%}
+              {{- state_attr('binary_sensor.motion_alarm','found')|first|first -}}
             {%- else -%}null{%- endif %}
           {%- else -%}null{%- endif %}
         message: >-
@@ -218,6 +284,16 @@
               and state_attr('binary_sensor.motion_alarm','missing')|length > 0
               and state_attr('binary_sensor.motion_alarm','missing')|reject('none')|list|length > 0 -%}
               {{- state_attr('binary_sensor.motion_alarm','missing')|first|last -}}
+            {%- elif state_attr('binary_sensor.motion_alarm','unavailable')|lower != 'none'
+              and not state_attr('binary_sensor.motion_alarm','unavailable') is string
+              and state_attr('binary_sensor.motion_alarm','unavailable')|length > 0
+              and state_attr('binary_sensor.motion_alarm','unavailable')|reject('none')|list|length > 0 -%}
+              {{- state_attr('binary_sensor.motion_alarm','unavailable')|first|last -}}
+            {%- elif state_attr('binary_sensor.motion_alarm','found')|lower != 'none'
+              and not state_attr('binary_sensor.motion_alarm','found') is string
+              and state_attr('binary_sensor.motion_alarm','found')|length > 0
+              and state_attr('binary_sensor.motion_alarm','found')|reject('none')|list|length > 0 -%}
+              {{- state_attr('binary_sensor.motion_alarm','found')|first|last -}}
             {%- else -%}null{%- endif %}
           {%- else -%}null{%- endif %}
       icon_template: >-
