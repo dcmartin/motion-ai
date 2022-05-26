@@ -16,7 +16,7 @@
         {{ s|lower != 'none' and not s is string and s is iterable and s|count > 0 }}
   variables:
     automations: >-
-      {% set automations = ['motion_device_vibration_activity_notify','motion_device_vibration_alarm_activity','motion_device_vibration_alarm_bad','motion_device_vibration_alarm_high_off','motion_device_vibration_alarm_high_on','motion_device_vibration_alarm_low_off','motion_device_vibration_alarm_low_on','motion_device_vibration_bad_notify','motion_device_vibration_good_dismiss','motion_device_vibration_good_notify','motion_device_vibration_high_dismiss','motion_device_vibration_high_notify','motion_device_vibration_low_dismiss','motion_device_vibration_low_notify','motion_device_vibration_mute','motion_device_vibration_restart','motion_device_vibration_self_test','motion_device_vibration_status','motion_device_vibration_unmute','motion_device_vibration_update'] %}
+      {% set automations = ['motion_device_vibration_activity_notify','motion_device_vibration_alarm_activity','motion_device_vibration_alarm_bad','motion_device_vibration_alarm_good','motion_device_vibration_alarm_high_off','motion_device_vibration_alarm_high_on','motion_device_vibration_alarm_low_off','motion_device_vibration_alarm_low_on','motion_device_vibration_bad_notify','motion_device_vibration_good_notify','motion_device_vibration_cleared_dismiss','motion_device_vibration_cleared_notify','motion_device_vibration_high_dismiss','motion_device_vibration_high_notify','motion_device_vibration_low_dismiss','motion_device_vibration_low_notify','motion_device_vibration_mute','motion_device_vibration_restart','motion_device_vibration_self_test','motion_device_vibration_status','motion_device_vibration_unmute','motion_device_vibration_update'] %}
       {{ automations }}
   action:
     - alias: 'enable automations for device_vibration'
@@ -65,7 +65,7 @@
         {{ sensors|lower == 'none' or sensors is string or not sensors is iterable or not sensors|count > 0 }}
   variables:
     automations: >-
-      {% set automations = ['motion_device_vibration_activity_notify','motion_device_vibration_alarm_activity','motion_device_vibration_alarm_bad','motion_device_vibration_alarm_high_off','motion_device_vibration_alarm_high_on','motion_device_vibration_alarm_low_off','motion_device_vibration_alarm_low_on','motion_device_vibration_bad_notify','motion_device_vibration_good_dismiss','motion_device_vibration_good_notify','motion_device_vibration_high_dismiss','motion_device_vibration_high_notify','motion_device_vibration_low_dismiss','motion_device_vibration_low_notify','motion_device_vibration_mute','motion_device_vibration_restart','motion_device_vibration_self_test','motion_device_vibration_status','motion_device_vibration_unmute','motion_device_vibration_update'] %}
+      {% set automations = ['motion_device_vibration_activity_notify','motion_device_vibration_alarm_activity','motion_device_vibration_alarm_bad','motion_device_vibration_alarm_good','motion_device_vibration_alarm_high_off','motion_device_vibration_alarm_high_on','motion_device_vibration_alarm_low_off','motion_device_vibration_alarm_low_on','motion_device_vibration_bad_notify','motion_device_vibration_good_notify','motion_device_vibration_cleared_dismiss','motion_device_vibration_cleared_notify','motion_device_vibration_high_dismiss','motion_device_vibration_high_notify','motion_device_vibration_low_dismiss','motion_device_vibration_low_notify','motion_device_vibration_mute','motion_device_vibration_restart','motion_device_vibration_self_test','motion_device_vibration_status','motion_device_vibration_unmute','motion_device_vibration_update'] %}
       {{ automations }}
   action:
     - alias: 'disable automations for device_vibration'
@@ -712,7 +712,7 @@
         notification_id: >-
           {{ notification_id }}
 
-# detected
+# bad
 
 - id: motion_device_vibration_alarm_bad
   alias: motion_device_vibration_alarm_bad
@@ -781,7 +781,7 @@
       data_template:
         entity_id: automation.motion_device_vibration_bad_notify
 
-# detected notify
+# bad notify
 
 - id: motion_device_vibration_bad_notify
   alias: motion_device_vibration_bad_notify
@@ -844,10 +844,134 @@
         message: >-
           {{- message -}}
 
-# cleared notify
+- id: motion_device_vibration_alarm_good
+  alias: motion_device_vibration_alarm_good
+  mode: single
+  initial_state: off
+  trigger:
+    - platform: template
+      value_template: >-
+        {{ not is_state_attr('binary_sensor.motion_device_vibration_exist','good','none')
+           and is_state_attr('binary_sensor.motion_device_vibration_exist','good',states('binary_sensor.motion_device_vibration')) }}
+  variables:
+    devices: >-
+      {% set devices = none %}
+      {% set s = state_attr('binary_sensor.motion_device_vibration','devices') %}
+      {% if s|lower != 'none' and s|lower != 'null' and not s is string and s is iterable and s|count > 0 %}
+        {% set devices = s %}
+      {%- endif %}
+      {{ devices }}
+    last: >-
+      {% set last = none %}
+      {% set s = state_attr('binary_sensor.motion_device_vibration','status')|selectattr('state','==',state_attr('binary_sensor.motion_device_vibration_exist','good'))|sort(attribute='updated',reverse=true)|list %}
+      {% if s|lower != 'none' and s|lower != 'null' and not s is string and s is iterable and s|count > 0 %}
+        {% set last = s %}
+      {%- endif %}
+      {{ last  }}
+    which: >-
+      {% set which = none %}
+      {% if last|lower != 'none' %}
+        {% set which = last|map(attribute='id')|first %}
+      {%- endif %}
+      {{ which }}
+    did: >-
+      {% set did = none %}
+      {% if devices|lower != 'none'  and which|lower != 'none' %}
+        {% set did = devices|selectattr('id','==',which)|map(attribute='did')|first %}
+      {%- endif %}
+      {{ did }}
+    where: >-
+      {% set where = none %}
+      {% if devices|lower != 'none'  and which|lower != 'none' %}
+        {% set where = devices|selectattr('id','==',which)|map(attribute='area')|first %}
+      {%- endif %}
+      {{ where }}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ which|lower != 'none' and which|lower != 'null' and which|length > 0 }}
+  action:
+    - alias: 'update binary_sensor.motion_device_vibration which, where, did'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_vibration
+        which: >-
+          {{ which }}
+        where: >-
+          {{ where }}
+        did: >-
+          {{ did }}
+    - condition: template
+      value_template: >
+        {{ is_state_attr('binary_sensor.motion_device_vibration_exist','alarm','on') }}
+    - alias: 'trigger motion notification'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_vibration_good_notify
 
 - id: motion_device_vibration_good_notify
   alias: motion_device_vibration_good_notify
+  mode: single
+  initial_state: off
+  trigger:
+  variables:
+    ids: >-
+      {% set ids = state_attr('binary_sensor.motion_device_vibration','ids') %}
+      {{ ids }}
+    which: >-
+      {% set which = state_attr('binary_sensor.motion_device_vibration','which') %}
+      {{ which }}
+    where: >-
+      {% set where = state_attr('binary_sensor.motion_device_vibration','where') %}
+      {{ where }}
+    did: >-
+      {% set did = state_attr('binary_sensor.motion_device_vibration','did') %}
+      {{ did }}
+    action: >-
+      {% set action = 'vibration-okay' %}
+      {{ action }}
+    url: >-
+      {% set url = '/lovelace/vibration-okay' %}
+      {{ url }}
+    title: >-
+      {% set title = states('input_text.motion_app') + ': vibration good (' + state_attr('binary_sensor.motion_device_vibration_exist','good')|string + ')' %}
+      {{ title }}
+    notification_id: >-
+      {{ 'device-vibration-status-' + which|string }}
+    icon: >-
+      {% set icon = 'notification-vibration-good' %}
+      {{ icon }}
+    header: >-
+      {{- '[![](/local/images/icons/' + icon + '.png?v1)]()' -}}
+      {{- '<hr>' -}}
+    footer: >-
+      {{ '<hr>' }}
+      {%- if did|lower != 'none' and did|lower != 'null' -%}
+        {{- '[![](https://img.shields.io/badge/device-info-blue.svg)](' + '/config/devices/device/' + did + ')' -}}
+      {%- endif -%}
+    body: >-
+      Your home vibration alarm has cleared; sensor: {{ which -}}; where: {{ where -}}.
+    message: >-
+      {{- header -}}
+      {{- body -}}
+      {{- footer -}}
+  action:
+    - alias: 'notify vibration sensor activated'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+# cleared notify
+
+- id: motion_device_vibration_cleared_notify
+  alias: motion_device_vibration_cleared_notify
   mode: single
   initial_state: off
   trigger:
@@ -897,8 +1021,8 @@
 
 # cleared dismissed
 
-- id: motion_device_vibration_good_dismiss
-  alias: motion_device_vibration_good_dismiss
+- id: motion_device_vibration_cleared_dismiss
+  alias: motion_device_vibration_cleared_dismiss
   mode: single
   initial_state: off
   trigger:
@@ -1014,13 +1138,16 @@
       {{ '<hr>' }}
     body: >-
       Your home vibration alarm was triggered:
-      {{- '<p>' -}}
+      {{- '<ul>' -}}
       {% if low|lower != 'none' and not low is string and low is iterable and low|count > 0 %}
         {%- for i in low -%}
           {%- if not loop.first -%}<br>{%- endif -%}
+          {{- '<li>' -}}
           [{{ i.id }}](/config/devices/device/{{- device_id(low[loop.index-1].entity_id) -}}) is {{ states(low[loop.index-1].entity_id) -}}{{- state_attr(low[loop.index-1].entity_id,'unit_of_measurement') }} in [{{ area_id(low[loop.index-1].entity_id) }}](/config/areas/area/{{- area_id(low[loop.index-1].entity_id) -}})
+          {{- '</li>' -}}
         {%- endfor %}
       {%- endif %}
+      {{- '</ul>' -}}
       <p>
       We have notified **{{- state_attr('sensor.motion_role_primary','friendly_name') -}}** about your vibration alarm.
       <br>
@@ -1132,13 +1259,16 @@
       {{ '<hr>' }}
     body: >-
       Your home vibration alarm was triggered:
-      {{- '<p>' -}}
+      {{- '<ul>' -}}
       {% if high|lower != 'none' and not high is string and high is iterable and high|count > 0 %}
         {%- for i in high -%}
           {%- if not loop.first -%}<br>{%- endif -%}
+          {{- '<li>' -}}
           [{{ i.id }}](/config/devices/device/{{- device_id(high[loop.index-1].entity_id) -}}) is {{ states(high[loop.index-1].entity_id) -}}{{- state_attr(high[loop.index-1].entity_id,'unit_of_measurement') }} in [{{ area_id(high[loop.index-1].entity_id) }}](/config/areas/area/{{- area_id(high[loop.index-1].entity_id) -}})
+          {{- '</li>' -}}
         {%- endfor %}
       {%- endif %}
+      {{- '</ul>' -}}
       <p>
       We have notified **{{- state_attr('sensor.motion_role_primary','friendly_name') -}}** about your vibration alarm.
       <br>
@@ -1233,13 +1363,16 @@
       {{ '<hr>' }}
     body: >-
       Your home vibration alarm was triggered:
-      {{- '<p>' -}}
+      {{- '<ul>' -}}
       {% if activity|lower != 'none' and not activity is string and activity is iterable and activity|count > 0 %}
         {%- for i in activity -%}
           {%- if not loop.first -%}<br>{%- endif -%}
+          {{- '<li>' -}}
           [{{ i.id }}](/config/devices/device/{{- device_id(activity[loop.index-1].entity_id) -}}) in [{{ area_id(activity[loop.index-1].entity_id) }}](/config/areas/area/{{- area_id(activity[loop.index-1].entity_id) -}})
+          {{- '</li>' -}}
         {%- endfor %}
       {%- endif %}
+      {{- '</ul>' -}}
       <p>
       We have notified **{{- state_attr('sensor.motion_role_primary','friendly_name') -}}** about your vibration alarm.
       <br>
