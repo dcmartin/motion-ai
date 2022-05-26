@@ -188,7 +188,7 @@ MOTION_DIRS := \
 	www/images/motion
 
 # dashboards
-MOTION_DASHBOARDS := developer experimental person animal vehicle
+MOTION_DASHBOARDS := primary developer experimental person animal vehicle
 LOVELACE_DASHBOARDS := $(shell for C in $(MOTION_DASHBOARDS); do echo lovelace.$${C}.json; done)
 
 default: all
@@ -446,6 +446,18 @@ lovelace.animal.json: lovelace.animal.json.tmpl $(WEBCAMS)
 	@rm -f .storage/lovelace.lovelace_animal
 	-@mkdir -p .storage/
 	@ln -s ../$@ .storage/lovelace.lovelace_animal
+
+lovelace.primary.json: lovelace.primary.json.tmpl $(WEBCAMS)
+	@echo "${MC}Making: $@${NC}"
+	@export \
+	  HOST_NAME="$(HOST_NAME)" \
+	  MOTION_USER="$(MOTION_USER)" \
+	&& cat $< \
+	  | envsubst \
+	> $@
+	@rm -f .storage/lovelace.lovelace_experimental
+	-@mkdir -p .storage/
+	@ln -s ../$@ .storage/lovelace.lovelace_experimental
 
 #
 # removed from experimental template below
