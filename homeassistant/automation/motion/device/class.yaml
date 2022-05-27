@@ -366,25 +366,36 @@
               {"id":"{{- j -}}","class":"{{- i -}}"}
             {%- endfor -%}
           {%- endfor -%}]
+        ids: >-
+          {% if unavailable|lower != 'none' and not unavailable is string and unavailable is iterable and unavailable|count > 0 %}
+            {{ unavailable|map(attribute='id')|sort|unique|list }}
+          {% else %}null{% endif %}
+        count: >-
+          {% if ids|lower != 'none' and not ids is string and ids is iterable and ids|count > 0 %}
+            {{ ids|count }}
+          {% else %}null{% endif %}
         last: >-
-          {{ state_attr('binary_sensor.motion_device_class_unavailable','last') }}
+          {% set last = state_attr('binary_sensor.motion_device_class_unavailable','last') %}
+          {% if count|int(0) > 0 %}{{ last }}{% else %}{{ utcnow().timestamp() }}{% endif %}
+        state: >-
+          {% if count|int(0) > 0 %}on{% else %}off{% endif %}
     - alias: 'update binary_sensor.motion_device_class_unavailable'
       service: python_script.set_state
       data_template:
         entity_id: binary_sensor.motion_device_class_unavailable
         last: >-
-          {% if unavailable|count|int(0) > 0 %}{{ last }}{% else %}{{ utcnow().timestamp() }}{% endif %}
+          {{ last }}
         ids: >-
-          {{ unavailable|map(attribute='id')|sort|unique|list }}
+          {{ ids }}
         count: >-
-          {{ unavailable|map(attribute='id')|sort|unique|count }}
+          {{ count }}
         details: >-
           {{ unavailable }}
         state: >-
-          {% if unavailable|count|int(0) > 0 %}on{% else %}off{% endif %}
+          {{ state }}
     - alias: 'update binary_sensor.motion_device_class: unavailable'
       service: python_script.set_state
       data_template:
         entity_id: binary_sensor.motion_device_class
         unavailable: >-
-          {{ unavailable|map(attribute='id')|sort|unique|list }}
+          {{ ids }}
