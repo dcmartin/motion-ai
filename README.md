@@ -73,7 +73,7 @@ Once the system has rebooted it will display a default view; note the image belo
 
 <img src="docs/dashboard.png" width="75%">
 
-Historical information, current status, and a device map of activity are also provided in the default dashboard.
+Historial information, current status, and a device map of activity are also provided in the default dashboard.
 
 <img src="docs/person-history.png" width="30%">
 <img src="docs/person-status.png" width="30%">
@@ -300,17 +300,17 @@ git merge upstream/master
 
 Language|files|blank|comment|code
 :-------|-------:|-------:|-------:|-------:
-YAML|540|3815|4830|60947
-JSON|47|2|0|26136
-Python|23|650|648|5827
-Bourne Shell|57|568|295|2821
-Markdown|13|542|0|1799
-make|3|186|88|1267
+YAML|449|2982|3363|50817
+JSON|42|2|0|23767
+Python|32|1175|796|7324
+Bourne Shell|57|571|296|2842
+Markdown|13|450|0|1536
+make|3|184|81|1243
 Jupyter Notebook|1|0|1020|927
 HTML|1|19|1|89
 XML|1|1|0|89
 --------|--------|--------|--------|--------
-SUM:|686|5783|6882|99902
+SUM:|599|5384|5557|88634
 
 <img src="http://clustrmaps.com/map_v2.png?cl=ffffff&w=a&t=n&d=8TDxxKn9npMT6_70gwlS3FcPjhdcBm5j4LskwHzTO5U" width="1">
 
