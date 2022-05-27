@@ -458,9 +458,9 @@ lovelace.primary.json: lovelace.primary.json.tmpl $(WEBCAMS)
 	&& cat $< \
 	  | envsubst \
 	> $@
-	@rm -f .storage/lovelace.lovelace_experimental
+	@rm -f .storage/lovelace.lovelace_primary
 	-@mkdir -p .storage/
-	@ln -s ../$@ .storage/lovelace.lovelace_experimental
+	@ln -s ../$@ .storage/lovelace.lovelace_primary
 
 #
 # removed from experimental template below
