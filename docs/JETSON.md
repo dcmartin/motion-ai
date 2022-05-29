@@ -184,18 +184,25 @@ There are seven (7) steps:
 1. Restart Motion AI
 
 ## Step 1
-Install Motion-AI from the Github [repository](http://github.com/dcmartin/motion-ai) by cloning using the `git` command and running the installation script, for example:
+Install Motion-AI from the Github [repository](http://github.com/dcmartin/motion-ai) using the following commands:
 
 ```
 sudo apt update -qq -y
-sudo apt install -qq -y make git curl jq apt-utils ssh
-git clone http://github.com/dcmartin/motion-ai
-cd ~/motion-ai
-sudo ./sh/get.motion-ai.sh
+sudo apt install -qq -y make git curl jq apt-utils ssh apparmor grub2-common
+sudo touch /etc/default/grub
+sudo mkdir /usr/share/hassio
+sudo chmod 775 /usr/share/hassio
+cd /usr/share/hassio
+git clone http://github.com/dcmartin/motion-ai .
+make
+wget https://github.com/home-assistant/os-agent/releases/download/1.2.2/os-agent_1.2.2_linux_aarch64.deb
+sudo dpkg -i os-agent_1.2.2_linux_aarch64.deb
+wget https://github.com/home-assistant/supervised-installer/releases/latest/download/homeassistant-supervised.deb
+sudo dpkg --ignore-depends=docker-ce -i homeassistant-supervised.deb
 ```
 
 ## Step 2
-The `get.motion-ai.sh` script will upgrade the operating sytem components, install all pre-requisites, and initialize.    First step is to connect to the Home Assistant server at `http://127.0.0.1:8123` using the installed Chromium browser (n.b. see icon on the desktop).
+The above will upgrade the operating sytem components, install all pre-requisites, and initialize.    First step is to connect to the Home Assistant server at `http://127.0.0.1:8123` using the installed Chromium browser (n.b. see icon on the desktop).
 
 <img src="initial.png" width="50%">
 
