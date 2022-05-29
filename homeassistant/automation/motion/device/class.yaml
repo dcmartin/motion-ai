@@ -284,23 +284,6 @@
           "{{- i -}}":{{- n -}}
         {%- endfor -%} }
       {%- else -%}null{%- endif %}
-    entities: >-
-      {%- if ids|lower != 'none' and not ids is string and ids is iterable and ids|count > 0 -%}
-        [{%- for i in ids -%}
-          {%- set o = loop -%}
-          {%- for state in states if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string != 'null' -%}
-            {%- if not o.first or not loop.first -%},{%- endif -%}
-            {%- set v = state.state -%}
-            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","did":"{{- device_id(state.entity_id) -}}","area":"{{- area_id(state.entity_id) -}}"}
-          {%- else -%}{% if not loop.last %}none{% endif %}{%- endfor -%}
-        {%- endfor -%}]
-      {%- else -%}null{%- endif %}
-    activity: >-
-        {%- if not loop.first -%},{%- endif -%}
-        {%- for j in state_attr('binary_sensor.motion_device_' + i + '_activity','ids') -%}
-          {%- if not loop.first -%},{%- endif -%}
-          {"id":"{{- j -}}","class":"{{- i -}}"}
-        {%- endfor -%}
     dids: >-
       {%- set s = state_attr('binary_sensor.motion_device_class','sensor_list')|list + state_attr('binary_sensor.motion_device_class','binary_sensor_list')|list -%}
       [{%- for i in s|sort|unique if not is_state_attr('binary_sensor.motion_device_' + i|string,'devices','none') -%}
@@ -309,21 +292,24 @@
         {%- set devices = state_attr(e, 'devices') -%}
         {%- for j in devices|map(attribute='did')|list -%}
           {%- if not loop.first -%},{%- endif -%}
-          {"did":"{{- j -}}","area":"{{ devices|selectattr('did','==',j)|map(attribute='area')|list|first }}"}
+          {"class":"{{- i -}}","did":"{{- j -}}","area":"{{ devices|selectattr('did','==',j)|map(attribute='area')|list|first }}"}
         {%- endfor -%}
       {%- endfor -%}]
     devices: >-
-      [{%- for i in dids|map(attribute='did')|sort|unique|list -%}
-        {%- if not loop.first -%},{%- endif -%}
-        {%- set n = device_attr(i,'name_by_user') -%}
-        {%- if n|lower == 'none' -%}
-          {%- set n = device_attr(i,'name') -%}
-        {%- endif -%}
-        {%- set k = dids|selectattr('did','==',i)|map(attribute='area')|first %}
-        { "id":"{{- device_attr(i,'name') -}}", "did":"{{- i -}}", "friendly_name":"{{- n -}}", "manufacturer":"{{- device_attr(i,'manufacturer') -}}", "model":"{{- device_attr(i,'model') -}}", "sw_version":"{{- device_attr(i,'sw_version') -}}", "area":"{{- k -}}" }
-      {%- endfor -%}]
+      {%- if dids|lower != 'none' and not s is string and s is iterable and dids|count > 0 -%}
+        [{%- for i in dids|map(attribute='did')|sort|unique|list -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {%- set n = device_attr(i,'name_by_user') -%}
+          {%- if n|lower == 'none' -%}
+            {%- set n = device_attr(i,'name') -%}
+          {%- endif -%}
+          {%- set a = dids|selectattr('did','==',i)|map(attribute='area')|first %}
+          {%- set c = dids|selectattr('did','==',i)|map(attribute='class')|first %}
+          { "id":"{{- device_attr(i,'name') -}}","did":"{{- i -}}","friendly_name":"{{- n -}}","manufacturer":"{{- device_attr(i,'manufacturer') -}}","model":"{{- device_attr(i,'model') -}}","sw_version":"{{- device_attr(i,'sw_version') -}}","class":"{{- c -}}","area":"{{- a -}}" }
+        {%- endfor -%}]
+      {%- else -%}null{%- endif %}
     areas: >-
-      {% set s = entities|reject('==',none)|list %}
+      {% set s = devices %}
       {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
         {%- set s = s|map(attribute='area')|reject('==','None')|list -%}
         {%- if s|lower != 'null' and not s is string and s is iterable and s|count > 0 -%}
