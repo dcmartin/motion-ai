@@ -70,11 +70,11 @@
 
 - id: motion_device_tracker_rescan
   alias: motion_device_tracker_rescan
-  mode: restart
+  mode: single
   initial_state: on
   trigger:
     - platform: time_pattern
-      minutes: '/2'
+      minutes: '/1'
     - platform: homeassistant
       event: start
   variables:
@@ -89,11 +89,11 @@
     dids: >-
       {%- set device_trackers = states.device_tracker|map(attribute='entity_id')|map('device_id')|list -%}
       {%- set s = state_attr('binary_sensor.motion_device_class','sensor_list')|list + state_attr('binary_sensor.motion_device_class','binary_sensor_list')|list -%}
-      [{%- for i in s|sort|unique if not is_state_attr('binary_sensor.motion_device_' + i|string,'devices','none') -%}
+      [{%- for i in s|sort|unique if i|lower != 'none' and not is_state_attr('binary_sensor.motion_device_' + i|string,'devices','none') -%}
         {%- if not loop.first -%},{%- endif -%}
         {%- set e = 'binary_sensor.motion_device_' + i|string -%}
         {%- set devices = state_attr(e, 'devices') -%}
-        {%- for j in devices|map(attribute='did')|list if j in device_trackers -%}
+        {%- for j in devices|map(attribute='did')|list if j|lower != 'none' and j in device_trackers -%}
           {%- if not loop.first -%},{%- endif -%}
           {%- if j == device_id(states.person|selectattr('attributes.source', 'defined')|map(attribute='attributes.source')|first|default(none)) -%}
             {%- set id = devices|selectattr('did','==',j)|map(attribute='id')|first -%}
@@ -103,17 +103,21 @@
         {%- else -%}none{%- endfor -%}
       {%- endfor -%}]
     devices: >-
-      {%- set dids = dids|reject('none')|list -%}
-      [{%- for i in dids|map(attribute='did')|sort|unique -%}
-        {%- if not loop.first -%},{%- endif -%}
-        {%- set n = device_attr(i,'name_by_user') -%}
-        {%- if n|lower == 'none' -%}
-          {%- set n = device_attr(i,'name') -%}
-        {%- endif -%}
-        {%- set c = dids|selectattr('did','==',i)|map(attribute='class')|list -%}
-        {%- set p = dids|selectattr('did','==',i)|map(attribute='person')|first -%}
-        {"id":"{{- device_attr(i,'name') -}}","did":"{{- i -}}","friendly_name":"{{- n -}}","manufacturer":"{{- device_attr(i,'manufacturer') -}}","model":"{{- device_attr(i,'model') -}}","sw_version":"{{- device_attr(i,'sw_version') -}}","class":{{- c|default(none) -}},"person":"{{- p|default(none) -}}"}
-      {%- endfor -%}]
+      {%- if dids|lower != 'none' and not dids is string and dids is iterable and dids|count > 0 -%}
+        {%- set dids = dids|reject('none')|list -%}
+        {%- if dids|lower != 'none' and not dids is string and dids is iterable and dids|count > 0 -%}
+          [{%- for i in dids|map(attribute='did')|sort|unique -%}
+            {%- if not loop.first -%},{%- endif -%}
+            {%- set n = device_attr(i,'name_by_user') -%}
+            {%- if n|lower == 'none' -%}
+              {%- set n = device_attr(i,'name') -%}
+            {%- endif -%}
+            {%- set c = dids|selectattr('did','==',i)|map(attribute='class')|list -%}
+            {%- set p = dids|selectattr('did','==',i)|map(attribute='person')|first -%}
+            {"id":"{{- device_attr(i,'name') -}}","did":"{{- i -}}","friendly_name":"{{- n -}}","manufacturer":"{{- device_attr(i,'manufacturer') -}}","model":"{{- device_attr(i,'model') -}}","sw_version":"{{- device_attr(i,'sw_version') -}}","class":{{- c|default(none) -}},"person":"{{- p|default(none) -}}"}
+          {%- endfor -%}]
+        {%- else -%}none{%- endif -%}
+      {%- else -%}none{%- endif -%}
   action:
     - alias: 'update sensor.motion_device_tracker ids'
       service: python_script.set_state
