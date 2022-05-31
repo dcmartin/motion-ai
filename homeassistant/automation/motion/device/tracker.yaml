@@ -95,18 +95,21 @@
         {%- set devices = state_attr(e, 'devices') -%}
         {%- for j in devices|map(attribute='did')|list if j|lower != 'none' and j in device_trackers -%}
           {%- if not loop.first -%},{%- endif -%}
-          {%- if j == device_id(states.person|selectattr('attributes.source', 'defined')|map(attribute='attributes.source')|first|default(none)) -%}
+          {%- set t = states.person|selectattr('attributes.source', 'defined')|map(attribute='attributes.source')|first|default(none) -%}
+          {%- if t|lower != 'none' and j == device_id(t) -%}
             {%- set id = devices|selectattr('did','==',j)|map(attribute='id')|first -%}
             {%- set p = states.person|selectattr('attributes.source', 'defined')|selectattr('attributes.source','==','device_tracker.'+id|string)|map(attribute='entity_id')|first -%}
           {%- endif -%} 
           {"class":"{{- i -}}","did":"{{- j -}}","person":"{{- p|default(none)|replace('person.','') -}}"}
-        {%- else -%}none{%- endfor -%}
+        {%- else -%}{{ none }}{%- endfor -%}
       {%- endfor -%}]
     devices: >-
       {%- if dids|lower != 'none' and not dids is string and dids is iterable and dids|count > 0 -%}
-        {%- set dids = dids|reject('none')|list -%}
+       {%- set dids = dids|reject('undefined')|list -%}
         {%- if dids|lower != 'none' and not dids is string and dids is iterable and dids|count > 0 -%}
-          [{%- for i in dids|map(attribute='did')|sort|unique -%}
+          {%- set dids = dids|selectattr('did','defined')|list -%}
+          {%- if dids|lower != 'none' and not dids is string and dids is iterable and dids|count > 0 -%}
+          [{%- for i in dids|map(attribute='did')|sort|unique|list -%}
             {%- if not loop.first -%},{%- endif -%}
             {%- set n = device_attr(i,'name_by_user') -%}
             {%- if n|lower == 'none' -%}
@@ -116,10 +119,11 @@
             {%- set p = dids|selectattr('did','==',i)|map(attribute='person')|first -%}
             {"id":"{{- device_attr(i,'name') -}}","did":"{{- i -}}","friendly_name":"{{- n -}}","manufacturer":"{{- device_attr(i,'manufacturer') -}}","model":"{{- device_attr(i,'model') -}}","sw_version":"{{- device_attr(i,'sw_version') -}}","class":{{- c|default(none) -}},"person":"{{- p|default(none) -}}"}
           {%- endfor -%}]
+          {%- else -%}none{%- endif -%}
         {%- else -%}none{%- endif -%}
       {%- else -%}none{%- endif -%}
   action:
-    - alias: 'update sensor.motion_device_tracker ids'
+    - alias: 'update binary_sensor.motion_device_tracker ids,total,devices'
       service: python_script.set_state
       data_template:
         entity_id: binary_sensor.motion_device_tracker
