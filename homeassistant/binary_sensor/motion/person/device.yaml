@@ -1,0 +1,76 @@
+###
+# binary_sensor/motion/person/device.yaml
+###
+
+- platform: template
+  sensors:
+    motion_person_device:
+      friendly_name: '👱 device'
+      attribute_templates:
+        latitude: >-
+          {{ state_attr('sensor.motion_person_device','latitude') }}
+        longitude: >-
+          {{ state_attr('sensor.motion_person_device','longitude') }}
+        gps_accuracy: >- 
+          {{ state_attr('sensor.motion_person_device','gps') }}
+        radius: >-
+          {{ state_attr('sensor.motion_person_device','radius') }}
+        entity_picture: >-
+          {% if is_state('binary_sensor.motion_person_device','on') %}
+            {{ '/local/images/home.png' }}
+          {%- else %}
+            {{ '/local/images/home-vacant.png' }}
+          {%- endif %} 
+        tracker: >-
+          {% set s = states('sensor.motion_person_device') -%}
+          {%- if s|lower != 'none' -%}
+            {{ state_attr('binary_sensor.motion_device_tracker','devices')|selectattr('id','==',s)|first }}
+          {%- else -%}none{%- endif %}
+      icon_template: >- 
+        {% if is_state('binary_sensor.motion_person_device','on') %}
+          {{- 'mdi:home-variant' -}}
+        {%- else %}
+          {{- 'mdi:home-variant-outline' -}}
+        {%- endif %}
+      value_template: >-
+        {% set s = states('sensor.motion_person') %}
+        {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' %}
+          {% set r = state_attr('sensor.motion_person','device') %}
+          {% if r|lower != 'unknown' and r|lower != 'unavailable' and r|lower != 'none' and r|lower != 'null' and r|length > 0 %}
+            {% set s = states(r) %}
+            {% if s|lower == 'home' %}
+              {% set p = true %}
+            {% elif s|lower == 'not_home' %}
+              {% set p = false %}
+            {% endif %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% else %}false{% endif %}
+    motion_person_device_tracker:
+      friendly_name: '👱 tracker'
+      attribute_templates:
+        id: >-
+          {% set s = state_attr('binary_sensor.motion_person_device','tracker') -%}
+          {%- if s|lower != 'none' -%}
+            {{ s.id }}
+          {%- else -%}none{%- endif %}
+        details: >-
+          {% set s = state_attr('binary_sensor.motion_person_device','tracker') -%}
+          {%- if s|lower != 'none' and 'id' in s -%}
+            {{ s.friendly_name -}}: {{ s.manufacturer }}{{ s.model }}({{- s.sw_version -}})
+          {%- else -%}none{%- endif %}
+      icon_template: >- 
+        {% if is_state('binary_sensor.motion_person_device_tracker','on') %}
+          {{- 'mdi:satellite' -}}
+        {%- else %}
+          {{- 'mdi:satellite-variant' -}}
+        {%- endif %}
+      value_template: >-
+        {% set s = state_attr('binary_sensor.motion_person_device','tracker') %}
+        {% if s|lower != 'none' and not s is string %}
+          {{ 'id' in s }}
+        {% else %}
+          {{ false }}
+        {% endif %}
