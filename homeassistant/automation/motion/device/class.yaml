@@ -47,8 +47,7 @@
       {% set automations = ['motion_device_class_activity_test','motion_device_class_activity_notify','motion_device_class_activity_dismiss'] %}
       {{ automations }}
   action:
-    - alias: 'disable automations for device_class'
-      repeat:
+    - repeat:
         while:
           - condition: template
             value_template: >-
@@ -67,6 +66,65 @@
             data_template:
               entity_id: >-
                 {{ automation }}
+
+- id: motion_device_class_rescan_all
+  alias: motion_device_class_rescan_all
+  mode: restart
+  initial_state: on
+  trigger:
+  variables:
+    dids: >-
+      {% set device_trackers = states.device_tracker|map(attribute='entity_id')|map('device_id')|list %}
+      {%- set s = state_attr('binary_sensor.motion_device_class','sensor_list')|list + state_attr('binary_sensor.motion_device_class','binary_sensor_list')|list -%}
+      [{%- for i in s|sort|unique if not is_state_attr('binary_sensor.motion_device_' + i|string,'devices','none') -%}
+        {%- if not loop.first -%},{%- endif -%}
+        {%- set e = 'binary_sensor.motion_device_' + i|string -%}
+        {%- set devices = state_attr(e, 'devices') -%}
+        {%- for j in devices|map(attribute='did')|list -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {"class":"{{- i -}}","did":"{{- j -}}"}
+        {% else %}{{ none }}{%- endfor -%}
+      {%- endfor -%}]
+    classes: >-
+      {%- if dids|lower != 'none' and not dids is string and dids is iterable and dids|count > 0 -%}
+       {%- set dids = dids|reject('undefined')|list -%}
+        {%- if dids|lower != 'none' and not dids is string and dids is iterable and dids|count > 0 -%}
+          {%- set dids = dids|selectattr('class','defined')|list -%}
+          {%- if dids|lower != 'none' and not dids is string and dids is iterable and dids|count > 0 -%}
+          [{%- for i in dids|map(attribute='class')|sort|unique|list -%}
+            {%- if not loop.first -%},{%- endif -%}
+            {%- set a = dids|selectattr('did','==',i)|map(attribute='area')|first %}
+            "{{- i -}}"
+          {%- endfor -%}]
+          {%- else -%}none{%- endif -%}
+        {%- else -%}none{%- endif -%}
+      {%- else -%}none{%- endif -%}
+    areas: >-
+  action:
+    - repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = classes[repeat.index-1]|default('') %}
+              {{ s|string != '' }}
+        sequence:
+          - variables:
+              automation: >-
+                {% set s = classes[repeat.index-1] %}
+                {{ 'automation.' + s|string }}
+          - condition: template
+            value_template: >-
+              {{ states(automation)|lower == 'on' }}
+          - alias: 'trigger automation <class>_rescan'
+            service: automation.trigger
+            data_template:
+              entity_id: >-
+                {{ automation }}
+    - alias: 'trigger automation class_rescan'
+      service: automation.trigger
+      data_template:
+        entity_id: >-
+          {{ 'automation.motion_device_class_rescan' }}
 
 - id: motion_device_class_rescan
   alias: motion_device_class_rescan
