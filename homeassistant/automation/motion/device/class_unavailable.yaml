@@ -35,19 +35,31 @@
       {{- '<hr>' -}}
     body: >-
       Sensor(s) unavailable at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}:
-      {%- set s = state_attr('binary_sensor.motion_device_class_unavailable','details') -%}
-      {%- set s = s|map(attribute='class')|sort|unique|list -%}
-      {%- for i in s -%}
-        {%- set u = state_attr('binary_sensor.motion_device_' + i|string ,'unavailable') %}
-        {{- '<ul>' -}}
-        {%- for p in u -%}
-          {%- set d = state_attr('binary_sensor.motion_device_' + i|string,'devices')|selectattr('id','==',p.id)|first -%}
-          {{- '<li>' -}}
-          [{{- p.id -}}](/config/devices/device/{{- d.did -}}) ({{- i -}}); {{ state_attr(p.entity_id,'friendly_name') -}}; {{ p.updated|as_datetime|relative_time }} ago
-          {{- '</li>' -}}
-        {% endfor -%}
-        {{- '</ul>' -}}
+      {% set classes = state_attr('binary_sensor.motion_device_class_unavailable','details') -%}
+      {% set ids = state_attr('binary_sensor.motion_device_class_unavailable','ids') -%}
+      {{ '<ul>' }}
+      {%- for i in ids -%}
+        {{ '<li>'}}
+        {%- set d = state_attr('binary_sensor.motion_device_class','devices') %}
+        {%- if d|lower != 'none' and not d is string and d is iterable and d|count > 0 %}
+          {%- set d = d|first -%}
+          [{{- i -}}](/config/devices/device/{{- d.did -}})
+        {%- else -%}
+          {{- i -}}
+        {%- endif -%}
+        {{ '<ul>' }}
+        {%- for j in classes|map(attribute='class')|sort|unique|list
+            if state_attr('binary_sensor.motion_device_' + j|string ,'unavailable')|lower != 'none' -%}
+          {%- set u = state_attr('binary_sensor.motion_device_' + j|string ,'unavailable') -%}
+          {%- for p in u|selectattr('id','==',i) -%}
+            {{- '<li><i>' -}}
+            {{- state_attr(p.entity_id,'friendly_name') -}}
+            {{- '</i></li>' -}}
+          {%- endfor -%}
+        {%- endfor -%}
+        {{ '</ul>' }}
       {% endfor %}
+      {{ '</ul>' }}
       {{- '<p>' -}}
       {{-  '[![](https://img.shields.io/badge/' + action + '-green.svg)](' + url + ')' -}}
     message: >-
