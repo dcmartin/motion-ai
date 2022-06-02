@@ -4,6 +4,18 @@
 
 - platform: template
   sensors:
+    motion_alarm_good:
+      attribute_templates:
+        count: >-
+          {% set s = state_attr('binary_sensor.motion_alarm','good') %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' %}
+            {{ s|count }}
+          {% else %}null{% endif %}
+      value_template: >-
+        {% set s = state_attr('binary_sensor.motion_alarm','good') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' %}
+          {{ s|count > 0 }}
+        {% else %}null{% endif %}
     motion_alarm_bad:
       attribute_templates:
         count: >-
@@ -96,19 +108,19 @@
         unread: >-
           [{%- for state in states.persistent_notification if states('input_text.motion_app') in state.attributes.title -%}
             {%- if not loop.first -%},{%- endif -%}
-            {%- set s = state.state_with_unit|lower -%}
+            {%- set s = state.state|lower -%}
             {%- if s == 'unread' -%}1{%- else -%}0{%- endif -%}
           {%- endfor -%}]
         read: >-
           [{%- for state in states.persistent_notification if states('input_text.motion_app') in state.attributes.title -%}
             {%- if not loop.first -%},{%- endif -%}
-            {%- set s = state.state_with_unit|lower -%}
+            {%- set s = state.state|lower -%}
             {%- if s == 'read' -%}1{%- else -%}0{%- endif -%}
           {%- endfor -%}]
         notifying: >-
           [{%- for state in states.persistent_notification|sort(reverse=true,attribute='last_updated') if states('input_text.motion_app') in state.attributes.title -%}
             {%- if not loop.first -%},{%- endif -%}
-            {%- set s = state.state_with_unit|lower -%}
+            {%- set s = state.state|lower -%}
             {%- set t = state.attributes.title -%}
             {%- if s == 'notifying' 
               and t != 'unknown' 
@@ -128,7 +140,7 @@
           {% else %}null{% endif %}
         all: >-
           {%- for state in states.persistent_notification|sort(reverse=true,attribute='last_updated')
-            if state.state_with_unit|lower == 'notifying' and states('input_text.motion_app') in state.attributes.title -%}
+            if state.state|lower == 'notifying' and states('input_text.motion_app') in state.attributes.title -%}
             {%- if not loop.first -%},{% else %}[{%- endif -%}
             {%- set i = state.entity_id|replace('persistent_notification.','') -%}
             {%- set t = state.attributes.title -%}
@@ -136,9 +148,19 @@
             ["{{- i -}}",{{- utcnow().timestamp() - state.last_updated|as_timestamp -}}]
             {%- if loop.last -%}]{%- endif -%}
           {%- endfor -%}
+        good: >-
+          {%- for state in states.persistent_notification|sort(reverse=true,attribute='last_updated')
+            if state.state|lower == 'notifying' and 'good' in state.attributes.title and states('input_text.motion_app') in state.attributes.title -%}
+            {%- if not loop.first -%},{% else %}[{%- endif -%}
+            {%- set i = state.entity_id|replace('persistent_notification.','') -%}
+            {%- set t = state.attributes.title -%}
+            {%- set m = state.attributes.message -%}
+            ["{{- t -}}",{{- utcnow().timestamp() - state.last_updated|as_timestamp -}},"{{- i -}}","{{- m -}}"]
+            {%- if loop.last -%}]{%- endif -%}
+          {%- endfor -%}
         bad: >-
           {%- for state in states.persistent_notification|sort(reverse=true,attribute='last_updated')
-            if state.state_with_unit|lower == 'notifying' and 'bad' in state.attributes.title and states('input_text.motion_app') in state.attributes.title -%}
+            if state.state|lower == 'notifying' and 'bad' in state.attributes.title and states('input_text.motion_app') in state.attributes.title -%}
             {%- if not loop.first -%},{% else %}[{%- endif -%}
             {%- set i = state.entity_id|replace('persistent_notification.','') -%}
             {%- set t = state.attributes.title -%}
@@ -148,7 +170,7 @@
           {%- endfor -%}
         high: >-
           {%- for state in states.persistent_notification|sort(reverse=true,attribute='last_updated')
-            if state.state_with_unit|lower == 'notifying' and 'high' in state.attributes.title and states('input_text.motion_app') in state.attributes.title -%}
+            if state.state|lower == 'notifying' and 'high' in state.attributes.title and states('input_text.motion_app') in state.attributes.title -%}
             {%- if not loop.first -%},{% else %}[{%- endif -%}
             {%- set i = state.entity_id|replace('persistent_notification.','') -%}
             {%- set t = state.attributes.title -%}
@@ -158,7 +180,7 @@
           {%- endfor -%}
         low: >-
           {%- for state in states.persistent_notification|sort(reverse=true,attribute='last_updated')
-            if state.state_with_unit|lower == 'notifying' and 'low' in state.attributes.title and states('input_text.motion_app') in state.attributes.title -%}
+            if state.state|lower == 'notifying' and 'low' in state.attributes.title and states('input_text.motion_app') in state.attributes.title -%}
             {%- if not loop.first -%},{% else %}[{%- endif -%}
             {%- set i = state.entity_id|replace('persistent_notification.','') -%}
             {%- set t = state.attributes.title -%}
@@ -168,7 +190,7 @@
           {%- endfor -%}
         missing: >-
           {%- for state in states.persistent_notification|sort(reverse=true,attribute='last_updated')
-            if state.state_with_unit|lower == 'notifying' and 'missing' in state.attributes.title and states('input_text.motion_app') in state.attributes.title -%}
+            if state.state|lower == 'notifying' and 'missing' in state.attributes.title and states('input_text.motion_app') in state.attributes.title -%}
             {%- if not loop.first -%},{% else %}[{%- endif -%}
             {%- set i = state.entity_id|replace('persistent_notification.','') -%}
             {%- set t = state.attributes.title -%}
@@ -178,7 +200,7 @@
           {%- endfor -%}
         unavailable: >-
           {%- for state in states.persistent_notification|sort(reverse=true,attribute='last_updated')
-            if state.state_with_unit|lower == 'notifying' and 'unavailable' in state.attributes.title and states('input_text.motion_app') in state.attributes.title -%}
+            if state.state|lower == 'notifying' and 'unavailable' in state.attributes.title and states('input_text.motion_app') in state.attributes.title -%}
             {%- if not loop.first -%},{% else %}[{%- endif -%}
             {%- set i = state.entity_id|replace('persistent_notification.','') -%}
             {%- set t = state.attributes.title -%}
@@ -188,7 +210,7 @@
           {%- endfor -%}
         found: >-
           {%- for state in states.persistent_notification|sort(reverse=true,attribute='last_updated')
-            if state.state_with_unit|lower == 'notifying' and 'found' in state.attributes.title and states('input_text.motion_app') in state.attributes.title -%}
+            if state.state|lower == 'notifying' and 'found' in state.attributes.title and states('input_text.motion_app') in state.attributes.title -%}
             {%- if not loop.first -%},{% else %}[{%- endif -%}
             {%- set i = state.entity_id|replace('persistent_notification.','') -%}
             {%- set t = state.attributes.title -%}
@@ -198,7 +220,7 @@
           {%- endfor -%}
         activity: >-
           {%- for state in states.persistent_notification|sort(reverse=true,attribute='last_updated')
-            if state.state_with_unit|lower == 'notifying' and 'activity' in state.attributes.title and states('input_text.motion_app') in state.attributes.title -%}
+            if state.state|lower == 'notifying' and 'activity' in state.attributes.title and states('input_text.motion_app') in state.attributes.title -%}
             {%- if not loop.first -%},{% else %}[{%- endif -%}
             {%- set i = state.entity_id|replace('persistent_notification.','') -%}
             {%- set t = state.attributes.title -%}
