@@ -6,6 +6,8 @@
   alias: motion_areas
   initial_state: on
   trigger:
+    - platform: event
+      event_type: homeassistant_start
     - platform: time_pattern
       minutes: '/5'
   variables:
@@ -15,11 +17,26 @@
         "{{- area_id(s.entity_id) -}}"
       {%- endfor -%}]
     ids: >-
-      {% if all|lower != 'none' and all != '[]' and all is iterable and all|count > 0 -%}
+      {% if all|lower != 'none' and all != [] -%}
         [{%- for i in all|sort|unique -%}
           {%- if not loop.first -%},{%- endif -%}
           "{{- i -}}"
         {%- endfor -%}]
+      {% else %}null{% endif %}
+    count: >-
+      {% if ids|lower != 'null' and ids|lower != 'none' %}
+        {{ ids|count }}
+      {% else %}null{% endif %}
+    names: >-
+      {% if all|lower != 'none' and all != [] -%}
+        [{%- for i in all|sort|unique -%}
+          {%- if not loop.first -%},{%- endif -%}
+          "{{- area_name(i) -}}"
+        {%- endfor -%}]
+      {% else %}null{% endif %}
+    total: >-
+      {% if names|lower != 'null' -%}
+        {{- names|count -}}
       {% else %}null{% endif %}
     areas: >-
       {% if ids|lower != 'null' %}
@@ -28,53 +45,33 @@
           {"id":"{{- i -}}","name":"{{- area_name(i) -}}","entities":{{- area_entities(i)|to_json -}}}
         {%- endfor -%}]
       {% else %}null{% endif %}
-    count: >-
-      {% if ids|lower != 'null' %}
-        {{ ids|count }}
-      {% else %}null{% endif %}
-    defined: >-
-      [{%- for j in areas if 'entities' in j -%}
-        {%- if not loop.first -%},{%- endif -%}
-        {"id":"{{- j.id -}}",
-        "latitude":[{%- for i in j.entities if state_attr(i,'latitude') is number -%}
-          {%- if not loop.first -%},{%- endif -%}
-          {{- state_attr(i,'latitude') -}}
-        {%- endfor -%}],
-        "longitude":[{%- for i in j.entities if state_attr(i,'longitude') is number -%}
-          {%- if not loop.first -%},{%- endif -%}
-          {{- state_attr(i,'longitude') -}}
-        {%- endfor -%}]}
-      {%- endfor -%}]
-    locations: >-
-      [{%- for i in defined if i.latitude|select('number')|list|count > 0 and i.longitude|select('number')|list|count > 0 -%}
-        {%- if not loop.first -%},{%- endif -%}
-        {%- set lat = i.latitude|select('number')|list|average -%}
-        {%- set lng = i.longitude|select('number')|list|average -%}
-        {"id":"{{- i.id -}}","latitude":{{- lat -}},"longitude":{{- lng -}}}
-      {%- endfor -%}]
     discovered: >-
-      [{%- for id in ids -%}
-        {%- if not loop.first -%},{%- endif -%}
-        {"id":"{{- id -}}",
-        "latitude":
-        [{%- for state in states if id|string in state.entity_id and state_attr(state.entity_id,'latitude')|lower != 'none' -%}
+      {% if ids|lower != 'null' %}
+        [{%- for id in ids -%}
           {%- if not loop.first -%},{%- endif -%}
-          {{- state_attr(state.entity_id,'latitude') -}}
-        {%- endfor -%}],
-        "longitude":
-        [{%- for state in states if id|string in state.entity_id and state_attr(state.entity_id,'longitude')|lower != 'none' -%}
+          {"id":"{{- id -}}",
+          "latitude":
+          [{%- for state in states if id|string in state.entity_id and state_attr(state.entity_id,'latitude')|lower != 'none' -%}
+            {%- if not loop.first -%},{%- endif -%}
+            {{- state_attr(state.entity_id,'latitude') -}}
+          {%- endfor -%}],
+          "longitude":
+          [{%- for state in states if id|string in state.entity_id and state_attr(state.entity_id,'longitude')|lower != 'none' -%}
+            {%- if not loop.first -%},{%- endif -%}
+            {{- state_attr(state.entity_id,'longitude') -}}
+          {%- endfor -%}]}
+        {%- endfor -%}]
+      {% else %}null{% endif %}
+    locations: >-
+      {% if discovered|lower != 'null' %}
+        [{%- for i in discovered if 'latitude' in i and 'longitude' in i and 
+          i.latitude|select('number')|list|count > 0 and i.longitude|select('number')|list|count > 0 -%}
           {%- if not loop.first -%},{%- endif -%}
-          {{- state_attr(state.entity_id,'longitude') -}}
-        {%- endfor -%}]}
-      {%- endfor -%}]
-    gps: >-
-      [{%- for i in discovered if 'latitude' in i and 'longitude' in i and 
-        i.latitude|select('number')|list|count > 0 and i.longitude|select('number')|list|count > 0 -%}
-        {%- if not loop.first -%},{%- endif -%}
-        {%- set lat = i.latitude|select('number')|list|average -%}
-        {%- set lng = i.longitude|select('number')|list|average -%}
-        {"id":"{{- i.id -}}","latitude":{{- lat -}},"longitude":{{- lng -}}}
-      {%- endfor -%}]
+          {%- set lat = i.latitude|select('number')|list|average -%}
+          {%- set lng = i.longitude|select('number')|list|average -%}
+          {"id":"{{- i.id -}}","latitude":{{- lat -}},"longitude":{{- lng -}}}
+        {%- endfor -%}]
+      {% else %}null{% endif %}
   action:
     - choose:
         - conditions:
@@ -89,22 +86,20 @@
                 notification_id: >-
                   {{ 'motion_areas' }}
                 message: >-
-                  AREAS: {{ areas -}}; IDS: {{ ids -}}; COUNT: {{ count }}
-    - alias: 'update group.motion_areas'
+                  AREAS ({{- count -}}): ids: {{ ids -}}; names: {{ names -}}; entities: {{ total -}}
+    - alias: 'update sensor.motion_areas'
       service: python_script.set_state
       data_template:
         allow_create: true
-        entity_id: group.motion_areas
-        friendly_name: 'Areas(s) group'
-        entity_ids: >-
+        entity_id: sensor.motion_areas
+        friendly_name: 'All areas(s)'
+        icon_template: >-
+          {{- 'mdi:home-map-marker' -}}
+        ids: >-
           {{ ids }}
         areas: >-
           {{ areas }}
         locations: >-
           {{ locations }}
-        gps: >-
-          {{ gps }}
-        count: >-
-          {{ count }}
         state: >-
-          {{ count|int(0) > 0 }}
+          {{ count|int('unknown') }}

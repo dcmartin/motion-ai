@@ -3,7 +3,7 @@
 ###
 
 ##
-# notify when sensor.motion_schedule_wakeup_detected is unset after wake_end
+# notify when sensor.motion_schedule_wakeup_detected is unset after wakeup_end
 ##
 
 - id: motion_schedule_wakeup_undetected_notify
@@ -11,27 +11,20 @@
   mode: single
   initial_state: on
   trigger:
-    platform: time
-    at: input_datetime.motion_schedule_wakeup_end
+    platform: state
+    entity_id: binary_sensor.motion_schedule_wakeup_undetected
+    to: 'on'
   condition:
     condition: and
     conditions:
       - condition: template
         value_template: >-
-          {{ is_state('binary_sensor.motion_schedule_wakeup_undetected','on') }}
-      - condition: template
-        value_template: >-
-          {% set s = states('sensor.motion_schedule_wakeup_detected') %}
-          {{ s == null or s|int(0) < 1 }}
-      - condition: template
-        value_template: >-
-          {% set s = states('sensor.motion_schedule_wakeup_detected_mean') %}
-          {{ s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s != null }}
+          {{ is_state('input_boolean.motion_schedule_wakeup_undetected_notify','on') }}
   action:
     - service: persistent_notification.create
       data_template:
         title: >-
-          CRITICAL: {{ 'Wake undetected! ' + now().timestamp()|int|timestamp_custom("%a %b %d %I:%M:%S %p") }}
+          CRITICAL: {{ 'Wakeup undetected! ' + utcnow().timestamp()|int|timestamp_custom("%a %b %d %I:%M:%S %p",true,'unknown') }}
         notification_id: >-
           wakeup_notify
         message: >-
@@ -46,7 +39,7 @@
           {%- set d = (stdev/3600)|int|string + 'h' + (stdev%60)|int|string + 'm' -%}
           {%- set e = '%02d'|format((min/3600)|int(0))|string + ':' + '%02d'|format((min%60)|int(0))|string -%}
           {%- set l = '%02d'|format((max/3600)|int(0))|string + ':' + '%02d'|format((max%60)|int(0))|string -%}
-          {{- 'NO PERSON DETECTED; interval: ' + states('sensor.motion_schedule_wakeup_interval')|string + '; normal: ' + m + ' +/- ' + d + '; early: ' +  e + '; late: ' +  l + '; last: ' + c -}}
+          {{- 'NO WAKEUP DETECTED; interval: ' + states('sensor.motion_schedule_wakeup_interval')|string + '; normal: ' + m + ' +/- ' + d + '; early: ' +  e + '; late: ' +  l + '; last: ' + c -}}
 
 # notify when sensor.motion_schedule_wakeup_detected is set by automation.motion_schedule_wakeup_detected
 
@@ -56,29 +49,53 @@
   initial_state: on
   trigger:
     platform: state
-    entity_id: sensor.motion_schedule_wakeup_detected
+    entity_id: binary_sensor.motion_schedule_wakeup_detected
+    to: 'on'
   condition:
     condition: and
     conditions:
       - condition: template
-        value_template: >
-          {{ trigger.to_state.state != trigger.from_state.state }}
+        value_template: >-
+          {{ is_state('input_boolean.motion_schedule_wakeup_detected_notify','on') }}
       - condition: template
         value_template: >-
           {% set s = states('sensor.motion_schedule_wakeup_detected') %}
-          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null and s|int(0) > 0 }}
-      - condition: template
-        value_template: >-
-          {{ is_state('binary_sensor.motion_schedule_wakeup_detected','on') }}
+          {{ s|int(0) > 0 }}
+  variables:
+    id: >-
+      {% set id = 'wakeup' %}
+      {{ id }}
+    mean: >-
+      {% set mean = states('sensor.motion_schedule_' + id|string + '_detected_mean_time') %}
+      {{ mean }}
+    interval: >-
+      {% set interval = states('sensor.motion_schedule_' + id|string + '_interval') %}
+      {{ interval }}
+    timestamp: >-
+      {% set timestamp = state_attr('sensor.motion_schedule_' + id|string + '_detected','timestamp') %}
+      {{ timestamp }}
+    date: >-
+      {% set date = timestamp|timestamp_custom('%a %b %d',true,'unknown') %}
+      {{ date }}
+    time: >-
+      {% set time = timestamp|timestamp_custom('%r',true,'unknown') %}
+      {{ time }}
+    history: >-
+      {% set s = 'sensor.motion_schedule_' + id|string + '_detected_days' %}
+      {% set history = states(s) + ' ' + state_attr(s,'unit_of_measurement')|string %}
+      {{ history }}
   action:
+    - condition: template
+      value_template: >
+        {{ states('input_select.motion_log_level') in ['debug','info','notice','alert'] }}
     - service: persistent_notification.create
       data_template:
         title: >-
-          ALERT: {{ 'Wake up: ' + now().timestamp()|int|timestamp_custom("%I:%M:%S %p") }}
+          {{ 'ALERT: ' + id|string + ' for ' + date|string }}
         notification_id: >-
-          wakeup_notify
+          {{ id|string + '_notify' }}
         message: >-
-          {{ 'First person detected ' + now().timestamp()|int|timestamp_custom("%a %b %d") + ' at ' + now().timestamp()|int|timestamp_custom("%I:%M:%S %p") + '; Interval: ' + states('sensor.motion_schedule_wakeup_interval')|string  + '; Average: ' + states('sensor.motion_schedule_wakeup_detected_mean_time')|string }}
+          {{ 'Detected ' + id|string + ' at ' + time|string + '; Average: ' + mean|string + '; History: ' + history|string + '; Interval: ' + interval|string }}
 
 ##
 # alert selected
@@ -90,18 +107,13 @@
   trigger:
     - platform: state
       entity_id: binary_sensor.motion_schedule_wakeup_undetected
+      to: 'on'
   condition:
     condition: and
     conditions:
       - condition: template
-        value_template: >
-          {{ trigger.to_state.state != trigger.from_state.state }}
-      - condition: template
-        value_template: >
-          {{ is_state('binary_sensor.motion_schedule_wakeup_undetected','on') }}
-      - condition: template
-        value_template: >
-          {{ is_state('binary_sensor.motion_schedule_wakeup_undetected','on') }}
+        value_template: >-
+          {{ is_state('input_boolean.motion_schedule_wakeup_undetected_notify','on') }}
       - condition: template
         value_template: >
           {{- not is_state('input_select.motion_smartphone_name','all') and not is_state('input_select.motion_smartphone_name','none') -}}
@@ -128,19 +140,14 @@
   initial_state: on
   trigger:
     - platform: state
-      entity_id: counter.motion_detected_entity
+      entity_id: binary_sensor.motion_schedule_wakeup_undetected
+      to: 'on'
   condition:
     condition: and
     conditions:
       - condition: template
-        value_template: >
-          {{ trigger.to_state.state != trigger.from_state.state }}
-      - condition: template
-        value_template: >
-          {{ is_state('binary_sensor.motion_schedule_wakeup_undetected','on') }}
-      - condition: template
-        value_template: >
-          {{ is_state('binary_sensor.motion_schedule_wakeup_undetected','on') }}
+        value_template: >-
+          {{ is_state('input_boolean.motion_schedule_wakeup_undetected_notify','on') }}
       - condition: template
         value_template: >
           {{- is_state('input_select.motion_smartphone_name','all') -}}
@@ -189,7 +196,7 @@
         {{- 'notify.mobile_app_' + s -}}
       data_template:
         title: >-
-          {{ 'WAKE UNDETECTED: ' + now().timestamp()|int|timestamp_custom("%a %b %d %I:%M:%S %p") }}
+          {{ 'WAKE UNDETECTED: ' + utcnow().timestamp()|int|timestamp_custom("%a %b %d %I:%M:%S %p",true,'unknown') }}
         message: >-
           {%- set stdev = states('sensor.motion_schedule_wakeup_detected_stdev')|float(0.0) -%}
           {%- set min = states('sensor.motion_schedule_wakeup_detected_min')|float(0.0) -%}
@@ -202,7 +209,7 @@
           {%- set d = (stdev/3600)|int|string + 'h' + (stdev%60)|int|string + 'm' -%}
           {%- set e = '%02d'|format((min/3600)|int(0))|string + ':' + '%02d'|format((min%60)|int(0))|string -%}
           {%- set l = '%02d'|format((max/3600)|int(0))|string + ':' + '%02d'|format((max%60)|int(0))|string -%}
-          {{ 'NO PERSON DETECTED; interval: ' + states('sensor.motion_schedule_wakeup_interval')|string + '; normal: ' + m + ' +/- ' + d + '; early: ' +  e + '; late: ' +  l + '; last: ' + c }}
+          {{ 'NO WAKEUP DETECTED; interval: ' + states('sensor.motion_schedule_wakeup_interval')|string + '; normal: ' + m + ' +/- ' + d + '; early: ' +  e + '; late: ' +  l + '; last: ' + c }}
         data:
           push:
             category: 'motion_smartphone_alert'

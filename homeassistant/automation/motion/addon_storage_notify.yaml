@@ -39,14 +39,16 @@
         {{ config.ipaddr }}
       {% else %}null{% endif %}
     percent: >-
-      {{ available|float(0.0) / blocks|float(0.0) * 100.0 }}
+      {% if available|lower != 'none' and blocks|lower != 'none' %}
+        {{ available|float(0.0) / blocks|float(0.0) * 100.0 }}
+      {% else %}null{% endif %}
   action:
     - alias: 'storage low?'
       condition: and
       conditions:
         - condition: template
           value_template: >-
-            {{ percent|int(0) <= 30 }}
+            {{ percent|lower != 'null' and percent|int(0) <= 30 }}
     - alias: 'choose: how low?'
       choose:
         - alias: 'condition: percent < 5?'
@@ -54,12 +56,15 @@
             - condition: template
               value_template: >
                 {{ percent|int(0) <= 5 }}
+            - condition: template
+              value_template: >
+                {{ states('input_select.motion_log_level') in ['debug','info','notice','alert'] }}
           sequence:
             - alias: 'notify percent critically low'
               service: persistent_notification.create
               data_template:
                 title: >-
-                  CRITICAL: Storage low
+                  ALERT: Storage low
                 notification_id: >-
                   {{ device|string + '_storage_low' }}
                 message: >-
@@ -69,16 +74,22 @@
             - condition: template
               value_template: >
                 {{ percent|int(0) <= 10 }}
+            - condition: template
+              value_template: >
+                {{ states('input_select.motion_log_level') in ['debug','info','notice'] }}
           sequence:
             - alias: 'notify percent very low'
               service: persistent_notification.create
               data_template:
                 title: >-
-                  WARN: Storage low
+                  NOTICE: Storage low
                 notification_id: >-
                   {{ device|string + '_storage_low' }}
                 message: >-
                   Storage **very low** ({{- '%0.1f'|format(percent) -}}%) for device: {{ device -}}; available: {{ '%0.2f'|format(available/1024/1024) }} GB
+    - condition: template
+      value_template: >
+        {{ states('input_select.motion_log_level') in ['debug','info'] }}
     - alias: 'notify when storage is low'
       service: persistent_notification.create
       data_template:

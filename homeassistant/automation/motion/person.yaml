@@ -23,27 +23,6 @@
         value: >-
           {{ states('sensor.motion_person') }}
 
-- id: motion_person_device_selected
-  alias: motion_person_device_selected
-  initial_state: on
-  trigger:
-    - platform: state
-      entity_id: sensor.motion_person_device
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >-
-          {% set s = states('sensor.motion_person_device') %}
-          {{- s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'auto' -}}
-  action:
-    - service: input_text.set_value
-      target:
-        entity_id: input_text.motion_person_device
-      data:
-        value: >-
-          {{ states('input_select.motion_person_device') }}
-
 - id: motion_person
   alias: motion_person
   initial_state: on
@@ -82,56 +61,7 @@
             {{ p }}
           {%- else -%}
             {%- set s = states('sensor.motion_person') -%}
-            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-              {{- s -}} 
-            {%- else -%}auto{%- endif -%}
-          {%- endif -%}
-        options: >-
-          {{ options }}
-
-- id: motion_person_device
-  alias: motion_person_device
-  initial_state: on
-  trigger:
-    - platform: state
-      entity_id: states.device_tracker
-    - platform: time_pattern
-      minutes: /5
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >-
-          {%- for state in states.device_tracker if state.attributes.source_type|string == 'gps' -%}
-            {%- if loop.first -%}true{%- endif -%}
-          {% else %}false{%- endfor -%}
-      - condition: template
-        value_template: >-
-          {%- set s = states('input_select.motion_person_device') -%}
-          {{- s|lower == 'none' or s|lower == 'auto' -}}
-  variables:
-    options: >-
-      {%- for state in states.device_tracker -%}
-        {%- set d = state.entity_id|replace('device_tracker.','') -%}
-        {%- set e = 'sensor.' + d -%}
-        {%- for s in states.sensor if d in s.entity_id and e+'_activity' in s.entity_id and as_timestamp(s.last_updated)|int(0) > 0 -%}
-          {{- s.entity_id|replace('sensor.','')|replace('_activity','') -}},
-        {%- endfor -%}
-      {%- endfor -%}none
-  action:
-    - service: python_script.input_select_set_options
-      data_template:
-        entity_id: input_select.motion_person_device
-        default: >-
-          {%- set s = states('sensor.motion_person_device_selected') -%}
-          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'auto' and s|length > 0 -%}
-            {%- set p = s -%} 
-          {%- endif -%}
-          {%- if p is defined -%}
-            {{ p }}
-          {%- else -%}
-            {%- set s = states('sensor.motion_person_device') -%}
-            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|length > 0 -%}
+            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 -%}
               {{- s -}} 
             {%- else -%}auto{%- endif -%}
           {%- endif -%}
@@ -337,6 +267,9 @@
           {%- set s = states('sensor.motion_' + s + '_detected_person_count') -%}
           {{- s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|int(0) > 0 -}}
   action:
+    - condition: template
+      value_template: >
+        {{ states('input_select.motion_log_level') in ['debug','info','notice','alert'] }}
     - service: persistent_notification.create
       data_template:
         title: >-

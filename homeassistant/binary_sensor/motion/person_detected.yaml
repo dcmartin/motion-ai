@@ -2,7 +2,24 @@
 # binary_sensor/motion/person_detected.yaml
 ###
 
-## BAYESIAN
+- platform: template
+  sensors:
+    motion_person_detected_expired:
+      friendly_name: 'Detected expired'
+      icon_template: >-
+        {% if is_state('binary_sensor.motion_person_detected_expired','on') %}
+          {{ 'mdi:map-marker-off-outline' }}
+        {% else %}{{ 'mdi:map-marker-outline' }}{% endif %}
+      value_template: >-
+        {% set s = states('input_number.motion_person_detected_expired') %}
+        {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unavailable' and s|lower != 'unknown' %}
+          {% set timeout = s|float(0.0) * 60 %}
+          {% set s = states.sensor.motion_person_detected.last_updated|default('unknown') %}
+          {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unavailable' and s|lower != 'unknown' %}
+            {% set updated = as_timestamp(s,0) %}
+            {{ is_state('binary_sensor.motion_person_detected','on') and utcnow().timestamp() - updated > timeout }}
+          {% else %}on{% endif %}
+        {% else %}on{% endif %}
 
 - platform: bayesian
   name: motion_person_detected
@@ -10,23 +27,23 @@
   probability_threshold: 0.7
   observations:
     - platform: state
-      entity_id: sensor.motion_person_detected
+      entity_id: sensor.motion_person_detected_status
       prob_given_true: 0.8
       prob_given_false: 0.4
       to_state: 'on'
     - platform: state
-      entity_id: sensor.motion_person_detected
+      entity_id: sensor.motion_person_detected_status
       prob_given_true: 0.2
       prob_given_false: 0.5
       to_state: 'off'
     - platform: state
-      entity_id: sensor.motion_person_detected
+      entity_id: sensor.motion_person_detected_status
       prob_given_true: 0.6
       prob_given_false: 0.5
       to_state: 'expired'
     - platform: state
-      entity_id: sensor.motion_person_detected
-      prob_given_true: 0.1
+      entity_id: sensor.motion_person_detected_status
+      prob_given_true: 0.5
       prob_given_false: 0.5
       to_state: 'unknown'
     - platform: state
@@ -79,27 +96,6 @@
       prob_given_true: 0.2
       prob_given_false: 0.1
       to_state: 'off'
-
-## STATUS
-
-- platform: template
-  sensors:
-    motion_person_detected_expired:
-      friendly_name: 'Location detected expired'
-      icon_template: >-
-        {% if is_state('binary_sensor.motion_person_detected_expired','on') %}
-          {{ 'mdi:map-marker-off-outline' }}
-        {% else %}{{ 'mdi:map-marker-outline' }}{% endif %}
-      value_template: >-
-        {% set s = states('input_number.motion_person_detected_expired') %}
-        {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unavailable' and s|lower != 'unknown' %}
-          {% set timeout = s|float(0.0) * 60 %}
-          {% set s = states.sensor.motion_person_detected.last_updated|default('unknown') %}
-          {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unavailable' and s|lower != 'unknown' %}
-            {% set updated = s|as_timestamp|default(0) %}
-            {{ is_state('binary_sensor.motion_person_detected','on') and utcnow().timestamp() - updated > timeout }}
-          {% else %}on{% endif %}
-        {% else %}on{% endif %}
 
 ## MOVEMENT
 

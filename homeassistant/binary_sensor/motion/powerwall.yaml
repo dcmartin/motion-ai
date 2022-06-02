@@ -109,3 +109,75 @@
           {{ 'null' }}
       value_template: >-
         {{ 'Pending' }}
+
+- platform: template
+  sensors:
+    motion_powerwall_self_powered:
+      friendly_name: Self powered
+      icon_template: >-
+        {% if is_state('binary_sensor.motion_powerwall_self_powered','on') %}
+          {{ 'mdi:solar-power' }}
+        {% elif is_state('binary_sensor.motion_powerwall_self_powered','off') %}
+          {{ 'mdi:transmission-tower-import' }}
+        {% else %}
+          {{ 'mdi:transmission-tower' }}
+        {% endif %}
+      value_template: >-
+        {% set site = state_attr('binary_sensor.motion_powerwall_self_sufficient','site')|float(none) %}
+        {% if site|lower != 'none' %}
+          {{ site|round <= 0 }}
+        {% else %}unknown{% endif %}
+    motion_powerwall_self_charging:
+      friendly_name: Solar charging
+      icon_template: >-
+        {% if is_state('binary_sensor.motion_powerwall_self_charging','on') %}
+          {{ 'mdi:home-battery-outline' }}
+        {% else %}
+          {{ 'mdi:home-battery' }}
+        {% endif %}
+      attribute_templates:
+        charging: >-
+          {{ states('binary_sensor.motion_powerwall_charging') }}
+      value_template: >-
+        {% set zero = state_attr('binary_sensor.motion_powerwall_self_sufficient','zero')|float(none) %}
+        {% set site = state_attr('binary_sensor.motion_powerwall_self_sufficient','site')|float(none) %}
+        {% set load = state_attr('binary_sensor.motion_powerwall_self_sufficient','load')|float(none) %}
+        {% set solar = state_attr('binary_sensor.motion_powerwall_self_sufficient','solar')|float(none) %}
+        {% set battery = state_attr('binary_sensor.motion_powerwall_self_sufficient','battery')|float(none) %}
+        {% set charging = state_attr('binary_sensor.motion_powerwall_self_charging','charging') %}
+        {% if site|lower != 'none' and load|lower != 'none' and solar|lower != 'none' and battery|lower != 'none' and charging|lower != 'unknown' %}
+          {% set site = (site*1000)|int %}
+          {% set load = (load*1000)|int %}
+          {% set solar = (solar*1000)|int %}
+          {% set battery = (battery*1000)|int %}
+          {{ site <= zero and solar >= load and battery < 0 and charging|lower == 'on' }}
+        {% else %}unknown{% endif %}
+    motion_powerwall_self_sufficient:
+      friendly_name: Self sufficient
+      icon_template: >-
+        {% if is_state('binary_sensor.motion_powerwall_self_sufficient','on') %}
+          {{ 'mdi:home-export-outline' }}
+        {% else %}
+          {{ 'mdi:home-lightning-bolt-outline' }}
+        {% endif %}
+      attribute_templates:
+        zero: >-
+          {{ 10 }}
+        site: >-
+          {{ states('sensor.motion_powerwall_site_now')|float(none) }}
+        load: >-
+          {{ states('sensor.motion_powerwall_load_now')|float(none) }}
+        solar: >-
+          {{ states('sensor.motion_powerwall_solar_now')|float(none) }}
+        battery: >-
+          {{ states('sensor.motion_powerwall_battery_now')|float(none) }}
+        export: >-
+          {% set s = state_attr('binary_sensor.motion_powerwall_self_sufficient','site')|float(none) %}
+          {% if s|lower != 'none' and s <= 0 %}
+            {{ s|abs }}
+          {% else %}none{% endif %}
+      value_template: >-
+        {% set s = state_attr('binary_sensor.motion_powerwall_self_sufficient','export') %}
+        {% if s|float(none)|lower != 'none' %}
+          {{ s|float(-1)|round >= 0 }}
+        {% else %}unknown{% endif %}

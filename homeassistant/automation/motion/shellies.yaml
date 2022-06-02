@@ -2,6 +2,82 @@
 # homeassistant/automation/motion/shellies.yaml
 ###
 
+- id: motion_shellies_automation_enable
+  alias: motion_shellies_automation_enable
+  initial_state: on
+  trigger:
+    platform: state
+    entity_id: group.motion_shellies
+    attribute: 'entity_id'
+  variables:
+    automations: >-
+      {% set automations = ['motion_shellies_mqtt_publish_announce','motion_shellies_offline_timeout','motion_shellies_offline_timeout','motion_shellies_energy_power_off','motion_shellies_light_power_off','motion_shellies_plug_power_off'] %}
+      {{ automations }}
+  condition:
+    - condition: template
+      value_template: >-
+        {% set s = state_attr('group.motion_shellies','entity_id') %}
+        {{ s|lower != 'none' and not s is string and s is iterable and s|count > 0 }}
+  action:
+    - alias: 'enable automations for shellies'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = automations[repeat.index-1]|default('') %}
+              {{ s|string != '' }}
+        sequence:
+          - variables:
+              automation: >-
+                {% set s = automations[repeat.index-1] %}
+                {{ 'automation.' + s|string }}
+          - condition: template
+            value_template: >-
+              {{ states(automation)|lower == 'off' }}
+          - alias: 'enable automation'
+            service: automation.turn_on
+            data_template:
+              entity_id: >-
+                {{ automation }}
+
+- id: motion_shellies_automation_disable
+  alias: motion_shellies_automation_disable
+  initial_state: on
+  trigger:
+    platform: state
+    entity_id: group.motion_shellies
+    attribute: 'entity_id'
+  variables:
+    automations: >-
+      {% set automations = ['motion_shellies_mqtt_publish_announce','motion_shellies_offline_timeout','motion_shellies_offline_timeout','motion_shellies_energy_power_off','motion_shellies_light_power_off','motion_shellies_plug_power_off'] %}
+      {{ automations }}
+  condition:
+    - condition: template
+      value_template: >-
+        {% set s = state_attr('group.motion_shellies','entity_id') %}
+        {{ s|lower == 'none' or s is string or not s is iterable or not s|count > 0 }}
+  action:
+    - alias: 'disable automations for shellies'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = automations[repeat.index-1]|default('') %}
+              {{ s|string != '' }}
+        sequence:
+          - variables:
+              automation: >-
+                {% set s = automations[repeat.index-1] %}
+                {{ 'automation.' + s|string }}
+          - condition: template
+            value_template: >-
+              {{ states(automation)|lower == 'on' }}
+          - alias: 'disable automation'
+            service: automation.turn_off
+            data_template:
+              entity_id: >-
+                {{ automation }}
+
 - id: motion_shellies_settings_login_failure
   alias: motion_shellies_settings_login_failure
   initial_state: on
@@ -336,6 +412,9 @@
             - condition: template
               value_template: >
                 {{ event.event|upper == 'S' }}
+            - condition: template
+              value_template: >
+                {{ states('input_select.motion_log_level') in ['debug','info'] }}
           sequence:
             - alias: 'condition S: notify short button press'
               service: persistent_notification.create
@@ -351,6 +430,9 @@
             - condition: template
               value_template: >
                 {{ event.event|upper == 'SS' }}
+            - condition: template
+              value_template: >
+                {{ states('input_select.motion_log_level') in ['debug','info'] }}
           sequence:
             - alias: 'condition SS: notify doubl button press'
               service: persistent_notification.create
@@ -366,8 +448,11 @@
             - condition: template
               value_template: >
                 {{ event.event|upper == 'SSS' }}
+            - condition: template
+              value_template: >
+                {{ states('input_select.motion_log_level') in ['debug','info'] }}
           sequence:
-            - alias: 'condition SSS: notify doubl button press'
+            - alias: 'condition SSS: notify double button press'
               service: persistent_notification.create
               data_template:
                 title: >-
@@ -381,6 +466,9 @@
             - condition: template
               value_template: >
                 {{ event.event|upper == 'L' }}
+            - condition: template
+              value_template: >
+                {{ states('input_select.motion_log_level') in ['debug','info'] }}
           sequence:
             - alias: 'condition L: notify long button press'
               service: persistent_notification.create
@@ -582,6 +670,21 @@
                   {{ timestamp }}
                 state: >-
                   {{ state }}
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ is_state('input_select.motion_log_level','debug') }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: Shelly sensor MQTT
+                notification_id: >-
+                  {{ 'shelly-sensor-mqtt-update' }}
+                message: >-
+                  Sensor: {{ sensor -}}; state: {{ state -}}; ID: {{ id -}}; MAC: {{ mac -}}; topic: {{ topic -}}; kind: {{ kind -}}; model: {{ model -}}; type: {{ type }}
+                  Status: {{ status }}
 
 # motion and lightbulbs
 
@@ -700,20 +803,15 @@
       {% elif 'ison' in trigger.payload_json %}
         {% if trigger.payload_json.ison|lower == 'true' %}on{% else %}off{% endif %}
       {% elif sensor|lower != 'null' %}
-        {% set s = states(sensor) %}
+        {% set s = state_attr(sensor,'status') %}
         {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
-          {{ s }}
-        {% else %}
-          {% set s = state_attr(sensor,'status') %}
-          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
-            {% if 'motion' in s %}{% if s.motion|lower == 'true' %}on{% else %}off{% endif %}
-            {% elif 'flood' in s %}{% if s.flood|lower == 'true' %}on{% else %}off{% endif %}
-            {% elif 'ison' in s %}{% if s.ison|lower == 'true' %}on{% else %}off{% endif %}
-            {% elif 'state' in s %}{% if s.state|lower == 'open' %}on{% else %}off{% endif %}
-            {% else %}none{% endif %}
+          {% if 'motion' in s %}{% if s.motion|lower == 'true' %}on{% else %}off{% endif %}
+          {% elif 'flood' in s %}{% if s.flood|lower == 'true' %}on{% else %}off{% endif %}
+          {% elif 'ison' in s %}{% if s.ison|lower == 'true' %}on{% else %}off{% endif %}
+          {% elif 'state' in s %}{% if s.state|lower == 'open' %}on{% else %}off{% endif %}
           {% else %}unknown{% endif %}
-        {% endif %}
-      {% else %}unavailable{% endif %}
+        {% else %}unknown{% endif %}
+      {% else %}unknown{% endif %}
   action:
     - alias: 'choose: announce'
       choose:
@@ -968,7 +1066,7 @@
     state: >-
       {% if sensor|lower != 'null' %}
         {% if is_state(sensor,'on') -%}on{% else %}off{% endif %}
-      {% else %}null{% endif %}
+      {% else %}unknown{% endif %}
   action:
     - alias: 'motion_shellies_settings_rest: condition: sensor good?'
       condition: and
@@ -1084,7 +1182,7 @@
     state: >-
       {% if sensor|lower != 'null' %}
         {% if is_state(sensor,'on') -%}on{% else %}off{% endif %}
-      {% else %}null{% endif %}
+      {% else %}unknown{% endif %}
   action:
     - alias: 'condition: sensor good?'
       condition: and
@@ -1995,6 +2093,9 @@
               - condition: template
                 value_template: >
                   {{ states('sensor.motion_shellies_scan')|lower == 'true' }}
+              - condition: template
+                value_template: >
+                  {{ states('input_select.motion_log_level') in ['debug','info'] }}
           - alias: 'notify success'
             service: persistent_notification.create
             data_template:

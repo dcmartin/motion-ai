@@ -8,6 +8,7 @@ SHELL := /bin/bash
 DOMAIN_NAME := $(if $(DOMAIN_NAME),$(shell v=$(DOMAIN_NAME) && echo "-- INFO: DOMAIN_NAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(hostname -d) && v=$${v:-local}  && echo "++ WARN: DOMAIN_NAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MOTION_GROUP := $(if $(MOTION_GROUP),$(shell v=$(MOTION_GROUP) && echo "-- INFO: MOTION_GROUP: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(echo "motion") && echo "++ WARN: MOTION_GROUP unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MOTION_DEVICE := $(if $(MOTION_DEVICE),$(shell v=$(MOTION_DEVICE) && echo "-- INFO: MOTION_DEVICE: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(echo "$${HOST_NAME:-$$(hostname)}" | sed 's/[\#+ \/]/_/g') && echo "++ WARN: MOTION_DEVICE unset; default: $${v}" > /dev/stderr && echo "$${v}"))
+MOTION_BASEURL := $(if $(MOTION_BASEURL),$(shell v=$(MOTION_BASEURL) && echo "-- INFO: MOTION_BASEURL: $${v}" > /dev/stderr && echo "$${v}"),$(shell v=$$(echo "$${HOST_IPADDR:-$$(hostname -i)}:${HOST_PORT}" | sed 's/[\#+ \/]/_/g') && echo "++ WARN: MOTION_BASEURL unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MOTION_CLIENT := $(if $(MOTION_CLIENT),$(shell v=$(MOTION_CLIENT) && echo "-- INFO: MOTION_CLIENT: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='+' && echo "++ WARN: MOTION_CLIENT unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 MOTION_ROUTER_NAME := $(if $(MOTION_ROUTER_NAME),$(shell v=$(MOTION_ROUTER_NAME) && echo "-- INFO: MOTION_ROUTER_NAME: $${v}" > /dev/stderr && echo "$${v}"),$(shell v='unknown' && echo "++ WARN: MOTION_ROUTER_NAME unset; default: $${v}" > /dev/stderr && echo "$${v}"))
 
@@ -176,6 +177,7 @@ input_text/%.yaml : input_text.%.yaml.tmpl
 	  MOTION_GROUP="$(MOTION_GROUP)" \
 	  MOTION_DEVICE="$(MOTION_DEVICE)" \
 	  MOTION_CLIENT="${MOTION_CLIENT}" \
+	  MOTION_BASEURL="${MOTION_BASEURL}" \
 	  && cat $< | envsubst > $@
 
 automation/%.yaml : automation.%.yaml.tmpl
@@ -184,6 +186,7 @@ automation/%.yaml : automation.%.yaml.tmpl
 	  MOTION_GROUP="$(MOTION_GROUP)" \
 	  MOTION_DEVICE="$(MOTION_DEVICE)" \
 	  MOTION_CLIENT="${MOTION_CLIENT}" \
+	  MOTION_BASEURL="${MOTION_BASEURL}" \
 	  && cat $< | envsubst > $@
 
 camera/%.yaml : camera.%.yaml.tmpl
@@ -192,6 +195,7 @@ camera/%.yaml : camera.%.yaml.tmpl
 	  MOTION_GROUP="$(MOTION_GROUP)" \
 	  MOTION_DEVICE="$(MOTION_DEVICE)" \
 	  MOTION_CLIENT="${MOTION_CLIENT}" \
+	  MOTION_BASEURL="${MOTION_BASEURL}" \
 	  && cat $< | envsubst > $@
 
 sensor/%.yaml : sensor.%.yaml.tmpl
@@ -200,6 +204,7 @@ sensor/%.yaml : sensor.%.yaml.tmpl
 	  MOTION_GROUP="$(MOTION_GROUP)" \
 	  MOTION_DEVICE="$(MOTION_DEVICE)" \
 	  MOTION_CLIENT="${MOTION_CLIENT}" \
+	  MOTION_BASEURL="${MOTION_BASEURL}" \
 	  MOTION_ROUTER_NAME="${MOTION_ROUTER_NAME}" \
 	  && cat $< | envsubst > $@
 
@@ -209,6 +214,7 @@ binary_sensor/%.yaml : binary_sensor.%.yaml.tmpl
 	  MOTION_GROUP="$(MOTION_GROUP)" \
 	  MOTION_DEVICE="$(MOTION_DEVICE)" \
 	  MOTION_CLIENT="${MOTION_CLIENT}" \
+	  MOTION_BASEURL="${MOTION_BASEURL}" \
 	  && cat $< | envsubst > $@
 
 ## HIGHLOW
@@ -323,9 +329,12 @@ WEBCAM_CAMERAS: $(WEBCAM_CAMERA_TEMPLATE) ${WEBCAMS_JSON}
 	  export MOTION_CAMERA_ICON=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.icon?" $(WEBCAMS_JSON)); \
 	  export MOTION_CAMERA_LATITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.latitude?' $(WEBCAMS_JSON)); \
 	  export MOTION_CAMERA_LONGITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.longitude?' $(WEBCAMS_JSON)); \
-	  export MOTION_CAMERA_MJPEG=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.mjpeg_url?" $(WEBCAMS_JSON)); \
 	  export MOTION_CAMERA_USERNAME=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.username?" $(WEBCAMS_JSON)); \
 	  export MOTION_CAMERA_PASSWORD=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.password?" $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_MJPEG=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.mjpeg_url?" $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_MJPEG_URL=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.mjpeg_url?" $(WEBCAMS_JSON) | sed "s|\(.*\)://\(.*\)|\1://$${MOTION_CAMERA_USERNAME}:$${MOTION_CAMERA_PASSWORD}@\2|"); \
+	  export MOTION_CAMERA_STREAM_USERPASS=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.netcam_userpass?" $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_STREAM_SOURCE=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.netcam_url?" $(WEBCAMS_JSON) | sed "s|\(.*\)://\(.*\)|\1://$${MOTION_CAMERA_STREAM_USERPASS}@\2|"); \
 	  VAL=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.netcam_still?" $(WEBCAMS_JSON)); if [ "$${VAL:-null}" == 'null' ]; then VAL="$${MOTION_CAMERA_MJPEG}"; fi; export MOTION_CAMERA_NETCAM_STILL="$${VAL}"; \
 	  VAL=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.netcam_url?" $(WEBCAMS_JSON)); if [ "$${VAL:-null}" == 'null' ]; then VAL="$${MOTION_CAMERA_MJPEG}"; fi; export MOTION_CAMERA_NETCAM_STREAM="$${VAL}"; \
 	  VAL=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.netcam_userpass?" $(WEBCAMS_JSON) | sed "s/\(.*\):.*/\1/"); if [ "$${VAL:-null}" == 'null' ]; then VAL="$${MOTION_CAMERA_USERNAME}"; fi; export MOTION_CAMERA_NETCAM_USERNAME="$${VAL}"; \
