@@ -166,7 +166,7 @@ OMADA_PASSWORD ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.OMADA_PASSWORD'
 ###
 
 ## subdirectories containing addition makefile
-PACKAGES := motion
+PACKAGES ?= $(wildcard motion)
 
 ## directories for output files from scripts
 MOTION_DIRS := \
