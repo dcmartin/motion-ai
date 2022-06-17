@@ -200,9 +200,9 @@ chown:
 	@echo "${MC}Making: $@${NC}"
 	@-if [ ! -z "$${USER:-}" ]; then sudo chown -R $${USER} $$(pwd -P); fi
 
-WEBCAMS := $(wildcard motion/webcams.json)
+WEBCAMS := motion/webcams.json
 
-$(WEBCAMS):
+$(WEBCAMS): 
 	@echo "${MC}Making: $@${NC}"
 	@export HOST_IPADDR=$(HOST_IPADDR) MOTION_W3W_APIKEY="$(MOTION_W3W_APIKEY)" && ./motion/sh/mkwebcams.sh > $@
 
