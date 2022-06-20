@@ -228,20 +228,6 @@
           {%- else -%}{% if o.first %}None{% endif %}{%- endfor -%}
         {%- endfor -%}]
       {%- else -%}none{%- endif %}
-    measurement: >-
-      {%- set s = ids -%}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
-        [{%- for i in s -%}
-          {%- set o = loop -%}
-          {%- for state in (states.sensor|list + states.binary_sensor|list)
-            if device_attr(state.entity_id, 'name') == i
-              and state.attributes.device_class|default('null')|lower == 'null'
-              and state.attributes.state_class|default('null')|string == 'measurement' -%}
-            {%- if not o.first or not loop.first -%},{%- endif -%}
-            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
-          {%- else -%}{% if o.first %}None{% endif %}{%- endfor -%}
-        {%- endfor -%}]
-      {%- else -%}none{%- endif %}
     devices: >-
       {%- if ids|lower != 'unknown' and ids|lower != 'none' and not s is string and ids is iterable
              and status|lower != 'none' and not status is string and status is iterable
@@ -276,8 +262,6 @@
           {{ test }}
         areas: >-
           {{ areas }}
-        measurement: >-
-          {{ measurement }}
         devices: >-
           {{ devices }}
         state: >-
@@ -325,7 +309,7 @@
       {%- if s|lower != 'none' and s|lower != 'unknown' and s is iterable -%}
         [{%- for i in s -%}
           {%- set o = loop -%}
-          {%- for state in (states.sensor|list + states.binary_sensor|list) if device_attr(state.entity_id, 'name') == i and (state.attributes.device_class|default('null')|string == class or state.attributes.state_class|default('null')|string == 'measurement') -%}
+          {%- for state in (states.sensor|list + states.binary_sensor|list) if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == class -%}
             {%- if not o.first or not loop.first -%},{%- endif -%}
             {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
           {%- else -%}{% if o.first %}None{% endif %}{%- endfor -%}
@@ -440,6 +424,20 @@
       {%- if result is defined -%}
         {{- result -}}
       {%- else -%}unknown{%- endif %}
+    measurement: >-
+      {%- set s = ids -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
+        [{%- for i in s -%}
+          {%- set o = loop -%}
+          {%- for state in (states.sensor|list + states.binary_sensor|list)
+            if device_attr(state.entity_id, 'name') == i
+              and state.attributes.device_class|default('null')|lower == 'null'
+              and state.attributes.state_class|default('null')|string == 'measurement' -%}
+            {%- if not o.first or not loop.first -%},{%- endif -%}
+            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
+          {%- else -%}{% if o.first %}None{% endif %}{%- endfor -%}
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
   action:
     - alias: 'update binary_sensor.motion_device_update state'
       service: python_script.set_state
@@ -447,6 +445,8 @@
         entity_id: binary_sensor.motion_device_update
         status: >-
           {{ status }}
+        measurement: >-
+          {{ measurement|reject('none')|list }}
         high: >-
           {{ high }}
         low: >-
