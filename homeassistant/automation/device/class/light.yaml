@@ -112,20 +112,23 @@
     - platform: homeassistant
       event: start
   variables:
+    class: >-
+      {{- 'light' -}}
     all: >-
       [{%- for state in (states.sensor|list + states.binary_sensor|list)
        if 'device_class' in state.attributes and device_id(state.entity_id)|lower != 'none'
-        and state.attributes.device_class=='light' and not '.motion_' in state.entity_id
-        and state.attributes.device_class=='light' and not '.motion_' in state.entity_id -%}
+        and state.attributes.device_class==class and not '.motion_' in state.entity_id
+        and state.attributes.device_class==class and not '.motion_' in state.entity_id -%}
         {%- if not loop.first -%},{% endif -%}
-        "{{- device_attr(device_id(state.entity_id),'name') -}}"
+        {%- set s = device_id(state.entity_id) -%}
+        {"id":"{{- device_attr(s,'name') -}}","did":"{{- s  -}}"}
       {%- endfor -%}]
     local: >-
       {% set device_trackers = states.device_tracker|map(attribute='entity_id')|map('device_id')|list %}
       [{%- for state in (states.sensor|list + states.binary_sensor|list)
        if 'device_class' in state.attributes and device_id(state.entity_id)|lower != 'none'
-        and state.attributes.device_class=='light' and not '.motion_' in state.entity_id
-        and state.attributes.device_class=='light' and not '.motion_' in state.entity_id
+        and state.attributes.device_class==class and not '.motion_' in state.entity_id
+        and state.attributes.device_class==class and not '.motion_' in state.entity_id
         and device_id(state.entity_id) not in device_trackers -%}
         {%- if not loop.first -%},{% endif -%}
         "{{- device_attr(device_id(state.entity_id),'name') -}}"
@@ -134,15 +137,15 @@
       {% set device_trackers = states.device_tracker|map(attribute='entity_id')|map('device_id')|list %}
       [{%- for state in (states.sensor|list + states.binary_sensor|list)
        if 'device_class' in state.attributes and device_id(state.entity_id)|lower != 'none'
-        and state.attributes.device_class=='light' and not '.motion_' in state.entity_id
-        and state.attributes.device_class=='light' and not '.motion_' in state.entity_id
+        and state.attributes.device_class==class and not '.motion_' in state.entity_id
+        and state.attributes.device_class==class and not '.motion_' in state.entity_id
         and device_id(state.entity_id) in device_trackers -%}
         {%- if not loop.first -%},{% endif -%}
         "{{- device_attr(device_id(state.entity_id),'name') -}}"
       {%- endfor -%}]
     ids: >-
       {%- if all != [] and all is iterable and all|count > 0 -%}
-        {{- all|sort|unique|list -}}
+        {{- all|map(attribute='id')|sort|unique|list -}}
       {% else %}none{% endif %}
     mobiles: >-
       {%- if mobile != [] and mobile is iterable and mobile|count > 0 -%}
@@ -157,11 +160,11 @@
       {% set s = ids %}
       {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
         [{%- for i in s -%}
-          {% set o = loop %}
+          {%- set o = loop -%}
           {%- for state in (states.button|list + states.switch|list) if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'update' -%}
+            {%- if not loop.first or not o.first -%},{%- endif -%}
             {%- set v = state.state -%}
             {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}"}
-            {% if not loop.last and not o.last %},{% endif %}
           {%- endfor -%}
         {%- endfor -%}]
       {%- else -%}null{%- endif %}
@@ -169,43 +172,43 @@
       {% set s = ids %}
       {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
         [{%- for i in s -%}
-          {% set o = loop %}
+          {%- set o = loop -%}
           {%- for state in (states.button|list + states.switch|list) if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'restart' -%}
+            {%- if not loop.first or not o.first -%},{%- endif -%}
             {%- set v = state.state -%}
             {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}"}
-            {% if not loop.last and not o.last %},{% endif %}
           {%- endfor -%}
         {%- endfor -%}]
       {%- else -%}null{%- endif %}
     controls: >-
-      {% set s = ids %}
+      {%- set s = ids -%}
       {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
         [{%- for i in s -%}
-          {% set o = loop %}
+          {%- set o = loop -%}
           {%- for state in (states.button|list + states.switch|list) if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'null' -%}
+            {%- if not loop.first or not o.first -%},{%- endif -%}
             {%- set ctl = state_attr(state.entity_id,'friendly_name') -%}
             {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","control":"{{- ctl -}}"}
-            {% if not loop.last and not o.last %},{% endif %}
           {%- endfor -%}
         {%- endfor -%}]
       {%- else -%}null{%- endif %}
     test: >-
-      {% set s = ids %}
+      {%- set s = ids -%}
       {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
         [{%- for i in s -%}
-          {% set o = loop %}
+          {%- set o = loop -%}
           {%- for state in states.sensor if device_attr(state.entity_id, 'name') == i and state.attributes.self_test|default('none')|string != 'none' -%}
+            {%- if not loop.first or not o.first -%},{%- endif -%}
             {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
-            {% if not loop.last and not o.last %},{% endif %}
           {%- endfor -%}
         {%- endfor -%}]
       {%- else -%}null{%- endif %}
     areas: >-
-      {% set s = ids -%}
+      {%- set s = ids -%}
       {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
         [{%- for i in s -%}
-          {% set o = loop %}
-          {%- for state in (states.sensor|list + states.binary_sensor|list) if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'light' -%}
+          {%- set o = loop -%}
+          {%- for state in (states.sensor|list + states.binary_sensor|list) if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == class -%}
             {%- if not o.first or not loop.first -%},{%- endif -%}
             {%- set v = state.state -%}
             {"id":"{{- i -}}","area":"{{- area_id(state.entity_id) -}}","state":"{{- state.state -}}"}
@@ -213,11 +216,11 @@
         {%- endfor -%}]
       {%- else -%}none{%- endif %}
     status: >-
-      {% set s = ids %}
+      {%- set s = ids -%}
       {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
         [{%- for i in s -%}
-          {% set o = loop %}
-          {%- for state in (states.sensor|list + states.binary_sensor|list) if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'light' -%}
+          {%- set o = loop -%}
+          {%- for state in (states.sensor|list + states.binary_sensor|list) if device_attr(state.entity_id, 'name') == i and (state.attributes.device_class|default('null')|string == class or state.attributes.state_class|default('null')|string == 'measurement') -%}
             {%- if not o.first or not loop.first -%},{%- endif -%}
             {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
           {%- else -%}{% if o.first %}None{% endif %}{%- endfor -%}
@@ -260,7 +263,7 @@
         devices: >-
           {{ devices }}
         state: >-
-          {{ states('binary_sensor.motion_device_light') }}
+          {{ states('binary_sensor.motion_device_' + class) }}
     - variables:
         entities: >-
           {%- if status|lower != 'null' and not status is string and status is iterable and status|count > 0 -%}
@@ -294,6 +297,8 @@
     - platform: time_pattern
       seconds: '/30'
   variables:
+    class: >-
+      {{ 'light' }}
     ids: >-
       {% set ids = state_attr('binary_sensor.motion_device_light','ids') %}
       {{ ids }}
@@ -301,8 +306,8 @@
       {% set s = ids %}
       {%- if s|lower != 'none' and s|lower != 'unknown' and s is iterable -%}
         [{%- for i in s -%}
-          {% set o = loop %}
-          {%- for state in (states.sensor|list + states.binary_sensor|list) if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'light' -%}
+          {%- set o = loop -%}
+          {%- for state in (states.sensor|list + states.binary_sensor|list) if device_attr(state.entity_id, 'name') == i and (state.attributes.device_class|default('null')|string == class or state.attributes.state_class|default('null')|string == 'measurement') -%}
             {%- if not o.first or not loop.first -%},{%- endif -%}
             {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
           {%- else -%}{% if o.first %}None{% endif %}{%- endfor -%}
@@ -742,6 +747,8 @@
   initial_state: off
   trigger:
   variables:
+    class: >-
+      {{ 'light' }}
     ids: >-
       {% set ids = state_attr('binary_sensor.motion_device_light','ids') %}
       {{ ids }}
@@ -769,7 +776,7 @@
       {{- '[![](/local/images/icons/' + icon + '.png?v1)]()' -}}
       {{- '<hr>' -}}
     action: >-
-      {% set action = 'light-okay' %}
+      {% set action = class + '-okay' %}
       {{ action }}
     footer: >-
       {{ '<hr>' }}
@@ -870,6 +877,8 @@
   initial_state: off
   trigger:
   variables:
+    class: >-
+      {{ 'light' }}
     ids: >-
       {% set ids = state_attr('binary_sensor.motion_device_light','ids') %}
       {{ ids }}
@@ -883,7 +892,7 @@
       {% set did = state_attr('binary_sensor.motion_device_light','did') %}
       {{ did }}
     action: >-
-      {% set action = 'light-okay' %}
+      {% set action = class + '-okay' %}
       {{ action }}
     url: >-
       {% set url = '/lovelace/light-okay' %}
@@ -1071,11 +1080,13 @@
   initial_state: off
   trigger:
   variables:
+    class: >-
+      {{ 'light' }}
     low: >-
       {% set low = state_attr('binary_sensor.motion_device_light','low') %}
       {{ low }}
     action: >-
-      {% set action = 'light-okay' %}
+      {% set action = class + '-okay' %}
       {{ action }}
     url: >-
       {% set url = '/lovelace/light-okay' %}
@@ -1192,22 +1203,24 @@
   initial_state: off
   trigger:
   variables:
+    class: >-
+      {{ 'light' }}
     high: >-
       {% set high = state_attr('binary_sensor.motion_device_light','high') %}
       {{ high }}
     action: >-
-      {% set action = 'light-okay' %}
+      {% set action = class + '-okay' %}
       {{ action }}
     url: >-
-      {% set url = '/lovelace/light-okay' %}
+      {% set url = '/lovelace/' + class + '-okay' %}
       {{ url }}
     title: >-
-      {% set title = states('input_text.motion_app') + ': light high' %}
+      {% set title = states('input_text.motion_app') + ': ' + class + ' high' %}
       {{ title }}
     notification_id: >-
-      {{ 'device-light-high' }}
+      {{ 'device-' + class + '-high' }}
     icon: >-
-      {% set icon = 'notification-light-high' %}
+      {% set icon = 'notification-' + class + '-high' %}
       {{ icon }}
     header: >-
       {{- '[![](/local/images/icons/' + icon + '.png?v1)]()' -}}
@@ -1253,8 +1266,10 @@
   initial_state: off
   trigger:
   variables:
+    class: >-
+      {{ 'light' }}
     notification_id: >-
-      {{ 'device-light-high' }}
+      {{ 'device-' + class + '-high' }}
   action:
     - alias: 'dismiss light high notification'
       service: persistent_notification.dismiss
@@ -1296,11 +1311,13 @@
   initial_state: off
   trigger:
   variables:
+    class: >-
+      {{ 'light' }}
     activity: >-
       {% set activity = state_attr('binary_sensor.motion_device_light','activity') %}
       {{ activity }}
     action: >-
-      {% set action = 'light-okay' %}
+      {% set action = class + '-okay' %}
       {{ action }}
     url: >-
       {% set url = '/lovelace/light-okay' %}
