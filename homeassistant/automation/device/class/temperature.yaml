@@ -280,6 +280,27 @@
         object_id: motion_device_temperature
         entities: >-
           {{ entities }}
+    - variables:
+        measurement: >-
+          {%- set s = ids -%}
+          {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
+            [{%- for i in s -%}
+              {%- set o = loop -%}
+              {%- for state in (states.sensor|list + states.binary_sensor|list)
+                if device_attr(state.entity_id, 'name') == i
+                  and state.attributes.device_class|default('null')|lower == 'null'
+                  and state.attributes.state_class|default('null')|string == 'measurement' -%}
+                {%- if not o.first or not loop.first -%},{%- endif -%}
+                {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state }} {{ state.attributes.unit_of_measurement-}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
+              {%- else -%}{% if o.first %}None{% endif %}{%- endfor -%}
+            {%- endfor -%}]
+          {%- else -%}none{%- endif %}
+    - alias: 'set group.motion_device_temperature statistics'
+      service: group.set
+      data_template:
+        object_id: motion_device_temperature_statistics
+        entities: >-
+          {{ measurement|reject('none')|map(attribute='entity_id')|list }}
 
 ## update status
 
@@ -434,7 +455,7 @@
               and state.attributes.device_class|default('null')|lower == 'null'
               and state.attributes.state_class|default('null')|string == 'measurement' -%}
             {%- if not o.first or not loop.first -%},{%- endif -%}
-            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
+            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state }} {{ state.attributes.unit_of_measurement-}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
           {%- else -%}{% if o.first %}None{% endif %}{%- endfor -%}
         {%- endfor -%}]
       {%- else -%}none{%- endif %}
