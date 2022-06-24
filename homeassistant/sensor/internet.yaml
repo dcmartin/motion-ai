@@ -4,6 +4,53 @@
 
 - platform: template
   sensors:
+    internet_ip:
+      friendly_name: Internet IP
+      icon_template: 'mdi:wan'
+      value_template: >
+        {% set s = state_attr('sensor.internet_test','client') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' %}
+          {{ s.ip }}
+        {%- else -%}null{%- endif -%}
+    internet_receive:
+      friendly_name: Internet receive
+      icon_template: 'mdi:download-network'
+      unit_of_measurement: Mbps
+      attribute_templates:
+        max: >-
+          {{ states('sensor.internet_receive_max') }}
+        min: >-
+          {{ states('sensor.internet_receive_min') }}
+        mean: >-
+          {{ states('sensor.internet_receive_mean') }}
+        stdev: >-
+          {{ states('sensor.internet_receive_stdev') }}
+      value_template: >
+        {% set s = state_attr('sensor.internet_test','download') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' %}
+          {{ '%0.2f' | format(s|float(0.0) / 1000000.0) }}
+        {%- else -%}null{%- endif -%}
+    internet_send:
+      friendly_name: Internet send
+      icon_template: 'mdi:upload-network'
+      unit_of_measurement: Mbps
+      attribute_templates:
+        max: >-
+          {{ states('sensor.internet_send_max') }}
+        min: >-
+          {{ states('sensor.internet_send_min') }}
+        mean: >-
+          {{ states('sensor.internet_send_mean') }}
+        stdev: >-
+          {{ states('sensor.internet_send_stdev') }}
+      value_template: >
+        {% set s = state_attr('sensor.internet_test','upload') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' %}
+          {{ '%0.2f' | format(s|float(0.0) / 1000000.0) }}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
     internet_metrics:
       friendly_name: 'Internet metrics'
       icon_template: 'mdi:check-network'
@@ -23,8 +70,26 @@
 - platform: template
   sensors:
     internet_good:
+      unique_id: internet_good
       friendly_name: 'Internet status'
       icon_template: 'mdi:check-network'
+      attribute_templates:
+        test: >-
+          {{ states('binary_sensor.internet_test') }}
+        client: >-
+          {{ state_attr('sensor.internet_test','client') }}
+        status: >-
+          {{ states('sensor.internet_metrics') }}
+        ago: >-
+          {{ states('sensor.internet_ago') }}
+        fast: >-
+          {{ states('sensor.internet_fast_percent') }}
+        slow: >-
+          {{ states('sensor.internet_slow_percent') }}
+        send: >-
+          [{{- states('sensor.internet_send')|float(none) -}},{{- states.sensor.internet_send.attributes|default(none) -}}]
+        receive: >-
+          [{{- states('sensor.internet_receive')|float(none) -}},{{- states.sensor.internet_receive.attributes|default(none) -}}]
       value_template: >-
         {%- if states.sensor.internet_test|lower != 'none'
                and states.sensor.internet_test.state|lower != 'unknown'
