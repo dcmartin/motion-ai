@@ -10,8 +10,14 @@
         ids: >-
           [{%- for state in states.device_tracker if state.attributes.source_type|string == 'gps' -%}
             {%- if loop.first -%}{%- else -%},{%- endif -%}
-            {%- set s = device_attr(device_id(state.entity_id),'name') -%}
-            {#- set s = state.entity_id|replace ('device_tracker.','') -#}
+            {#- set s = device_attr(device_id(state.entity_id),'name') -#}
+            {%- set s = state.entity_id|replace ('device_tracker.','') -%}
+            "{{- s -}}"
+          {%- endfor -%}]
+        dids: >-
+          [{%- for state in states.device_tracker if state.attributes.source_type|string == 'gps' -%}
+            {%- if loop.first -%}{%- else -%},{%- endif -%}
+            {%- set s = device_id(state.entity_id) -%}
             "{{- s -}}"
           {%- endfor -%}]
         ago: >-
@@ -28,7 +34,10 @@
             [{%- for e in ids -%}
               {%- if loop.first -%}{%- else -%},{%- endif -%}
               {%- set s = states('device_tracker.' + e|string) -%}
-              {%- if s == 'home' or s == 'not_home' -%}1{%- else -%}0{%- endif -%}
+              {%- set d = states['device_tracker.' + e|string].last_updated|default(none) -%}
+              {%- if d|lower != 'none' and d|float(0) + 60 > utcnow().timestamp() -%}
+                {%- if s == 'home' or s == 'not_home' -%}1{%- else -%}0{%- endif -%}
+              {% else %}0{% endif %}
             {%- endfor -%}]
           {% else %}null{% endif %}
         total: >-
@@ -62,7 +71,7 @@
           {% set t = state_attr('binary_sensor.motion_device_tracker_exist','total') %}
           {% set o = state_attr('binary_sensor.motion_device_tracker_exist','online') %}
           {%- if c is number and t is number and o is number and t|int(0) > 0 %}
-            {{ c -}}/{{- t }}📱; {{ '%0.2f'|format(o) -}}%
+            {{ c -}}/{{- t }}📱; {{ '%0.0f'|format(o) -}}%
           {% else %}Pending{% endif %}
       value_template: >-
         {% set s = state_attr('binary_sensor.motion_device_tracker_exist','total') %}
