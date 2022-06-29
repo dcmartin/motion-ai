@@ -209,6 +209,9 @@ sudo dpkg -i os-agent_1.2.2_linux_aarch64.deb
 wget https://github.com/home-assistant/supervised-installer/releases/latest/download/homeassistant-supervised.deb
 sudo dpkg -i homeassistant-supervised.deb
 ```
+```
+ha jobs options --ignore-conditions healthy
+```
 
 ## Step 2
 The above will upgrade the operating sytem components, install all pre-requisites, and initialize.    First step is to connect to the Home Assistant server at `http://127.0.0.1:8123` using the installed Chromium browser (n.b. see icon on the desktop).
