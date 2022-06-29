@@ -204,6 +204,22 @@ sudo apt update
 sudo apt install docker-ce
 ```
 ```
+cat > /etc/docker/daemon.json << EOF
+{
+  "runtimes": {
+    "nvidia": {
+      "path": "/usr/bin/nvidia-container-runtime",
+      "runtimeArgs": []
+    }
+  },
+  "log-driver": "journald",
+  "storage-driver": "overlay2",
+  "default-runtime": "nvidia",
+  "experimental": true
+}
+EOF
+```
+```
 wget https://github.com/home-assistant/os-agent/releases/download/1.2.2/os-agent_1.2.2_linux_aarch64.deb
 sudo dpkg -i os-agent_1.2.2_linux_aarch64.deb
 wget https://github.com/home-assistant/supervised-installer/releases/latest/download/homeassistant-supervised.deb
