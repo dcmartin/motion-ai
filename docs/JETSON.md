@@ -195,6 +195,15 @@ sudo chmod 775 /usr/share/hassio
 cd /usr/share/hassio
 git clone http://github.com/dcmartin/motion-ai .
 make
+```
+```
+sudo apt install apt-transport-https ca-certificates curl software-properties-common
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo add-apt-repository "deb [arch=arm64] https://download.docker.com/linux/ubuntu `lsb_release -cs` test"
+sudo apt update
+sudo apt install docker-ce
+```
+```
 wget https://github.com/home-assistant/os-agent/releases/download/1.2.2/os-agent_1.2.2_linux_aarch64.deb
 sudo dpkg -i os-agent_1.2.2_linux_aarch64.deb
 wget https://github.com/home-assistant/supervised-installer/releases/latest/download/homeassistant-supervised.deb
