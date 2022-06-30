@@ -189,12 +189,12 @@ MOTION_DIRS := \
 	www/images/motion
 
 # dashboards
-MOTION_DASHBOARDS := primary developer experimental person animal vehicle
+MOTION_DASHBOARDS := owner primary developer experimental person animal vehicle
 LOVELACE_DASHBOARDS := $(shell for C in $(MOTION_DASHBOARDS); do echo lovelace.$${C}.json; done)
 
 default: all
 
-all: chown $(WEBCAMS) lovelace.json lovelace_dashboards.json lovelace_resources.json ${LOVELACE_DASHBOARDS} $(MOTION_DIRS) $(PACKAGES) secrets.yaml
+all: chown $(WEBCAMS) lovelace_dashboards.json lovelace_resources.json ${LOVELACE_DASHBOARDS} $(MOTION_DIRS) $(PACKAGES) secrets.yaml
 
 chown:
 	@echo "${MC}Making: $@${NC}"
@@ -369,23 +369,33 @@ secrets.yaml: secrets.yaml.tmpl
 	  UPTIMEROBOT_RSSURL="$(UPTIMEROBOT_RSSURL)" \
 	&& cat $< | envsubst > $@
 
-lovelace.json: lovelace.json.tmpl $(WEBCAMS)
+lovelace.owner.json: lovelace.owner.json.tmpl $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
 	@export \
-	  HOST_NAME="$(HOST_NAME)" \
-	  MOTION_USER="$(MOTION_USER)" \
+	  MOTION_APP="$(MOTION_APP)" \
 	&& cat $< \
 	  | envsubst \
-         | jq '(.data.config.views[]|select(.path=="map").cards[]?.cards[]?.cards[]?.cards[]?|select(.title=="Sensors").entities)+='"$$(jq '[.[]|{"entity":("sensor.motion_"+.name+"_camera_detected_person_status")}]' $(WEBCAMS))" \
-	 > $@
-	@rm -f .storage/lovelace
+	> $@
+	@rm -f .storage/lovelace.lovelace_owner
 	-@mkdir -p .storage/
-	@ln -s ../$@ .storage/lovelace
+	@ln -s ../$@ .storage/lovelace.lovelace_owner
+
+lovelace.primary.json: lovelace.primary.json.tmpl $(WEBCAMS)
+	@echo "${MC}Making: $@${NC}"
+	@export \
+	  MOTION_APP="$(MOTION_APP)" \
+	&& cat $< \
+	  | envsubst \
+	> $@
+	@rm -f .storage/lovelace.lovelace_primary
+	-@mkdir -p .storage/
+	@ln -s ../$@ .storage/lovelace.lovelace_primary
 
 lovelace.developer.json: lovelace.developer.json.tmpl $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  HOST_NAME="$(HOST_NAME)" \
+	  MOTION_APP="$(MOTION_APP)" \
 	  MOTION_USER="$(MOTION_USER)" \
 	&& cat $< \
 	  | envsubst \
@@ -399,6 +409,7 @@ lovelace.person.json: lovelace.person.json.tmpl $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  HOST_NAME="$(HOST_NAME)" \
+	  MOTION_APP="$(MOTION_APP)" \
 	  MOTION_USER="$(MOTION_USER)" \
 	&& cat $< \
 	  | envsubst \
@@ -437,6 +448,7 @@ lovelace.animal.json: lovelace.animal.json.tmpl $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  HOST_NAME="$(HOST_NAME)" \
+	  MOTION_APP="$(MOTION_APP)" \
 	  MOTION_USER="$(MOTION_USER)" \
 	&& cat $< \
 	  | envsubst \
@@ -450,17 +462,6 @@ lovelace.animal.json: lovelace.animal.json.tmpl $(WEBCAMS)
 	-@mkdir -p .storage/
 	@ln -s ../$@ .storage/lovelace.lovelace_animal
 
-lovelace.primary.json: lovelace.primary.json.tmpl $(WEBCAMS)
-	@echo "${MC}Making: $@${NC}"
-	@export \
-	  HOST_NAME="$(HOST_NAME)" \
-	  MOTION_USER="$(MOTION_USER)" \
-	&& cat $< \
-	  | envsubst \
-	> $@
-	@rm -f .storage/lovelace.lovelace_primary
-	-@mkdir -p .storage/
-	@ln -s ../$@ .storage/lovelace.lovelace_primary
 
 #
 # removed from experimental template below
@@ -473,6 +474,7 @@ lovelace.experimental.json: lovelace.experimental.json.tmpl $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  HOST_NAME="$(HOST_NAME)" \
+	  MOTION_APP="$(MOTION_APP)" \
 	  MOTION_USER="$(MOTION_USER)" \
 	&& cat $< \
 	  | envsubst \
@@ -488,6 +490,7 @@ lovelace_dashboards.json: lovelace_dashboards.json.tmpl
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  HOST_NAME="$(HOST_NAME)" \
+	  MOTION_APP="$(MOTION_APP)" \
 	  MOTION_USER="$(MOTION_USER)" \
 	&& cat $< \
 	  | envsubst \
@@ -500,6 +503,7 @@ lovelace_resources.json: lovelace_resources.json.tmpl
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  HOST_NAME="$(HOST_NAME)" \
+	  MOTION_APP="$(MOTION_APP)" \
 	  MOTION_USER="$(MOTION_USER)" \
 	&& cat $< \
 	  | envsubst \
@@ -507,14 +511,6 @@ lovelace_resources.json: lovelace_resources.json.tmpl
 	@rm -f .storage/lovelace_resources
 	-@mkdir -p .storage/
 	@ln -s ../$@ .storage/lovelace_resources
-
-MAGIC_AREAS_RELEASE := 2.0.4
-MAGIC_AREAS := custom_components/magic_areas
-
-$(MAGIC_AREAS):
-	-rm -fr $(MAGIC_AREAS)
-	-mkdir -p $(MAGIC_AREAS) 
-	curl -sSL https://github.com/jseidl/hass-magic_areas/archive/refs/tags/v$(MAGIC_AREAS_RELEASE).tar.gz | tar xzf - --strip-components=3 -C $(MAGIC_AREAS)
 
 ## clean and clean and clean ..
 
