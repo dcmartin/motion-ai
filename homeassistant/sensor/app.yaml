@@ -1,0 +1,71 @@
+###
+## homeassistant/sensor/app.yaml
+###
+
+- platform: template
+  sensors:
+    motion_name:
+      friendly_name: HA name
+      icon_template: 'mdi:label'
+      attribute_templates:
+        wan_url: >-
+         {{ states('sensor.motion_wan_url') }}
+        base_url: >-
+         {{ states('sensor.motion_base_url') }}
+        ip: >-
+         {{- state_attr('sensor.motion_wan_url','ip') -}}
+        internet: >-
+         {{- state_attr('sensor.motion_wan_url','status') -}}
+      value_template: >-
+        {%- set s = states('input_text.motion_name') -%}
+        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {{- s -}}
+        {%- else -%}
+          {{- 'motion-ai' -}}
+        {%- endif -%}
+
+- platform: template
+  sensors:
+    motion_wan_url:
+      attribute_templates:
+        ip: >-
+          {{ states('sensor.internet_ip') }}
+        status: >-
+          {{- states.sensor.internet_good.attributes|default(none) -}}
+      value_template: >-
+        {% set port = states('input_number.motion_port') %}
+        {% set wan = states('sensor.internet_ip') %}
+        {% if wan|lower != 'null' and wan|lower != 'none' and wan|lower != 'unknown' %}
+          {{ 'http://' + wan + ':' + port|int|string }}
+        {% else %}null{% endif %}
+    motion_base_url:
+      attribute_templates:
+        wan: >-
+          {{ states('sensor.motion_wan_url') }}
+        ip: >-
+          {{ state_attr('sensor.motion_wan_url','ip') }}
+        status: >-
+          {{ state_attr('sensor.motion_wan_url','status') }}
+      value_template: >-
+        {% set type = states('input_select.motion_url') %}
+        {% set port = states('input_number.motion_port') %}
+        {% set lan = states('sensor.host_lan_ipv4') %}
+        {% set wan = states('sensor.internet_ip') %}
+        {% set url = states('sensor.motion_url') %}
+        {% if type|lower != 'none' and port|lower != 'none' and type|lower != 'unknown' and port|lower != 'unknown' %}
+          {% if type == 'local' and lan|lower != 'none' and lan|lower != 'unknown' %}
+            {% set p = 'http://' + lan + ':' + port|int|string %}
+          {% elif type == 'remote' and wan|lower != 'null' and wan|lower != 'none' and wan|lower != 'unknown' %}
+            {% set p = 'http://' + wan + ':' + port|int|string %}
+          {% endif %}
+        {% endif %}
+        {% if p is  defined %}
+          {{ p }}
+        {% elif url|lower != 'none' and url|lower != 'unknown' %}
+           {{ url }}
+        {% elif port|lower != 'none' and port|lower != 'unknown' %}
+           http://localhost:{{- port|int(0) }}
+        {% else %}
+           http://localhost
+        {% endif %}
+

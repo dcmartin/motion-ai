@@ -1,0 +1,125 @@
+###
+# automation/motion/person_night.yaml
+###
+
+- id: motion_person_night_begin
+  alias: motion_person_night_begin
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_schedule_bedtime_detected
+      to: 'on'
+  variables:
+    begin: >-
+      {%- set s = state_attr('sensor.motion_schedule_bedtime_detected','timestamp') -%}
+      {%- if s|float(-1) > 0 -%}
+        {{- s|float(0) -}}
+      {%- else -%}null{%- endif -%}
+    end: >-
+      {% set s = states('sensor.motion_schedule_wakeup_end') %}
+      {% set s = s + now().replace(hour=0).replace(minute=0).replace(second=0)|as_timestamp + 86400 %}
+      {{ s }}
+    last_triggered: >-
+      {%- set s = state_attr('sensor.motion_schedule_bedtime_detected','last_triggered') -%}
+      {%- if s|float(-1) > 0 -%}
+        {{- s|float(0) -}}
+      {%- else -%}null{%- endif -%}
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ is_state('input_select.motion_log_level','debug') }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: Night begin unspecified
+                notification_id: >-
+                  {{ 'night_begin' }}
+                message: >-
+                  Night start: begin: {{ begin -}}; end: {{ end -}}; last: {{ last_triggered -}}
+    - alias: 'set binary_sensor.motion_person_night begin,end'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_person_night
+        begin: >-
+          {{- begin -}}
+        end: >-
+          {{- end -}}
+        last_triggered: >-
+          {{- last_triggered -}}
+        state: >-
+          {{- 'on' -}}
+    - alias: 'update active count night'
+      service: homeassistant.update_entity
+      entity_id: sensor.motion_person_night_active_count
+    - alias: 'update active time night'
+      service: homeassistant.update_entity
+      entity_id: sensor.motion_person_night_active_time
+
+- id: motion_person_night_end
+  alias: motion_person_night_end
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_schedule_wakeup_detected
+      to: 'on'
+  variables:
+    count: >-
+      {% set s = states('sensor.motion_person_night_active_count') %}
+      {% if s|lower != 'none' and s|int(-1) > 0 %}
+        {{ s|int(0) }}
+      {% else %}null{% endif %}
+    time: >-
+      {% set s = states('sensor.motion_person_night_active_time') %}
+      {% if s|lower != 'none' and s|int(-1) > 0 %}
+        {{ s|int(0) }}
+      {% else %}null{% endif %}
+    begin: >-
+      {%- set s = state_attr('sensor.motion_schedule_bedtime_detected','timestamp') -%}
+      {%- if s|lower != 'none' and s|float(-1) > 0 -%}
+        {{- s|float(0) -}}
+      {% else %}null{% endif %}
+    end: >-
+      {%- set s = state_attr('sensor.motion_schedule_wakeup_detected','timestamp') -%}
+      {%- if s|lower != 'none' and s|float(-1) > 0 -%}
+        {{- s|float(0) -}}
+      {% else %}null{% endif %}
+  action:
+    - alias: 'set binary_sensor.motion_person_night off'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_person_night
+        end: >-
+          {{- end -}}
+        count: >-
+          {{- count -}}
+        time: >-
+          {{- time -}}
+        timestamp: >-
+          {{ now().timestamp() }}
+        state: >-
+          {{- 'off' -}}
+
+- alias: motion_person_active_last_night
+  initial_state: on
+  mode: single
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_person_night
+      to: 'off'
+  action:
+    - alias: 'set sensor.motion_person_active last_night'
+      service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_person_active
+        last_night: >-
+          {
+            "begin":{{- state_attr('binary_sensor.motion_person_night','begin')|timestamp_custom("%a %b %d %H:%M",true,'unknown') }},
+            "end":{{- state_attr('binary_sensor.motion_person_night','end')|timestamp_custom("%a %b %d %H:%M",true,'unknown') }},
+            "count":{{- state_attr('binary_sensor.motion_person_night','count')|int(0) }},
+            "time":{{- state_attr('binary_sensor.motion_person_night','time')|int(0) }}
+          }

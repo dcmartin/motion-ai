@@ -1,0 +1,183 @@
+###
+# homeassistant/binary_sensor/powerwall.yaml
+###
+
+- platform: template
+  sensors:
+    motion_powerwall:
+      unique_id: motion_powerwall
+      friendly_name: Powerwall status
+      device_class: 'power'
+      attribute_templates:
+        ids: >-
+          [{%- for state in states.binary_sensor if 'connected_to_tesla' in state.entity_id -%}
+            {%- if not loop.first -%},{% endif -%}
+            "{{- state.entity_id|replace('binary_sensor.','')|replace('_connected_to_tesla','') -}}"
+          {%- endfor -%}]
+        total: >-
+          {% set s = state_attr('binary_sensor.motion_powerwall','ids') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+            {{ s|count }}
+          {%- else -%}0{%- endif %}
+        sensors: >-
+          {% set s = state_attr('binary_sensor.motion_powerwall','ids') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+            [{%- for i in s -%}
+              {%- set o = loop -%}
+              {%- for state in states.sensor if 'sensor.' + i + '_' in state.entity_id and state.state|lower != 'unknown' -%}
+                {%- if not o.first or not loop.first -%},{%- endif -%}
+                {"id":"{{- state.entity_id|replace('switch.','') -}}","state":{% if not state is number %}"{{- state.state -}}"{%- else -%}{{- state.state -}}{%- endif -%},"attributes":{{- state.attributes|replace('\'','"') -}}}
+              {%- endfor -%}
+            {%- endfor -%}]
+          {%- else -%}null{%- endif %}
+        measurement: >-
+          {% set s = state_attr('binary_sensor.motion_powerwall','ids') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+            [{%- for i in s -%}
+              {% set o = loop %}
+              {%- for state in states.sensor if 'sensor.' + i + '_' in state.entity_id and state.state|lower != 'unknown' and 'device_class' in state.attributes and state.attributes.device_class|lower != 'none' %}
+                {%- if not o.first or not loop.first -%},{%- endif -%}
+                {%- set v = state.state -%}
+                {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","state":"{{- v -}}"}
+              {%- endfor -%}
+            {%- endfor -%}]
+          {%- else -%}null{%- endif %}
+        status: >-
+          {% set s = state_attr('binary_sensor.motion_powerwall','ids') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+            [{%- for i in s -%}
+              {% set o = loop %}
+              {%- for state in states.binary_sensor if 'binary_sensor.' + i + '_' in state.entity_id and state.state|lower != 'unknown' %}
+                {%- if not o.first or not loop.first -%},{%- endif -%}
+                {%- set v = state.state -%}
+                {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","state":"{{- v -}}"}
+              {%- endfor -%}
+            {%- endfor -%}]
+          {%- else -%}null{%- endif %}
+        control: >-
+          {% set s = state_attr('binary_sensor.motion_powerwall','status') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+            {%- for i in s -%}
+              {%- if not loop.first -%}{{- '; ' -}}{%- endif -%}
+              {{- state_attr(i.entity_id,'friendly_name') + ': ' + states(i.entity_id) -}}
+            {%- endfor -%}
+          {%- else -%}null{%- endif %}
+        battery: >-
+          {% set s = state_attr('binary_sensor.motion_powerwall','measurement') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+            {%- for i in s if state_attr(i.entity_id,'device_class')|lower == 'battery' -%}
+              {%- if not loop.first -%}{{- '; ' -}}{%- endif -%}
+              {{- state_attr(i.entity_id,'friendly_name') + ': ' + states(i.entity_id)|float(0.0)|string + ' ' + state_attr(i.entity_id,'unit_of_measurement') -}}
+            {%- endfor -%}
+          {%- else -%}null{%- endif %}
+        energy: >-
+          {% set s = state_attr('binary_sensor.motion_powerwall','measurement') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+            {%- for i in s if state_attr(i.entity_id,'device_class')|lower == 'energy' -%}
+              {%- if not loop.first -%}{{- '; ' -}}{%- endif -%}
+              {{- state_attr(i.entity_id,'friendly_name') + ': ' + states(i.entity_id)|float(0.0)|string + ' ' + state_attr(i.entity_id,'unit_of_measurement') -}}
+            {%- endfor -%}
+          {%- else -%}null{%- endif %}
+        power: >-
+          {% set s = state_attr('binary_sensor.motion_powerwall','measurement') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+            {%- for i in s if state_attr(i.entity_id,'device_class')|lower == 'power' -%}
+              {%- if not loop.first -%}{{- '; ' -}}{%- endif -%}
+              {{- state_attr(i.entity_id,'friendly_name') + ': ' + states(i.entity_id)|float(0.0)|string + ' ' + state_attr(i.entity_id,'unit_of_measurement') -}}
+            {%- endfor -%}
+          {%- else -%}null{%- endif %}
+      value_template: >-
+        {% set s = state_attr('binary_sensor.motion_powerwall','total') %}
+        {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
+          {{ s|int(0) > 0 }}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_powerwall_load_spike:
+      unique_id: motion_powerwall_load_spike
+      friendly_name: Power load
+      device_class: 'problem'
+      attribute_templates:
+        start: >-
+          {{ 'null' }}
+        end: >-
+          {{ 'null' }}
+        duration: >-
+          {{ 'null' }}
+        load: >-
+          {{ 'null' }}
+      value_template: >-
+        {{ 'Pending' }}
+
+- platform: template
+  sensors:
+    motion_powerwall_self_powered:
+      friendly_name: Self powered
+      icon_template: >-
+        {% if is_state('binary_sensor.motion_powerwall_self_powered','on') %}
+          {{ 'mdi:solar-power' }}
+        {% elif is_state('binary_sensor.motion_powerwall_self_powered','off') %}
+          {{ 'mdi:transmission-tower-import' }}
+        {% else %}
+          {{ 'mdi:transmission-tower' }}
+        {% endif %}
+      value_template: >-
+        {% set site = state_attr('binary_sensor.motion_powerwall_self_sufficient','site')|float(none) %}
+        {% if site|lower != 'none' %}
+          {{ site|round <= 0 }}
+        {% else %}unknown{% endif %}
+    motion_powerwall_self_charging:
+      friendly_name: Solar charging
+      icon_template: >-
+        {% if is_state('binary_sensor.motion_powerwall_self_charging','on') %}
+          {{ 'mdi:home-battery-outline' }}
+        {% else %}
+          {{ 'mdi:home-battery' }}
+        {% endif %}
+      attribute_templates:
+        charging: >-
+          {{ states('binary_sensor.motion_powerwall_charging') }}
+      value_template: >-
+        {% set zero = state_attr('binary_sensor.motion_powerwall_self_sufficient','zero')|float(none) %}
+        {% set site = state_attr('binary_sensor.motion_powerwall_self_sufficient','site')|float(none) %}
+        {% set load = state_attr('binary_sensor.motion_powerwall_self_sufficient','load')|float(none) %}
+        {% set solar = state_attr('binary_sensor.motion_powerwall_self_sufficient','solar')|float(none) %}
+        {% set battery = state_attr('binary_sensor.motion_powerwall_self_sufficient','battery')|float(none) %}
+        {% set charging = state_attr('binary_sensor.motion_powerwall_self_charging','charging') %}
+        {% if site|lower != 'none' and load|lower != 'none' and solar|lower != 'none' and battery|lower != 'none' and charging|lower != 'unknown' %}
+          {% set site = (site*1000)|int %}
+          {% set load = (load*1000)|int %}
+          {% set solar = (solar*1000)|int %}
+          {% set battery = (battery*1000)|int %}
+          {{ site <= zero and solar >= load and battery < 0 and charging|lower == 'on' }}
+        {% else %}unknown{% endif %}
+    motion_powerwall_self_sufficient:
+      friendly_name: Self sufficient
+      icon_template: >-
+        {% if is_state('binary_sensor.motion_powerwall_self_sufficient','on') %}
+          {{ 'mdi:home-export-outline' }}
+        {% else %}
+          {{ 'mdi:home-lightning-bolt-outline' }}
+        {% endif %}
+      attribute_templates:
+        zero: >-
+          {{ 10 }}
+        site: >-
+          {{ states('sensor.motion_powerwall_site_now')|float(none) }}
+        load: >-
+          {{ states('sensor.motion_powerwall_load_now')|float(none) }}
+        solar: >-
+          {{ states('sensor.motion_powerwall_solar_now')|float(none) }}
+        battery: >-
+          {{ states('sensor.motion_powerwall_battery_now')|float(none) }}
+        export: >-
+          {% set s = state_attr('binary_sensor.motion_powerwall_self_sufficient','site')|float(none) %}
+          {% if s|lower != 'none' and s <= 0 %}
+            {{ s|abs }}
+          {% else %}none{% endif %}
+      value_template: >-
+        {% set s = state_attr('binary_sensor.motion_powerwall_self_sufficient','export') %}
+        {% if s|float(none)|lower != 'none' %}
+          {{ s|float(-1)|round >= 0 }}
+        {% else %}unknown{% endif %}

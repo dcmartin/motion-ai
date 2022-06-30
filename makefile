@@ -48,6 +48,7 @@ MARIADB_HOST ?= $(if $(wildcard MARIADB_HOST),$(shell v=$$(cat MARIADB_HOST) && 
 IPERF_HOST ?= $(if $(wildcard IPERF_HOST),$(shell v=$$(cat IPERF_HOST) && echo "${TG}== IPERF_HOST: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="$(MQTT_HOST)" && echo "${DF}** IPERF_HOST${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 
 ## MOTION
+MOTION_APP ?= $(if $(wildcard MOTION_APP),$(shell v=$$(cat MOTION_APP) && echo "${TG}== MOTION_APP: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='Motion Ã👁' && echo "${DF}** MOTION_APP${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_GROUP ?= $(if $(wildcard MOTION_GROUP),$(shell v=$$(cat MOTION_GROUP) && echo "${TG}== MOTION_GROUP: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='motion' && echo "${DF}** MOTION_GROUP${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_DEVICE ?= $(if $(wildcard MOTION_DEVICE),$(shell v=$$(cat MOTION_DEVICE) && echo "${TG}== MOTION_DEVICE: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v=$$(echo $(HOST_NAME) | sed -e "s/-//g" -e "s/ /_/g") && echo "${DF}** MOTION_DEVICE${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MOTION_CLIENT ?= $(if $(wildcard MOTION_CLIENT),$(shell v=$$(cat MOTION_CLIENT) && echo "${TG}== MOTION_CLIENT: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='$(MOTION_DEVICE)' && echo "${DF}** MOTION_CLIENT${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
@@ -248,6 +249,7 @@ $(ACTIONS): necessary
 	  MOTION_FACE_DETECTED_SPEAK="$(MOTION_FACE_DETECTED_SPEAK)" \
 	  MOTION_FACE_DETECTED_TUNE="$(MOTION_FACE_DETECTED_TUNE)" \
 	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
+	  MOTION_APP="$(MOTION_APP)" \
 	  MOTION_GROUP="$(MOTION_GROUP)" \
 	  MOTION_LOG_LEVEL="$(MOTION_LOG_LEVEL)" \
 	  MOTION_NOTIFY_SMARTPHONE="$(MOTION_NOTIFY_SMARTPHONE)" \
@@ -355,6 +357,7 @@ homeassistant/setup.json: setup.json.tmpl
 	  MOTION_FACE_DETECTED_SPEAK="$(MOTION_FACE_DETECTED_SPEAK)" \
 	  MOTION_FACE_DETECTED_TUNE="$(MOTION_FACE_DETECTED_TUNE)" \
 	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
+	  MOTION_APP="$(MOTION_APP)" \
 	  MOTION_GROUP="$(MOTION_GROUP)" \
 	  MOTION_LOG_LEVEL="$(MOTION_LOG_LEVEL)" \
 	  MOTION_NOTIFY_SMARTPHONE="$(MOTION_NOTIFY_SMARTPHONE)" \

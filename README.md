@@ -46,18 +46,36 @@ The following two (2) sets of commands will install `motion-ai` on the following
 
 + RaspberryPi Model 3B+ or 4 (`arm`); 2GB recommended
 + Ubuntu18.04 or Debian10 VM (`amd64`); 2GB, 2vCPU recommended
-+ nVidia Jetson Nano (`arm64`); 4GB required
++ nVidia Jetson Nano (`arm64`|`aarch64`); 4GB required
 
 Run the following commands to update the system, install pre-requisites, and then clone and install.  Reboot the system after completion; for example:
 
+
 ```
 sudo apt update -qq -y
-sudo apt install -qq -y make git curl jq apt-utils ssh network-manager apparmor
-git clone http://github.com/motion-ai/motion-ai
-cd ~/motion-ai
-sudo ./sh/get.motion-ai.sh
-sudo reboot
+sudo apt install -qq -y make git curl jq apt-utils ssh apparmor grub2-common network-manager
+sudo touch /etc/default/grub
+sudo mkdir /usr/share/hassio
+sudo chmod 775 /usr/share/hassio
+cd /usr/share/hassio
+git clone http://github.com/dcmartin/motion-ai .
+make
 ```
+
+To install [Home Assistant](http://home-assistant.io) you will need both an *architecture dependent* _OS Agent_ as well as the _Supervised Home Assistant_ package; for example for <code>ARM64</code>:
+
+```
+wget https://github.com/home-assistant/os-agent/releases/download/1.2.2/os-agent_1.2.2_linux_aarch64.deb
+sudo dpkg -i os-agent_1.2.2_linux_aarch64.deb
+```
+Then download and install the <code>Supervised Home Assistant</code>:
+
+```
+wget https://github.com/home-assistant/supervised-installer/releases/latest/download/homeassistant-supervised.deb
+sudo dpkg --ignore-depends=docker-ce -i homeassistant-supervised.deb
+```
+
+### Post Quickstart
 
 When the system reboots install the official MQTT broker (aka `core-mosquitto`) and Motion Classic (aka `motion-video0`) _add-ons_ using the Home Assistant Add-on Store (n.b. Motion Classic add-on may be accessed by adding the repository [http://github.com/motion-ai/addons](http://github.com/motion-ai/addons) to the Add-On Store.
 
@@ -67,9 +85,12 @@ Select, install, configure and start each add-on (see below).  When both add-ons
 cd ~/motion-ai
 make restart
 ```
+<hr>
+
+# User Experience
 
 ## Dashboard
-Once the system has rebooted it will display a default view; note the image below is of a configured system:
+Once the system has started it will display a default view; note the image below is of a configured system:
 
 <img src="docs/dashboard.png" width="75%">
 
@@ -300,16 +321,17 @@ git merge upstream/master
 
 Language|files|blank|comment|code
 :-------|-------:|-------:|-------:|-------:
-YAML|523|3649|5044|54244
-JSON|36|2|0|12157
+YAML|636|5221|5518|110928
+JSON|47|2|0|26136
 Python|23|650|648|5827
-Bourne Shell|55|552|287|2714
-Markdown|12|529|0|1690
-make|3|186|88|1256
+Bourne Shell|58|570|295|2841
+Markdown|13|548|0|1820
+make|3|187|88|1284
 Jupyter Notebook|1|0|1020|927
 HTML|1|19|1|89
+XML|1|1|0|89
 --------|--------|--------|--------|--------
-SUM:|654|5587|7088|78904
+SUM:|783|7198|7570|149941
 
 <img src="http://clustrmaps.com/map_v2.png?cl=ffffff&w=a&t=n&d=8TDxxKn9npMT6_70gwlS3FcPjhdcBm5j4LskwHzTO5U" width="1">
 

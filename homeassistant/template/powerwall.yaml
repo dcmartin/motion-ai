@@ -1,0 +1,697 @@
+###
+# homeassistant/template/powerwall.yaml
+###
+
+## problem
+
+# load
+
+- unique_id: motion_powerwall_load_spike_problem
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_powerwall_load_now
+  binary_sensor:
+    - name: 'motion_powerwall_load_spike_problem'
+      device_class: 'problem'
+      state: >-
+        {% set now = states('sensor.motion_powerwall_load_now') %}
+        {% set mean = states('sensor.motion_powerwall_load_mean') %}
+        {% set max = states('sensor.motion_powerwall_load_max') %}
+        {% set stdev = states('sensor.motion_powerwall_load_stdev') %}
+        {{ now|lower != 'unknown' and now|lower != 'null' and now|lower != 'none'
+           and mean|lower != 'unknown' and mean|lower != 'null'and mean|lower != 'none'
+           and max|lower != 'unknown' and max|lower != 'null' and max|lower != 'none'
+           and stdev|lower != 'unknown' and stdev|lower != 'null' and stdev|lower != 'none'
+           and ( now|float(0.0) > (mean|float(0.0) + stdev|float(0.0)) or now|float(0.0) > (max|float(0.0) - stdev|float(0.0)) ) }}
+
+## connectivity
+
+# grid (for all powerwalls)
+
+- unique_id: motion_powerwall_grid
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_powerwall'
+  binary_sensor:
+    - name: 'motion_powerwall_grid'
+      device_class: 'connectivity'
+      state: >-
+        {% set n = 'grid_status' %}
+        {% set s = state_attr('binary_sensor.motion_powerwall','ids') %}
+        {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+          {%- for i in s -%}
+            {% set o = loop %}
+            {%- for e in states.binary_sensor if 'binary_sensor.' + n in e.entity_id
+                and e.state|lower != 'unavailable' 
+                and e.state|lower != 'unknown'
+                and 'device_class' in e.attributes
+                and e.attributes.device_class|lower != 'none' %}
+              {%- if not o.first or not loop.first -%}{% else %}{{ e.state }}{%- endif -%}
+            {%- else -%}null{%- endfor -%}
+          {%- endfor -%}
+        {%- else -%}null{%- endif %}
+
+# grid_services (for all powerwalls)
+
+- unique_id: motion_powerwall_grid_services
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_powerwall'
+  binary_sensor:
+    - name: 'motion_powerwall_grid_services'
+      device_class: 'connectivity'
+      state: >-
+        {% set n = 'grid_services_active' %}
+        {% set s = state_attr('binary_sensor.motion_powerwall','ids') %}
+        {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+          {%- for i in s -%}
+            {% set o = loop %}
+            {%- for e in states.binary_sensor if 'binary_sensor.' + n in e.entity_id
+                and e.state|lower != 'unavailable' 
+                and e.state|lower != 'unknown'
+                and 'device_class' in e.attributes
+                and e.attributes.device_class|lower != 'none' %}
+              {%- if not o.first or not loop.first -%}{% else %}{{ e.state }}{%- endif -%}
+            {%- else -%}null{%- endfor -%}
+          {%- endfor -%}
+        {%- else -%}null{%- endif %}
+
+# internet
+
+- unique_id: motion_powerwall_connected
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_powerwall'
+  binary_sensor:
+    - name: 'motion_powerwall_connected'
+      device_class: 'connectivity'
+      state: >-
+        {% set n = 'connected_to_tesla' %}
+        {% set s = state_attr('binary_sensor.motion_powerwall','ids') %}
+        {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+          {%- for i in s -%}
+            {% set o = loop %}
+            {%- for e in states.binary_sensor if 'sensor.' + i + '_' + n in e.entity_id
+                and e.state|lower != 'unavailable' 
+                and e.state|lower != 'unknown'
+                and 'device_class' in e.attributes
+                and e.attributes.device_class|lower != 'none' %}
+              {%- if not o.first or not loop.first -%}{% else %}{{ e.state }}{%- endif -%}
+            {%- else -%}null{%- endfor -%}
+          {%- endfor -%}
+        {%- else -%}null{%- endif %}
+
+# status
+
+- unique_id: motion_powerwall_status
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_powerwall'
+  binary_sensor:
+    - name: 'motion_powerwall_status'
+      device_class: 'power'
+      state: >-
+        {% set n = 'status' %}
+        {% set s = state_attr('binary_sensor.motion_powerwall','ids') %}
+        {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+          {%- for i in s -%}
+            {% set o = loop %}
+            {%- for e in states.binary_sensor if 'sensor.' + i + '_' + n in e.entity_id
+                and e.state|lower != 'unavailable' 
+                and e.state|lower != 'unknown'
+                and 'device_class' in e.attributes
+                and e.attributes.device_class|lower != 'none' %}
+              {%- if not o.first or not loop.first -%}{% else %}{{ e.state }}{%- endif -%}
+            {%- else -%}null{%- endfor -%}
+          {%- endfor -%}
+        {%- else -%}null{%- endif %}
+
+## battery_charging
+
+- unique_id: motion_powerwall_charging
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_powerwall'
+  binary_sensor:
+    - name: 'motion_powerwall_charging'
+      device_class: 'battery_charging'
+      state: >-
+        {% set n = 'charging' %}
+        {% set s = state_attr('binary_sensor.motion_powerwall','ids') %}
+        {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+          {%- for i in s -%}
+            {% set o = loop %}
+            {%- for e in states.binary_sensor if 'sensor.' + i + '_' + n in e.entity_id
+                and e.state|lower != 'unavailable' 
+                and e.state|lower != 'unknown'
+                and 'device_class' in e.attributes
+                and e.attributes.device_class|lower != 'none' %}
+              {%- if not o.first or not loop.first -%}{% else %}{{ e.state }}{%- endif -%}
+            {%- else -%}null{%- endfor -%}
+          {%- endfor -%}
+        {%- else -%}null{%- endif %}
+
+## battery
+
+- unique_id: motion_powerwall_charge
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_powerwall'
+  sensor:
+    - name: 'motion_powerwall_charge'
+      state_class: 'measurement'
+      device_class: 'battery'
+      unit_of_measurement: '%'
+      state: >-
+        {% set n = 'charge' %}
+        {% set s = state_attr('binary_sensor.motion_powerwall','ids') %}
+        {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+          {%- for i in s -%}
+            {% set o = loop %}
+            {%- for e in states.sensor if 'sensor.' + i + '_' + n in e.entity_id
+                and e.state|lower != 'unavailable' 
+                and e.state|lower != 'unknown'
+                and 'device_class' in e.attributes
+                and e.attributes.device_class|lower != 'none' %}
+              {%- if not o.first or not loop.first -%}{% else %}{{ e.state|float(0.0) }}{%- endif -%}
+            {%- else -%}null{%- endfor -%}
+          {%- endfor -%}
+        {%- else -%}null{%- endif %}
+
+## energy
+
+# battery
+
+- unique_id: motion_powerwall_battery_now
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_powerwall'
+  sensor:
+    - name: 'motion_powerwall_battery_now'
+      state_class: 'measurement'
+      device_class: 'power'
+      unit_of_measurement: 'kW'
+      state: >-
+        {% set n = 'battery_now' %}
+        {% set s = state_attr('binary_sensor.motion_powerwall','ids') %}
+        {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+          {%- for i in s -%}
+            {% set o = loop %}
+            {%- for e in states.sensor if 'sensor.' + i + '_' + n in e.entity_id
+              and e.state|lower != 'unavailable' 
+              and e.state|lower != 'unknown'
+              and 'device_class' in e.attributes
+              and e.attributes.device_class|lower != 'none' %}
+              {%- if not o.first or not loop.first -%}{% else %}{{ e.state|float(0.0) }}{%- endif -%}
+            {%- else -%}null{%- endfor -%}
+          {%- endfor -%}
+        {%- else -%}null{%- endif %}
+    - name: 'motion_powerwall_battery_watts'
+      state_class: 'measurement'
+      device_class: 'power'
+      unit_of_measurement: 'W'
+      state: >-
+        {% set n = 'battery_now' %}
+        {% set s = state_attr('binary_sensor.motion_powerwall','ids') %}
+        {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+          {%- for i in s -%}
+            {% set o = loop %}
+            {%- for e in states.sensor if 'sensor.' + i + '_' + n in e.entity_id
+              and e.state|lower != 'unavailable' 
+              and e.state|lower != 'unknown'
+              and 'device_class' in e.attributes
+              and e.attributes.device_class|lower != 'none' %}
+              {%- if not o.first or not loop.first -%}{% else %}{{ e.state|float(0.0) * 1000 }}{%- endif -%}
+            {%- else -%}null{%- endfor -%}
+          {%- endfor -%}
+        {%- else -%}null{%- endif %}
+
+# battery
+
+# battery
+
+- unique_id: motion_powerwall_battery_energy
+  trigger:
+    - platform: state
+      entity_id: 'sensor.motion_powerwall_battery_import'
+    - platform: state
+      entity_id: 'sensor.motion_powerwall_battery_export'
+  sensor:
+    - name: 'motion_powerwall_battery_energy'
+      state_class: 'total'
+      device_class: 'energy'
+      unit_of_measurement: 'kWh'
+      state: >-
+        {% set import = states('sensor.motion_powerwall_battery_import') %}
+        {% set export = states('sensor.motion_powerwall_battery_export') %}
+        {% if import|lower != 'none' and import|lower != 'null' and import|lower != 'unavailable' and import|lower != 'unknown'
+           and export|lower != 'none' and export|lower != 'null' and export|lower != 'unavailable' and export|lower != 'unknown' %}
+          {{ '%0.2f'|format(export|float(0.0) - import|float(0.0)) }}
+        {%- else -%}null{%- endif %}
+
+- unique_id: motion_powerwall_battery_import
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_powerwall'
+  sensor:
+    - name: 'motion_powerwall_battery_import'
+      state_class: 'total_increasing'
+      device_class: 'energy'
+      unit_of_measurement: 'kWh'
+      state: >-
+          {% set n = 'battery_import' %}
+          {% set s = state_attr('binary_sensor.motion_powerwall','ids') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+            {%- for i in s -%}
+              {% set o = loop %}
+              {%- for e in states.sensor if 'sensor.' + i + '_' + n in e.entity_id
+                and e.state|lower != 'unavailable' 
+                and e.state|lower != 'unknown'
+                and 'device_class' in e.attributes
+                and e.attributes.device_class|lower != 'none' %}
+                {%- if not o.first or not loop.first -%}{% else %}{{ e.state|float(0.0) }}{%- endif -%}
+              {%- else -%}null{%- endfor -%}
+            {%- endfor -%}
+          {%- else -%}null{%- endif %}
+
+- unique_id: motion_powerwall_battery_export
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_powerwall'
+  sensor:
+    - name: 'motion_powerwall_battery_export'
+      state_class: 'total_increasing'
+      device_class: 'energy'
+      unit_of_measurement: 'kWh'
+      state: >-
+          {% set n = 'battery_export' %}
+          {% set s = state_attr('binary_sensor.motion_powerwall','ids') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+            {%- for i in s -%}
+              {% set o = loop %}
+              {%- for e in states.sensor if 'sensor.' + i + '_' + n in e.entity_id
+                and e.state|lower != 'unavailable' 
+                and e.state|lower != 'unknown'
+                and 'device_class' in e.attributes
+                and e.attributes.device_class|lower != 'none' %}
+                {%- if not o.first or not loop.first -%}{% else %}{{ e.state|float(0.0) }}{%- endif -%}
+              {%- else -%}null{%- endfor -%}
+            {%- endfor -%}
+          {%- else -%}null{%- endif %}
+
+# load
+
+- unique_id: motion_powerwall_load_now
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_powerwall'
+  sensor:
+    - name: 'motion_powerwall_load_now'
+      state_class: 'measurement'
+      device_class: 'power'
+      unit_of_measurement: 'kW'
+      state: >-
+        {% set n = 'load_now' %}
+        {% set s = state_attr('binary_sensor.motion_powerwall','ids') %}
+        {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+          {%- for i in s -%}
+            {% set o = loop %}
+            {%- for e in states.sensor if 'sensor.' + i + '_' + n in e.entity_id
+                and e.state|lower != 'unavailable' 
+                and e.state|lower != 'unknown'
+                and 'device_class' in e.attributes
+                and e.attributes.device_class|lower != 'none' %}
+              {%- if not o.first or not loop.first -%}{% else %}{{ e.state|float(0.0) }}{%- endif -%}
+            {%- else -%}null{%- endfor -%}
+          {%- endfor -%}
+        {%- else -%}null{%- endif %}
+    - name: 'motion_powerwall_load_watts'
+      state_class: 'measurement'
+      device_class: 'power'
+      unit_of_measurement: 'W'
+      state: >-
+        {% set n = 'load_now' %}
+        {% set s = state_attr('binary_sensor.motion_powerwall','ids') %}
+        {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+          {%- for i in s -%}
+            {% set o = loop %}
+            {%- for e in states.sensor if 'sensor.' + i + '_' + n in e.entity_id
+                and e.state|lower != 'unavailable' 
+                and e.state|lower != 'unknown'
+                and 'device_class' in e.attributes
+                and e.attributes.device_class|lower != 'none' %}
+              {%- if not o.first or not loop.first -%}{% else %}{{ e.state|float(0.0) * 1000 }}{%- endif -%}
+            {%- else -%}null{%- endfor -%}
+          {%- endfor -%}
+        {%- else -%}null{%- endif %}
+
+- unique_id: motion_powerwall_load_energy
+  trigger:
+    - platform: state
+      entity_id: 'sensor.motion_powerwall_load_import'
+    - platform: state
+      entity_id: 'sensor.motion_powerwall_load_export'
+  sensor:
+    - name: 'motion_powerwall_load_energy'
+      state_class: 'total'
+      device_class: 'energy'
+      unit_of_measurement: 'kWh'
+      state: >-
+        {% set import = states('sensor.motion_powerwall_load_import') %}
+        {% set export = states('sensor.motion_powerwall_load_export') %}
+        {% if import|lower != 'none' and import|lower != 'null' and import|lower != 'unavailable' and import|lower != 'unknown'
+           and export|lower != 'none' and export|lower != 'null' and export|lower != 'unavailable' and export|lower != 'unknown' %}
+          {{ '%0.2f'|format(export|float(0.0) - import|float(0.0)) }}
+        {%- else -%}null{%- endif %}
+
+- unique_id: motion_powerwall_load_import
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_powerwall'
+  sensor:
+    - name: 'motion_powerwall_load_import'
+      state_class: 'total_increasing'
+      device_class: 'energy'
+      unit_of_measurement: 'kWh'
+      state: >-
+          {% set n = 'load_import' %}
+          {% set s = state_attr('binary_sensor.motion_powerwall','ids') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+            {%- for i in s -%}
+              {% set o = loop %}
+              {%- for e in states.sensor if 'sensor.' + i + '_' + n in e.entity_id
+                and e.state|lower != 'unavailable' 
+                and e.state|lower != 'unknown'
+                and 'device_class' in e.attributes
+                and e.attributes.device_class|lower != 'none' %}
+              {%- if not o.first or not loop.first -%}{% else %}{{ e.state|float(0.0) }}{%- endif -%}
+            {%- else -%}null{%- endfor -%}
+            {%- endfor -%}
+          {%- else -%}null{%- endif %}
+
+- unique_id: motion_powerwall_load_export
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_powerwall'
+  sensor:
+    - name: 'motion_powerwall_load_export'
+      state_class: 'total_increasing'
+      device_class: 'energy'
+      unit_of_measurement: 'kWh'
+      state: >-
+          {% set n = 'load_export' %}
+          {% set s = state_attr('binary_sensor.motion_powerwall','ids') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+            {%- for i in s -%}
+              {% set o = loop %}
+              {%- for e in states.sensor if 'sensor.' + i + '_' + n in e.entity_id
+                  and e.state|lower != 'unavailable' 
+                  and e.state|lower != 'unknown'
+                  and 'device_class' in e.attributes
+                  and e.attributes.device_class|lower != 'none' %}
+                {%- if not o.first or not loop.first -%}{% else %}{{ e.state|float(0.0) }}{%- endif -%}
+              {%- else -%}null{%- endfor -%}
+            {%- endfor -%}
+          {%- else -%}null{%- endif %}
+
+# solar
+
+- unique_id: motion_powerwall_solar_now
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_powerwall'
+  sensor:
+    - name: 'motion_powerwall_solar_now'
+      state_class: 'measurement'
+      device_class: 'power'
+      unit_of_measurement: 'kW'
+      state: >-
+          {% set n = 'solar_now' %}
+          {% set s = state_attr('binary_sensor.motion_powerwall','ids') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+            {%- for i in s -%}
+              {% set o = loop %}
+              {%- for e in states.sensor if 'sensor.' + i + '_' + n in e.entity_id
+                and e.state|lower != 'unavailable' 
+                and e.state|lower != 'unknown'
+                and 'device_class' in e.attributes
+                and e.attributes.device_class|lower != 'none' %}
+                {%- if not o.first or not loop.first -%}{% else %}{{ e.state|float(0.0) }}{%- endif -%}
+              {%- else -%}null{%- endfor -%}
+            {%- endfor -%}
+          {%- else -%}null{%- endif %}
+    - name: 'motion_powerwall_solar_watts'
+      state_class: 'measurement'
+      device_class: 'power'
+      unit_of_measurement: 'W'
+      state: >-
+          {% set n = 'solar_now' %}
+          {% set s = state_attr('binary_sensor.motion_powerwall','ids') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+            {%- for i in s -%}
+              {% set o = loop %}
+              {%- for e in states.sensor if 'sensor.' + i + '_' + n in e.entity_id
+                and e.state|lower != 'unavailable' 
+                and e.state|lower != 'unknown'
+                and 'device_class' in e.attributes
+                and e.attributes.device_class|lower != 'none' %}
+                {%- if not o.first or not loop.first -%}{% else %}{{ e.state|float(0.0) * 1000 }}{%- endif -%}
+              {%- else -%}null{%- endfor -%}
+            {%- endfor -%}
+          {%- else -%}null{%- endif %}
+
+- unique_id: motion_powerwall_solar_energy
+  trigger:
+    - platform: state
+      entity_id: 'sensor.motion_powerwall_solar_import'
+    - platform: state
+      entity_id: 'sensor.motion_powerwall_solar_export'
+  sensor:
+    - name: 'motion_powerwall_solar_energy'
+      state_class: 'total'
+      device_class: 'energy'
+      unit_of_measurement: 'kWh'
+      state: >-
+        {% set import = states('sensor.motion_powerwall_solar_import') %}
+        {% set export = states('sensor.motion_powerwall_solar_export') %}
+        {% if import|lower != 'none' and import|lower != 'null' and import|lower != 'unavailable' and import|lower != 'unknown'
+           and export|lower != 'none' and export|lower != 'null' and export|lower != 'unavailable' and export|lower != 'unknown' %}
+          {{ '%0.2f'|format(export|float(0.0) - import|float(0.0)) }}
+        {%- else -%}null{%- endif %}
+
+- unique_id: motion_powerwall_solar_import
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_powerwall'
+  sensor:
+    - name: 'motion_powerwall_solar_import'
+      state_class: 'total_increasing'
+      device_class: 'energy'
+      unit_of_measurement: 'kWh'
+      state: >-
+          {% set n = 'solar_import' %}
+          {% set s = state_attr('binary_sensor.motion_powerwall','ids') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+            {%- for i in s -%}
+              {% set o = loop %}
+              {%- for e in states.sensor if 'sensor.' + i + '_' + n in e.entity_id
+                and e.state|lower != 'unavailable' 
+                and e.state|lower != 'unknown'
+                and 'device_class' in e.attributes
+                and e.attributes.device_class|lower != 'none' %}
+                {%- if not o.first or not loop.first -%}{% else %}{{ e.state|float(0.0) }}{%- endif -%}
+              {%- else -%}null{%- endfor -%}
+            {%- endfor -%}
+          {%- else -%}null{%- endif %}
+
+- unique_id: motion_powerwall_solar_export
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_powerwall'
+  sensor:
+    - name: 'motion_powerwall_solar_export'
+      state_class: 'total_increasing'
+      device_class: 'energy'
+      unit_of_measurement: 'kWh'
+      state: >-
+          {% set n = 'solar_export' %}
+          {% set s = state_attr('binary_sensor.motion_powerwall','ids') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+            {%- for i in s -%}
+              {% set o = loop %}
+              {%- for e in states.sensor if 'sensor.' + i + '_' + n in e.entity_id
+                and e.state|lower != 'unavailable' 
+                and e.state|lower != 'unknown'
+                and 'device_class' in e.attributes
+                and e.attributes.device_class|lower != 'none' %}
+                {%- if not o.first or not loop.first -%}{% else %}{{ e.state|float(0.0) }}{%- endif -%}
+              {%- else -%}null{%- endfor -%}
+            {%- endfor -%}
+          {%- else -%}null{%- endif %}
+
+# site
+
+- unique_id: motion_powerwall_site_now
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_powerwall'
+  sensor:
+    - name: 'motion_powerwall_site_now'
+      state_class: 'measurement'
+      device_class: 'power'
+      unit_of_measurement: 'kW'
+      state: >-
+        {% set n = 'site_now' %}
+        {% set s = state_attr('binary_sensor.motion_powerwall','ids') %}
+        {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+          {%- for i in s -%}
+            {% set o = loop %}
+            {%- for e in states.sensor if 'sensor.' + i + '_' + n in e.entity_id
+                and e.state|lower != 'unavailable' 
+                and e.state|lower != 'unknown'
+                and 'device_class' in e.attributes
+                and e.attributes.device_class|lower != 'none' %}
+              {%- if not o.first or not loop.first -%}{% else %}{{ e.state|float(0.0) }}{%- endif -%}
+            {%- else -%}null{%- endfor -%}
+          {%- endfor -%}
+        {%- else -%}null{%- endif %}
+    - name: 'motion_powerwall_site_watts'
+      state_class: 'measurement'
+      device_class: 'power'
+      unit_of_measurement: 'W'
+      state: >-
+        {% set n = 'site_now' %}
+        {% set s = state_attr('binary_sensor.motion_powerwall','ids') %}
+        {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+          {%- for i in s -%}
+            {% set o = loop %}
+            {%- for e in states.sensor if 'sensor.' + i + '_' + n in e.entity_id
+                and e.state|lower != 'unavailable' 
+                and e.state|lower != 'unknown'
+                and 'device_class' in e.attributes
+                and e.attributes.device_class|lower != 'none' %}
+              {%- if not o.first or not loop.first -%}{% else %}{{ e.state|float(0.0) * 1000 }}{%- endif -%}
+            {%- else -%}null{%- endfor -%}
+          {%- endfor -%}
+        {%- else -%}null{%- endif %}
+
+- unique_id: motion_powerwall_site_energy
+  trigger:
+    - platform: state
+      entity_id: 'sensor.motion_powerwall_site_import'
+    - platform: state
+      entity_id: 'sensor.motion_powerwall_site_export'
+  sensor:
+    - name: 'motion_powerwall_site_energy'
+      state_class: 'total'
+      device_class: 'energy'
+      unit_of_measurement: 'kWh'
+      state: >-
+        {% set import = states('sensor.motion_powerwall_site_import') %}
+        {% set export = states('sensor.motion_powerwall_site_export') %}
+        {% if import|lower != 'none' and import|lower != 'null' and import|lower != 'unavailable' and import|lower != 'unknown'
+           and export|lower != 'none' and export|lower != 'null' and export|lower != 'unavailable' and export|lower != 'unknown' %}
+          {{ '%0.2f'|format(export|float(0.0) - import|float(0.0)) }}
+        {%- else -%}null{%- endif %}
+
+- unique_id: motion_powerwall_site_import
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_powerwall'
+  sensor:
+    - name: 'motion_powerwall_site_import'
+      state_class: 'total_increasing'
+      device_class: 'energy'
+      unit_of_measurement: 'kWh'
+      state: >-
+          {% set n = 'site_import' %}
+          {% set s = state_attr('binary_sensor.motion_powerwall','ids') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+            {%- for i in s -%}
+              {% set o = loop %}
+              {%- for e in states.sensor if 'sensor.' + i + '_' + n in e.entity_id
+                and e.state|lower != 'unavailable' 
+                and e.state|lower != 'unknown'
+                and 'device_class' in e.attributes
+                and e.attributes.device_class|lower != 'none' %}
+                {%- if not o.first or not loop.first -%}{% else %}{{ e.state|float(0.0) }}{%- endif -%}
+              {%- else -%}null{%- endfor -%}
+            {%- endfor -%}
+          {%- else -%}null{%- endif %}
+
+- unique_id: motion_powerwall_site_export
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_powerwall'
+  sensor:
+    - name: 'motion_powerwall_site_export'
+      state_class: 'total_increasing'
+      device_class: 'energy'
+      unit_of_measurement: 'kWh'
+      state: >-
+          {% set n = 'site_export' %}
+          {% set s = state_attr('binary_sensor.motion_powerwall','ids') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+            {%- for i in s -%}
+              {% set o = loop %}
+              {%- for e in states.sensor if 'sensor.' + i + '_' + n in e.entity_id
+                and e.state|lower != 'unavailable' 
+                and e.state|lower != 'unknown'
+                and 'device_class' in e.attributes
+                and e.attributes.device_class|lower != 'none' %}
+                {%- if not o.first or not loop.first -%}{% else %}{{ e.state|float(0.0) }}{%- endif -%}
+              {%- else -%}null{%- endfor -%}
+            {%- endfor -%}
+          {%- else -%}null{%- endif %}
+
+## total
+
+# power
+
+- unique_id: motion_powerwall_total_now
+  trigger:
+    - platform: state
+      entity_id: 'sensor.motion_powerwall_battery_now'
+    - platform: state
+      entity_id: 'sensor.motion_powerwall_load_now'
+    - platform: state
+      entity_id: 'sensor.motion_powerwall_solar_now'
+  sensor:
+    - name: 'motion_powerwall_total_now'
+      state_class: 'measurement'
+      device_class: 'power'
+      unit_of_measurement: 'kW'
+      state: >-
+        {% set be = states('sensor.motion_powerwall_battery_now') %}
+        {% set le = states('sensor.motion_powerwall_load_now') %}
+        {% set se = states('sensor.motion_powerwall_solar_now') %}
+        {% if be|lower != 'none' and be|lower != 'null' and be|lower != 'unavailable' and be|lower != 'unknown'
+           and le|lower != 'none' and le|lower != 'null' and le|lower != 'unavailable' and le|lower != 'unknown'
+           and se|lower != 'none' and se|lower != 'null' and se|lower != 'unavailable' and se|lower != 'unknown' %}
+          {{ '%0.2f'|format(be|float(0.0) + le|float(0.0) + se|float(0.0)) }}
+        {%- else -%}null{%- endif %}
+
+# energy
+
+- unique_id: motion_powerwall_total_energy
+  trigger:
+    - platform: state
+      entity_id: 'sensor.motion_powerwall_battery_energy'
+    - platform: state
+      entity_id: 'sensor.motion_powerwall_load_energy'
+    - platform: state
+      entity_id: 'sensor.motion_powerwall_solar_energy'
+  sensor:
+    - name: 'motion_powerwall_total_energy'
+      state_class: 'total'
+      device_class: 'energy'
+      unit_of_measurement: 'kWh'
+      state: >-
+        {% set be = states('sensor.motion_powerwall_battery_energy') %}
+        {% set le = states('sensor.motion_powerwall_load_energy') %}
+        {% set se = states('sensor.motion_powerwall_solar_energy') %}
+        {% if be|lower != 'none' and be|lower != 'null' and be|lower != 'unavailable' and be|lower != 'unknown'
+           and le|lower != 'none' and le|lower != 'null' and le|lower != 'unavailable' and le|lower != 'unknown'
+           and se|lower != 'none' and se|lower != 'null' and se|lower != 'unavailable' and se|lower != 'unknown' %}
+          {{ '%0.2f'|format(be|float(0.0) + le|float(0.0) + se|float(0.0)) }}
+        {%- else -%}null{%- endif %}

@@ -1,0 +1,687 @@
+###
+# homeassistant/automation/motion/shelly_occupancy.yaml
+###
+
+- id: motion_shellies_occupancy_counter
+  alias: motion_shellies_occupancy_counter
+  initial_state: off
+  mode: queued
+  trigger:
+    platform: state
+    entity_id: binary_sensor.motion_shellies_occupancy
+    to: 'on'
+  action:
+    - service: counter.increment
+      entity_id: counter.motion_shellies_occupancy
+
+# set sensitivity
+
+- id: motion_shellies_occupancy_selected_sensitivity
+  alias: motion_shellies_occupancy_selected_sensitivity
+  initial_state: off
+  mode: single
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_shellies_occupancy_selected_settings
+      attribute: sensivitity
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ trigger.to_state is number and trigger.to_state|int(0) < 256 }}
+      - condition: template
+        value_template: >-
+          {% set s = state_attr('sensor.motion_shellies_occupancy_selected_settings','sensitivity') %}
+          {{ s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'none' }}
+  variables:
+    sensor: >-
+      {%- set s = state_attr('group.motion_shellies_occupancy','entity_id') -%}
+      {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s is iterable and s|length > 0 %}
+        {% for i in s if state_attr(sensor,'id') == states('input_select.motion_shellies_occupancy') %}
+          {% if loop.first %}
+            {{ i }}
+          {%- else -%}null{%- endif %}
+        {% endfor %}
+      {%- else -%}null{%- endif %}
+  action:
+    - alias: 'sensor good?'
+      condition: and
+      conditions:
+        - condition: template
+          value_template: >
+            {{ sensor|lower != 'null' }}
+        - condition: template
+          value_template: >
+            {{ is_state('input_boolean.motion_shellies_manage_settings','on') }}
+    - alias: 'update sensor.motion_shellies_occupancy_selected_settings_rest'
+      service: homeassistant.update_entity
+      entity_id: sensor.motion_shellies_occupancy_selected_settings_rest
+
+# set LOCATION
+
+- id: motion_shellies_occupancy_selected_location
+  alias: motion_shellies_occupancy_selected_location
+  initial_state: off
+  mode: single
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_shellies_occupancy_selected_settings
+      attribute: location
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ trigger.from_state != trigger.to_state and ( trigger.to_state|lower == 'on' or trigger.to_state|lower == 'off' ) }}
+      - condition: template
+        value_template: >-
+          {% set s = state_attr('sensor.motion_shellies_occupancy_selected_settings','location') %}
+          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s is iterable and s|length == 2 }}
+  variables:
+    latitude: >-
+      {{ state_attr('sensor.motion_shellies_occupancy_selected_settings','location')|first }}
+    longitude: >-
+      {{ state_attr('sensor.motion_shellies_occupancy_selected_settings','location')|last }}
+    sensor: >-
+      {%- set s = state_attr('group.motion_shellies_occupancy','entity_id') -%}
+      {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s is iterable and s|length > 0 %}
+        {% for i in s if state_attr(sensor,'id') == states('input_select.motion_shellies_occupancy') %}
+          {% if loop.first %}
+            {{ i }}
+          {%- else -%}null{%- endif %}
+        {% endfor %}
+      {%- else -%}null{%- endif %}
+  action:
+    - alias: 'sensor good?'
+      condition: and
+      conditions:
+        - condition: template
+          value_template: >
+            {{ sensor|lower != 'null' }}
+        - condition: template
+          value_template: >
+            {{ is_state('input_boolean.motion_shellies_manage_settings','on') }}
+    - alias: 'set sensor.motion_shellies_occupancy_selected_settings'
+      service: python_script.set_state
+      data_template:
+        allow_create: true
+        entity_id: sensor.motion_shellies_occupancy_selected_settings
+        latitude: >-
+          {{ latitude }}
+        longitude: >-
+          {{ longitude }}
+        state: >-
+          {{ 'set' }}
+    - alias: 'update sensor.motion_shellies_occupancy_selected_settings_rest'
+      service: homeassistant.update_entity
+      entity_id: sensor.motion_shellies_occupancy_selected_settings_rest
+
+# set LED
+
+- id: motion_shellies_occupancy_selected_led
+  alias: motion_shellies_occupancy_selected_led
+  initial_state: off
+  mode: single
+  trigger:
+    - platform: state
+      entity_id: input_boolean.motion_shellies_occupancy_selected
+      attribute: led
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ trigger.from_state != trigger.to_state and ( trigger.to_state|lower == 'on' or trigger.to_state|lower == 'off' ) }}
+  action:
+    - alias: 'specify LED for selected occupancy sensor'
+      service: homeassistant.update_entity
+      entity_id: sensor.motion_shellies_occupancy_selected_settings_rest
+
+# set active
+
+- id: motion_shellies_occupancy_selected_active
+  alias: motion_shellies_occupancy_selected_active
+  initial_state: off
+  mode: single
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_shellies_occupancy_selected
+      attribute: active
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ trigger.from_state != trigger.to_state and ( trigger.to_state|lower == 'on' or trigger.to_state|lower == 'off' ) }}
+  action:
+    - alias: 'specify active for selected occupancy sensor'
+      service: homeassistant.update_entity
+      entity_id: sensor.motion_shellies_occupancy_selected_settings_rest
+
+# update occupancy group on binary_sensor
+
+- id: motion_shellies_occupancy_group_update
+  alias: motion_shellies_occupancy_group_update
+  initial_state: off
+  mode: restart
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_shellies_occupancy
+  variables:
+    status: >-
+      {%- set s = state_attr('group.motion_shellies_occupancy','entity_id') -%}
+      {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' -%}
+        [{%- for i in s -%}
+          {%- if not loop.first -%},{%- endif -%}
+          "{{- states(i) -}}"
+        {%- endfor -%}]
+      {%- else -%}null{%- endif -%}
+  action:
+    - alias: 'set group.motion_shellies_occupancy'
+      service: python_script.set_state
+      data_template:
+        allow_create: true
+        entity_id: >-
+          {{ 'group.motion_shellies_occupancy' }}
+        state: >-
+          {% if status|lower != 'null' and status is iterable %}
+            {% if status|select('==','on')|list|length > 0 %}on{% else %}off{% endif %}
+          {% else %}off{% endif %}
+
+# update on motion start
+
+- id: motion_shellies_occupancy_start
+  alias: motion_shellies_occupancy_start
+  mode: queued
+  initial_state: off
+  trigger:
+    platform: state
+    entity_id: binary_sensor.motion_shellies_occupancy
+    to: 'on'
+  variables:
+    to_state: >-
+      {% set s = trigger.to_state -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' -%}
+        {{- 'on' -}}
+      {%- else -%}{{- 'off' -}}{%- endif %}
+    sensor: >-
+      {% set s = state_attr('binary_sensor.motion_shellies_occupancy','sensor') %}
+      {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|length > 0 %}
+        {{ s }}
+      {% else %}null{% endif %}
+    last: >-
+      {{ utcnow().timestamp()|int(0) }}
+    when: >-
+      {{ last|timestamp_custom("%a %b %d %I:%M:%S %p %Z",true,'unknown') }}
+  action:
+    - alias: 'condition: sensor good?'
+      condition: and
+      conditions:
+        - condition: template
+          value_template: >-
+            {{ sensor|lower != 'null' }}
+    - alias: 'set on: binary_sensor.motion_shelly_occupancy_<mac>'
+      service: python_script.set_state
+      data_template:
+        allow_create: true
+        entity_id: >-
+          {{ sensor }}
+        when: >-
+          {{ when }}
+        last: >- 
+          {{ last }}
+        start: >-
+          {{ last }}
+        end: >-
+          {{- 'null' -}}
+        state: >-
+          {{- 'on' -}}
+    - alias: 'set_state: sensor.motion_shellies_occupancy'
+      service: python_script.set_state
+      data_template:
+        entity_id: >-
+          {{- 'sensor.motion_shellies_occupancy' -}}
+        sensor: >-
+          {{ sensor }}
+        last: >-
+          {{ last }}
+        when: >-
+          {{ when }}
+        icon: >-
+          {{- 'mdi:motion-sensor' -}}
+        state: >-
+          {{- to_state -}}
+
+- id: motion_shellies_occupancy_end
+  alias: motion_shellies_occupancy_end
+  mode: queued
+  initial_state: off
+  trigger:
+    platform: state
+    entity_id: binary_sensor.motion_shellies_occupancy
+    to: 'off'
+  variables:
+    sensor: >-
+      {% set s = state_attr('binary_sensor.motion_shellies_occupancy','sensor') %}
+      {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|length > 0 %}
+        {{ s }}
+      {% else %}null{% endif %}
+    last: >-
+      {{ utcnow().timestamp() }}
+    start: >-
+      {% if sensor|lower != 'null' %}
+        {% set s = state_attr(sensor,'start') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int(0) > 0 %}
+          {{ s }}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    when: >-
+      {% if start|lower != 'null' %}
+        {{ start|timestamp_custom("%a %b %d %I:%M:%S %p %Z",true,'unknown') }}
+      {% else %}null{% endif %}
+    duration: >-
+      {% if start|lower != 'null' %}
+        {{ last|float(0.0) - start|float(0.0) }}
+      {% else %}null{% endif %}
+  action:
+    - alias: 'condition: sensor good?'
+      condition: and
+      conditions:
+        - condition: template
+          value_template: >-
+            {{ sensor|lower != 'null' }}
+    - alias: 'set_state: sensor.motion_shellies_occupancy'
+      service: python_script.set_state
+      data_template:
+        entity_id: >-
+          {{- 'sensor.motion_shellies_occupancy' -}}
+        sensor: >-
+          {{ sensor }}
+        latitude: >-
+          {{ state_attr(sensor,'latitude') }}
+        longitude: >-
+          {{ state_attr(sensor,'longitude') }}
+        last: >-
+          {{ last }}
+        when: >-
+          {{ when }}
+        icon: >-
+          {{- 'mdi:motion-sensor-off' -}}
+        duration: >-
+          {{ duration }}
+        ago: >-
+          {{ utcnow().timestamp()|float(0.0) - start|float(0.0) }}
+        state: >-
+          {{- 'none' -}}
+    - alias: 'set off: binary_sensor.motion_shelly_occupancy_<mac>'
+      service: python_script.set_state
+      data_template:
+        allow_create: true
+        entity_id: >-
+          {{- sensor -}}
+        when: >-
+          {{ when }}
+        last: >-
+          {{ last }}
+        end: >-
+          {{ last }}
+        duration: >-
+          {{ duration }}
+        ago: >-
+          {{ utcnow().timestamp()|float(0.0) - start|float(0.0) }}
+        state: >-
+          {{- 'off' -}}
+
+- id: motion_shellies_occupancy_selected_settings_rest
+  alias: motion_shellies_occupancy_selected_settings_rest
+  initial_state: off
+  mode: queued
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_shellies_occupancy_selected_settings_rest
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {% set s = states('sensor.motion_shellies_occupancy_selected_settings_rest') %}
+          {{ s|lower == 'true' }}
+  variables:
+    sensor: >-
+      {% set s = state_attr('sensor.motion_shellies_occupancy_selected_settings_rest','device') %}
+      {% if s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'none' %}
+        {{ 'binary_sensor.motion_shelly_occupancy_' + s.mac|lower }}
+      {% else %}null{% endif %}
+    settings: >-
+      {{ states.sensor.motion_shellies_occupancy_selected_settings_rest.attributes }}
+    motion: >-
+      {% if settings|lower != 'null' %}
+        {% if 'motion' in settings %}
+          {% set s = settings.motion %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    blind_time: >-
+      {% if motion|lower != 'null' %}
+        {{ motion.blind_time_minutes|int(0) }}
+      {% else %}null{% endif %}
+    pulse_count: >-
+      {% if motion|lower != 'null' %}
+        {{ motion.pulse_count|int(0) }}
+      {% else %}null{% endif %}
+    sensitivity: >-
+      {% if motion|lower != 'null' %}
+        {{ (motion.sensitivity|float(0.0) / 256.0 * 100.0)|int(0) }}
+      {% else %}null{% endif %}
+    active: >-
+      {% if motion|lower != 'null' %}
+        {{ motion.enabled|lower == 'true' }}
+      {% else %}null{% endif %}
+    led: >-
+      {% if settings|lower != 'null' %}
+        {% if 'led_status_disable' in settings %}
+          {% if settings.led_status_disable|lower == 'true' %}
+            {% set s = 'off' %}
+          {% else %}
+            {% set s = 'on' %}
+          {% endif %}
+        {% endif %}
+      {% endif %}
+      {% if s is defined %}{{ s }}{% else %}null{% endif %}
+  action:
+    - alias: 'update settings'
+      service: python_script.set_state
+      data_template:
+        allow_create: true
+        entity_id: >-
+          {{ sensor }}
+        settings: >-
+          {{ settings }}
+        blind_time: >-
+          {{ blind_time }}
+        pulse_count: >-
+          {{ pulse_count }}
+        sensitivity: >-
+          {{ sensitivity }}
+        active: >-
+          {{ active }}
+        led: >-
+          {{ led }}
+        state: >-
+          {{ states(sensor) }}
+
+# update selected occupancy sensor when settings are updated via REST API
+
+- id: motion_shellies_occupancy_selected_select
+  alias: motion_shellies_occupancy_selected_select
+  initial_state: off
+  mode: single
+  trigger:
+    - platform: state
+      entity_id: input_select.motion_shellies_occupancy
+    - platform: state
+      entity_id: sensor.motion_shellies_occupancy_selected_settings_rest
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ states('input_select.motion_shellies_occupancy')|lower != 'none' }}
+      - condition: template
+        value_template: >-
+          {{ states('sensor.motion_shellies_occupancy_selected_settings_rest')|lower == 'true' }}
+  variables:
+    mac: >-
+      {% set s = states('group.motion_shellies_occupancy') -%}
+      {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' -%}
+        {%- set s = state_attr('group.motion_shellies_occupancy','entity_id') -%}
+        {%- if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s is iterable and s|length > 0 %}
+          {% for sensor in s if state_attr(sensor,'id') == states('input_select.motion_shellies_occupancy') %}
+            {% if loop.first %}
+              {{- state_attr(sensor,'mac') -}}
+            {% endif %}
+          {% endfor %}
+        {%- else -%}null{%- endif -%}
+      {%- else -%}null{%- endif %}
+    sensor: >-
+      {% if mac|lower != 'null' %}
+        {{ 'binary_sensor.motion_shelly_occupancy_' + mac|lower }}
+      {% else %}null{% endif %}
+    settings: >-
+      {% if sensor|lower != 'null' %}
+        {% set s = state_attr(sensor,'settings') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+          {{ s }}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    ip: >-
+      {% if sensor|lower != 'null' %}
+        {{ state_attr(sensor,'ip') }}
+      {% else %}null{% endif %}
+    channel: >-
+      {% if sensor|lower != 'null' %}
+        {{ state_attr(sensor,'channel') }}
+      {% else %}null{% endif %}
+    model: >-
+      {% if sensor|lower != 'null' %}
+        {{ state_attr(sensor,'model') }}
+      {% else %}null{% endif %}
+    timezone: >-
+      {% if settings|lower != 'null' %}
+        {% if 'timezone' in settings %}
+          {{ settings.timezone }}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    latitude: >-
+      {% if settings|lower != 'null' %}
+        {% if 'lat' in settings %}
+          {{ settings.lat }}
+        {% else %}{{ state_attr('zone.home','latitude') }}{% endif %}
+      {% else %}null{% endif %}
+    longitude: >-
+      {% if settings|lower != 'null' %}
+        {% if 'lng' in settings %}
+          {{ settings.lng }}
+        {% else %}{{ state_attr('zone.home','longitude') }}{% endif %}
+      {% else %}null{% endif %}
+    distance: >-
+      {% if latitude|lower != 'null' and longitude|lower != 'null' %}
+        {% set s = distance('zone.home',latitude,longitude) %}
+        {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' and s|int(0) is number and s|int(0) < 40075 %}
+          {{ '%0.2f'|format(s|float(0.0) * 1000) }}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    mqtt: >-
+      {% if settings|lower != 'null' %}
+        {% if 'mqtt' in settings %}
+          {% set s = settings.mqtt %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    mqtt_enabled: >-
+      {% if mqtt|lower != 'null' %}
+        {{ mqtt.enable|lower == 'true' }}
+      {% else %}null{% endif %}
+    mqtt_broker: >-
+      {% if mqtt|lower != 'null' %}
+        {{ mqtt.server }}
+      {% else %}null{% endif %}
+    mqtt_username: >-
+      {% if mqtt|lower != 'null' %}
+        {{ mqtt.user }}
+      {% else %}null{% endif %}
+    mqtt_id: >-
+      {% if mqtt|lower != 'null' %}
+        {{ mqtt.id }}
+      {% else %}null{% endif %}
+    mqtt_qos: >-
+      {% if mqtt|lower != 'null' %}
+        {{ mqtt.max_qos }}
+      {% else %}null{% endif %}
+    login: >-
+      {% if settings|lower != 'null' %}
+        {% if 'login' in settings %}
+          {% set s = settings.login %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    login_enabled: >-
+      {% if login|lower != 'null' %}
+        {{ login.enabled|lower == 'true' }}
+      {% else %}null{% endif %}
+    login_unprotected: >-
+      {% if login|lower != 'null' %}
+        {{ login.unprotected|lower == 'true' }}
+      {% else %}null{% endif %}
+    login_username: >-
+      {% if login|lower != 'null' %}
+        {{ login.username }}
+      {% else %}null{% endif %}
+    login_type: >-
+      {% if login|lower != 'null' %}
+        {{ login.auth_type }}
+      {% else %}null{% endif %}
+    motion: >-
+      {% if settings|lower != 'null' %}
+        {% if 'motion' in settings %}
+          {% set s = settings.motion %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    blind_time: >-
+      {% if motion|lower != 'null' %}
+        {{ motion.blind_time_minutes|int(0) }}
+      {% else %}null{% endif %}
+    pulse_count: >-
+      {% if motion|lower != 'null' %}
+        {{ motion.pulse_count|int(0) }}
+      {% else %}null{% endif %}
+    sensitivity: >-
+      {% if motion|lower != 'null' %}
+        {{ (motion.sensitivity|float(0.0) / 256.0 * 100.0)|int(0) }}
+      {% else %}
+        {{ states('input_number.motion_shellies_occupancy_sensitivity') }}
+      {% endif %}
+    active: >-
+      {% if motion|lower != 'null' %}
+        {{ motion.enabled|lower == 'true' }}
+      {% else %}
+        {{ states('input_boolean.motion_shellies_occupancy_active') }}
+      {% endif %}
+    led: >-
+      {% if settings|lower != 'null' %}
+        {% if 'led_status_disable' in settings %}
+          {% if settings.led_status_disable|lower == 'true' %}
+            {% set s = 'off' %}
+          {% else %}
+            {% set s = 'on' %}
+          {% endif %}
+        {% endif %}
+      {% endif %}
+      {% if s is defined %}
+        {{ s }}
+      {% else %}
+        {{ states('input_boolean.motion_shellies_occupancy_led') }}
+      {% endif %}
+  action:
+    - alias: 'condition: sensor good?'
+      condition: and
+      conditions:
+        - condition: template
+          value_template: >
+            {{ sensor|lower != 'null' }}
+    - alias: 'set attributes for sensor.motion_shellies_occupancy_selected'
+      service: python_script.set_state
+      data_template:
+        allow_create: true
+        entity_id: sensor.motion_shellies_occupancy_selected
+        sensor: >-
+          {{ sensor }}
+        settings: >-
+          {{ state_attr(sensor,'settings') }}
+        info: >-
+          {{ state_attr(sensor,'info') }}
+        status: >-
+          {{ state_attr(sensor,'status') }}
+        ota: >-
+          {{ state_attr(sensor,'ota') }}
+        ip: >-
+          {{ ip }}
+        channel: >-
+          {{ channel }}
+        model: >-
+          {{ model }}
+        timezone: >-
+          {{ timezone }}
+        latitude: >-
+          {{ latitude }}
+        longitude: >-
+          {{ longitude }}
+        distance: >-
+          {{ distance }}
+        led: >-
+          {{ led }}
+        mqtt_enabled: >-
+          {{ mqtt_enabled }}
+        mqtt_broker: >-
+          {{ mqtt_broker }}
+        mqtt_username: >-
+          {{ mqtt_username }}
+        mqtt_id: >-
+          {{ mqtt_id }}
+        mqtt_qos: >-
+          {{ mqtt_qos }}
+        login_enabled: >-
+          {{ login_enabled }}
+        login_unprotected: >-
+          {{ login_unprotected }}
+        login_username: >-
+          {{ login_username }}
+        login_type: >-
+          {{ login_type }}
+        active: >-
+          {{ active }}
+        sensitivity: >-
+          {{ sensitivity }}
+        blind_time: >-
+          {{ blind_time }}
+        pulse_count: >-
+          {{ pulse_count }}
+        when: >-
+          {{ state_attr(sensor,'when') }}
+        ago: >-
+          {% set s = state_attr(sensor,'updated') %}
+          {% if s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ utcnow().timestamp()|int(0) - s|int(0) }}
+          {% else %}null{% endif %}
+        state: >-
+          {{ states('input_select.motion_shellies_occupancy') }}
+    - alias: 'set input_number.motion_shellies_occupancy_selected_sensitivity'
+      service: python_script.set_state
+      data_template:
+        entity_id: >-
+          {{ 'input_number.motion_shellies_occupancy_selected_sensitivity' }}
+        state: >-
+          {{ sensitivity }}
+    - alias: 'set input_boolean.motion_shellies_occupancy_selected_active'
+      service: python_script.set_state
+      data_template:
+        entity_id: input_boolean.motion_shellies_occupancy_selected_active
+        state: >-
+          {{ active }}
+    - alias: 'set input_boolean.motion_shellies_occupancy_selected_led'
+      service: python_script.set_state
+      data_template:
+        entity_id: >-
+          {{ 'input_boolean.motion_shellies_occupancy_selected_led' }}
+        state: >-
+          {{ led }}

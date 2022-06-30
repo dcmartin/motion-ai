@@ -1,0 +1,679 @@
+###
+# homeassistant/automation/motion/person_occupancy.yaml
+###
+
+- id: motion_person_occupancy_probability_state
+  alias: motion_person_occupancy_probability_state
+  initial_state: on
+  mode: restart
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_person_occupancy
+      to:
+    - platform: state
+      entity_id: binary_sensor.motion_person_occupancy
+      attribute: 'probability'
+  variables:
+    state: >-
+      {% set s = state_attr('binary_sensor.motion_person_occupancy','probability') %}
+      {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'unavailable' -%}
+        {{ '%0.2f'|format(s|float(0.0)) }}
+      {%- else -%}{{ 'null' }}{%- endif -%}
+  action:
+    - alias: 'set sensor.motion_person_occupancy probability'
+      service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_person_occupancy_probability
+        state: >-
+          {{ state }}
+
+- id: motion_person_occupancy_probability_threshold
+  alias: motion_person_occupancy_probability_threshold
+  initial_state: on
+  mode: queued
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_person_occupancy
+      to:
+    - platform: state
+      entity_id: input_number.motion_person_occupancy_probability_threshold
+  variables:
+    threshold: >-
+      {% if 'input_number' in trigger.entity_id %}
+        {{ states(trigger.entity_id) }}
+      {% else %}
+        {% set s = states('sensor.motion_person_occupancy_probability_mean_1w') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+          {% set mn = s|float(0.0) %}
+          {% set sd = states('sensor.motion_person_occupancy_probability_stdev_1w')|float(0.0) %}
+          {% set d = states('input_number.motion_person_occupancy_probability_threshold_deviation')|float(0.0) %}
+          {{ mn + sd * d }}
+        {% else %}
+          {{ state_attr('binary_sensor.motion_person_occupancy','probability_threshold') }}
+        {% endif %}
+      {% endif %}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ not 'input_number' in trigger.entity_id and state_attr(trigger.entity_id,'probability_threshold')|float(0.0) != threshold|float(0.0) or true }}
+  action:
+    - alias: 'set motion_person_occupancy.probability_threshold'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_person_occupancy
+        probability_threshold: >-
+          {{ threshold }}
+
+- id: motion_person_occupancy_previous
+  alias: motion_person_occupancy_previous
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_person_occupancy
+      to:
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {% set s = states('sensor.motion_person_occupancy') %}
+          {# s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'pending' #}
+          {{ s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' }}
+  variables:
+    id: >-
+      {% set s = state_attr('sensor.motion_person_occupancy','id') %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ s }}
+      {% else %}null{% endif %}
+    sensor: >-
+      {% set s = state_attr('sensor.motion_person_occupancy','sensor') %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ s }}
+      {% else %}null{% endif %}
+    latitude: >-
+      {% if sensor|lower != 'null' %}
+        {% set s = state_attr(sensor,'latitude') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+          {{ s }}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    longitude: >-
+      {% if sensor|lower != 'null' %}
+        {% set s = state_attr(sensor,'longitude') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+          {{ s }}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    movement: >-
+      {% if sensor|lower != 'null' %}
+        {% set p = state_attr('sensor.motion_person_occupancy','prior') %}
+        {% if p|lower != 'none' and p|lower != 'unknown' and p|lower != 'unavailable' and p|lower != 'null' %}
+          {% set s = distance(sensor, p)|default('none') %}
+          {% if s|lower != 'none' and s|float(0.0) > 0 and s|float(0.0) < 40075 %}
+            {%- set d = '%0.2f'|format(s|float(0.0) * 1000) -%}
+          {% else %}
+            {%- set d = range(0,state_attr(sensor,'gps_accuracy'))|random -%}
+          {% endif %}
+        {% endif %}
+      {% endif %}
+      {% if d is defined and d|float(0.0) > 0 %}
+        {{- d -}}
+      {% else %}null{% endif %}
+    interval: >-
+      {% set t = state_attr('sensor.motion_person_occupancy_previous','timestamp') %}
+      {% if t|lower != 'none' and t|lower != 'unknown' and t|lower != 'unavailable' and t|lower != 'null' and t|float(0.0) is number and t|float(0.0) > 0 %}
+        {{ utcnow().timestamp() - t|float(0.0) }}
+      {% else %}null{% endif %}
+    velocity: >-
+      {% set d = movement %}
+      {% if d|lower != 'null' and d|lower != 'none' and d|int(0) is number and d|int(0) < 40075 %}
+        {% set t = interval %}
+        {% if t|lower != 'null' and t|lower != 'none' and t|float(0.0) is number and t|float(0.0) > 0 %}
+          {{- '%0.2f'|format(d|float(0)/t|float(0.0)) -}}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+  action:
+    - alias: 'known sensor?'
+      condition: and
+      conditions:
+        - condition: template
+          value_template: >-
+            {{ id|lower != 'null' }}
+    - alias: 'set sensor.motion_person_occupancy_previous'
+      service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_person_occupancy_previous
+        latitude: >-
+          {{ latitude }}
+        longitude: >-
+          {{ longitude }}
+        id: >-
+          {{ id }}
+        movement: >-
+          {{ movement }}
+        interval: >-
+          {{ interval }}
+        velocity: >-
+          {{ velocity }}
+        timestamp: >-
+          {{ utcnow().timestamp() }}
+        distance: >-
+          {{ state_attr('sensor.motion_person_occupancy','distance') }}
+        sensor: >-
+          {{ state_attr('sensor.motion_person_occupancy','sensor') }}
+        area: >-
+          {{ state_attr('sensor.motion_person_occupancy','area') }}
+        state: >-
+          {{ states('sensor.motion_person_occupancy') }}
+
+- id: motion_person_occupancy_on
+  alias: motion_person_occupancy_on
+  mode: queued
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_person_occupancy
+      to: 'on'
+  variables:
+    now: >-
+      {{ utcnow().timestamp() }}
+    evidence: >-
+      {%- set s = state_attr('binary_sensor.motion_person_occupancy','observations') -%}
+      {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
+        {%- set s = s|selectattr('to_state','==','on')|map(attribute='entity_id')|list -%}
+        {%- if s is iterable and s|list|count > 0 -%}
+          {%- set eids = s -%}
+          [{%- for i in eids -%}
+            {%- if not loop.first -%},{%- endif -%}
+            {"source":"{{- i -}}","evidence":
+            {%- set s = state_attr(i,'sensor') -%}
+            {%- if s|lower != 'none' -%}
+              {%- if s|lower != 'none' -%}
+                {"sensor":"{{- s -}}","state":"{{- states(s) -}}","updated":{{- states[s].last_updated|as_timestamp(none) -}}}
+              {%- else -%}none{%- endif -%}
+            {%- else -%}
+              {%- set s = state_attr(i,'evidence') -%}
+              {%- if s|lower != 'none' -%}
+                {{- s -}}
+              {%- else -%}none{%- endif -%}
+            {%- endif -%}}
+          {%- endfor -%}]
+        {%- else -%}[]{%- endif -%}
+      {%- else -%}[]{%- endif -%}
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('input_select.motion_log_level') in ['debug'] }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: Person occupancy ON
+                notification_id: >-
+                  {{ 'person-occupancy' }}
+                message: >-
+                  At: {{ now|timestamp_custom("%H:%M",true,'unknown') }}; probability: {{ probability -}}; threshold: {{ threshold -}}
+    - alias: 'set sensor.motion_person_occupancy start w/ observations, entities, probabiltiy, threshold, evidence'
+      service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_person_occupancy
+        allow_create: true
+        start: >-
+          {{ now }}
+        evidence: >-
+          {{ evidence }}
+        probability: >-
+          {{ state_attr('binary_sensor.motion_person_occupancy','probability') }}
+        threshold: >-
+          {{ state_attr('binary_sensor.motion_person_occupancy','probability_threshold') }}
+        observations: >-
+          {{ state_attr('binary_sensor.motion_person_occupancy','observations') }}
+
+- id: motion_person_occupancy_off
+  alias: motion_person_occupancy_off
+  mode: queued
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_person_occupancy
+      to: 'off'
+  variables:
+    now: >-
+      {{ utcnow().timestamp() }}
+    duration: >-
+      {% set s = state_attr('sensor.motion_person_occupancy','start') %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ now - s|float(0.0) }}
+      {% else %}null{% endif %}
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('input_select.motion_log_level') in ['debug'] }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: Person occupancy OFF
+                notification_id: >-
+                  {{ 'person-occupancy' }}
+                message: >-
+                  At: {{ now|timestamp_custom("%H:%M",true,'unknown') }}; duration: {{ duration -}}
+    - alias: 'set sensor.motion_person_occupancy end, duration'
+      service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_person_occupancy
+        allow_create: true
+        end: >-
+          {{ now }}
+        duration: >-
+          {{ duration }}
+
+- id: motion_person_occupancy_shellies
+  alias: motion_person_occupancy_shellies
+  initial_state: on
+  mode: single
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_shellies_occupancy
+      to: 'on'
+  variables:
+    sensor: >-
+      {% set s = state_attr('binary_sensor.motion_shellies_occupancy','sensor') %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ s }}
+      {% else %}null{% endif %}
+    id: >-
+      {% set s = state_attr(sensor,'id') %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ s }}
+      {% else %}null{% endif %}
+    latitude: >-
+      {% set s = state_attr(sensor,'latitude') %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ s }}
+      {% else %}null{% endif %}
+    longitude: >-
+      {% set s = state_attr(sensor,'longitude') %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ s }}
+      {% else %}null{% endif %}
+    distance: >-
+      {% if latitude|lower != 'null' and longitude|lower != 'null' %}
+        {% set s = distance('zone.home', latitude, longitude) %}
+        {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' and s|int(0) is number and s|int(0) < 40075 %}
+          {{- '%0.2f'|format(s|float(0.0) * 1000) -}}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    gps: >-
+      {% if latitude|lower != 'null' and longitude|lower != 'null' %}
+        {% set s = state_attr('zone.home','radius') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int(0) > 0 %}
+          {{ latitude|lower != 'null' and longitude|lower != 'null' and distance|int(0) < s|int(0) }}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    ago: >-
+      {% set s = state_attr(sensor,'date') %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ utcnow().timestamp() - s|float(0.0) }}
+      {% else %}null{% endif %}
+    area: >-
+      {% set s = area_name(sensor) %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ s }}
+      {% else %}null{% endif %}
+    gps_accuracy: >-
+      {% set s = state_attr(sensor,'gps_accuracy') %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ s }}
+      {% else %}null{% endif %}
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >-
+                {{ id|lower != 'null' and gps|lower != 'true' }}
+          sequence:
+            - choose:
+                - conditions:
+                    - condition: template
+                      value_template: >
+                        {{ states('input_select.motion_log_level') in ['debug','info','notice'] }}
+                  sequence:
+                    - alias: 'NOTICE: invalid gps'
+                      service: persistent_notification.create
+                      data_template:
+                        title: >-
+                          NOTICE: Occupancy {{ id }}
+                        notification_id: >-
+                          {{ 'person-occupancy-' + id|string }}
+                        message: >-
+                          Occupancy sensor **{{ id }}** location invalid; distance: {{ '%0.1d'|format(distance|float(0)/1000) }} Km.  Using **Home** _zone_ as default.
+            - alias: 'set sensor.motion_person_occupancy with home gps'
+              service: python_script.set_state
+              data_template:
+                entity_id: sensor.motion_person_occupancy
+                sensor: >-
+                  {{ sensor }}
+                prior: >-
+                  {{ state_attr('sensor.motion_person_occupancy_previous','sensor') }}
+                id: >-
+                  {{ id }}
+                latitude: >-
+                  {{ state_attr('zone.home','latitude') }}
+                longitude: >-
+                  {{ state_attr('zone.home','longitude') }}
+                gps_accuracy: >-
+                  {{ gps_accuracy }}
+                ago: >-
+                  {{ '%0.1f'|format(ago|float(0.0)) }}
+                area: >-
+                  {{ area }}
+                state: >-
+                  {{ 'on' }}
+        - conditions:
+            - condition: template
+              value_template: >-
+                {{ id|lower != 'null' and gps|lower == 'true' }}
+          sequence:
+            - alias: 'set sensor.motion_person_occupancy with sensor gps'
+              service: python_script.set_state
+              data_template:
+                entity_id: sensor.motion_person_occupancy
+                sensor: >-
+                  {{ sensor }}
+                prior: >-
+                  {{ state_attr('sensor.motion_person_occupancy_previous','sensor') }}
+                id: >-
+                  {{ id }}
+                latitude: >-
+                  {{ latitude }}
+                longitude: >-
+                  {{ longitude }}
+                gps_accuracy: >-
+                  {{ gps_accuracy }}
+                distance: >-
+                  {{ distance }}
+                ago: >-
+                  {{ '%0.1f'|format(ago|float(0.0)) }}
+                area: >-
+                  {{ area }}
+                state: >-
+                  {{ 'on' }}
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('input_select.motion_log_level') in ['debug'] }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: Occupancy {{ id }}
+                notification_id: >-
+                  {{ 'person-occupancy-' + sensor|string }}
+                message: >-
+                  {{- '[![]('
+                     + '/local/images/motion/icons/notification-alert.png?v=1'
+                     + ')]('
+                     + '/lovelace/interior'
+                     + ')' }}
+                  Sensor id: {{ id -}}; GPS: {{ gps -}}; distance: {{ distance -}}; sensor: {{ sensor }}
+
+###
+###
+###
+
+- id: motion_person_occupancy_device_motion_on
+  alias: motion_person_occupancy_device_motion_on
+  initial_state: on
+  mode: queued
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_motion
+      to: 'on'
+  variables:
+    latest: >-
+      {% set s = state_attr('binary_sensor.motion_device_motion','status') %}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
+        {% set s = s|selectattr('state','==','on')|sort(attribute='updated',reverse=true) %}
+        {% if s is iterable and s|count > 0 %}
+          {{ s|first }}
+        {%- else -%}none{%- endif %}
+      {%- else -%}none{%- endif %}
+    sensor: >-
+      {% set s = latest %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ s.entity_id }}
+      {% else %}null{% endif %}
+    id: >-
+      {% set s = latest %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ s.id }}
+      {% else %}null{% endif %}
+    latitude: >-
+      {% set s = state_attr(sensor,'latitude') %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ s }}
+      {% else %}null{% endif %}
+    longitude: >-
+      {% set s = state_attr(sensor,'longitude') %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ s }}
+      {% else %}null{% endif %}
+    distance: >-
+      {% if latitude|lower != 'null' and longitude|lower != 'null' %}
+        {% set s = distance('zone.home', latitude, longitude) %}
+        {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' and s|int(0) is number and s|int(0) < 40075 %}
+          {{- '%0.2f'|format(s|float(0.0) * 1000) -}}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    gps: >-
+      {% if latitude|lower != 'null' and longitude|lower != 'null' %}
+        {% set s = state_attr('zone.home','radius') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int(0) > 0 %}
+          {{ latitude|lower != 'null' and longitude|lower != 'null' and distance|int(0) < s|int(0) }}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    ago: >-
+      {% set s = state_attr('binary_sensor.motion_device_motion','latest') %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ utcnow().timestamp() - s.updated|float(0.0) }}
+      {% else %}null{% endif %}
+    area: >-
+      {% set s = area_name(sensor) %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ s }}
+      {% else %}null{% endif %}
+    gps_accuracy: >-
+      {% set s = state_attr(sensor,'gps_accuracy') %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ s }}
+      {% else %}null{% endif %}
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >-
+                {{ id|lower != 'null' and gps|lower != 'true' }}
+          sequence:
+            - choose:
+                - conditions:
+                  - condition: template
+                    value_template: >
+                      {{ states('input_select.motion_log_level') in ['debug'] }}
+                  sequence:
+                    - alias: 'NOTICE: invalid gps'
+                      service: persistent_notification.create
+                      data_template:
+                        title: >-
+                          DEBUG: Occupancy {{ id }}
+                        notification_id: >-
+                          {{ 'person-occupancy-' + id|string }}
+                        message: >-
+                          Occupancy sensor **{{ id }}** location invalid; distance: {{ '%0.1d'|format(distance|float(0)/1000) }} Km.  Using **Home** _zone_ as default.
+            - alias: 'set sensor.motion_person_occupancy with home gps'
+              service: python_script.set_state
+              data_template:
+                entity_id: sensor.motion_person_occupancy
+                sensor: >-
+                  {{ sensor }}
+                prior: >-
+                  {{ state_attr('sensor.motion_person_occupancy_previous','sensor') }}
+                id: >-
+                  {{ id }}
+                latitude: >-
+                  {{ state_attr('zone.home','latitude') }}
+                longitude: >-
+                  {{ state_attr('zone.home','longitude') }}
+                gps_accuracy: >-
+                  {{ gps_accuracy }}
+                ago: >-
+                  {{ '%0.1f'|format(ago|float(0.0)) }}
+                area: >-
+                  {{ area }}
+                state: >-
+                  {{ 'on' }}
+        - conditions:
+            - condition: template
+              value_template: >-
+                {{ id|lower != 'null' and gps|lower == 'true' }}
+          sequence:
+            - alias: 'set sensor.motion_person_occupancy with sensor gps'
+              service: python_script.set_state
+              data_template:
+                entity_id: sensor.motion_person_occupancy
+                sensor: >-
+                  {{ sensor }}
+                prior: >-
+                  {{ state_attr('sensor.motion_person_occupancy_previous','sensor') }}
+                id: >-
+                  {{ id }}
+                latitude: >-
+                  {{ latitude }}
+                longitude: >-
+                  {{ longitude }}
+                gps_accuracy: >-
+                  {{ gps_accuracy }}
+                distance: >-
+                  {{ distance }}
+                ago: >-
+                  {{ '%0.1f'|format(ago|float(0.0)) }}
+                area: >-
+                  {{ area }}
+                state: >-
+                  {{ 'on' }}
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('input_select.motion_log_level') in ['debug'] }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: motion_device_motion {{ id }}
+                notification_id: >-
+                  {{ 'person-occupancy-' + sensor|string }}
+                message: >-
+                  {{- '[![]('
+                     + '/local/images/motion/icons/notification-alert.png?v=1'
+                     + ')]('
+                     + '/lovelace/interior'
+                     + ')' }}
+                  Sensor id: {{ id -}}; GPS: {{ gps -}}; distance: {{ distance -}}; sensor: {{ sensor }}
+
+- id: motion_person_occupancy_device_motion_off
+  alias: motion_person_occupancy_device_motion_off
+  initial_state: on
+  mode: queued
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_motion
+      to: 'off'
+  variables:
+    latest: >-
+      {% set s = state_attr('binary_sensor.motion_device_motion','status') %}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and not s is string -%}
+        {% set s = s|selectattr('state','==','off')|sort(attribute='updated',reverse=true) %}
+        {% if s is iterable and s|count > 0 %}
+          {{ s|first }}
+        {%- else -%}none{%- endif %}
+      {%- else -%}none{%- endif %}
+    sensor: >-
+      {% set s = latest %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ s.entity_id }}
+      {% else %}null{% endif %}
+    id: >-
+      {% set s = latest %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ s.id }}
+      {% else %}null{% endif %}
+    latitude: >-
+      {% set s = state_attr(sensor,'latitude') %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ s }}
+      {% else %}null{% endif %}
+    longitude: >-
+      {% set s = state_attr(sensor,'longitude') %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ s }}
+      {% else %}null{% endif %}
+    distance: >-
+      {% if latitude|lower != 'null' and longitude|lower != 'null' %}
+        {% set s = distance('zone.home', latitude, longitude) %}
+        {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' and s|int(0) is number and s|int(0) < 40075 %}
+          {{- '%0.2f'|format(s|float(0.0) * 1000) -}}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    gps: >-
+      {% if latitude|lower != 'null' and longitude|lower != 'null' %}
+        {% set s = state_attr('zone.home','radius') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|int(0) > 0 %}
+          {{ latitude|lower != 'null' and longitude|lower != 'null' and distance|int(0) < s|int(0) }}
+        {% else %}null{% endif %}
+      {% else %}null{% endif %}
+    ago: >-
+      {% set s = state_attr('binary_sensor.motion_device_motion','latest') %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ utcnow().timestamp() - s.updated|float(0.0) }}
+      {% else %}null{% endif %}
+    area: >-
+      {% set s = area_name(sensor) %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ s }}
+      {% else %}null{% endif %}
+    gps_accuracy: >-
+      {% set s = state_attr(sensor,'gps_accuracy') %}
+      {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {{ s }}
+      {% else %}null{% endif %}
+  action:
+    - alias: 'set sensor.motion_person_occupancy with sensor gps'
+      service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_person_occupancy
+#        sensor: >-
+#          {{ sensor }}
+        state: >-
+          {{ 'off' }}
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('input_select.motion_log_level') in ['debug'] }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: motion_device_motion {{ id }}
+                notification_id: >-
+                  {{ 'person-occupancy-' + sensor|string }}
+                message: >-
+                  OFF

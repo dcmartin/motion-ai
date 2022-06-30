@@ -1,0 +1,104 @@
+###
+# homeassistant/binary_sensor/device/tracker.yaml
+###
+
+- platform: template
+  sensors:
+    motion_device_tracker_exist:
+      friendly_name: Existing mobile devices
+      attribute_templates:
+        ids: >-
+          [{%- for state in states.device_tracker if state.attributes.source_type|string == 'gps' -%}
+            {%- if loop.first -%}{%- else -%},{%- endif -%}
+            {#- set s = device_attr(device_id(state.entity_id),'name') -#}
+            {%- set s = state.entity_id|replace ('device_tracker.','') -%}
+            "{{- s -}}"
+          {%- endfor -%}]
+        dids: >-
+          [{%- for state in states.device_tracker if state.attributes.source_type|string == 'gps' -%}
+            {%- if loop.first -%}{%- else -%},{%- endif -%}
+            {%- set s = device_id(state.entity_id) -%}
+            "{{- s -}}"
+          {%- endfor -%}]
+        ago: >-
+          [{%- for state in states.device_tracker -%}
+            {%- if loop.first -%}{%- else -%},{%- endif -%}
+            {%- set s = state.entity_id|replace('device_tracker.','') -%}
+            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|length > 0 %}
+              {{- utcnow().timestamp() - as_timestamp(states.device_tracker[s].last_updated) -}}
+            {% else %}null{% endif %}
+          {%- endfor -%}]
+        array: >-
+          {%- set ids = state_attr('binary_sensor.motion_device_tracker_exist','ids') -%}
+          {%- if ids|lower != 'none' and not ids is string and ids is iterable and ids|count > 0 -%}
+            [{%- for e in ids -%}
+              {%- if loop.first -%}{%- else -%},{%- endif -%}
+              {%- set s = states('device_tracker.' + e|string) -%}
+              {%- set d = states['device_tracker.' + e|string].last_updated|default(none) -%}
+              {%- if d|lower != 'none' -%}{%- set d = d|as_timestamp|float(0) -%}{%- else -%}{%- set d = 0 -%}{%- endif -%}
+              {%- set d = utcnow().timestamp() - d -%}
+              {%- if d|int < states('input_number.motion_device_unavailable')|int(60)*60 and s == 'home' or s == 'not_home' -%}1{%- else -%}0{%- endif -%}
+            {%- endfor -%}]
+          {% else %}null{% endif %}
+        total: >-
+          {%- set s = state_attr('binary_sensor.motion_device_tracker_exist','array') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+            {{ s|length }}
+          {% else %}null{% endif %}
+        trackers: >-
+          {%- set ids = state_attr('binary_sensor.motion_device_tracker_exist','ids') -%}
+          {%- if ids|lower != 'none' and not ids is string and ids is iterable and ids|count > 0 -%}
+            [{%- for s in ids if 'gps' in s and s.gps|lower == 'true' -%}
+              {%- if not loop.first -%},{%- endif -%}
+              {%- set lat =  state_attr('device_tracker.' + s.id,'latitude') -%}
+              {%- set lng =  state_attr('device_tracker.' + s.id,'longitude') -%}
+              {"id":"{{- s.id -}}", "latitude":{{ lat }},"longitude":{{ lng }}}
+            {%- endfor -%}]
+          {%- else -%}null{%- endif %}
+        reporting: >-
+          {%- set s = state_attr('binary_sensor.motion_device_tracker_exist','array') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+            {{ s|select('number')|sum|int(0) }}
+          {% else %}null{% endif %}
+        online: >-
+          {% set c = state_attr('binary_sensor.motion_device_tracker_exist','reporting') -%}
+          {% set t = state_attr('binary_sensor.motion_device_tracker','total') %}
+          {%- if c is number and t is number and c|int(0) > 0 and t|int(0) > 0 %}
+            {{ c|float(0)/t|float(0.0) * 100 -}}
+          {% else %}null{% endif %}
+        status: >-
+          {% set c = state_attr('binary_sensor.motion_device_tracker_exist','reporting') -%}
+          {% set t = state_attr('binary_sensor.motion_device_tracker_exist','total') %}
+          {% set o = state_attr('binary_sensor.motion_device_tracker_exist','online') %}
+          {%- if c is number and t is number and o is number and t|int(0) > 0 %}
+            {{ c -}}/{{- t }}📱; {{ '%0.0f'|format(o) -}}%
+          {% else %}Pending{% endif %}
+      value_template: >-
+        {% set s = state_attr('binary_sensor.motion_device_tracker_exist','total') %}
+        {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' %}
+          {{ s|int(0) > 0 }}
+        {% else %}unknown{% endif %}
+    motion_device_tracker_missing:
+      attribute_templates:
+        ids: >-
+          {% set s = state_attr('binary_sensor.motion_device_tracker','missing') %}
+          {% if s|lower != 'none' and not s is string and s is iterable %}
+            {{ s|list }}
+          {% else %}null{% endif %}
+      value_template: >-
+        {% set s = state_attr('binary_sensor.motion_device_tracker','missing') %}
+        {% if s|lower != 'none' and not s is string and s is iterable %}
+          {{ s|list|count > 0 }}
+        {% else %}unknown{% endif %}
+    motion_device_tracker:
+      friendly_name: Mobile devices
+      attribute_templates:
+        ids: >-
+          {{- 'unknown' -}}
+        total: >-
+          {{- 'null' -}}
+        devices: >-
+          {{- 'unknown' -}}
+      value_template: >-
+        {# set through automation #}
+        {{- 'unknown' -}}
