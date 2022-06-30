@@ -45,7 +45,7 @@ MQTT_PASSWORD ?= $(if $(wildcard MQTT_PASSWORD),$(shell v=$$(cat MQTT_PASSWORD) 
 MARIADB_PASSWORD ?= $(if $(wildcard MARIADB_PASSWORD),$(shell v=$$(cat MARIADB_PASSWORD) && echo "${TG}== MARIADB_PASSWORD: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="HomeAssistant1234" && echo "${DF}** MARIADB_PASSWORD${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 MARIADB_HOST ?= $(if $(wildcard MARIADB_HOST),$(shell v=$$(cat MARIADB_HOST) && echo "${TG}== MARIADB_HOST: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="core-mariadb" && echo "${DF}** MARIADB_HOST${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 
-IPERF_HOST ?= $(if $(wildcard IPERF_HOST),$(shell v=$$(cat IPERF_HOST) && echo "${TG}== IPERF_HOST: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="$(MQTT_HOST)" && echo "${DF}** IPERF_HOST${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
+IPERF_HOST ?= $(if $(wildcard IPERF_HOST),$(shell v=$$(cat IPERF_HOST) && echo "${TG}== IPERF_HOST: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="127.0.0.1" && echo "${DF}** IPERF_HOST${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
 
 ## MOTION
 MOTION_APP ?= $(if $(wildcard MOTION_APP),$(shell v=$$(cat MOTION_APP) && echo "${TG}== MOTION_APP: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='Motion Ã👁' && echo "${DF}** MOTION_APP${TB} unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}"))
