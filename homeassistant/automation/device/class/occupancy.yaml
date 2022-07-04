@@ -217,14 +217,14 @@
       {%- else -%}none{%- endif %}
     status: >-
       {%- set s = ids -%}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
+      {%- if s|lower != 'none' and s|lower != 'unknown' and s is iterable -%}
         [{%- for i in s -%}
           {%- set o = loop -%}
           {%- for state in (states.sensor|list + states.binary_sensor|list)
             if device_attr(state.entity_id, 'name') == i
-              and state.attributes.device_class|default('null')|string == class -%}
+              and (state.attributes.device_class|default('null')|string == class)  -%}
             {%- if not o.first or not loop.first -%},{%- endif -%}
-            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
+            {"id":"{{- i -}}","name":"{{- state_attr(state.entity_id,'friendly_name') -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
           {%- else -%}{% if o.first %}None{% endif %}{%- endfor -%}
         {%- endfor -%}]
       {%- else -%}none{%- endif %}
@@ -334,12 +334,15 @@
       {%- if s|lower != 'none' and s|lower != 'unknown' and s is iterable -%}
         [{%- for i in s -%}
           {%- set o = loop -%}
-          {%- for state in (states.sensor|list + states.binary_sensor|list) if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == class -%}
+          {%- for state in (states.sensor|list + states.binary_sensor|list)
+            if device_attr(state.entity_id, 'name') == i
+              and (state.attributes.device_class|default('null')|string == class)  -%}
             {%- if not o.first or not loop.first -%},{%- endif -%}
             {"id":"{{- i -}}","name":"{{- state_attr(state.entity_id,'friendly_name') -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
+
           {%- else -%}{% if o.first %}None{% endif %}{%- endfor -%}
         {%- endfor -%}]
-      {%- else -%}none{%- endif -%}
+      {%- else -%}none{%- endif %}
     statistics: >-
       {%- set s = ids -%}
       {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
@@ -488,6 +491,36 @@
           {{ values }}
         state: >-
           {{ value }}
+
+## toggle
+
+- id: motion_device_occupancy_toggle
+  alias: motion_device_occupancy_toggle
+  mode: single
+  initial_state: off
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_occupancy_toggle','on') }}
+  variables:
+    entity_ids: >-
+      {{ state_attr('binary_sensor.motion_device_occupancy_toggle','entity_ids') }}
+  action:
+    - alias: 'toggle occupancy sensors'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = entity_ids[repeat.index - 1]|default('unknown') -%}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - service: switch.toggle
+            data_template:
+              entity_id: >-
+                {{ entity_ids[repeat.index - 1] }}
 
 ## update, restart, and other contols
 
