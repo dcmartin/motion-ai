@@ -97,3 +97,89 @@
       data:
         addon: >-
           {{ state_attr('binary_sensor.motion_addon_update','id') }}
+
+- id: motion_addon_update_template
+  alias: motion_addon_update_template
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: 'states.update'
+  variables:
+    addons: >-
+      {% set addons = state_attr('binary_sensor.motion_addon_update','addons') -%}
+      {{- addons }}
+    addon: >-
+      {% set s = addons -%}
+      {%- if s|lower != 'none' -%}
+        {%- set addons = s -%}
+        {%- for i in addons if state_attr('update.' + i + '_update','installed_version')|lower != 'none' -%}
+          {%- set t = state_attr('update.' + i + '_update','installed_version') -%}
+          {%- if loop.first -%}{{ i }}{%- endif -%}
+        {%- endfor -%}
+      {%- else -%}none{%- endif %}
+    id: >-
+      {% set s = addon -%}
+      {%- if s|lower != 'none' -%}
+        {%- set s = state_attr('update.' + s + '_update','entity_picture') -%}
+        {%- if s|lower == 'none' -%}
+          {%- set s = state_attr('update.motion_classic_update','entity_picture') -%}
+        {%- endif -%}
+        {%- if s|lower != 'none' -%}
+          {%- set s = s|replace('/icon','')|regex_replace('.*/','') -%}
+          {{ s }}
+        {%- else -%}none{%- endif -%}
+      {%- else -%}none{%- endif %}
+    update: >-
+      {% set s = addon -%}
+      {%- if s|lower != 'none' -%}
+        {{ states.update[s + '_update'].attributes }}
+      {%- else -%}none{%- endif %}
+    title: >-
+      {% set s = update -%}
+      {%- if s|lower != 'none' -%}
+        {{ s.title }}
+      {%- else -%}none{%- endif %}
+    version: >-
+      {% set s = update -%}
+      {%- if s|lower != 'none' -%}
+        {{ s.installed_version }}
+      {%- else -%}none{%- endif %}
+    latest: >-
+      {% set s = update -%}
+      {%- if s|lower != 'none' -%}
+        {{ s.latest_version }}
+      {%- else -%}none{%- endif %}
+    state: >-
+      {% set s = addon -%}
+      {%- if s|lower != 'none' -%}
+        {% set s = states('update.' + s + '_update') -%}
+        {%- if s|lower != 'none' and s|lower != 'null' and s|lower != 'unavailable' -%}
+          {{- s -}}
+        {%- else -%}unknown{%- endif %}
+      {%- else -%}unknown{%- endif %}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ addon|lower != 'none' }}
+  action:
+    - alias: 'update binary_sensor.motion_addon_update'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_addon_update
+        addon: >-
+          {{ addon }}
+        id: >-
+          {{ id }}
+        update: >-
+          {{ update }}
+        title: >-
+          {{ title }}
+        version: >-
+          {{ version }}
+        latest: >-
+          {{ latest }}
+        state: >-
+          {{ state }}
