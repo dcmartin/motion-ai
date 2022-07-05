@@ -369,7 +369,18 @@ secrets.yaml: secrets.yaml.tmpl
 	  UPTIMEROBOT_RSSURL="$(UPTIMEROBOT_RSSURL)" \
 	&& cat $< | envsubst > $@
 
-lovelace.owner.json: lovelace.owner.json.tmpl $(WEBCAMS)
+lovelace.json: lovelace.json.tmpl
+	@echo "${MC}Making: $@${NC}"
+	@export \
+	  MOTION_APP="$(MOTION_APP)" \
+	&& cat $< \
+	  | envsubst \
+	> $@
+	@rm -f .storage/lovelace
+	-@mkdir -p .storage/
+	@ln -s ../$@ .storage/lovelace
+
+lovelace.owner.json: lovelace.owner.json.tmpl
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  MOTION_APP="$(MOTION_APP)" \
@@ -380,7 +391,7 @@ lovelace.owner.json: lovelace.owner.json.tmpl $(WEBCAMS)
 	-@mkdir -p .storage/
 	@ln -s ../$@ .storage/lovelace.lovelace_owner
 
-lovelace.primary.json: lovelace.primary.json.tmpl $(WEBCAMS)
+lovelace.primary.json: lovelace.primary.json.tmpl
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  MOTION_APP="$(MOTION_APP)" \
