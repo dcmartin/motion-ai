@@ -5,7 +5,7 @@
 - platform: template
   sensors:
     motion_addon_status:
-      friendly_name: 'Status: Add-on'
+      friendly_name: 'Add-on status'
       device_class: connectivity
       icon_template: >-
         {%- set e = states('sensor.motion_addon_status') -%}
@@ -16,6 +16,39 @@
             {{- 'mdi:video-outline' -}}
           {% endif %}
         {%- else -%}{{- 'mdi:video' -}}{%- endif -%}
+      attribute_templates:
+        sensor: >-
+          {% set s = state_attr('group.motion_addons','entity_id') -%}
+          {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' and s is iterable and s|count > 0 %}
+            {{ s|first }}
+          {% else %}none{% endif %}
+        ago: >-
+          {% set s = state_attr('binary_sensor.motion_addon_status','sensor') -%}
+          {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+            {% set s = state_attr(s,'timestamp') -%}
+            {% if s|lower != 'none' and s|int(0) > 0 %}
+              {{ utcnow().timestamp()|int - s|int }}
+            {% else %}none{% endif %}
+          {% else %}none{% endif %}
+        relative: >-
+          {% set s = state_attr('binary_sensor.motion_addon_status','sensor') -%}
+          {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+            {% set s = state_attr(s,'timestamp') -%}
+            {% if s|lower != 'none' and s|int(0) > 0 %}
+              {{ s|as_datetime|relative_time }}
+            {% else %}none{% endif %}
+          {% else %}none{% endif %}
+        update: >-
+          {% set s = state_attr('binary_sensor.motion_addon_status','sensor') -%}
+          {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+            {% set s = state_attr(s,'timestamp') -%}
+            {% if s|lower != 'none' and s|int(0) > 0 %}
+              {% set u = states('sensor.motion_uptime') %}
+              {% if u|as_timestamp(0) > 0 %}
+                {{ u|as_timestamp|int - s|int(0) < 0 }}
+              {% else %}unknown{% endif %}
+            {% else %}unknown{% endif %}
+          {% else %}unknown{% endif %}
       value_template: >-
         {% set e = states('sensor.motion_addon_status') %}
         {% if e|lower != 'unknown' and e|lower != 'unavailable' and e|lower != 'none' and e|lower != 'null' %}
@@ -28,7 +61,7 @@
 - platform: template
   sensors:
     motion_addon_installed:
-      friendly_name: Add-on installed
+      friendly_name: 'Add-on installed'
       icon_template: >-
         {%- if is_state_attr('binary_sensor.motion_addon_update','addon','age_home') -%}
           {{- 'mdi:home-heart' -}}
