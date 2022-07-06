@@ -1,5 +1,5 @@
 ###
-# homeassistant/automation/motion/camera_restart.yaml
+# homeassistant/automation/reload.yaml
 ###
 
 - id: motion_reload
@@ -21,27 +21,46 @@
       - condition: template
         value_template: >-
           {{ is_state('binary_sensor.motion_reloading','off') }}
-      - condition: template
-        value_template: >-
-          {% set s = states('sensor.motion_reload_command') %}
-          {{ s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null }}
-  action:   
+  action:
     - alias: 'set state binary_sensor.motion_reloading: on'
       service: python_script.set_state
       data_template:
         entity_id: binary_sensor.motion_reloading
         state: 'on'
-    - alias: 'install tools'
-      service: shell_command.motion_reload_apk
-    - alias: 'clone repository'
-      service: shell_command.motion_reload_git
-    - alias: 'pull & copy repository'
-      service: shell_command.motion_reload_tar
-    - alias: 'make configuration'
-      service: shell_command.motion_reload_make
-    - alias: 'wait 5 seconds'
+    - choose:
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ states('input_select.motion_log_level') in ['debug','info','notice','alert'] }}
+        sequence:
+          - service: persistent_notification.create
+            data_template:
+              title: >-
+                ALERT: System restarting
+              notification_id: >-
+                {{ 'motion-reload-restart' }}
+              message: >-
+                System restarting in 30 seconds at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}
+    - alias: 'wait 30 seconds'
       delay:
-        seconds: 5
+        seconds: 30
+    - alias: 'restart home-assistant'
+      service: homeassistant.restart'
+
+- id: motion_reloaded
+  alias: motion_reloaded
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: event
+      event_type: homeassistant_start
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('binary_sensor.motion_reloading','on') }}
+  action:
     - alias: 'set state binary_sensor.motion_reloading: off'
       service: python_script.set_state
       data_template:
