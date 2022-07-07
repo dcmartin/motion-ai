@@ -26,6 +26,10 @@
       service: python_script.set_state
       data_template:
         entity_id: binary_sensor.motion_reloading
+        timestamp: >-
+          {{ timestamp }}
+        when: >-
+          {{ timestamp }}
         state: 'on'
     - choose:
       - conditions:
@@ -56,6 +60,18 @@
               - platform: state
                 entity_id: binary_sensor.motion_addon_reload
                 to: 'on'
+          - alias: 'dismiss add-on update'
+            service: persistent_notification.dismiss
+            data_template:
+              notification_id: >-
+                {{ 'motion-addon-update' }}
+    - variables:
+        delay: >-
+          {{ state_attr('binary_sensor.motion_reloading','delay') }}
+        timestamp: >-
+          {{ (utcnow() + timedelta(seconds=delay)|as_timestamp }}
+        when: >-
+          {{ timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
     - choose:
       - conditions:
           - condition: template
@@ -70,10 +86,11 @@
               notification_id: >-
                 {{ 'motion-reload-restart' }}
               message: >-
-                System restarting in 30 seconds at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}
-    - alias: 'wait 30 seconds'
+                System restarting at {{ when }}
+    - alias: 'wait'
       delay:
-        seconds: 30
+        seconds: >-
+          {{ delay }}
     - alias: 'restart home-assistant'
       service: homeassistant.restart
 
