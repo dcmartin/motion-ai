@@ -11,11 +11,26 @@
         updates: >
           {{ states.update|list|map(attribute='entity_id')|list }}
         relative: >
-          {{ states.update|list|map(attribute='last_updated')|map('as_timestamp')|max|as_datetime|relative_time }}
+          {% set s = states('sensor.motion_reload_updates') %}
+          {%- if s|as_timestamp(0) != 0 -%}
+            {{ s|relative_time }}
+          {% else %}none{% endif %}
         markdown: >-
-          The App Store was last updated <b>{{- state_attr('sensor.motion_reload_update','relative') -}}</b> ago.
+          {% set s = state_attr('binary_sensor.motion_addon_update','title') -%}
+          {%- if s|lower != 'none' -%}
+            The {{ s }} add-on was last checked <b>{{- state_attr('sensor.motion_reload_update','relative') -}}</b> ago.
+          {%- else -%}No information{%- endif %}
       value_template: >-
-        {{ states.update|list|map(attribute='last_updated')|map('as_timestamp')|max|as_datetime }}
+          {% set s = state_attr('binary_sensor.motion_addon_update','addon') %}
+          {% if s|lower != 'none' %}
+            {% set s = states.update|selectattr('entity_id','search',s)|list %}
+            {% if s|lower != 'none' and s is iterable and s|count > 0 %}
+              {% set s = s|first %}
+              {% if 'last_updated' in s %}
+                {{ s.last_updated }}
+              {% else %}none{% endif %}
+            {% else %}none{% endif %}
+          {% else %}none{% endif %}
     motion_reload_repository:
       value_template: >-
         {% set s = states('input_text.motion_reload_repository') %}
