@@ -13,29 +13,53 @@
             {%- if not loop.first -%},{%- endif -%}
             "{{- state.attributes.id -}}"
           {%- endfor -%}]
-        online: >-
+        connected: >-
           {{ states.person|selectattr('state','==','home')|list|count + states.person|selectattr('state','==','not_home')|list|count }}
-        offline: >-
+        disconnected: >-
           {{ states.person|count - (states.person|selectattr('state','==','home')|list|count + states.person|selectattr('state','==','not_home')|list|count) }}
         agos: >-
           [{%- for state in states.person -%}
             {%- if not loop.first -%},{%- endif -%}
             {{- utcnow().timestamp() - state.last_updated|as_timestamp -}}
           {%- endfor -%}]
-        recent: >-
-          {% set s = state_attr('sensor.motion_domain_person_status','agos') -%}
+        online: >-
+          {% set s = states.person|selectattr('state','!=','unknown')|list -%}
           {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
-            {%- set l = state_attr('sensor.motion_domain_person_status','ids') -%}
-            {%- set u = state_attr('sensor.motion_uptime','ago') -%}
-            {%- set w = state_attr('sensor.motion_uptime','wait')|int(300) -%}
-            {%- set u = (u/w)|int -%}
-            { {%- for i in s if ((i+w)/w)|int<u -%}
+            {{- '{' -}}
+            {%- for i in s -%}
               {%- if not loop.first -%},{%- endif -%}
-              {%- set n = l[loop.index-1] -%}
-              {%- set t = states.person|selectattr('attributes.id','==',n)|map(attribute='attributes.friendly_name')|first -%}
-              {%- set a = (utcnow().timestamp()|int - i)|as_datetime|relative_time -%}
+              {%- set t = i.attributes.friendly_name -%}
+              {%- set a = i.last_updated|relative_time -%}
               "{{- t -}}":"{{- a -}}"
-            {%- endfor -%} }
+            {%- endfor -%} 
+            {{- '}' -}}
+          {%- else -%}null{%- endif %}
+        offline: >-
+          {% set s = states.person|selectattr('state','==','unknown')|list -%}
+          {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+            {{- '{' -}}
+            {%- for i in s -%}
+              {%- if not loop.first -%},{%- endif -%}
+              {%- set t = i.attributes.friendly_name -%}
+              {%- set a = i.last_updated|relative_time -%}
+              "{{- t -}}":"{{- a -}}"
+            {%- endfor -%} 
+            {{- '}' -}}
+          {%- else -%}null{%- endif %}
+        recent: >-
+          {% set s = states.person|selectattr('state','!=','unknown')|list -%}
+          {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+            {%- set u = state_attr('sensor.motion_uptime','ago')|int -%}
+            {%- set w = state_attr('sensor.motion_uptime','wait')|int -%}
+            {%- set t = utcnow().timestamp()|int -%}
+            {{- '{' -}}
+            {%- for i in s if (t - i.last_updated|as_timestamp) < (u - w) -%}
+              {%- if not loop.first -%},{%- endif -%}
+              {%- set t = i.attributes.friendly_name -%}
+              {%- set a = i.last_updated|relative_time -%}
+              "{{- t -}}":"{{- a -}}"
+            {%- endfor -%}
+            {{- '}' -}}
           {%- else -%}null{%- endif %}
       value_template: >-
         {{- states('sensor.motion_domain_person_count') -}}; {{ states('sensor.motion_domain_person_percent') -}}%
@@ -73,7 +97,7 @@
       value_template: >-
         {% set c = states('sensor.motion_domain_person_count')|int(0) %}
         {% if c > 0 %}
-          {% set o = state_attr('sensor.motion_domain_person_status','online')|int(0) %}
+          {% set o = state_attr('sensor.motion_domain_person_status','connected')|int(0) %}
           {{ (o / c * 100)|int(0) }}
         {% else %}null{% endif %}
 
