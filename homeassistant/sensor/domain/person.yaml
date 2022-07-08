@@ -8,20 +8,32 @@
       friendly_name: Person status
       icon_template: 'mdi:account'
       attribute_templates:
-        online: >-
-          {{ states.person|selectattr('state','==','on')|list|count + states.person|selectattr('state','==','off')|list|count }}
-        offline: >-
-          {{ states.person|count - (states.person|selectattr('state','==','on')|list|count + states.person|selectattr('state','==','off')|list|count) }}
-        list: >-
+        ids: >-
           [{%- for state in states.person -%}
             {%- if not loop.first -%},{%- endif -%}
             "{{- state.attributes.id -}}"
           {%- endfor -%}]
+        online: >-
+          {{ states.person|selectattr('state','==','home')|list|count + states.person|selectattr('state','==','not_home')|list|count }}
+        offline: >-
+          {{ states.person|count - (states.person|selectattr('state','==','home')|list|count + states.person|selectattr('state','==','not_home')|list|count) }}
         agos: >-
           [{%- for state in states.person -%}
             {%- if not loop.first -%},{%- endif -%}
             {{- utcnow().timestamp() - state.last_updated|as_timestamp -}}
           {%- endfor -%}]
+        recent: >-
+          {% set s = state_attr('sensor.motion_domain_person_status','agos') -%}
+          {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+            {%- set l = state_attr('sensor.motion_domain_person_status','ids') -%}
+            {%- set u = state_attr('sensor.motion_uptime','ago') -%}
+            {%- set w = state_attr('sensor.motion_uptime','wait')|int(300) -%}
+            {%- set u = (u/w)|int -%}
+            [{%- for i in s if ((i+w)/w)|int<u -%}
+              {%- if not loop.first -%},{%- endif -%}
+              ["{{- l[loop.index-1] -}}",{{- i|int -}}]
+            {%- endfor -%}]
+          {%- else -%}none{%- endif %}
       value_template: >-
         {{- states('sensor.motion_domain_person_count') -}}; {{ states('sensor.motion_domain_person_percent') -}}%
     motion_domain_person_count:
