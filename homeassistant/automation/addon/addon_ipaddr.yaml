@@ -4,14 +4,12 @@
 
 ## ADD
 
-- id: motion_device_start_ipaddr
-  alias: motion_device_start_ipaddr
+- id: motion_addon_ipaddr
+  alias: motion_addon_ipaddr
   initial_state: on
   trigger:
     - platform: state
       entity_id: sensor.motion_device_start
-    - platform: time_pattern
-      minutes: /5
   condition:
     condition: and
     conditions:
@@ -28,11 +26,12 @@
           {{ states('input_select.motion_addon_ipaddr')|lower == 'localhost' }}
   variables:
     options: >-
+      {{ '[' -}}
       {%- set prior = state_attr('input_select.motion_addon_ipaddr','options') -%}
       {%- if prior|lower != 'none' and prior|lower != 'unknown' and prior|lower != 'unavailable' and prior|lower != 'none' and prior|length > 0 -%}
         {%- for p in prior -%}
           {%- if loop.first -%}{%- else -%},{%- endif -%}
-          {{- p -}}
+          "{{- p -}}"
         {%- endfor -%}
       {%- else -%}
         {%- set prior = 'null' -%}
@@ -40,12 +39,12 @@
       {%- set ipaddr = state_attr('sensor.motion_device_start','ipaddr') -%}
       {%- if ipaddr|lower != 'none' and ipaddr|lower != 'unknown' and ipaddr|lower != 'unavailable' and ipaddr|lower != 'none' and ipaddr|length > 0 -%}
         {%- if prior != 'null' -%},{%- endif -%}
-        {{- ipaddr -}}
+        "{{- ipaddr -}}"
       {%- endif -%}
+      {{- ']' }}
   action:
-    - service: python_script.input_select_set_options
+    - service: input_select.set_options
       data_template:
         entity_id: input_select.motion_addon_ipaddr
-        default: localhost
         options: >-
-          {{ options }}
+          {{ options|sort|unique|list }}
