@@ -1,17 +1,16 @@
 ###
-# homeassistant/automation/motion/rtsp_options_add.yaml
+# homeassistant/automation/addon/addon_rtsp.yaml
 ###
 
 ## ADD
 
-- id: motion_addon_rtsp_options_add
-  alias: motion_addon_rtsp_options_add
+- id: motion_addon_rtsp
+  alias: motion_addon_rtsp
   initial_state: on
   mode: restart
   trigger:
     - platform: state
       entity_id: sensor.motion_addon_rtsp
-      attribute: 'rtsp'
   condition:
     condition: and
     conditions:
@@ -20,29 +19,30 @@
           {{ states('sensor.motion_addon_rtsp')|lower == 'true' }}
       - condition: template
         value_template: >-
-          {{ state_attr('sensor.motion_addon_rtsp','rtsp')|lower != 'none' }}
+          {% set s = state_attr('sensor.motion_addon_rtsp','rtsp') %}
+          {{ s|lower != 'none' and 'cameras' in s }} 
   variables:
     options: >-
       {{ '[' -}}
       {%- set prior = state_attr('input_select.motion_addon_rtsp_camera','options') -%}
-      {%- if prior|lower != 'none' and prior|lower != 'unknown' and prior|lower != 'unavailable' and prior|lower != 'null' and prior|length > 0 -%}
-        {%- for p in prior if p|length > 0 -%}
-          {%- if not loop.first -%},{%- endif -%}
+      {%- if prior|lower != 'none' and prior|lower != 'unknown' and prior|lower != 'unavailable' and prior|lower != 'null' and prior|length > 0 -%} 
+        {%- for p in prior if p|length > 0 -%} 
+          {%- if not loop.first -%},{%- endif -%} 
           "{{- p -}}"
-        {%- endfor -%}
-      {%- else -%}
-        {%- set prior = 'null' -%}
-      {%- endif -%}
-      {%- set devices = state_attr('sensor.motion_addon_rtsp','rtsp').devices -%}
-      {%- if devices|lower != 'none' and 'devices' in devices -%}
-        {%- set devices = devices.rtsp -%}
-        {%- if devices|lower != 'none' and not devices is string and devices is iterable and devices|count > 0 -%}
-          {%- if prior != 'null' -%},{%- endif -%}
-          {%- for c in devices|selectattr('code','==','200')|list -%}
-            {%- if not loop.first -%},{%- endif -%}
+        {%- endfor -%} 
+      {%- else -%} 
+        {%- set prior = 'null' -%} 
+      {%- endif -%} 
+      {%- set s = state_attr('sensor.motion_addon_rtsp','rtsp') -%} 
+      {%- if s|lower != 'none' and 'cameras' in s -%} 
+        {%- set devices = s.cameras -%} 
+        {%- if devices|lower != 'none' and not devices is string and devices is iterable and devices|count > 0 -%} 
+          {%- if prior != 'null' -%},{%- endif -%} 
+          {%- for c in devices|selectattr('code','==','200')|list -%} 
+            {%- if not loop.first -%},{%- endif -%} 
             "{{- c.ip -}}"
-          {%- endfor -%}
-        {%- endif -%}
+          {%- endfor -%} 
+        {%- endif -%} 
       {%- endif -%}
       {{- ']' }}
   action:
@@ -51,4 +51,4 @@
       data_template:
         entity_id: input_select.motion_addon_rtsp_camera
         options: >-
-          {{ options }}
+          {{ options|sort|unique|list }}
