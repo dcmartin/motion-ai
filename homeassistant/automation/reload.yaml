@@ -17,6 +17,38 @@
         value_template: >
           {{ trigger.to_state.state != trigger.from_state.state }}
   action:
+#    - alias: 'wait until HA has been up for a while'
+#      wait_for_trigger:
+#        - platform: template
+#          value_template: >-
+#            {%- set s = state_attr('sensor.motion_uptime','ago') -%}
+#            {{- s|lower != 'none' and s|int(0) > state_attr('sensor.motion_uptime','wait') }}
+    - variables:
+        delay: >-
+          {{ state_attr('binary_sensor.motion_restarting','delay') }}
+        timestamp: >-
+          {{ (utcnow() + timedelta(seconds=delay))|as_timestamp }}
+        when: >-
+          {{ timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+    - alias: 'wait for delay'
+      delay:
+        seconds: >-
+          {{ delay }}
+    - choose:
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ states('input_select.motion_log_level') in ['debug','info','notice','alert'] }}
+        sequence:
+          - alias: 'notify homeassistant restart'
+            service: persistent_notification.create
+            data_template:
+              title: >-
+                ALERT: System restarting
+              notification_id: >-
+                {{ 'motion-reload-restart' }}
+              message: >-
+                System restarting at {{ when }}
     - alias: 'restart home assistant core'
       service: homeassistant.restart
 
@@ -35,6 +67,32 @@
         value_template: >
           {{ trigger.to_state.state != trigger.from_state.state }}
   action:
+    - variables:
+        delay: >-
+          {{ state_attr('binary_sensor.motion_restarting','delay') }}
+        timestamp: >-
+          {{ (utcnow() + timedelta(seconds=delay))|as_timestamp }}
+        when: >-
+          {{ timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+    - alias: 'wait for delay'
+      delay:
+        seconds: >-
+          {{ delay }}
+    - choose:
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ states('input_select.motion_log_level') in ['debug','info','notice','alert','critical'] }}
+        sequence:
+          - alias: 'notify system reboot'
+            service: persistent_notification.create
+            data_template:
+              title: >-
+                CRITICAL: System rebooting
+              notification_id: >-
+                {{ 'motion-reboot' }}
+              message: >-
+                System rebooting at {{ when }}
     - alias: 'reboot host'
       service: hassio.host_reboot
 
@@ -62,10 +120,10 @@
         condition: template
         value_template: >
          {{ is_state('binary_sensor.motion_reload','on') }}
-      - alias: 'test if binary_sensor.motion_reloading is off'
+      - alias: 'test if binary_sensor.motion_restarting is off'
         condition: template
         value_template: >-
-          {{ is_state('binary_sensor.motion_reloading','off') }}
+          {{ is_state('binary_sensor.motion_restarting','off') }}
   action:
     - choose:
       - conditions:
@@ -103,47 +161,23 @@
                 {{ 'motion-addon-update' }}
     - variables:
         delay: >-
-          {{ state_attr('binary_sensor.motion_reloading','delay') }}
+          {{ state_attr('binary_sensor.motion_restarting','delay') }}
         timestamp: >-
           {{ (utcnow() + timedelta(seconds=delay))|as_timestamp }}
         when: >-
           {{ timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
-    - alias: 'set state binary_sensor.motion_reloading: on'
+    - alias: 'set state binary_sensor.motion_restarting: on'
       service: python_script.set_state
       data_template:
-        entity_id: binary_sensor.motion_reloading
+        entity_id: binary_sensor.motion_restarting
         timestamp: >-
           {{ timestamp }}
         when: >-
           {{ when }}
         state: 'on'
-    - choose:
-      - conditions:
-          - condition: template
-            value_template: >
-              {{ states('input_select.motion_log_level') in ['debug','info','notice','alert'] }}
-        sequence:
-          - alias: 'notify homeassistant restart'
-            service: persistent_notification.create
-            data_template:
-              title: >-
-                ALERT: System restarting
-              notification_id: >-
-                {{ 'motion-reload-restart' }}
-              message: >-
-                System restarting at {{ when }}
-#    - alias: 'wait until HA has been up for a while'
-#      wait_for_trigger:
-#        - platform: template
-#          value_template: >-
-#            {%- set s = state_attr('sensor.motion_uptime','ago') -%}
-#            {{- s|lower != 'none' and s|int(0) > state_attr('sensor.motion_uptime','wait') }}
-    - alias: 'wait for delay'
-      delay:
-        seconds: >-
-          {{ delay }}
-    - alias: 'restart home-assistant'
-      service: homeassistant.restart
+    - alias: 'trigger automation.motion_restart'
+      service: automation.trigger
+      entity_id: automation.motion_restart
 
 - id: motion_reloaded
   alias: motion_reloaded
@@ -157,12 +191,12 @@
     conditions:
       - condition: template
         value_template: >
-          {{ is_state('binary_sensor.motion_reloading','on') }}
+          {{ is_state('binary_sensor.motion_restarting','on') }}
   action:
-    - alias: 'set state binary_sensor.motion_reloading: off'
+    - alias: 'set state binary_sensor.motion_restarting: off'
       service: python_script.set_state
       data_template:
-        entity_id: binary_sensor.motion_reloading
+        entity_id: binary_sensor.motion_restarting
         state: 'off'
     - alias: 'set state binary_sensor.motion_reloaded: on'
       service: python_script.set_state
