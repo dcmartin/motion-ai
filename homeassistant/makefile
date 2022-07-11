@@ -194,7 +194,7 @@ LOVELACE_DASHBOARDS := $(shell for C in $(MOTION_DASHBOARDS); do echo lovelace.$
 
 default: all
 
-all: chown $(WEBCAMS) lovelace_dashboards.json lovelace_resources.json ${LOVELACE_DASHBOARDS} $(MOTION_DIRS) $(PACKAGES) secrets.yaml
+all: chown $(WEBCAMS) .storage/lovelace lovelace_dashboards.json lovelace_resources.json ${LOVELACE_DASHBOARDS} $(MOTION_DIRS) $(PACKAGES) secrets.yaml
 
 chown:
 	@echo "${MC}Making: $@${NC}"
@@ -368,6 +368,8 @@ secrets.yaml: secrets.yaml.tmpl
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	  UPTIMEROBOT_RSSURL="$(UPTIMEROBOT_RSSURL)" \
 	&& cat $< | envsubst > $@
+
+.storage/lovelace: lovelace.json
 
 lovelace.json: lovelace.json.tmpl
 	@echo "${MC}Making: $@${NC}"
