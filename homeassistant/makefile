@@ -369,7 +369,34 @@ secrets.yaml: secrets.yaml.tmpl
 	  UPTIMEROBOT_RSSURL="$(UPTIMEROBOT_RSSURL)" \
 	&& cat $< | envsubst > $@
 
-.storage/lovelace: lovelace.json
+lovelace_dashboards.json: lovelace_dashboards.json.tmpl
+	@echo "${MC}Making: $@${NC}"
+	@export \
+	  HOST_NAME="$(HOST_NAME)" \
+	  MOTION_APP="$(MOTION_APP)" \
+	  MOTION_USER="$(MOTION_USER)" \
+	&& cat $< \
+	  | envsubst \
+	 > $@
+	@rm -f .storage/lovelace_dashboards
+	-@mkdir -p .storage/
+	@ln -s ../$@ .storage/lovelace_dashboards
+
+lovelace_resources.json: lovelace_resources.json.tmpl
+	@echo "${MC}Making: $@${NC}"
+	@export \
+	  HOST_NAME="$(HOST_NAME)" \
+	  MOTION_APP="$(MOTION_APP)" \
+	  MOTION_USER="$(MOTION_USER)" \
+	&& cat $< \
+	  | envsubst \
+	 > $@
+	@rm -f .storage/lovelace_resources
+	-@mkdir -p .storage/
+	@ln -s ../$@ .storage/lovelace_resources
+
+.storage/lovelace: lovelace.json.tmpl
+	${MAKE} lovelace.json
 
 lovelace.json: lovelace.json.tmpl
 	@echo "${MC}Making: $@${NC}"
@@ -498,32 +525,6 @@ lovelace.experimental.json: lovelace.experimental.json.tmpl $(WEBCAMS)
 	@rm -f .storage/lovelace.lovelace_experimental
 	-@mkdir -p .storage/
 	@ln -s ../$@ .storage/lovelace.lovelace_experimental
-
-lovelace_dashboards.json: lovelace_dashboards.json.tmpl
-	@echo "${MC}Making: $@${NC}"
-	@export \
-	  HOST_NAME="$(HOST_NAME)" \
-	  MOTION_APP="$(MOTION_APP)" \
-	  MOTION_USER="$(MOTION_USER)" \
-	&& cat $< \
-	  | envsubst \
-	 > $@
-	@rm -f .storage/lovelace_dashboards
-	-@mkdir -p .storage/
-	@ln -s ../$@ .storage/lovelace_dashboards
-
-lovelace_resources.json: lovelace_resources.json.tmpl
-	@echo "${MC}Making: $@${NC}"
-	@export \
-	  HOST_NAME="$(HOST_NAME)" \
-	  MOTION_APP="$(MOTION_APP)" \
-	  MOTION_USER="$(MOTION_USER)" \
-	&& cat $< \
-	  | envsubst \
-	 > $@
-	@rm -f .storage/lovelace_resources
-	-@mkdir -p .storage/
-	@ln -s ../$@ .storage/lovelace_resources
 
 ## clean and clean and clean ..
 
