@@ -194,7 +194,7 @@ LOVELACE_DASHBOARDS := $(shell for C in $(MOTION_DASHBOARDS); do echo lovelace.$
 
 default: all
 
-all: chown $(WEBCAMS) lovelace_dashboards.json lovelace_resources.json ${LOVELACE_DASHBOARDS} $(MOTION_DIRS) $(PACKAGES) secrets.yaml
+all: chown $(WEBCAMS) .storage/lovelace lovelace_dashboards.json lovelace_resources.json ${LOVELACE_DASHBOARDS} $(MOTION_DIRS) $(PACKAGES) secrets.yaml
 
 chown:
 	@echo "${MC}Making: $@${NC}"
@@ -369,6 +369,35 @@ secrets.yaml: secrets.yaml.tmpl
 	  UPTIMEROBOT_RSSURL="$(UPTIMEROBOT_RSSURL)" \
 	&& cat $< | envsubst > $@
 
+lovelace_dashboards.json: lovelace_dashboards.json.tmpl
+	@echo "${MC}Making: $@${NC}"
+	@export \
+	  HOST_NAME="$(HOST_NAME)" \
+	  MOTION_APP="$(MOTION_APP)" \
+	  MOTION_USER="$(MOTION_USER)" \
+	&& cat $< \
+	  | envsubst \
+	 > $@
+	@rm -f .storage/lovelace_dashboards
+	-@mkdir -p .storage/
+	@ln -s ../$@ .storage/lovelace_dashboards
+
+lovelace_resources.json: lovelace_resources.json.tmpl
+	@echo "${MC}Making: $@${NC}"
+	@export \
+	  HOST_NAME="$(HOST_NAME)" \
+	  MOTION_APP="$(MOTION_APP)" \
+	  MOTION_USER="$(MOTION_USER)" \
+	&& cat $< \
+	  | envsubst \
+	 > $@
+	@rm -f .storage/lovelace_resources
+	-@mkdir -p .storage/
+	@ln -s ../$@ .storage/lovelace_resources
+
+.storage/lovelace: lovelace.json.tmpl
+	${MAKE} lovelace.json
+
 lovelace.json: lovelace.json.tmpl
 	@echo "${MC}Making: $@${NC}"
 	@export \
@@ -496,32 +525,6 @@ lovelace.experimental.json: lovelace.experimental.json.tmpl $(WEBCAMS)
 	@rm -f .storage/lovelace.lovelace_experimental
 	-@mkdir -p .storage/
 	@ln -s ../$@ .storage/lovelace.lovelace_experimental
-
-lovelace_dashboards.json: lovelace_dashboards.json.tmpl
-	@echo "${MC}Making: $@${NC}"
-	@export \
-	  HOST_NAME="$(HOST_NAME)" \
-	  MOTION_APP="$(MOTION_APP)" \
-	  MOTION_USER="$(MOTION_USER)" \
-	&& cat $< \
-	  | envsubst \
-	 > $@
-	@rm -f .storage/lovelace_dashboards
-	-@mkdir -p .storage/
-	@ln -s ../$@ .storage/lovelace_dashboards
-
-lovelace_resources.json: lovelace_resources.json.tmpl
-	@echo "${MC}Making: $@${NC}"
-	@export \
-	  HOST_NAME="$(HOST_NAME)" \
-	  MOTION_APP="$(MOTION_APP)" \
-	  MOTION_USER="$(MOTION_USER)" \
-	&& cat $< \
-	  | envsubst \
-	 > $@
-	@rm -f .storage/lovelace_resources
-	-@mkdir -p .storage/
-	@ln -s ../$@ .storage/lovelace_resources
 
 ## clean and clean and clean ..
 
