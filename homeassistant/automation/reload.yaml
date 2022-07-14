@@ -2,6 +2,196 @@
 # homeassistant/automation/reload.yaml
 ###
 
+- id: motion_reload_notification
+  alias: motion_reload_notification
+  initial_state: on
+  mode: single
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_reload_notify
+      to: 'request'
+  variables:
+    id: >-
+      {{ 'reload-notification' ~ context.id }}
+    approve: >-
+      {{ 'reload-notification-approve' -}}
+    deny: >-
+      {{ 'reload-notification-deny' -}}
+    title: >-
+     {{- 'System restart required' -}}
+    message: >-
+      {{ 'Please select <b>Approve</b> or <b>Deny</b>.' }}
+    dismiss: >-
+      {{- 'Deny' -}}
+    approve: >-
+      {{- 'Approve' -}}
+    critical: >-
+      {{- 'off' -}}
+    interval: >-
+      {{ 5 }}
+    tag: >-
+      {{ id }}
+    persistent: >-
+      {{ 'false' }}
+    group: >-
+      {{ 'reload' }}
+    timeout: >-
+      {{ interval|int * 60 }}
+    chronometer: >-
+      {{ 'false' }}
+    alert_once: >-
+      {{ 'false' }}
+    when: >-
+      {{ utcnow().timestamp()|int + interval }}
+    device_id: >-
+      {{ device_id(state_attr('sensor.motion_person','device')) }}
+    channel: >-
+      {{ states('sensor.motion_name') }}
+    is_critical: >-
+      {{ 'false' }}
+    # platform specific
+    ttl: >-
+      {# Android specific #}
+      {{ iif(is_critical, 0, 3600000) }}
+    priority: >-
+      {# Android specific #}
+      {{ iif(is_critical, 'high', 'normal') }}
+    subject: >-
+      {# Android specific #}
+      {{ 'Subject'}}
+    subtitle: >-
+      {# iOS specific #}
+      {{ 'Subtitle'}}
+    critical: >-
+      {# iOS specific #}
+      {{ iif(is_critical, 1, 0) }}
+    volume: >-
+      {# iOS specific #}
+      {{ 1.0 }}
+    sound: >-
+      {# iOS specific #}
+      {{ 'default' }}
+    interruption_level:
+      {# iOS specific #}
+      {{ iif(is_critical, 'critical', 'active') }}
+  action:
+    - repeat:
+        sequence:
+          - alias: 'send reload_notification to motion_person.device'
+            domain: mobile_app
+            type: notify
+            device_id: >-
+              {{ device_id }}
+            title: >-
+              {{ title }}
+            message: >-
+             {{ message }}
+            data: 
+              subtitle: >-
+                {{ subtitle }}
+              subject: >-
+                {{ subject }}
+              channel: >-
+                {{ channel }}
+              tag: >-
+                {{ tag }}
+              group: >-
+                {{ group }}
+              ttl: >-
+                {{ ttl }}
+              priority: >-
+                {{ priority }}
+              push:
+                sound:
+                  name: >-
+                    {{ sound }}
+                  critical: >-
+                    {{ critical }}
+                  volume: >-
+                    {{ volume }}
+                interruption-level: >-
+                  {{ interruption_level }}
+              # Actions
+              actions:
+                - action: "reload-notification-deny"
+                  title: "Deny"
+                  destructive: true
+                - action: "reload-notification-approve"
+                  title: "Approve"
+                  destructive: false
+          - wait_for_trigger:
+            - platform: event
+              event_type: mobile_app_notification_action
+              event_data:
+                action: "reload-notification-approve"
+            - platform: event
+              event_type: mobile_app_notification_action
+              event_data:
+                action: "reload-notification-deny"
+            timeout:
+              minutes: >-
+                {{ interval }}
+        until: "{{ wait.remaining > 0 }}"
+
+- id: motion_reload_notification_response
+  alias: motion_reload_nnotification_response
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: event
+      event_type: mobile_app_notification_action
+      event_data:
+        action: "reload-notification-deny"
+    - platform: event
+      event_type: mobile_app_notification_action
+      event_data:
+        action: "reload-notification-approve"
+  variables:
+    delay: >-
+      {{ state_attr('binary_sensor.motion_restarting','delay') }}
+    timestamp: >-
+      {{ (utcnow() + timedelta(seconds=delay))|as_timestamp }}
+    when: >-
+      {{ timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+    to: >-
+      {{ trigger.event.data.action|default(none) }}
+    state: >-
+      {% if to|lower != 'none' %}
+        {{ to|replace('reload-notify-','') }}
+      {% else %}none{% endif %}
+  action:
+    - choose:
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ to|lower in state_attr('sensor.motion_reload_notify','states') }}
+        sequence:
+          - alias: 'change state for sensor.motion_reload_notify'
+            service: python_script.set_state
+            data_template:
+              entity_id: sensor.motion_reload_notify
+              timestamp: >-
+                {{ timestamp }}
+              when: >-
+                {{ when }}
+              state: >- 
+                {{ state }}
+    - choose:
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ states('input_select.motion_log_level') in ['debug','info','notice','alert'] }}
+        sequence:
+          - alias: 'debug reload_notify'
+            service: persistent_notification.create
+            data_template:
+              title: >-
+                DEBUG: Reload notify response
+              notification_id: >-
+                {{ 'reload-notify-response' }}
+              message: >-
+                Reload notification response received: {{ to }}; state: {{ state }}
+
 - id: motion_restart
   alias: motion_restart
   mode: single
@@ -10,6 +200,9 @@
     - platform: state
       entity_id: input_boolean.motion_restart
       to: 'on'
+    - platform: state
+      entity_id: sensor.motion_reload_notify
+      to: 'approve'
   condition:
     condition: and
     conditions:
@@ -17,12 +210,6 @@
         value_template: >
           {{ trigger.to_state.state != trigger.from_state.state }}
   action:
-#    - alias: 'wait until HA has been up for a while'
-#      wait_for_trigger:
-#        - platform: template
-#          value_template: >-
-#            {%- set s = state_attr('sensor.motion_uptime','ago') -%}
-#            {{- s|lower != 'none' and s|int(0) > state_attr('sensor.motion_uptime','wait') }}
     - variables:
         delay: >-
           {{ state_attr('binary_sensor.motion_restarting','delay') }}
