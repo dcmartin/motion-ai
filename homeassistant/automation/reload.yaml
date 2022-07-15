@@ -12,71 +12,116 @@
       to: 'request'
   variables:
     id: >-
-      {{ 'reload-notification' ~ context.id }}
-    approve: >-
-      {{ 'reload-notification-approve' -}}
-    deny: >-
-      {{ 'reload-notification-deny' -}}
+      {{ 'reload-notification' }}
+    group: >-
+      {{ 'reload' }}
+    tag: >-
+      {{ id }}
+    device_id: >-
+      {% set s = state_attr('sensor.motion_person','device') %}
+      {% if s|lower != 'none' %}
+        {{ device_id(s) }}
+      {% else %}none{% endif %}
+    channel: >-
+      {{ states('sensor.motion_name') }}
+    notification_icon: >-
+      {% set s = state_attr('sensor.motion_name','icon') %}
+      {% if s|lower != 'none' %}
+        {{ s }}
+      {% else %}{{ 'mdi:home-assistant' }}{% endif %}
+    icon_url: >-
+      {% set s = state_attr('sensor.motion_name','entity_picture') %}
+      {% if s|lower != 'none' %}
+        {{ s }}
+      {% else %}{{ '/local/images/icon.png' }}{% endif %}
     title: >-
      {{- 'System restart required' -}}
     message: >-
       {{ 'Please select <b>Approve</b> or <b>Deny</b>.' }}
-    dismiss: >-
-      {{- 'Deny' -}}
-    approve: >-
-      {{- 'Approve' -}}
-    critical: >-
-      {{- 'off' -}}
+    actions: >-
+      {% set s = [{'action':'reload-notification-approve','title':'Approve','destructive':'false'},{'action':'reload-notification-deny','title':'Deny','destructive':'true'}] %}
+      {{ s }}
     interval: >-
       {{ 5 }}
-    tag: >-
-      {{ id }}
     persistent: >-
       {{ 'false' }}
-    group: >-
-      {{ 'reload' }}
     timeout: >-
       {{ interval|int * 60 }}
-    chronometer: >-
-      {{ 'false' }}
-    alert_once: >-
-      {{ 'false' }}
+#    chronometer: >-
+#      {{ 'false' }}
+#    alert_once: >-
+#      {{ 'true' }}
     when: >-
       {{ utcnow().timestamp()|int + interval }}
-    device_id: >-
-      {{ device_id(state_attr('sensor.motion_person','device')) }}
-    channel: >-
-      {{ states('sensor.motion_name') }}
-    is_critical: >-
-      {{ 'false' }}
-    importance: >-
-      {# high, low, max, min, default #}
-      {{ 'default' }}
-    ttl: >-
-      {# Android specific #}
-      {{ iif(is_critical, 0, 3600000) }}
-    priority: >-
-      {# Android specific #}
-      {{ iif(is_critical, 'high', 'normal') }}
-    subject: >-
-      {# Android specific #}
-      {{ 'Subject'}}
-    subtitle: >-
-      {# iOS specific #}
-      {{ 'Subtitle'}}
-    critical: >-
-      {# iOS specific #}
-      {{ iif(is_critical, 1, 0) }}
-    volume: >-
-      {# iOS specific #}
-      {{ 1.0 }}
-    sound: >-
-      {# iOS specific #}
-      {{ 'default' }}
-    interruption_level:
-      {# iOS specific #}
-      {{ iif(is_critical, 'critical', 'active') }}
+#    is_critical: >-
+#      {{ 'false' }}
+#    importance: >-
+#      {# high, low, max, min, default #}
+#      {{ 'default' }}
+#    subtitle: >-
+#      {# iOS specific #}
+#      {{ 'Subtitle'}}
+#    critical: >-
+#      {# iOS specific #}
+#      {% if is_critical|lower == 'false' %}0{% else %}1{% endif %}
+#    volume: >-
+#      {# iOS specific #}
+#      {{ 1.0 }}
+#    sound: >-
+#      {# iOS specific #}
+#      {{ 'default' }}
+#    interruption_level:
+#      {# iOS specific #}
+#      {% if is_critical|lower == 'false' %}active{% else %}critical{% endif %}
+#    ttl: >-
+#      {# Android specific #}
+#      {% if is_critical|lower == 'false' %}3600000{% else %}0{% endif %}
+#    priority: >-
+#      {# Android specific #}
+#      {% if is_critical|lower == 'false' %}normal{% else %}high{% endif %}
+#    subject: >-
+#      {# Android specific #}
+#      {{ 'Subject'}}
   action:
+    - choose:
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ states('input_select.motion_log_level') in ['debug'] }}
+        sequence:
+          - alias: 'debug reload notification'
+            service: persistent_notification.create
+            data_template:
+              title: >-
+                DEBUG: Reload notification start
+              notification_id: >-
+                {{ 'debug-reload-notification' }}
+              message: >-
+                Reload notification start at <i>{{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}</i>
+                <ul>
+                <li>id: "{{ id }}"</li>
+                <li>tag: "{{ tag }}"</li>
+                <li>group: "{{ group }}"</li>
+                <li>device_id: "{{ device_id }}"</li>
+                <li>channel: "{{ channel }}"</li>
+                <li>icon_url: "{{ icon_url }}"</li>
+                <li>notification_icon: "{{ notification_icon }}"</li>
+                <li>message: "{{ message }}"</li>
+                <li>title: "{{ title }}"</li>
+                <li>actions: "{{ actions|string }}"</li>
+                </ul>
+#                <li>chronometer: "{{ chronometer }}"</li>
+#                <li>importance: "{{ importance }}"</li>
+#                <li>interval: "{{ interval }}"</li>
+#                <li>when: "{{ when }}"</li>
+#                <li>critical: "{{ critical }}"</li>
+#                <li>interruption_level: "{{ interruption_level }}"</li>
+#                <li>priority: "{{ priority }}"</li>
+#                <li>sound: "{{ sound }}"</li>
+#                <li>subject: "{{ subject }}"</li>
+#                <li>subtitle: "{{ subtitle }}"</li>
+#                <li>volume: "{{ volume }}"</li>
+#                <li>ttl: "{{ ttl }}"</li>
     - repeat:
         sequence:
           - alias: 'send reload_notification to motion_person.device'
@@ -89,57 +134,88 @@
             message: >-
              {{ message }}
             data: 
-              notification_icon: >-
-                {{ state_attr('sensor.motion_name','icon') }}
-              icon_url: >-
-                {{ state_attr('sensor.motion_name','entity_picture') }}
-              subtitle: >-
-                {{ subtitle }}
-              subject: >-
-                {{ subject }}
               channel: >-
                 {{ channel }}
-              importance: >-
-                {{ importance }}
-              tag: >-
-                {{ tag }}
               group: >-
                 {{ group }}
-              ttl: >-
-                {{ ttl }}
-              priority: >-
-                {{ priority }}
+              tag: >-
+                {{ tag }}
+              notification_icon: >-
+                {{ notification_icon }}
+              icon_url: >-
+                {{ icon_url }}
+#              when: >-
+#                {{ when }}
+#              importance: >-
+#                {{ importance }}
+#              ttl: >-
+#                {{ ttl }}
+#              priority: >-
+#                {{ priority }}
+#              subtitle: >-
+#                {{ subtitle }}
+#              subject: >-
+#                {{ subject }}
+#              chronometer: >-
+#                {{ chronometer }}
               push:
-                sound:
-                  name: >-
-                    {{ sound }}
-                  critical: >-
-                    {{ critical }}
-                  volume: >-
-                    {{ volume }}
-                interruption-level: >-
-                  {{ interruption_level }}
-              # Actions
-              actions:
-                - action: "reload-notification-deny"
-                  title: "Deny"
-                  destructive: true
-                - action: "reload-notification-approve"
-                  title: "Approve"
-                  destructive: false
+#                sound:
+#                  name: >-
+#                    {{ sound }}
+#                  critical: >-
+#                    {{ critical }}
+#                  volume: >-
+#                    {{ volume }}
+#                interruption-level: >-
+#                  {{ interruption_level }}
+              actions: >-
+                {{ actions }}
           - wait_for_trigger:
             - platform: event
               event_type: mobile_app_notification_action
               event_data:
-                action: "reload-notification-approve"
+                action: >-
+                 {{ actions[0].action }}
             - platform: event
               event_type: mobile_app_notification_action
               event_data:
-                action: "reload-notification-deny"
+                action: >-
+                 {{ actions[1].action }}
             timeout:
               minutes: >-
                 {{ interval }}
-        until: "{{ wait.remaining > 0 }}"
+          - choose:
+            - conditions:
+                - condition: template
+                  value_template: >
+                    {{ states('input_select.motion_log_level') in ['debug'] }}
+              sequence:
+                - alias: 'debug reload notification'
+                  service: persistent_notification.create
+                  data_template:
+                    title: >-
+                      DEBUG: Reload notification timeout
+                    notification_id: >-
+                      {{ 'debug-reload-notification' }}
+                    message: >-
+                      {{ 'Reload notification timeout' }}
+        until: >-
+          {{ wait.remaining > 0 }}
+    - choose:
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ states('input_select.motion_log_level') in ['debug'] }}
+        sequence:
+          - alias: 'debug reload notification'
+            service: persistent_notification.create
+            data_template:
+              title: >-
+                DEBUG: Reload notification
+              notification_id: >-
+                {{ 'debug-reload-notification' }}
+              message: >-
+                {{ 'Reload notification complete' }}
 
 - id: motion_reload_notification_response
   alias: motion_reload_nnotification_response
@@ -155,25 +231,41 @@
       event_data:
         action: "reload-notification-approve"
   variables:
-    delay: >-
-      {{ state_attr('binary_sensor.motion_restarting','delay') }}
-    timestamp: >-
-      {{ (utcnow() + timedelta(seconds=delay))|as_timestamp }}
-    when: >-
-      {{ timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
     to: >-
       {{ trigger.event.data.action|default(none) }}
     state: >-
       {% if to|lower != 'none' %}
-        {{ to|replace('reload-notify-','') }}
+        {{ to|replace('reload-notification-','') }}
       {% else %}none{% endif %}
   action:
     - choose:
       - conditions:
           - condition: template
             value_template: >
+              {{ states('input_select.motion_log_level') in ['debug'] }}
+        sequence:
+          - alias: 'notification response'
+            service: persistent_notification.create
+            data_template:
+              title: >-
+                DEBUG: Reload notification response
+              notification_id: >-
+                {{ 'debug-reload-notification' }}
+              message: >-
+                Reload notification response received: {{ to }}; state: {{ state }}
+    - choose:
+      - conditions:
+          - condition: template
+            value_template: >
               {{ to|lower in state_attr('sensor.motion_reload_notify','states') }}
         sequence:
+          - variables:
+              delay: >-
+                {{ state_attr('binary_sensor.motion_restarting','delay') }}
+              timestamp: >-
+                {{ (utcnow() + timedelta(seconds=delay))|as_timestamp }}
+              when: >-
+                {{ timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
           - alias: 'change state for sensor.motion_reload_notify'
             service: python_script.set_state
             data_template:
@@ -184,21 +276,6 @@
                 {{ when }}
               state: >- 
                 {{ state }}
-    - choose:
-      - conditions:
-          - condition: template
-            value_template: >
-              {{ states('input_select.motion_log_level') in ['debug','info','notice','alert'] }}
-        sequence:
-          - alias: 'debug reload_notify'
-            service: persistent_notification.create
-            data_template:
-              title: >-
-                DEBUG: Reload notify response
-              notification_id: >-
-                {{ 'reload-notify-response' }}
-              message: >-
-                Reload notification response received: {{ to }}; state: {{ state }}
 
 - id: motion_restart
   alias: motion_restart
