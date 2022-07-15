@@ -25,14 +25,14 @@
       {% if tracker|lower != 'none' %}
         {{ 'notify.mobile_app_' + tracker }}
       {% else %}none{% endif %}
+    channel: >-
+      {{ states('sensor.motion_name') }}
     id: >-
       {{ 'reload-notification' }}
     group: >-
-      {{ 'reload' }}
-    tag: >-
-      {{ id }}
-    channel: >-
-      {{ states('sensor.motion_name') }}
+      {{ 'system-health' }}
+    interval: >-
+      {{ 5 }}
     notification_icon: >-
       {% set s = state_attr('sensor.motion_name','icon') %}
       {% if s|lower != 'none' %}
@@ -44,53 +44,37 @@
         {{ s }}
       {% else %}{{ '/local/images/icon.png' }}{% endif %}
     title: >-
-     {{- 'System restart required' -}}
+      {% set s = state_attr('sensor.motion_name','title') %}
+      {% if s|lower == 'none' %}
+        {% set s = 'Home Assistant' %}
+      {% endif %}
+      {{ s -}}: alert
+    subtitle: >-
+      {{- 'System restart requested' -}}
     message: >-
-      {{ 'Please select <b>Approve</b> or <b>Deny</b>.' }}
+      The system requires a restart to process updates; to restart now select Approve; or select Wait to ask again in {{ interval }} minutes; Deny will stop restart.
     actions: >-
-      {% set s = [{'action':'reload-notification-approve','title':'Approve','destructive':'false'},{'action':'reload-notification-deny','title':'Deny','destructive':'true'}] %}
+      {% set s = [ 
+        {'action':'reload-notification-approve','icon':'sfsymbols:hand.thumbsup','title':'Approve','destructive':false},
+        {'action':'reload-notification-wait','icon':'sfsymbols:timer','title':'Wait','destructive':false},
+        {'action':'reload-notification-deny','icon':'sfsymbols:hand.thumbsdown.fill','title':'Deny','destructive':true}
+        ] %}
       {{ s }}
-    interval: >-
-      {{ 5 }}
     persistent: >-
-      {{ 'false' }}
+      {{ 'true' }}
+    tag: >-
+      {{ 'persistent' }}
+    critical: >-
+      {{ 0  }}
+    interruption_level: >-
+      {# 'passive','active','time-sensitive','critical' #}
+      {{ 'critical' }}
+    volume: >-
+      {{ 1.0 }}
+    sound: >-
+      {{ 'US-EN-Morgan-Freeman-Welcome-Home.wav' }}
     timeout: >-
       {{ interval|int * 60 }}
-#    alert_once: >-
-#      {{ 'true' }}
-#    chronometer: >-
-#      {{ 'false' }}
-#    when: >-
-#      {{ utcnow().timestamp()|int + interval }}
-#    is_critical: >-
-#      {{ 'false' }}
-#    importance: >-
-#      {# high, low, max, min, default #}
-#      {{ 'default' }}
-#    subtitle: >-
-#      {# iOS specific #}
-#      {{ 'Subtitle'}}
-#    critical: >-
-#      {# iOS specific #}
-#      {% if is_critical|lower == 'false' %}0{% else %}1{% endif %}
-#    volume: >-
-#      {# iOS specific #}
-#      {{ 1.0 }}
-#    sound: >-
-#      {# iOS specific #}
-#      {{ 'default' }}
-#    interruption_level:
-#      {# iOS specific #}
-#      {% if is_critical|lower == 'false' %}active{% else %}critical{% endif %}
-#    ttl: >-
-#      {# Android specific #}
-#      {% if is_critical|lower == 'false' %}3600000{% else %}0{% endif %}
-#    priority: >-
-#      {# Android specific #}
-#      {% if is_critical|lower == 'false' %}normal{% else %}high{% endif %}
-#    subject: >-
-#      {# Android specific #}
-#      {{ 'Subject'}}
   action:
     - choose:
       - conditions:
@@ -116,23 +100,13 @@
                 <li>tag: "{{ tag }}"</li>
                 <li>icon_url: "{{ icon_url }}"</li>
                 <li>notification_icon: "{{ notification_icon }}"</li>
-                <li>service: "{{ service }}"</li>
                 <li>title: "{{ title }}"</li>
                 <li>message: "{{ message }}"</li>
-                <li>actions: "{{ actions|string }}"</li>
                 <li>interval: "{{ interval }}"</li>
+                <li>interruption_level: "{{ interruption_level }}"</li>
+                <li>service: "{{ service }}"</li>
+                <li>actions: "{{ actions|string }}"</li>
                 </ul>
-#                <li>importance: "{{ importance }}"</li>
-#                <li>chronometer: "{{ chronometer }}"</li>
-#                <li>when: "{{ when }}"</li>
-#                <li>critical: "{{ critical }}"</li>
-#                <li>interruption_level: "{{ interruption_level }}"</li>
-#                <li>priority: "{{ priority }}"</li>
-#                <li>sound: "{{ sound }}"</li>
-#                <li>subject: "{{ subject }}"</li>
-#                <li>subtitle: "{{ subtitle }}"</li>
-#                <li>volume: "{{ volume }}"</li>
-#                <li>ttl: "{{ ttl }}"</li>
     - alias: 'test if notification service is defined'
       condition:
         - condition: template
@@ -156,12 +130,14 @@
             service: mobile_app.notify
             target:
               device_id: "{{ device_id }}"
-            data_template: 
+            data: 
               title: >-
                 {{ title }}
               message: >-
                {{ message }}
               data:
+                actions: >-
+                  {{ actions }}
                 channel: >-
                   {{ channel }}
                 group: >-
@@ -172,32 +148,15 @@
                   {{ notification_icon }}
                 icon_url: >-
                   {{ icon_url }}
-#                when: >-
-#                  {{ when }}
-#                importance: >-
-#                  {{ importance }}
-#                ttl: >-
-#                  {{ ttl }}
-#                priority: >-
-#                  {{ priority }}
-#                subtitle: >-
-#                  {{ subtitle }}
-#                subject: >-
-#                  {{ subject }}
-#                chronometer: >-
-#                  {{ chronometer }}
                 push:
-#                  sound:
-#                    name: >-
-#                      {{ sound }}
-#                    critical: >-
-#                      {{ critical }}
-#                    volume: >-
-#                      {{ volume }}
-#                  interruption-level: >-
-#                    {{ interruption_level }}
-                actions: >-
-                  {{ actions }}
+                  interruption_level: >-
+                    {{ interruption_level }}
+                  sound: >-
+                    {{ sound }}
+                  badge: >-
+                    {{ 5 }}
+                  persistent: >-
+                    {{ persistent }}
           - wait_for_trigger:
             - platform: event
               event_type: mobile_app_notification_action
@@ -208,7 +167,7 @@
               event_type: mobile_app_notification_action
               event_data:
                 action: >-
-                 {{ actions[1].action }}
+                 {{ actions[2].action }}
             timeout:
               minutes: >-
                 {{ interval }}
@@ -266,16 +225,7 @@
     context: >-
       {{ trigger.event.context }}
     response: >-
-      {% set s = trigger %}
-      {% if 'event' in s %}
-        {% set s = s.event %}
-        {% if 'data' in s %}
-          {% set s = s.data %}
-          {% if 'action' in s %}
-            {% set s = s.action|replace('reload-notification-','') %}
-          {% else %}{{ 'no-action' }}{% endif %}
-        {% else %}{{ 'no-data' }}{% endif %}
-      {% else %}{{ 'no-event' }}{% endif %}
+      {{ trigger.event.data.action|default('')|replace('reload-notification-','') }}
   action:
     - choose:
       - conditions:
