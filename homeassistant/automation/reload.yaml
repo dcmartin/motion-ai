@@ -11,6 +11,11 @@
       entity_id: sensor.motion_reload_notify
       to: 'request'
   variables:
+    device_id: >-
+      {% set s = state_attr('sensor.motion_person','device') %}
+      {% if s|lower != 'none' %}
+        {{ device_id(s) }}
+      {% else %}none{% endif %}
     tracker: >-
       {% set s = state_attr('sensor.motion_person','device') %}
       {% if s|lower != 'none' %}
@@ -95,24 +100,25 @@
         sequence:
           - alias: 'debug reload notification'
             service: persistent_notification.create
-            data_template:
+            data:
               title: >-
                 DEBUG: Reload notification start
               notification_id: >-
                 {{ 'debug-reload-notification' }}
               message: >-
                 Reload notification start at <i>{{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}</i>
-                <h2>{{ service }}</h2>
                 <ul>
                 <li>id: "{{ id }}"</li>
-                <li>tag: "{{ tag }}"</li>
-                <li>group: "{{ group }}"</li>
+                <li>device_id: "{{ device_id }}"</li>
                 <li>tracker: "{{ tracker }}"</li>
                 <li>channel: "{{ channel }}"</li>
+                <li>group: "{{ group }}"</li>
+                <li>tag: "{{ tag }}"</li>
                 <li>icon_url: "{{ icon_url }}"</li>
                 <li>notification_icon: "{{ notification_icon }}"</li>
-                <li>message: "{{ message }}"</li>
+                <li>service: "{{ service }}"</li>
                 <li>title: "{{ title }}"</li>
+                <li>message: "{{ message }}"</li>
                 <li>actions: "{{ actions|string }}"</li>
                 <li>interval: "{{ interval }}"</li>
                 </ul>
@@ -148,48 +154,50 @@
 #               {{ message }}
 #              data: >-
             service: mobile_app.notify
-            target: "{{ tracker }}"
+            target:
+              device_id: "{{ device_id }}"
             data_template: 
               title: >-
                 {{ title }}
               message: >-
                {{ message }}
-              channel: >-
-                {{ channel }}
-              group: >-
-                {{ group }}
-              tag: >-
-                {{ tag }}
-              notification_icon: >-
-                {{ notification_icon }}
-              icon_url: >-
-                {{ icon_url }}
-#              when: >-
-#                {{ when }}
-#              importance: >-
-#                {{ importance }}
-#              ttl: >-
-#                {{ ttl }}
-#              priority: >-
-#                {{ priority }}
-#              subtitle: >-
-#                {{ subtitle }}
-#              subject: >-
-#                {{ subject }}
-#              chronometer: >-
-#                {{ chronometer }}
-              push:
-#                sound:
-#                  name: >-
-#                    {{ sound }}
-#                  critical: >-
-#                    {{ critical }}
-#                  volume: >-
-#                    {{ volume }}
-#                interruption-level: >-
-#                  {{ interruption_level }}
-              actions: >-
-                {{ actions }}
+              data:
+                channel: >-
+                  {{ channel }}
+                group: >-
+                  {{ group }}
+                tag: >-
+                  {{ tag }}
+                notification_icon: >-
+                  {{ notification_icon }}
+                icon_url: >-
+                  {{ icon_url }}
+#                when: >-
+#                  {{ when }}
+#                importance: >-
+#                  {{ importance }}
+#                ttl: >-
+#                  {{ ttl }}
+#                priority: >-
+#                  {{ priority }}
+#                subtitle: >-
+#                  {{ subtitle }}
+#                subject: >-
+#                  {{ subject }}
+#                chronometer: >-
+#                  {{ chronometer }}
+                push:
+#                  sound:
+#                    name: >-
+#                      {{ sound }}
+#                    critical: >-
+#                      {{ critical }}
+#                    volume: >-
+#                      {{ volume }}
+#                  interruption-level: >-
+#                    {{ interruption_level }}
+                actions: >-
+                  {{ actions }}
           - wait_for_trigger:
             - platform: event
               event_type: mobile_app_notification_action
@@ -251,6 +259,12 @@
       event_data:
         action: "reload-notification-approve"
   variables:
+    origin: >-
+      {{ trigger.event.origin }}
+    time_fired: >-
+      {{ trigger.event.time_fired }}
+    context: >-
+      {{ trigger.event.context }}
     response: >-
       {% set s = trigger %}
       {% if 'event' in s %}
