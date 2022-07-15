@@ -11,6 +11,12 @@
       entity_id: sensor.motion_reload_notify
       to: 'request'
   variables:
+    service: >-
+      {% set s = state_attr('sensor.motion_person','device') %}
+      {% if s|lower != 'none' %}
+        {% set s = s|replace('device_tracker.','') %}
+        {{ 'notify.mobile_app_' + s }}
+      {% else %}none{% endif %}
     id: >-
       {{ 'reload-notification' }}
     group: >-
@@ -47,12 +53,12 @@
       {{ 'false' }}
     timeout: >-
       {{ interval|int * 60 }}
-#    chronometer: >-
-#      {{ 'false' }}
 #    alert_once: >-
 #      {{ 'true' }}
-    when: >-
-      {{ utcnow().timestamp()|int + interval }}
+#    chronometer: >-
+#      {{ 'false' }}
+#    when: >-
+#      {{ utcnow().timestamp()|int + interval }}
 #    is_critical: >-
 #      {{ 'false' }}
 #    importance: >-
@@ -98,6 +104,7 @@
                 {{ 'debug-reload-notification' }}
               message: >-
                 Reload notification start at <i>{{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}</i>
+                <h2>{{ service }}</h2>
                 <ul>
                 <li>id: "{{ id }}"</li>
                 <li>tag: "{{ tag }}"</li>
@@ -109,10 +116,10 @@
                 <li>message: "{{ message }}"</li>
                 <li>title: "{{ title }}"</li>
                 <li>actions: "{{ actions|string }}"</li>
+                <li>interval: "{{ interval }}"</li>
                 </ul>
-#                <li>chronometer: "{{ chronometer }}"</li>
 #                <li>importance: "{{ importance }}"</li>
-#                <li>interval: "{{ interval }}"</li>
+#                <li>chronometer: "{{ chronometer }}"</li>
 #                <li>when: "{{ when }}"</li>
 #                <li>critical: "{{ critical }}"</li>
 #                <li>interruption_level: "{{ interruption_level }}"</li>
@@ -122,6 +129,11 @@
 #                <li>subtitle: "{{ subtitle }}"</li>
 #                <li>volume: "{{ volume }}"</li>
 #                <li>ttl: "{{ ttl }}"</li>
+    - alias: 'test if notification service is defined'
+      condition:
+        - condition: template
+          value_template: >-
+            {{ service|lower != 'none' and service is string and service|length > 0 }}
     - repeat:
         sequence:
           - alias: 'send reload_notification to motion_person.device'
@@ -129,6 +141,8 @@
             type: notify
             device_id: >-
               {{ device_id }}
+#           service: >-
+#             {{ service }}
             title: >-
               {{ title }}
             message: >-
@@ -218,7 +232,7 @@
                 {{ 'Reload notification complete' }}
 
 - id: motion_reload_notification_response
-  alias: motion_reload_nnotification_response
+  alias: motion_reload_notification_response
   mode: single
   initial_state: on
   trigger:
@@ -231,12 +245,17 @@
       event_data:
         action: "reload-notification-approve"
   variables:
-    to: >-
-      {{ trigger.event.data.action|default(none) }}
-    state: >-
-      {% if to|lower != 'none' %}
-        {{ to|replace('reload-notification-','') }}
-      {% else %}none{% endif %}
+    response: >-
+      {% set s = trigger %}
+      {% if 'event' in s %}
+        {% set s = s.event %}
+        {% if 'data' in s %}
+          {% set s = s.data %}
+          {% if 'action' in s %}
+            {% set s = s.action|replace('reload-notification-','') %}
+          {% else %}{{ 'no-action' }}{% endif %}
+        {% else %}{{ 'no-data' }}{% endif %}
+      {% else %}{{ 'no-event' }}{% endif %}
   action:
     - choose:
       - conditions:
@@ -252,30 +271,30 @@
               notification_id: >-
                 {{ 'debug-reload-notification' }}
               message: >-
-                Reload notification response received: {{ to }}; state: {{ state }}
-    - choose:
-      - conditions:
-          - condition: template
-            value_template: >
-              {{ to|lower in state_attr('sensor.motion_reload_notify','states') }}
-        sequence:
-          - variables:
-              delay: >-
-                {{ state_attr('binary_sensor.motion_restarting','delay') }}
-              timestamp: >-
-                {{ (utcnow() + timedelta(seconds=delay))|as_timestamp }}
-              when: >-
-                {{ timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
-          - alias: 'change state for sensor.motion_reload_notify'
-            service: python_script.set_state
-            data_template:
-              entity_id: sensor.motion_reload_notify
-              timestamp: >-
-                {{ timestamp }}
-              when: >-
-                {{ when }}
-              state: >- 
-                {{ state }}
+                Reload notification response received: "{{ response -}}"
+#    - choose:
+#      - conditions:
+#          - condition: template
+#            value_template: >
+#              {{ response|lower in state_attr('sensor.motion_reload_notify','states') }}
+#        sequence:
+#          - variables:
+#              delay: >-
+#                {{ state_attr('binary_sensor.motion_restarting','delay') }}
+#              timestamp: >-
+#                {{ (utcnow() + timedelta(seconds=delay))|as_timestamp }}
+#              when: >-
+#                {{ timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+#          - alias: 'change state for sensor.motion_reload_notify'
+#            service: python_script.set_state
+#            data_template:
+#              entity_id: sensor.motion_reload_notify
+#              timestamp: >-
+#                {{ timestamp }}
+#              when: >-
+#                {{ when }}
+#              state: >- 
+#                {{ response }}
 
 - id: motion_restart
   alias: motion_restart
