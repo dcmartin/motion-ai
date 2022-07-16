@@ -8,63 +8,57 @@
   mode: restart
   trigger:
     - platform: state
+      entity_id: input_boolean.motion_restart
+      to: 'on'
+    - platform: state
       entity_id: sensor.motion_reload_notify
       to: 'request'
   variables:
-    device_id: >-
-      {% set s = state_attr('sensor.motion_person','device') %}
-      {% if s|lower != 'none' %}
-        {{ device_id(s) }}
-      {% else %}none{% endif %}
-    tracker: >-
-      {% set s = state_attr('sensor.motion_person','device') %}
-      {% if s|lower != 'none' %}
-        {{ s|replace('device_tracker.','') }}
-      {% else %}none{% endif %}
     service: >-
-      {% if tracker|lower != 'none' %}
-        {{ 'notify.mobile_app_' + tracker }}
+      {% set s = state_attr('sensor.motion_reload_notify','device') %}
+      {% if s|lower != 'none' %}
+        {{ 'notify.mobile_app_' + s|replace('device_tracker.','') }}
       {% else %}none{% endif %}
     channel: >-
       {{ states('sensor.motion_name') }}
-    id: >-
-      {{ 'reload-notification' }}
-    group: >-
-      {{ 'system-health' }}
-    interval: >-
-      {{ 5 }}
-    notification_icon: >-
-      {% set s = state_attr('sensor.motion_name','icon') %}
-      {% if s|lower != 'none' %}
-        {{ s }}
-      {% else %}{{ 'mdi:home-assistant' }}{% endif %}
     icon_url: >-
       {% set s = state_attr('sensor.motion_name','entity_picture') %}
       {% if s|lower != 'none' %}
         {{ s }}
       {% else %}{{ '/local/images/icon.png' }}{% endif %}
+    id: >-
+      {% set id = state_attr('sensor.motion_reload_notify','id') %}
+      {{ id }}
+    group: >-
+      {% set group = state_attr('sensor.motion_reload_notify','group') %}
+      {{ group }}
+    interval: >-
+      {% set interval = state_attr('sensor.motion_reload_notify','interval') %}
+      {{ interval }}
+    notification_icon: >-
+      {% set notification_icon = state_attr('sensor.motion_reload_notify','notification_icon') %}
+      {{ notification_icon }}
     image: >-
-      {{ icon_url }}
+      {% set image = state_attr('sensor.motion_reload_notify','image') %}
+      {{ image }}
     title: >-
-      {% set s = state_attr('sensor.motion_name','title') %}
-      {% if s|lower == 'none' %}
-        {% set s = 'Home Assistant' %}
-      {% endif %}
-      {{ s -}}: alarm
+      {% set title = state_attr('sensor.motion_reload_notify','title') %}
+      {{ title }}
     subtitle: >-
-      {{- 'System restart requested' -}}
+      {% set subtitle = state_attr('sensor.motion_reload_notify','subtitle') %}
+      {{ subtitle }}
     message: >-
-      The system requires a restart to process software updates.
-      Press and hold this notification to select a response to approve, wait, or deny this request.
+      {% set message = state_attr('sensor.motion_reload_notify','message') %}
+      {{ message }}
     actions: >-
-      {% set s = [ 
-        {'action':'reload-notification-approve','icon':'sfsymbols:hand.thumbsup','title':'Approve system restart','destructive':false},
-        {'action':'reload-notification-wait','icon':'sfsymbols:timer','title':'Ask again in ' + interval|string + ' minutes','destructive':false},
-        {'action':'reload-notification-deny','icon':'sfsymbols:hand.thumbsdown.fill','title':'Deny system restart','destructive':true}
-        ] %}
-      {{ s }}
+      {% set actions = state_attr('sensor.motion_reload_notify','actions') %}
+      {{ actions }}
+    sound: >-
+      {% set sound = state_attr('sensor.motion_reload_notify','sound') %}
+      {{ sound }}
     persistent: >-
-      {{ 'true' }}
+      {% set persistent = state_attr('sensor.motion_reload_notify','persistent') %}
+      {{ persistent }}
     tag: >-
       {{ 'persistent' }}
     critical: >-
@@ -74,8 +68,6 @@
       {{ 'critical' }}
     volume: >-
       {{ 1.0 }}
-    sound: >-
-      {{ 'default' }}
     timeout: >-
       {{ interval|int * 60 }}
   action:
@@ -85,8 +77,7 @@
             value_template: >
               {{ states('input_select.motion_log_level') in ['debug'] }}
         sequence:
-          - alias: 'debug reload notification'
-            service: persistent_notification.create
+          - service: persistent_notification.create
             data:
               title: >-
                 DEBUG: Reload notification
@@ -96,8 +87,7 @@
                 <b>Start</b> at <i>{{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}</i>
                 <ul>
                 <li>id: "{{ id }}"</li>
-                <li>device_id: "{{ device_id }}"</li>
-                <li>tracker: "{{ tracker }}"</li>
+                <li>service: "{{ service }}"</li>
                 <li>channel: "{{ channel }}"</li>
                 <li>group: "{{ group }}"</li>
                 <li>tag: "{{ tag }}"</li>
@@ -113,7 +103,6 @@
                 <li>volume: "{{ volume }}"</li>
                 <li>sound: "{{ sound }}"</li>
                 <li>timeout: "{{ timeout }}"</li>
-                <li>service: "{{ service }}"</li>
                 <li>actions: "{{ actions|string }}"</li>
                 </ul>
     - alias: 'test if notification service is defined'
@@ -176,8 +165,7 @@
                   value_template: >
                     {{ states('input_select.motion_log_level') in ['debug'] }}
               sequence:
-                - alias: 'debug reload notification'
-                  service: persistent_notification.create
+                - service: persistent_notification.create
                   data_template:
                     title: >-
                       DEBUG: Reload notification
@@ -193,15 +181,14 @@
             value_template: >
               {{ states('input_select.motion_log_level') in ['debug'] }}
         sequence:
-          - alias: 'debug reload notification'
-            service: persistent_notification.create
+          - service: persistent_notification.create
             data_template:
               title: >-
                 DEBUG: Reload notification
               notification_id: >-
                 {{ 'debug-reload-notification' }}
               message: >-
-                Complete at <i>{{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}</i>
+                <b>Complete</b> at <i>{{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}</i>
 
 - id: motion_reload_notification_response
   alias: motion_reload_notification_response
@@ -233,6 +220,8 @@
       {% if trigger|lower != 'none' %}
         {{ trigger.event.data.action|default(none)|string|replace('reload-notification-','') }}
       {% else %}none{% endif %}
+    responses: >-
+      {{ state_attr('sensor.motion_reload_notify','responses') }}
   action:
     - choose:
       - conditions:
@@ -240,29 +229,45 @@
             value_template: >
               {{ states('input_select.motion_log_level') in ['debug'] }}
         sequence:
-          - alias: 'notification response'
-            service: persistent_notification.create
+          - service: persistent_notification.create
             data_template:
               title: >-
                 DEBUG: Reload notification response
               notification_id: >-
                 {{ 'debug-reload-notification-response' }}
               message: >-
-                <b>Response</b> received: "{{ response -}}"
+                <b>Response</b> received: "{{ response -}}"; context: {{ context|string -}}; at: {{ time_fired }}
     - choose:
-      - conditions:
+      - alias: 'test if response in responses'
+        conditions:
           - condition: template
             value_template: >
-              {{ response|lower in state_attr('sensor.motion_reload_notify','states') }}
+              {{ response|lower in responses }}
         sequence:
-          - variables:
-              delay: >-
-                {{ state_attr('binary_sensor.motion_restarting','delay') }}
+          - alias: 'set motion_reload_notify: timestamp, when'
+            variables:
               timestamp: >-
+                {% set delay = state_attr('binary_sensor.motion_restarting','delay')|int(60) %}
                 {{ (utcnow() + timedelta(seconds=delay))|as_timestamp }}
               when: >-
                 {{ timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
-          - alias: 'change state for sensor.motion_reload_notify'
+              state: >-
+                {{ response }}
+          - choose:
+            - conditions:
+                - condition: template
+                  value_template: >
+                    {{ states('input_select.motion_log_level') in ['debug'] }}
+              sequence:
+                - service: persistent_notification.create
+                  data_template:
+                    title: >-
+                      DEBUG: Reload notification response
+                    notification_id: >-
+                      {{ 'debug-reload-notification-response' }}
+                    message: >-
+                      <b>Update</b> to <code>{{- state -}}</code> at <i>{{- when -}}</i>
+          - alias: 'set sensor.motion_reload_notify to new state w/ timestamp, when'
             service: python_script.set_state
             data_template:
               entity_id: sensor.motion_reload_notify
@@ -271,16 +276,13 @@
               when: >-
                 {{ when }}
               state: >- 
-                {{ response }}
+                {{ state }}
 
 - id: motion_restart
   alias: motion_restart
   mode: single
   initial_state: on
   trigger:
-    - platform: state
-      entity_id: input_boolean.motion_restart
-      to: 'on'
     - platform: state
       entity_id: sensor.motion_reload_notify
       to: 'approve'
