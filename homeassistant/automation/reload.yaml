@@ -48,16 +48,17 @@
       {% if s|lower == 'none' %}
         {% set s = 'Home Assistant' %}
       {% endif %}
-      {{ s -}}: alert
+      {{ s -}}: alarm
     subtitle: >-
       {{- 'System restart requested' -}}
     message: >-
-      The system requires a restart to process updates; to restart now select Approve; or select Wait to ask again in {{ interval }} minutes; Deny will stop restart.
+      The system requires a restart to process software updates.
+      Press and hold this notification to select a response to approve, wait, or deny this request.
     actions: >-
       {% set s = [ 
-        {'action':'reload-notification-approve','icon':'sfsymbols:hand.thumbsup','title':'Approve','destructive':false},
-        {'action':'reload-notification-wait','icon':'sfsymbols:timer','title':'Wait','destructive':false},
-        {'action':'reload-notification-deny','icon':'sfsymbols:hand.thumbsdown.fill','title':'Deny','destructive':true}
+        {'action':'reload-notification-approve','icon':'sfsymbols:hand.thumbsup','title':'Approve system restart','destructive':false},
+        {'action':'reload-notification-wait','icon':'sfsymbols:timer','title':'Ask again in ' + interval|string + ' minutes','destructive':false},
+        {'action':'reload-notification-deny','icon':'sfsymbols:hand.thumbsdown.fill','title':'Deny and disable auto-update','destructive':true}
         ] %}
       {{ s }}
     persistent: >-
@@ -72,7 +73,7 @@
     volume: >-
       {{ 1.0 }}
     sound: >-
-      {{ 'US-EN-Morgan-Freeman-Welcome-Home.wav' }}
+      {{ 'default' }}
     timeout: >-
       {{ interval|int * 60 }}
   action:
@@ -115,15 +116,6 @@
     - repeat:
         sequence:
           - alias: 'send reload_notification to motion_person.device'
-#            #
-#            domain: mobile_app
-#            type: notify
-#            device_id: >-
-#              {{ tracker }}
-#            #
-#            service: notify.mobile_app
-#            target:
-#              device_id: "{{ device_id }}"
             service: "{{ service }}"
             data: 
               title: >-
@@ -157,11 +149,13 @@
               event_type: mobile_app_notification_action
               event_data:
                 action: >-
+                 {# first action - approve #}
                  {{ actions[0].action }}
             - platform: event
               event_type: mobile_app_notification_action
               event_data:
                 action: >-
+                 {# third action - deny #}
                  {{ actions[2].action }}
             timeout:
               minutes: >-
@@ -237,29 +231,29 @@
                 {{ 'debug-reload-notification' }}
               message: >-
                 Reload notification response received: "{{ response -}}"
-#    - choose:
-#      - conditions:
-#          - condition: template
-#            value_template: >
-#              {{ response|lower in state_attr('sensor.motion_reload_notify','states') }}
-#        sequence:
-#          - variables:
-#              delay: >-
-#                {{ state_attr('binary_sensor.motion_restarting','delay') }}
-#              timestamp: >-
-#                {{ (utcnow() + timedelta(seconds=delay))|as_timestamp }}
-#              when: >-
-#                {{ timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
-#          - alias: 'change state for sensor.motion_reload_notify'
-#            service: python_script.set_state
-#            data_template:
-#              entity_id: sensor.motion_reload_notify
-#              timestamp: >-
-#                {{ timestamp }}
-#              when: >-
-#                {{ when }}
-#              state: >- 
-#                {{ response }}
+    - choose:
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ response|lower in state_attr('sensor.motion_reload_notify','states') }}
+        sequence:
+          - variables:
+              delay: >-
+                {{ state_attr('binary_sensor.motion_restarting','delay') }}
+              timestamp: >-
+                {{ (utcnow() + timedelta(seconds=delay))|as_timestamp }}
+              when: >-
+                {{ timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+          - alias: 'change state for sensor.motion_reload_notify'
+            service: python_script.set_state
+            data_template:
+              entity_id: sensor.motion_reload_notify
+              timestamp: >-
+                {{ timestamp }}
+              when: >-
+                {{ when }}
+              state: >- 
+                {{ response }}
 
 - id: motion_restart
   alias: motion_restart
