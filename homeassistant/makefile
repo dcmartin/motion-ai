@@ -431,6 +431,17 @@ lovelace.primary.json: lovelace.primary.json.tmpl
 	-@mkdir -p .storage/
 	@ln -s ../$@ .storage/lovelace.lovelace_primary
 
+lovelace.reload.json: lovelace.reload.json.tmpl
+	@echo "${MC}Making: $@${NC}"
+	@export \
+	  MOTION_APP="$(MOTION_APP)" \
+	&& cat $< \
+	  | envsubst \
+	> $@
+	@rm -f .storage/lovelace.lovelace_reload
+	-@mkdir -p .storage/
+	@ln -s ../$@ .storage/lovelace.lovelace_reload
+
 lovelace.developer.json: lovelace.developer.json.tmpl $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
 	@export \
