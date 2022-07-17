@@ -189,7 +189,7 @@ MOTION_DIRS := \
 	www/images/motion
 
 # dashboards
-MOTION_DASHBOARDS := owner primary developer experimental person animal vehicle
+MOTION_DASHBOARDS := owner primary reload developer experimental person animal vehicle
 LOVELACE_DASHBOARDS := $(shell for C in $(MOTION_DASHBOARDS); do echo lovelace.$${C}.json; done)
 
 default: all
