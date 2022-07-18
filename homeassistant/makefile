@@ -189,12 +189,15 @@ MOTION_DIRS := \
 	www/images/motion
 
 # dashboards
-MOTION_DASHBOARDS := owner primary reload developer experimental person animal vehicle
+MOTION_DASHBOARDS := owner primary developer experimental person animal vehicle
 LOVELACE_DASHBOARDS := $(shell for C in $(MOTION_DASHBOARDS); do echo lovelace.$${C}.json; done)
+
+MOTION_NOTIFY:= system # unavailable missing inactiveday wakeup nothomeyet awayintruder weather batterylow battery gas humidity moisture temperature
+NOTIFY_DASHBOARDS := $(shell for C in $(MOTION_NOTIFY); do echo notify.$${C}.json; done)
 
 default: all
 
-all: chown $(WEBCAMS) .storage/lovelace lovelace_dashboards.json lovelace_resources.json ${LOVELACE_DASHBOARDS} $(MOTION_DIRS) $(PACKAGES) secrets.yaml
+all: chown $(WEBCAMS) .storage/lovelace lovelace_dashboards.json lovelace_resources.json ${LOVELACE_DASHBOARDS} $(NOTIFY_DASHBOARDS) $(MOTION_DIRS) $(PACKAGES) secrets.yaml
 
 chown:
 	@echo "${MC}Making: $@${NC}"
@@ -382,6 +385,8 @@ lovelace_dashboards.json: lovelace_dashboards.json.tmpl
 	-@mkdir -p .storage/
 	@ln -s ../$@ .storage/lovelace_dashboards
 
+## resources
+
 lovelace_resources.json: lovelace_resources.json.tmpl
 	@echo "${MC}Making: $@${NC}"
 	@export \
@@ -394,6 +399,21 @@ lovelace_resources.json: lovelace_resources.json.tmpl
 	@rm -f .storage/lovelace_resources
 	-@mkdir -p .storage/
 	@ln -s ../$@ .storage/lovelace_resources
+
+## notifications
+
+notify.system.json: notify.system.json.tmpl
+	@echo "${MC}Making: $@${NC}"
+	@export \
+	  MOTION_APP="$(MOTION_APP)" \
+	&& cat $< \
+	  | envsubst \
+	> $@
+	@rm -f .storage/lovelace.notify_system
+	-@mkdir -p .storage/
+	@ln -s ../$@ .storage/lovelace.notify_system
+
+## lovelace panels
 
 .storage/lovelace: lovelace.json.tmpl
 	${MAKE} lovelace.json
@@ -430,17 +450,6 @@ lovelace.primary.json: lovelace.primary.json.tmpl
 	@rm -f .storage/lovelace.lovelace_primary
 	-@mkdir -p .storage/
 	@ln -s ../$@ .storage/lovelace.lovelace_primary
-
-lovelace.reload.json: lovelace.reload.json.tmpl
-	@echo "${MC}Making: $@${NC}"
-	@export \
-	  MOTION_APP="$(MOTION_APP)" \
-	&& cat $< \
-	  | envsubst \
-	> $@
-	@rm -f .storage/lovelace.lovelace_reload
-	-@mkdir -p .storage/
-	@ln -s ../$@ .storage/lovelace.lovelace_reload
 
 lovelace.developer.json: lovelace.developer.json.tmpl $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
