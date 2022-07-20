@@ -853,6 +853,14 @@
         value_template: >
           {{ which|lower != 'none' and which|lower != 'null' and which|length > 0 }}
   action:
+    - variables:
+        markdown: >-
+          Your home safety alarm was triggered ({{- state_attr('binary_sensor.motion_device_safety_exist','bad')|string -}}); sensor: {{ which -}}; where: {{ where -}}; at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}.
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_safety_bad
+        markdown: >-
+          {{ markdown }}
     - alias: 'update binary_sensor.motion_device_safety which, where, did'
       service: python_script.set_state
       data_template:
@@ -916,8 +924,8 @@
         {{- '[![](https://img.shields.io/badge/device-info-blue.svg)](' + '/config/devices/device/' + did + ')' -}}
       {%- endif -%}
     body: >-
-      Your home safety alarm was triggered ({{- state_attr('binary_sensor.motion_device_safety_exist','bad')|string -}}); sensor: {{ which -}}; where: {{ where -}}; at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}.
-      We have notified **{{- state_attr('sensor.motion_role_primary','friendly_name') -}}** about your safety alarm.
+      {{ state_attr('binary_sensor.motion_device_safety_bad','markdown') }}
+      <p>We have notified **{{- state_attr('sensor.motion_role_primary','friendly_name') -}}** about your safety alarm.
       If you are fine handling this situation on your own, click the **{{- action -}}** button below.
       {{- '<p>' -}}
       {{-  '[![](https://img.shields.io/badge/' + action + '-green.svg)](' + url + ')' -}}
@@ -985,6 +993,14 @@
         value_template: >
           {{ which|lower != 'none' and which|lower != 'null' and which|length > 0 }}
   action:
+    - variables:
+        markdown: >-
+          Your home safety alarm was triggered ({{- state_attr('binary_sensor.motion_device_safety_exist','good')|string -}}); sensor: {{ which -}}; where: {{ where -}}; at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}.
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_safety_good
+        markdown: >-
+          {{ markdown }}
     - alias: 'update binary_sensor.motion_device_safety which, where, did'
       service: python_script.set_state
       data_template:
@@ -1046,8 +1062,8 @@
         {{- '[![](https://img.shields.io/badge/device-info-blue.svg)](' + '/config/devices/device/' + did + ')' -}}
       {%- endif -%}
     body: >-
-      Your home safety alarm was triggered ({{- state_attr('binary_sensor.motion_device_safety_exist','good')|string -}}); sensor: {{ which -}}; where: {{ where -}}; at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}.
-      We have notified **{{- state_attr('sensor.motion_role_primary','friendly_name') -}}** about your safety alarm.
+      {{ state_attr('binary_sensor.motion_device_safety_good','markdown') }}
+      <p>We have notified **{{- state_attr('sensor.motion_role_primary','friendly_name') -}}** about your safety alarm.
       If you are fine handling this situation on your own, click the **{{- action -}}** button below.
       {{- '<p>' -}}
       {{-  '[![](https://img.shields.io/badge/' + action + '-green.svg)](' + url + ')' -}}
@@ -1179,8 +1195,34 @@
     conditions:
       - condition: template
         value_template: >
-          {{ low|lower != 'none' and low|lower != 'null' and low|length > 0 }}
+          {{- low|lower != 'none' and not high is string and high is iterable and low|count > 0 -}}
   action:
+    - variables:
+        markdown: >-
+          Your home safety alarm was triggered (below {{ state_attr('binary_sensor.motion_device_safety_exist','low') -}}) at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}:<br>
+          {%- for i in low if 'id' in i and i.id|lower != 'none' -%}
+            {%- if loop.first -%}{{- '<ul>' -}}{%- endif -%}
+            {%- set d = state_attr('binary_sensor.motion_device_class','devices')|selectattr('id','==',i.id)|default([])|list -%}
+            {%- if d|lower != 'none' and not d is string and d is iterable and d|count > 0 -%}
+              {{- '<li>' -}}
+              {%- set d = d|first -%}
+              [{{- d.friendly_name -}}](/config/devices/device/{{- d.did -}}) is {{ states(low[loop.index-1].entity_id) -}}{{- state_attr(low[loop.index-1].entity_id,'unit_of_measurement') }} in [{{- area_id(low[loop.index-1].entity_id) -}}](/config/areas/area/{{- area_id(low[loop.index-1].entity_id) -}})
+              {{- '</li>' -}}
+            {%- else -%}
+              {{- '<li>' -}}
+              {{- i.id }} safety is invalid; please ignore.
+              {{- '</li>' -}}
+            {%- endif -%}
+            {%- if loop.last -%}{{- '</ul>' -}}{%- endif -%}
+          {%- endfor -%}
+        {%- else -%}
+          <b>No low safety</b>
+        {%- endif -%}
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_safety_low
+        markdown: >-
+          {{ markdown }}
     - condition: template
       value_template: >
         {{ is_state_attr('binary_sensor.motion_device_safety_exist','alarm','on') }}
@@ -1238,25 +1280,8 @@
       {{ '<hr>' }}
     body: >-
       Your home safety alarm was triggered (under {{ state_attr('binary_sensor.motion_device_safety_exist','low') -}}) at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}:
-      {{- '<ul>' -}}
-      {%- if low|lower != 'none' and not low is string and low is iterable and low|count > 0 -%}
-        {%- for i in low if 'id' in i and i.id|lower != 'none' -%}
-          {%- set d = state_attr('binary_sensor.motion_device_class','devices')|selectattr('id','==',i.id)|default([])|list -%}
-          {%- if d|lower != 'none' and not d is string and d is iterable and d|count > 0 -%}
-            {{- '<li>' -}}
-            {%- set d = d|first -%}
-            [{{- d.friendly_name -}}](/config/devices/device/{{- d.did -}}) is {{ states(low[loop.index-1].entity_id) -}}{{- state_attr(low[loop.index-1].entity_id,'unit_of_measurement') }} in [{{- area_id(low[loop.index-1].entity_id) -}}](/config/areas/area/{{- area_id(low[loop.index-1].entity_id) -}})
-            {{- '</li>' -}}
-          {%- else -%}
-            {{- '<li>' -}}
-            {{- i.id }} safety is invalid; please ignore.
-            {{- '</li>' -}}
-          {%- endif -%}
-        {%- endfor -%}
-      {%- endif -%}
-      {{- '</ul>' -}}
-      <p>
-      We have notified **{{- state_attr('sensor.motion_role_primary','friendly_name') -}}** about your safety alarm.
+      {{ state_attr('binary_sensor.motion_device_safety_low','markdown') }}
+      <p>We have notified **{{- state_attr('sensor.motion_role_primary','friendly_name') -}}** about your safety alarm.
       <br>
       If you are fine handling this situation on your own, click the **{{- action -}}** button below.
       {{- '<p>' -}}
@@ -1309,8 +1334,34 @@
     conditions:
       - condition: template
         value_template: >
-          {{ high|lower != 'none' and high|lower != 'null' and high|length > 0 }}
+          {{- high|lower != 'none' and not high is string and high is iterable and high|count > 0 -}}
   action:
+    - variables:
+        markdown: >-
+          Your home safety alarm was triggered (above {{ state_attr('binary_sensor.motion_device_safety_exist','high') -}}) at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}:<br>
+          {%- for i in high if 'id' in i and i.id|lower != 'none' -%}
+            {%- if loop.first -%}{{- '<ul>' -}}{%- endif -%}
+            {%- set d = state_attr('binary_sensor.motion_device_class','devices')|selectattr('id','==',i.id)|default([])|list -%}
+            {%- if d|lower != 'none' and not d is string and d is iterable and d|count > 0 -%}
+              {{- '<li>' -}}
+              {%- set d = d|first -%}
+              [{{- d.friendly_name -}}](/config/devices/device/{{- d.did -}}) is {{ states(high[loop.index-1].entity_id) -}}{{- state_attr(high[loop.index-1].entity_id,'unit_of_measurement') }} in [{{- area_id(high[loop.index-1].entity_id) -}}](/config/areas/area/{{- area_id(high[loop.index-1].entity_id) -}})
+              {{- '</li>' -}}
+            {%- else -%}
+              {{- '<li>' -}}
+              {{- i.id }} safety is invalid; please ignore.
+              {{- '</li>' -}}
+            {%- endif -%}
+            {%- if loop.last -%}{{- '</ul>' -}}{%- endif -%}
+          {%- endfor -%}
+        {%- else -%}
+          <b>No high safety</b>
+        {%- endif -%}
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_safety_high
+        markdown: >-
+          {{ markdown }}
     - condition: template
       value_template: >
         {{ is_state_attr('binary_sensor.motion_device_safety_exist','alarm','on') }}
@@ -1351,7 +1402,7 @@
       {% set action = class + '-okay' %}
       {{ action }}
     url: >-
-      {% set url = '/lovelace/' + class + '-okay' %}
+      {% set url = '/notify-devices/' + class %}
       {{ url }}
     title: >-
       {% set title = states('input_text.motion_app') + ': ' + class + ' high' %}
@@ -1367,26 +1418,8 @@
     footer: >-
       {{ '<hr>' }}
     body: >-
-      Your home safety alarm was triggered (above {{ state_attr('binary_sensor.motion_device_safety_exist','high') -}}) at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}:
-      {{- '<ul>' -}}
-      {%- if high|lower != 'none' and not high is string and high is iterable and high|count > 0 -%}
-        {%- for i in high if 'id' in i and i.id|lower != 'none' -%}
-          {%- set d = state_attr('binary_sensor.motion_device_class','devices')|selectattr('id','==',i.id)|default([])|list -%}
-          {%- if d|lower != 'none' and not d is string and d is iterable and d|count > 0 -%}
-            {{- '<li>' -}}
-            {%- set d = d|first -%}
-            [{{- d.friendly_name -}}](/config/devices/device/{{- d.did -}}) is {{ states(high[loop.index-1].entity_id) -}}{{- state_attr(high[loop.index-1].entity_id,'unit_of_measurement') }} in [{{- area_id(high[loop.index-1].entity_id) -}}](/config/areas/area/{{- area_id(high[loop.index-1].entity_id) -}})
-            {{- '</li>' -}}
-          {%- else -%}
-            {{- '<li>' -}}
-            {{- i.id }} safety is invalid; please ignore.
-            {{- '</li>' -}}
-          {%- endif -%}
-        {%- endfor -%}
-      {%- endif -%}
-      {{- '</ul>' -}}
-      <p>
-      We have notified **{{- state_attr('sensor.motion_role_primary','friendly_name') -}}** about your safety alarm.
+      {{ state_attr('binary_sensor.motion_device_safety_high','markdown') }}
+      <p>We have notified **{{- state_attr('sensor.motion_role_primary','friendly_name') -}}** about your safety alarm.
       <br>
       If you are fine handling this situation on your own, click the **{{- action -}}** button behigh.
       {{- '<p>' -}}
@@ -1502,18 +1535,8 @@
       {{ '<hr>' }}
     body: >-
       Your home safety alarm was triggered at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}:
-      {{- '<ul>' -}}
-      {%- if activity|lower != 'none' and not activity is string and activity is iterable and activity|count > 0 -%}
-        {%- for i in activity -%}
-          {{- '<li>' -}}
-          {%- set d = state_attr('binary_sensor.motion_device_class','devices')|selectattr('id','==',i.id)|first -%}
-          [{{- d.friendly_name -}}](/config/devices/device/{{- d.did -}}) in [{{- area_id(activity[loop.index-1].entity_id) -}}](/config/areas/area/{{- area_id(activity[loop.index-1].entity_id) -}})
-          {{- '</li>' -}}
-        {%- endfor -%}
-      {%- endif -%}
-      {{- '</ul>' -}}
-      <p>
-      We have notified **{{- state_attr('sensor.motion_role_primary','friendly_name') -}}** about your safety alarm.
+      {{ state_attr('binary_sensor.motion_device_class_safety_activity','markdown') }}
+      <p>We have notified **{{- state_attr('sensor.motion_role_primary','friendly_name') -}}** about your safety alarm.
       <br>
       If you are fine handling this situation on your own, click the **{{- action -}}** button below.
       {{- '<p>' -}}
@@ -1896,6 +1919,7 @@
       {{ title }}
     body: >-
       The safety sensor could not be found at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}; please setup the integration by clicking [here](/config/integrations).
+      {{ state_attr('binary_sensor.motion_device_safety_missing','markdown') }}
     message: >-
       {{ header }}
       {{ body }}
