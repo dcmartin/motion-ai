@@ -1443,6 +1443,25 @@
         value_template: >
           {{ activity|lower != 'none' and activity|lower != 'null' and activity|length > 0 }}
   action:
+    - variables:
+        markdown: >-
+          {%- if activity|lower != 'none' and not activity is string and activity is iterable and activity|count > 0 -%}
+            {%- for i in activity -%}
+              {%- if loop.first -%}{{- '<ul>' -}}{% endif -%}
+              {{- '<li>' -}}
+              {%- set d = state_attr('binary_sensor.motion_device_class','devices')|selectattr('id','==',i.id)|first -%}
+              [{{- d.friendly_name -}}](/config/devices/device/{{- d.did -}}) in [{{- area_id(activity[loop.index-1].entity_id) -}}](/config/areas/area/{{- area_id(activity[loop.index-1].entity_id) -}})
+              {{- '</li>' -}}
+              {%- if loop.last -%}{{- '</ul>' -}}{% endif -%}
+            {%- endfor -%}
+          {%- else -%}
+            {{- '<b>No door alarm activity</b>' -}}
+          {%- endif -%}
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_door_activity
+        markdown: >-
+          {{ markdown }}
     - condition: template
       value_template: >
         {{ is_state_attr('binary_sensor.motion_device_door_exist','alarm','on') }}
@@ -1784,6 +1803,25 @@
           {{ ids }}
         details: >-
           {{ details }}
+        markdown: >-
+          {%- if details|lower != 'none' -%}
+            {%- for i in details -%}
+              {%- if loop.first -%}<ul>{%- endif -%}
+              {{- '<li>' -}}
+              {%- set e = state_attr('binary_sensor.motion_device_door','status')|selectattr('id','==',i)|default([])|first -%}
+              {%- set did = device_id(e.entity_id) -%}
+              <a href="/config/devices/device/{{- did -}}"><b>{{- device_attr(device_id(e.entity_id),'name') -}}</b></a><br>Last updated: <i>{{- e.updated|as_datetime|relative_time }} ago</i>
+              {%- for j in details[i] -%}
+                {%- if loop.first -%}<ul>{%- endif -%}
+                <li>{{- j -}}</li>
+                {%- if loop.last %}</ul>{% endif -%}
+              {%- endfor -%}
+              {{- '</li>' -}}
+              {%- if loop.last %}</ul>{% endif -%}
+            {%- endfor -%}
+          {%- else -%}
+            <b>No unavailable door sensors</b> at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}
+          {%- endif %}
         state: >-
           {{ state }}
 
@@ -1823,6 +1861,8 @@
         entity_id: binary_sensor.motion_device_door_missing
         last: >-
           {{ last }}
+        markdown: >-
+          No door sensor found at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}; please setup the integration by clicking [here](/config/integrations).
         state: >-
           {{ state }}
 
