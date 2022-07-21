@@ -1802,6 +1802,25 @@
       {% if state|lower == 'off' %}
         {{ state_attr('binary_sensor.motion_device_door_unavailable','last') }}
       {%- else -%}{{ utcnow().timestamp() }}{%- endif %}
+    markdown: >-
+      {%- if details|lower != 'none' -%}
+        {%- for i in details -%}
+          {%- if loop.first -%}<ul>{%- endif -%}
+          {{- '<li>' -}}
+          {%- set e = state_attr('binary_sensor.motion_device_door','status')|selectattr('id','==',i)|default([])|first -%}
+          {%- set did = device_id(e.entity_id) -%}
+          <a href="/config/devices/device/{{- did -}}"><b>{{- device_attr(device_id(e.entity_id),'name') -}}</b></a><br>Last updated: <i>{{- e.updated|as_datetime|relative_time }} ago</i>
+          {%- for j in details[i] -%}
+            {%- if loop.first -%}<ul>{%- endif -%}
+            <li>{{- j -}}</li>
+            {%- if loop.last %}</ul>{% endif -%}
+          {%- endfor -%}
+          {{- '</li>' -}}
+          {%- if loop.last %}</ul>{% endif -%}
+        {%- endfor -%}
+      {%- else -%}
+        <b>No unavailable door sensors</b> at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}
+      {%- endif %}
   condition:
     - condition: template
       value_template: >
@@ -1817,24 +1836,7 @@
         details: >-
           {{ details }}
         markdown: >-
-          {%- if details|lower != 'none' -%}
-            {%- for i in details -%}
-              {%- if loop.first -%}<ul>{%- endif -%}
-              {{- '<li>' -}}
-              {%- set e = state_attr('binary_sensor.motion_device_door','status')|selectattr('id','==',i)|default([])|first -%}
-              {%- set did = device_id(e.entity_id) -%}
-              <a href="/config/devices/device/{{- did -}}"><b>{{- device_attr(device_id(e.entity_id),'name') -}}</b></a><br>Last updated: <i>{{- e.updated|as_datetime|relative_time }} ago</i>
-              {%- for j in details[i] -%}
-                {%- if loop.first -%}<ul>{%- endif -%}
-                <li>{{- j -}}</li>
-                {%- if loop.last %}</ul>{% endif -%}
-              {%- endfor -%}
-              {{- '</li>' -}}
-              {%- if loop.last %}</ul>{% endif -%}
-            {%- endfor -%}
-          {%- else -%}
-            <b>No unavailable door sensors</b> at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}
-          {%- endif %}
+          {{ markdown }}
         state: >-
           {{ state }}
 
@@ -1860,7 +1862,7 @@
       {{ state }}
     last: >-
       {% set last = state_attr('binary_sensor.motion_device_door_missing','last') %}
-      {% if state|lower == 'off' %}
+      {% if state|lower == 'off' or last|lower == 'none' %}
         {% set last = utcnow().timestamp() %}
       {% endif %}
       {{ last }}
@@ -1875,7 +1877,10 @@
         last: >-
           {{ last }}
         markdown: >-
-          No door sensor found at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}; please setup the integration by clicking [here](/config/integrations).
+          No door sensors have been found.
+          At {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}};
+          for {{ last|as_datetime|relative_time -}};
+          please setup the integration by clicking [here](/config/integrations).
         state: >-
           {{ state }}
 
@@ -1908,7 +1913,6 @@
       {% set title = states('input_text.motion_app') + ': door sensor missing' %}
       {{ title }}
     body: >-
-      The door sensor could not be found at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}; please setup the integration by clicking [here](/config/integrations).
       {{ state_attr('binary_sensor.motion_device_door_missing','markdown') }}
     message: >-
       {{ header }}
