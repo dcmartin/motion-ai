@@ -31,7 +31,7 @@ ICON = "mdi:rss"
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
         vol.Required(CONF_NAME): cv.string,
-        vol.Required(CONF_FEED_URL): cv.string,
+        vol.Required(CONF_FEED_URL): cv.template,
         vol.Required(CONF_DATE_FORMAT, default="%a, %b %d %I:%M %p"): cv.string,
         vol.Optional(CONF_SHOW_TOPN, default=9999): cv.positive_int,
         vol.Optional(CONF_INCLUSIONS, default=[]): vol.All(cv.ensure_list, [cv.string]),
@@ -44,17 +44,16 @@ _LOGGER = logging.getLogger(__name__)
 @asyncio.coroutine
 def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
 
-    feed_url=config[CONF_FEED_URL]
+    feed=config[CONF_FEED_URL]
 
-    if isinstance(feed_url, template.Template):
-        tmp = feed_url.async_render()
-        _LOGGER.debug("Feed template: %s; URL: %s", feed_url, tmp)
-        feed_url = tmp
+    if isinstance(feed, template.Template):
+        _LOGGER.debug("Feed is template: %s", feed)
+        template.attach(hass, feed)
 
     async_add_devices(
         [
             FeedParserSensor(
-                feed=feed_url,
+                feed=feed,
                 name=config[CONF_NAME],
                 date_format=config[CONF_DATE_FORMAT],
                 show_topn=config[CONF_SHOW_TOPN],
@@ -69,7 +68,7 @@ def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
 class FeedParserSensor(SensorEntity):
     def __init__(
         self,
-        feed: str,
+        feed,
         name: str,
         date_format: str,
         show_topn: str,
@@ -86,13 +85,26 @@ class FeedParserSensor(SensorEntity):
         self._entries = []
 
     def update(self):
-        parsedFeed = feedparser.parse(self._feed)
+
+        if isinstance(self._feed, template.Template):
+            _LOGGER.debug("Evaluating feed template: %s", self._feed)
+            tmp = self._feed.async_render(None, limited=False, parse_result=False)
+            if tmp in ['unknown']:
+                _LOGGER.warn("Template failure: %s; template: %s", tmp, self._feed)
+                return False
+            else:
+                _LOGGER.debug("Feed URL: %s from template: %s", tmp, self._feed)
+            feed_url = tmp
+        else:
+            feed_url = self._feed
+
+        parsedFeed = feedparser.parse(feed_url)
 
         if not parsedFeed:
-            _LOGGER.warn("Feed %s not parsed; URL: %s", self._name, self._feed)
+            _LOGGER.warn("Feed %s not parsed; URL: %s", self._name, feed_url)
             return False
         else:
-            _LOGGER.info("Updating feed: %s; URL: %s", self._name, self._feed)
+            _LOGGER.info("Updating feed: %s; URL: %s", self._name, feed_url)
             self._state = (
                 self._show_topn
                 if len(parsedFeed.entries) > self._show_topn
