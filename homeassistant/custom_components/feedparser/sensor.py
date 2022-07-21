@@ -43,11 +43,13 @@ _LOGGER = logging.getLogger(__name__)
 
 @asyncio.coroutine
 def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
-    variables = None
+
     feed_url=config[CONF_FEED_URL]
     template.attach(hass, feed_url)
     if isinstance(feed_url, template.Template):
-        feed_url = feed_url.async_render(variables, limited=True, parse_result=False)
+        tmp = feed_url.async_render(None, limited=True, parse_result=False)
+        _LOGGER.debug("Feed template: %s; URL: %s", feed_url, tmp)
+        feed_url = tmp
 
     async_add_devices(
         [
