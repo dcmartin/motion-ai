@@ -8,7 +8,7 @@ import voluptuous as vol
 from datetime import timedelta
 from dateutil import parser
 from homeassistant.components.sensor import SensorEntity
-import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers import config_validation as cv, template
 from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.const import CONF_NAME
 
