@@ -45,9 +45,9 @@ _LOGGER = logging.getLogger(__name__)
 def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
 
     feed_url=config[CONF_FEED_URL]
-    template.attach(hass, feed_url)
+
     if isinstance(feed_url, template.Template):
-        tmp = feed_url.async_render(None, limited=True, parse_result=False)
+        tmp = feed_url.async_render()
         _LOGGER.debug("Feed template: %s; URL: %s", feed_url, tmp)
         feed_url = tmp
 
