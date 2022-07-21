@@ -93,7 +93,7 @@ class FeedParserSensor(SensorEntity):
                 _LOGGER.warn("Template failure: %s; template: %s", tmp, self._feed)
                 return False
             else:
-                _LOGGER.debug("Feed URL: %s from template: %s", feed_url, tmp)
+                _LOGGER.debug("Feed URL: %s from template: %s", tmp, self._feed)
             feed_url = tmp
         else:
             feed_url = self._feed
