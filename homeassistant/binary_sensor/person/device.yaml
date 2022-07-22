@@ -4,6 +4,85 @@
 
 - platform: template
   sensors:
+    motion_person_device_home:
+      friendly_name: 'Person home'
+      device_class: presence
+      attribute_templates:
+        tracker: >-
+          {%- set s = states('sensor.motion_person_device') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {%- set s = 'device_tracker.' + s|string -%}
+            {%- if states(s)|lower != 'unknown' -%}
+              {{- s -}}
+            {%- else -%}unknown{%- endif -%}
+          {%- else -%}none{%- endif -%}
+        sensor: >-
+          {%- set s = states('sensor.motion_person_device') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {%- set s = 'sensor.' + s|string -%}
+            {%- if states(s)|lower != 'unknown' -%}
+              {{- s -}}
+            {%- else -%}unknown{%- endif -%}
+          {%- else -%}none{%- endif -%}
+        location: >-
+          {%- set s = state_attr('binary_sensor.motion_person_device_home','sensor') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {{- states(s|string + '_geocoded_location') -}}
+          {%- else -%}none{%- endif -%}
+        timestamp: >-
+          {%- set s = states('sensor.motion_person_device') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {% set s = states['device_tracker.' + s]|default(none) -%}
+            {% if s|lower != 'none' -%}
+              {{ s.last_updated|as_timestamp }}
+            {%- else -%}none{%- endif -%}
+          {%- else -%}none{%- endif -%}
+        relative: >-
+          {%- set s = state_attr('binary_sensor.motion_person_device_home','timestamp') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {{- s|as_datetime|relative_time -}}
+          {%- else -%}none{%- endif -%}
+      value_template: >-
+        {%- set s = states('sensor.motion_person_device') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {% set s = states('device_tracker.' + s) -%}
+          {% if s|lower == 'home' %}on{% elif s|lower == 'not_home' %}off{% else %}unknown{% endif %}
+        {%- else -%}none{%- endif -%}
+    motion_person_device_battery_low:
+      friendly_name: 'Person battery low'
+      device_class: battery
+      attribute_templates:
+        level: >-
+          {%- set s = states('sensor.motion_person_device') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {% set s = states('sensor.' + s + '_battery_level') -%}
+            {{- s -}}
+          {%- else -%}none{%- endif -%}
+      value_template: >-
+        {%- set s = states('sensor.motion_person_device') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {% set s = states('sensor.' + s + '_battery_level') -%}
+          {% if s|int(100) < 25 %}on{% elif s|int(0) >= 25 %}off{% else %}unknown{% endif %}
+        {%- else -%}unknown{%- endif -%}
+    motion_person_device_battery_charging:
+      friendly_name: 'Person battery charging'
+      device_class: battery_charging
+      attribute_templates:
+        state: >-
+          {%- set s = states('sensor.motion_person_device') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {% set s = states('sensor.' + s + '_battery_state') -%}
+            {{- s -}}
+          {%- else -%}none{%- endif -%}
+      value_template: >-
+        {%- set s = states('sensor.motion_person_device') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {% set s = states('sensor.' + s + '_battery_state') -%}
+          {% if s|lower == 'charging' %}on{% elif s|lower == 'not_charging' %}off{% else %}unknown{% endif %}
+        {%- else -%}unknown{%- endif -%}
+
+- platform: template
+  sensors:
     motion_person_device:
       friendly_name: '👱 device'
       attribute_templates:
@@ -33,6 +112,11 @@
               {%- else -%}none{%- endif %}
             {%- else -%}none{%- endif %}
           {%- else -%}none{%- endif %}
+        markdown: >-
+          {% set s = states('binary_sensor.motion_person_device_home') -%}
+          <h2>{{ state_attr('sensor.motion_person','name') }} is <i>{{- s -}}</i></h2>
+          {%- if s|lower != 'home' -%}<b>Current location</b>:<p>{{- state_attr('binary_sensor.motion_person_device_home','location') -}}</p>
+          <i>Last updated</i>: {{ state_attr('binary_sensor.motion_person_device_home','relative') ago
       icon_template: >- 
         {% if is_state('binary_sensor.motion_person_device','on') %}
           {{- 'mdi:home-variant' -}}
