@@ -16,7 +16,7 @@
       entity_id: 'group.motion_device_class_activity'
       to: 'on'
   variables:
-    activity: >-
+    details: >-
       {%- set s = state_attr('binary_sensor.motion_device_class','sensor_list')|list + state_attr('binary_sensor.motion_device_class','binary_sensor_list')|list -%}
       [{%- for i in s|sort|unique if is_state('binary_sensor.motion_device_' + i + '_activity','on') -%}
         {%- if not loop.first -%},{%- endif -%}
@@ -25,10 +25,26 @@
           {"id":"{{- j -}}","class":"{{- i -}}","when":"{{- (states.binary_sensor['motion_device_' + i + '_activity'].last_updated)|as_timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}"}
         {%- endfor -%}
       {%- endfor -%}]
+    ids: >-
+      {% set ids = details|map(attribute='id')|sort|unique|list %}
+      {{ ids }}
+    markdown: >-
+        {%- set devices = state_attr('binary_sensor.motion_device_class','devices') -%}
+        {%- if ids|lower != 'none' and  devices|lower != 'none' and not devices is string and devices is iterable -%}
+          {%- for i in ids if i|lower != 'none' -%}
+            {%- if loop.first -%}{{- '<ul>' -}}{%- endif -%}
+              {%- set s = devices|selectattr('id','==',i)| -%}
+              {%- if s|lower != 'none' and not devices is string and devices is iterable -%}
+                {%- set s = s|first -%}
+                <li>[{{- s.friendly_name -}}](/config/devices/device/{{- s.did -}}) in [{{- s.area -}}](/config/areas/area/{{- s.area -}})</li>
+              {%- endif -%}
+          {%- if loop.last -%}{{- '</ul>' -}}{%- endif -%}
+        {%- endfor -%}
+      {%- else -%}<b>No activity</b>{%- endif %}
     last: >-
       {{ state_attr('binary_sensor.motion_device_class_activity','last') }}
     active: >-
-      {{ activity|count|int(0) > 0 }}
+      {{ details|count|int(0) > 0 }}
   action:
     - alias: 'update binary_sensor.motion_device_class_activity'
       service: python_script.set_state
@@ -37,9 +53,11 @@
         last: >-
           {% if active|lower == 'true' %}{{ utcnow().timestamp() }}{% else %}{{ last }}{% endif %}
         ids: >-
-          {{ activity|map(attribute='id')|sort|unique|list }}
+          {{ ids }}
+        markdown: >-
+          {{ markdown }}
         details: >-
-          {{ activity }}
+          {{ details }}
         state: >-
           {% if active|lower == 'true' %}on{% else %}off{% endif %}
 
@@ -70,25 +88,7 @@
       {{- '<hr>' -}}
     body: >-
       Devices(s) <a href="/notify-activity/">activity</a> at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}:
-      {%- if ids|lower != 'none' -%}
-        {%- set devices = state_attr('binary_sensor.motion_device_class','devices') -%}
-        {{- '<ul>' -}}
-        {%- for i in ids if i|lower != 'none' -%}
-          {{- '<li>' -}}
-          {%- if devices|lower != 'none' and not devices is string and devices is iterable -%}
-            {%- set s = devices|selectattr('id','==',i)|default(['none'])|first -%}
-            {%- if s|lower != 'none' and not s is string and 'id' in s -%}
-              [{{- s.friendly_name -}}](/config/devices/device/{{- s.did -}}) in [{{- s.area -}}](/config/areas/area/{{- s.area -}}).
-            {%- else -%}
-              [{{- i -}}](/config/integrations/) is not found; please configure
-            {%- endif %}
-          {%- else -%}
-            [{{- i -}}](/config/integrations/) is not known; please configure
-          {%- endif -%}
-          {{- '</li>' -}}
-        {%- endfor -%}
-        {{- '</ul>' -}}
-      {%- else -%}unknown{%- endif %}
+      {{ state_attr('binary_sensor.motion_device_class_activity','markdown') }}
     message: >-
       {{ header }}
       {{ body }}
