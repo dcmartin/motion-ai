@@ -1,8 +1,80 @@
+###
+# homeassistant/binary_sensor/weather.yaml
+###
+
 - platform: template
   sensors:
-    weather_forecast:
-      friendly_name: Weather forecast
-      icon_template: 'mdi:help-network'
+    weather_forecast_extreme:
+      friendly_name: Extreme weather forecasted
+      device_class: safety
+      attribute_templates:
+        markdown: >-
+          {% set s = state_attr('binary_sensor.weather_forecast','extreme') -%}
+          {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|list|count > 0 -%}
+            {% set home = state_attr('zone.home','friendly_name') %}
+            {% set nearest = state_attr('binary_sensor.what3words_location','nearest') -%}
+            Extreme weather is forecasted near {{ nearest }} and your home {{ home }}
+          {% else %}
+            No extreme weather forecasted
+          {% endif %}
+      value_template: >-
+        {% set s = state_attr('binary_sensor.weather_forecast','extreme') -%}
+        {%- if s|lower != 'none' and not s is string and s is iterable -%}
+          {{- s|list|count > 0 -}}
+        {% else %}unknown{% endif %}
+    weather_forecasted:
+      friendly_name: Weather forecasted
+      device_class: connectivity
+      attribute_templates:
+        sensor: >-
+          {{ 'weather.forecast' }}
+        days: >-
+          {% set s = state_attr('weather.forecast','forecast') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable %}
+            {{ s|count }}
+          {% else %}none{% endif %}
+        condition: >-
+          "{{ states('weather.forecast','condition') -}}",
+        temperature: >-
+          {{- state_attr('weather.forecast','temperature') -}},
+        humidity: >-
+          {{- state_attr('weather.forecast','humidity') -}},
+        pressure: >-
+          {{- state_attr('weather.forecast','pressure') -}},
+        speed: >-
+          {{- state_attr('weather.forecast','wind_speed') -}},
+        bearing: >-
+          {{- state_attr('weather.forecast','wind_bearing') -}},
+        conditions: >-
+          {% for i in state_attr('weather.forecast','forecast') -%}
+            {%- if loop.first -%}[{%- else -%},{%- endif -%}
+              "{{- i.condition -}}"
+            {%- if loop.last -%}]{%- endif -%}
+          {%- endfor %}
+        temperatures: >-
+          {% for i in state_attr('weather.forecast','forecast') -%}
+            {%- if loop.first -%}[{%- else -%},{%- endif -%}
+              {{- i.temperature|int(none) -}}
+            {%- if loop.last -%}]{%- endif -%}
+          {%- endfor %}
+        lows: >-
+          {% for i in state_attr('weather.forecast','forecast') -%}
+            {%- if loop.first -%}[{%- else -%},{%- endif -%}
+              {{- i.templow -}}
+            {%- if loop.last -%}]{%- endif -%}
+          {%- endfor %}
+        wind_speeds: >-
+          {% for i in state_attr('weather.forecast','forecast') -%}
+            {%- if loop.first -%}[{%- else -%},{%- endif -%}
+              {{- i.wind_speed -}}
+            {%- if loop.last -%}]{%- endif -%}
+          {%- endfor %}
+        precipitations: >-
+          {% for i in state_attr('weather.forecast','forecast') -%}
+            {%- if loop.first -%}[{%- else -%},{%- endif -%}
+              {{- i.precipitation -}}
+            {%- if loop.last -%}]{%- endif -%}
+          {%- endfor %}
       value_template: >-
         {% set s = states('weather.forecast') %}
         {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
@@ -12,3 +84,14 @@
             {{ s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' }}
           {% else %}false{% endif %}
         {% else %}false{% endif %}
+    weather_forecast:
+      friendly_name: Weather forecast
+      attribute_templates:
+        extreme: >-
+          {{ 'unknown' }}
+        severe: >-
+          {{ 'unknown' }}
+        moderate: >-
+          {{ 'unknown' }}
+      value_template: >-
+        {{ 'unknown' }}
