@@ -8,26 +8,85 @@
       device_class: connectivity
       friendly_name: UptimeRobot
       attribute_templates:
+        rssurl: >-
+            {{ states('input_text.uptimerobot_feed_rssurl') }}
+        link: >-
+            {% set s = state_attr('sensor.uptimerobot_feed','entries') %}
+            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|length > 0 %}
+              {%- for i in s|sort(attribute='link')|unique(attribute='link')|list -%}
+                {%- if not loop.first -%},{%- endif -%}
+                {{- 1 -}}
+              {%- endfor -%}
+            {% endif %}
+        link_count: >-
+            {% set s = state_attr('binary_sensor.uptimerobot_feed','link') %}
+            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|length > 0 %}
+              {{ s.split(',')|list|map('int')|sum }}
+            {% else %}null{% endif %}
+        link_down: >-
+            {% set s = state_attr('sensor.uptimerobot_feed','entries') %}
+            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|length > 0 %}
+              {%- for i in s|sort(attribute='link')|unique(attribute='link')|list if 'DOWN' in i.title -%}
+                {%- if not loop.first -%},{%- endif -%}
+                {{- 1 -}}
+              {%- endfor -%}
+            {% endif %}
+        link_up: >-
+            {% set s = state_attr('sensor.uptimerobot_feed','entries') %}
+            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|length > 0 %}
+              {%- for i in s|sort(attribute='link')|unique(attribute='link')|list if 'UP' in i.title -%}
+                {%- if not loop.first -%},{%- endif -%}
+                {{- 1 -}}
+              {%- endfor -%}
+            {% endif %}
+        link_down_count: >-
+            {% set s = state_attr('binary_sensor.uptimerobot_feed','link_down') %}
+            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|length > 0 %}
+              {{ s.split(',')|list|map('int')|sum }}
+            {% else %}null{% endif %}
+        link_up_count: >-
+            {% set s = state_attr('binary_sensor.uptimerobot_feed','link_up') %}
+            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|length > 0 %}
+              {{ s.split(',')|list|map('int')|sum }}
+            {% else %}null{% endif %}
         markdown: >-
           <ul>
           <li>UptimeRobot connection is <b>{{- states('binary_sensor.uptimerobot_feed') -}}</b></li>
-          <li>NabuCasa is <b>{{- states('binary_sensor.uptimerobot_link_up_nabucasa') -}}</b></li>
+          <li>NabuCasa: {{ state_attr('binary_sensor.uptimerobot_nabucasa','markdown') -}}</b></li>
           </ul>
           <i>Last updated</i>: {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
       value_template: >-
         {{ not is_state('sensor.uptimerobot_feed','0') and not is_state('sensor.uptimerobot_feed','unknown') }}
-    uptimerobot_link_up_nabucasa:
+    uptimerobot_nabucasa:
       device_class: connectivity
       friendly_name: NabuCasa
       attribute_templates:
+        remote_ui: >-
+          {{ states('binary_sensor.remote_ui') }}
+        down: >-
+          {% set s = state_attr('sensor.uptimerobot_feed','entries') %}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|length > 0 %}
+            {%- for i in s|sort(attribute='link')|unique(attribute='link')|list if 'DOWN' in i.title and 'nabu.casa' in i.link -%}
+              {%- if not loop.first -%},{%- endif -%}
+              {{- i.link -}}
+            {%- endfor -%}
+          {% endif %}
+        up:
+          {% set s = state_attr('sensor.uptimerobot_feed','entries') %}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|length > 0 %}
+            {%- for i in s|sort(attribute='link')|unique(attribute='link')|list if 'UP' in i.title and 'nabu.casa' in i.link -%}
+              {%- if not loop.first -%},{%- endif -%}
+              {{- i.link -}}
+            {%- endfor -%}
+          {% endif %}
         markdown: >-
           <ul>
+          <li>NabuCasa remote UI is <b>{{- states('binary_sensor.remote_ui') -}}</b></li>
           <li>NabuCasa connection is <b>{{- states('binary_sensor.uptimerobot_link_up_nabucasa') -}}</b></li>
-          <li>UptimeRobot is <b>{{- states('binary_sensor.uptimerobot_feed') -}}</b></li>
           </ul>
           <i>Last updated</i>: {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
       value_template: >-
-        {% set s = states('sensor.uptimerobot_link_up_nabucasa') %}
+        {% set s = state_attr('binary_sensor.uptimerobot_nabucasa','up') %}
         {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|length > 0 %}
           {% set s = s.split(',')|list %}
           {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s is iterable %}
