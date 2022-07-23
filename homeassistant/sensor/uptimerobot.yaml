@@ -20,19 +20,76 @@
 
 - platform: template
   sensors:
-    uptimerobot_link_up_percent:
-      friendly_name: 'Uptime'
+    uptimerobot_online_percent:
+      friendly_name: UptimeRobot online percent
       icon_template: 'mdi:percent'
       unit_of_measurement: '%'
+      attribute_templates:
+        min: >-
+          {{ states('sensor.uptimerobot_online_percent_min')|default('null') }}
+        max: >-
+          {{ states('sensor.uptimerobot_online_percent_max')|default('null') }}
+        mean: >-
+          {{ states('sensor.uptimerobot_online_percent_mean')|default('null') }}
+        stdev: >-
+          {{ states('sensor.uptimerobot_online_percent_stdev')|default('null') }}
+        oldest: >-
+          {{ states('sensor.uptimerobot_online_oldest') }}
+        coverage: >-
+         {{ state_attr('sensor.uptimerobot_online_oldest','age_coverage_ratio')|float(0) * 100 }}
+        usage: >-
+         {{ state_attr('sensor.uptimerobot_online_oldest','buffer_usage_ratio')|float(0) * 100 }}
       value_template: >-
-        {%- set s = state_attr('binary_sensor.uptimerobot_feed','link_up_count') -%}
-        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|int(0) > 0 %}
-          {%- set u = s|int(0) -%}
-          {%- set s = state_attr('binary_sensor.uptimerobot_feed','link_down_count') -%}
-          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|int(0) > 0 %}
-            {%- set t = u + s|int(0) -%}
-          {% else %}
-            {% set t = u %}
-          {% endif %}
-          {{ '%0.1f'|format(u|float(0.0) / t|float(0.0) * 100.0) }}
-        {% else %}null{% endif %}
+        {{- states('sensor.uptimerobot_online_history_1w') -}}
+
+# history
+
+- platform: history_stats
+  name: uptimerobot_online_history_1w
+  entity_id: binary_sensor.uptimerobot_feed
+  state: 'on'
+  type: ratio 
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7) }}'
+  end: '{{ now() }}'
+
+# statistics
+
+- platform: statistics
+  name: uptimerobot_online_oldest
+  entity_id: sensor.uptimerobot_online_history_1w
+  state_characteristic: datetime_oldest
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: uptimerobot_online_percent_min
+  entity_id: sensor.uptimerobot_online_history_1w
+  state_characteristic: value_min
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: uptimerobot_online_percent_mean
+  entity_id: sensor.uptimerobot_online_history_1w
+  state_characteristic: mean
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: uptimerobot_online_percent_max
+  entity_id: sensor.uptimerobot_online_history_1w
+  state_characteristic: value_max
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: uptimerobot_online_percent_stdev
+  entity_id: sensor.uptimerobot_online_percent
+  entity_id: sensor.uptimerobot_online_history_1w
+  sampling_size: 1000
+  max_age:
+    days: 7
