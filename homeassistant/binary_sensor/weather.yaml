@@ -45,6 +45,17 @@
           {{- state_attr('weather.forecast','wind_speed')|float(none) -}}
         bearing: >-
           {{- state_attr('weather.forecast','wind_bearing')|float(none) -}}
+        direction: >-
+          {% set s = state_attr('binary_sensor.weather_forecast','directions') -%}
+          {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+            {%- set directions = s %}
+            {%- set s = state_attr('weather.forecast','wind_bearing') -%}
+            {%- if s|lower != 'unknown' and s|lower != 'none' and s is number and s|float(none)|lower != 'none' -%}
+              {%- set index = (((s|float + 11.25) / 22.5)|int(0)) % 16 -%}
+              {%- set direction = directions[index] -%}
+            {%- endif -%}
+          {%- endif -%}
+          {%- if direction is defined -%}{{- direction -}}{%- else -%}none{%- endif %}
         conditions: >-
           {% set s = state_attr('weather.forecast','forecast') -%}
           {% if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
@@ -102,6 +113,12 @@
     weather_forecast:
       friendly_name: Weather forecast
       attribute_templates:
+        conditions: >-
+          {% set conditions = ['clear-night','cloudy','fog','lightning','lightning-rainy','partlycloudy','pouring','rainy','hail','snowy','snowy-rainy','sunny','windy','windy-variant'] -%}
+          {{- conditions -}}
+        directions: >-
+          {% set directions = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW','N'] -%}
+          {{- directions -}}
         extreme: >-
           {{ 'unknown' }}
         severe: >-
