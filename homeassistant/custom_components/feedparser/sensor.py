@@ -89,7 +89,7 @@ class FeedParserSensor(SensorEntity):
         if isinstance(self._feed, template.Template):
             _LOGGER.debug("Evaluating feed template: %s", self._feed)
             tmp = self._feed.async_render(None, limited=False, parse_result=False)
-            if tmp in ['unknown']:
+            if tmp in ['unknown','none','unavailable','null']:
                 _LOGGER.warn("Template failure: %s; template: %s", tmp, self._feed)
                 return False
             else:
