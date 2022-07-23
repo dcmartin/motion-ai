@@ -1487,10 +1487,15 @@
             A voltage <a href="/notify-activity">activity</a> alarm was triggered at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}:
             {%- for i in activity -%}
               {%- if loop.first -%}{{- '<ul>' -}}{%- endif -%}
-              {%- set d = state_attr('binary_sensor.motion_device_class','devices')|selectattr('id','==',i.id) -%}
-              {%- if d|lower != 'none' and d|lower != 'unknown' and not d is string and d is iterable and d|list|count > 0 -%}
-                {%- set d = d|first -%}
-                <li>[{{- d.friendly_name -}}](/config/devices/device/{{- d.did -}}) in [{{- area_id(activity[loop.index-1].entity_id) -}}](/config/areas/area/{{- area_id(activity[loop.index-1].entity_id) -}})</li>
+              {%- set d = state_attr('binary_sensor.motion_device_class','devices') -%}
+              {%- if d|lower != 'none' and d|lower != 'unknown' and not d is string and d is iterable and d|count > 0 -%}
+                {%- set d = d|selectattr('id','==',i.id)|list -%}
+                {%- if d|lower != 'none' and d|lower != 'unknown' and not d is string and d is iterable and d|count > 0 -%}
+                  {%- set d = d|first -%}
+                  <li>[{{- d.friendly_name -}}](/config/devices/device/{{- d.did -}}) in [{{- area_id(activity[loop.index-1].entity_id) -}}](/config/areas/area/{{- area_id(activity[loop.index-1].entity_id) -}})</li>
+                {%- else -%}
+                  <li>{{- i.id -}} is {{ states(i.entity_id) -}}</li>
+                {%- endif -%}
               {%- else -%}
                 <li>{{- i.id -}} is {{ states(i.entity_id) -}}</li>
               {%- endif -%}
@@ -1824,16 +1829,26 @@
         {%- for i in details -%}
           {%- if loop.first -%}<ul>{%- endif -%}
           {{- '<li>' -}}
-          {%- set e = state_attr('binary_sensor.motion_device_voltage','status')|selectattr('id','==',i)|default(['none'])|first -%}
-          {%- set did = device_id(e.entity_id) -%}
-          <a href="/config/devices/device/{{- did -}}"><b>{{- device_attr(device_id(e.entity_id),'name') -}}</b></a><br>Last updated: <i>{{- e.updated|as_datetime|relative_time }} ago</i>
-          {%- for j in details[i] -%}
-            {%- if loop.first -%}<ul>{%- endif -%}
-            <li>{{- j -}}</li>
-            {%- if loop.last %}</ul>{% endif -%}
-          {%- endfor -%}
-          {{- '</li>' -}}
-          {%- if loop.last %}</ul>{% endif -%}
+          {%- set e = state_attr('binary_sensor.motion_device_voltage','status') -%}
+          {%- if e|lower != 'none' and not e is string and e is iterable and e|count > 0 -%}
+            {%- set e = e|selectattr('id','==',i)|list -%}
+            {%- if e|lower != 'none' and not e is string and e is iterable and e|count > 0 -%}
+              {%- set e = e|first -%}
+              {%- set did = device_id(e.entity_id) -%}
+              <a href="/config/devices/device/{{- did -}}"><b>{{- device_attr(device_id(e.entity_id),'name') -}}</b></a><br><i>Last updated</i>: {{- e.updated|as_datetime|relative_time }} ago
+              {%- for j in details[i] -%}
+                {%- if loop.first -%}<ul>{%- endif -%}
+                <li>{{- j -}}</li>
+                {%- if loop.last %}</ul>{% endif -%}
+              {%- endfor -%}
+              {{- '</li>' -}}
+              {%- if loop.last %}</ul>{% endif -%}
+            {%- else -%}
+              <li>{{ i }} is {{ states(i.entity_id) }}</li>
+            {%- endif -%}
+          {%- else -%}
+            <li>{{ i }} is {{ states(i.entity_id) }}</li>
+          {%- endif -%}
         {%- endfor -%}
       {%- else -%}
         <b>No unavailable voltage sensors</b> at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}
