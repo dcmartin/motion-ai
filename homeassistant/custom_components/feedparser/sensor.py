@@ -140,7 +140,7 @@ class FeedParserSensor(SensorEntity):
                             "image"
                         ] = "https://www.home-assistant.io/images/favicon-192x192-full.png"
 
-                _LOGGER.info("Adding entry: %s", entryValue)
+                _LOGGER.debug("Adding entry: %s", entryValue)
                 self._entries.append(entryValue)
 
     @property
@@ -156,5 +156,5 @@ class FeedParserSensor(SensorEntity):
         return ICON
 
     @property
-    def device_state_attributes(self):
+    def extra_state_attributes(self):
         return {"entries": self._entries}
