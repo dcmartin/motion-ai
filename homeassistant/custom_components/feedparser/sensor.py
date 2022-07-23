@@ -140,6 +140,7 @@ class FeedParserSensor(SensorEntity):
                             "image"
                         ] = "https://www.home-assistant.io/images/favicon-192x192-full.png"
 
+                _LOGGER.info("Adding entry: %s", entryValue)
                 self._entries.append(entryValue)
 
     @property
