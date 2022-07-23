@@ -77,3 +77,93 @@
           {{ states(s) }}
         {% else %}null{% endif %}
 
+# temperature
+
+- platform: template
+  sensors:
+    weather_temperature:
+      friendly_name: Exterior temperature
+      icon_template: 'mdi:thermometer'
+      unit_of_measurement: '°'
+      attribute_templates:
+        min: >-
+          {{ states('sensor.weather_temperature_min')|default('null') }}
+        max: >-
+          {{ states('sensor.weather_temperature_max')|default('null') }}
+        mean: >-
+          {{ states('sensor.weather_temperature_mean')|default('null') }}
+        stdev: >-
+          {{ states('sensor.weather_temperature_stdev')|default('null') }}
+        oldest: >-
+          {{ states('sensor.weather_temperature_oldest') }}
+        quartiles: >-
+          {{ states('sensor.weather_temperature_quartiles_1w') }}
+        coverage: >-
+         {{ state_attr('sensor.weather_temperature_oldest','age_coverage_ratio')|float(0) * 100 }}
+        usage: >-
+         {{ state_attr('sensor.weather_temperature_oldest','buffer_usage_ratio')|float(0) * 100 }}
+      value_template: >-
+        {{- state_attr('binary_sensor.weather_forecasted','temperature') -}}
+
+# history
+
+- platform: history_stats
+  name: weather_temperature_history_1w
+  entity_id: binary_sensor.weather_forecasted
+  state: 'on'
+  type: ratio 
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7) }}'
+  end: '{{ now() }}'
+
+# statistics
+
+- platform: statistics
+  name: weather_temperature_oldest
+  entity_id: sensor.weather_temperature_history_1w
+  state_characteristic: datetime_oldest
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: weather_temperature_min
+  entity_id: sensor.weather_temperature
+  state_characteristic: value_min
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: weather_temperature_mean
+  entity_id: sensor.weather_temperature
+  state_characteristic: mean
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: weather_temperature_max
+  entity_id: sensor.weather_temperature
+  state_characteristic: value_max
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: weather_temperature_stdev
+  entity_id: sensor.weather_temperature
+  entity_id: sensor.weather_temperature
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: weather_temperature_quartiles_1w
+  entity_id: sensor.weather_temperature
+  state_characteristic: quantiles
+  quantile_intervals: 4
+  quantile_method: inclusive
+  sampling_size: 1000
+  max_age:
+    days: 7
+
