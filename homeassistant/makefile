@@ -37,6 +37,7 @@ HOST_LATITUDE ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.HOST_LATITUDE' $
 HOST_LONGITUDE ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.HOST_LONGITUDE' $(SETUP)) && echo "${TS}++ HOST_LONGITUDE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard HOST_LONGITUDE),$(shell v=$$(cat HOST_LONGITUDE) && echo "${TG}== HOST_LONGITUDE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v="0.0" && echo "${TB}** HOST_LONGITUDE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 
 ## MOTION
+MOTION_SITE ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_SITE' $(SETUP)) && echo "${TS}++ MOTION_SITE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_SITE),$(shell v=$$(cat MOTION_SITE) && echo "${TG}== MOTION_SITE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v=${HOST_NAME} && echo "${TB}** MOTION_SITE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 MOTION_APP ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_APP' $(SETUP)) && echo "${TS}++ MOTION_APP: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_APP),$(shell v=$$(cat MOTION_APP) && echo "${TG}== MOTION_APP: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='Motion Ã👁' && echo "${TB}** MOTION_APP unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 MOTION_GROUP ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_GROUP' $(SETUP)) && echo "${TS}++ MOTION_GROUP: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_GROUP),$(shell v=$$(cat MOTION_GROUP) && echo "${TG}== MOTION_GROUP: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='motion' && echo "${TB}** MOTION_GROUP unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 MOTION_DEVICE ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_DEVICE' $(SETUP)) && echo "${TS}++ MOTION_DEVICE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_DEVICE),$(shell v=$$(cat MOTION_DEVICE) && echo "${TG}== MOTION_DEVICE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v=$$(echo $(HOST_NAME) | sed -e "s/-//g" -e "s/ /_/g") && echo "${TB}** MOTION_DEVICE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
@@ -334,6 +335,7 @@ secrets.yaml: secrets.yaml.tmpl
           MOTION_FACE_DETECTED_TUNE="$(MOTION_FACE_DETECTED_TUNE)" \
 	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
 	  MOTION_APP="$(MOTION_APP)" \
+	  MOTION_SITE="$(MOTION_SITE)" \
 	  MOTION_GROUP="$(MOTION_GROUP)" \
 	  MOTION_LOG_LEVEL="$(MOTION_LOG_LEVEL)" \
 	  MOTION_NOTIFY_SMARTPHONE="$(MOTION_NOTIFY_SMARTPHONE)" \
@@ -406,6 +408,7 @@ notify.system.json: notify.system.json.tmpl
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  MOTION_APP="$(MOTION_APP)" \
+	  MOTION_SITE="$(MOTION_SITE)" \
 	&& cat $< \
 	  | envsubst \
 	> $@
@@ -417,6 +420,7 @@ notify.devices.json: notify.devices.json.tmpl
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  MOTION_APP="$(MOTION_APP)" \
+	  MOTION_SITE="$(MOTION_SITE)" \
 	&& cat $< \
 	  | envsubst \
 	> $@
@@ -428,6 +432,7 @@ notify.unavailable.json: notify.unavailable.json.tmpl
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  MOTION_APP="$(MOTION_APP)" \
+	  MOTION_SITE="$(MOTION_SITE)" \
 	&& cat $< \
 	  | envsubst \
 	> $@
@@ -439,6 +444,7 @@ notify.missing.json: notify.missing.json.tmpl
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  MOTION_APP="$(MOTION_APP)" \
+	  MOTION_SITE="$(MOTION_SITE)" \
 	&& cat $< \
 	  | envsubst \
 	> $@
@@ -450,6 +456,7 @@ notify.activity.json: notify.activity.json.tmpl
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  MOTION_APP="$(MOTION_APP)" \
+	  MOTION_SITE="$(MOTION_SITE)" \
 	&& cat $< \
 	  | envsubst \
 	> $@
@@ -466,6 +473,7 @@ lovelace.json: lovelace.json.tmpl
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  MOTION_APP="$(MOTION_APP)" \
+	  MOTION_SITE="$(MOTION_SITE)" \
 	&& cat $< \
 	  | envsubst \
 	> $@
@@ -477,6 +485,7 @@ lovelace.owner.json: lovelace.owner.json.tmpl
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  MOTION_APP="$(MOTION_APP)" \
+	  MOTION_SITE="$(MOTION_SITE)" \
 	&& cat $< \
 	  | envsubst \
 	> $@
@@ -488,6 +497,7 @@ lovelace.primary.json: lovelace.primary.json.tmpl
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  MOTION_APP="$(MOTION_APP)" \
+	  MOTION_SITE="$(MOTION_SITE)" \
 	&& cat $< \
 	  | envsubst \
 	> $@
@@ -495,11 +505,13 @@ lovelace.primary.json: lovelace.primary.json.tmpl
 	-@mkdir -p .storage/
 	@ln -s ../$@ .storage/lovelace.lovelace_primary
 
+# legacy not deprecated
+
 lovelace.developer.json: lovelace.developer.json.tmpl $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
 	@export \
-	  HOST_NAME="$(HOST_NAME)" \
 	  MOTION_APP="$(MOTION_APP)" \
+	  HOST_NAME="$(HOST_NAME)" \
 	  MOTION_USER="$(MOTION_USER)" \
 	&& cat $< \
 	  | envsubst \
