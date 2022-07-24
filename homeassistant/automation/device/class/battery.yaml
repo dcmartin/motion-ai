@@ -16,7 +16,7 @@
         {{ s|lower != 'none' and not s is string and s is iterable and s|count > 0 }}
   variables:
     automations: >-
-      {% set automations = ['motion_device_battery_turn_on','motion_device_battery_turn_off','motion_device_battery_toggle','motion_device_battery_activity','motion_device_battery_activity_notify','motion_device_battery_alarm_activity','motion_device_battery_alarm_bad_on','motion_device_battery_alarm_good_on','motion_device_battery_alarm_high_off','motion_device_battery_alarm_high_on','motion_device_battery_alarm_low_off','motion_device_battery_alarm_low_on','motion_device_battery_bad','motion_device_battery_bad_notify','motion_device_battery_cleared_dismiss','motion_device_battery_cleared_notify','motion_device_battery_good','motion_device_battery_good_notify','motion_device_battery_high','motion_device_battery_high_dismiss','motion_device_battery_high_notify','motion_device_battery_low','motion_device_battery_low_dismiss','motion_device_battery_low_notify','motion_device_battery_mute','motion_device_battery_restart','motion_device_battery_self_test','motion_device_battery_status','motion_device_battery_unavailable','motion_device_battery_unmute','motion_device_battery_update'] %}
+      {% set automations = ['motion_device_battery_alarm_off','motion_device_battery_alarm_on','motion_device_battery_required_off','motion_device_battery_required_on','motion_device_battery_turn_on','motion_device_battery_turn_off','motion_device_battery_toggle','motion_device_battery_activity','motion_device_battery_activity_notify','motion_device_battery_alarm_activity','motion_device_battery_alarm_bad_on','motion_device_battery_alarm_good_on','motion_device_battery_alarm_high_off','motion_device_battery_alarm_high_on','motion_device_battery_alarm_low_off','motion_device_battery_alarm_low_on','motion_device_battery_bad','motion_device_battery_bad_notify','motion_device_battery_cleared_dismiss','motion_device_battery_cleared_notify','motion_device_battery_good','motion_device_battery_good_notify','motion_device_battery_high','motion_device_battery_high_dismiss','motion_device_battery_high_notify','motion_device_battery_low','motion_device_battery_low_dismiss','motion_device_battery_low_notify','motion_device_battery_mute','motion_device_battery_restart','motion_device_battery_self_test','motion_device_battery_status','motion_device_battery_unavailable','motion_device_battery_unmute','motion_device_battery_update'] %}
       {{ automations }}
   action:
     - alias: 'enable automations for device_battery'
@@ -65,7 +65,7 @@
         {{ s|lower == 'none' or s is string or not s is iterable or not s|count > 0 }}
   variables:
     automations: >-
-      {% set automations = ['motion_device_battery_turn_on','motion_device_battery_turn_off','motion_device_battery_toggle','motion_device_battery_activity','motion_device_battery_activity_notify','motion_device_battery_alarm_activity','motion_device_battery_alarm_bad_on','motion_device_battery_alarm_good_on','motion_device_battery_alarm_high_off','motion_device_battery_alarm_high_on','motion_device_battery_alarm_low_off','motion_device_battery_alarm_low_on','motion_device_battery_bad','motion_device_battery_bad_notify','motion_device_battery_cleared_dismiss','motion_device_battery_cleared_notify','motion_device_battery_good','motion_device_battery_good_notify','motion_device_battery_high','motion_device_battery_high_dismiss','motion_device_battery_high_notify','motion_device_battery_low','motion_device_battery_low_dismiss','motion_device_battery_low_notify','motion_device_battery_mute','motion_device_battery_restart','motion_device_battery_self_test','motion_device_battery_status','motion_device_battery_unavailable','motion_device_battery_unmute','motion_device_battery_update'] %}
+      {% set automations = ['motion_device_battery_alarm_off','motion_device_battery_alarm_on','motion_device_battery_required_off','motion_device_battery_required_on','motion_device_battery_turn_on','motion_device_battery_turn_off','motion_device_battery_toggle','motion_device_battery_activity','motion_device_battery_activity_notify','motion_device_battery_alarm_activity','motion_device_battery_alarm_bad_on','motion_device_battery_alarm_good_on','motion_device_battery_alarm_high_off','motion_device_battery_alarm_high_on','motion_device_battery_alarm_low_off','motion_device_battery_alarm_low_on','motion_device_battery_bad','motion_device_battery_bad_notify','motion_device_battery_cleared_dismiss','motion_device_battery_cleared_notify','motion_device_battery_good','motion_device_battery_good_notify','motion_device_battery_high','motion_device_battery_high_dismiss','motion_device_battery_high_notify','motion_device_battery_low','motion_device_battery_low_dismiss','motion_device_battery_low_notify','motion_device_battery_mute','motion_device_battery_restart','motion_device_battery_self_test','motion_device_battery_status','motion_device_battery_unavailable','motion_device_battery_unmute','motion_device_battery_update'] %}
       {{ automations }}
   action:
     - alias: 'disable automations for device_battery'
@@ -305,6 +305,190 @@
         object_id: motion_device_battery_statistics
         entities: >-
           {{ statistics|reject('none')|map(attribute='entity_id')|list }}
+
+## change battery class attributes (alarm,required,..)
+
+# alarm
+
+- id: motion_device_battery_alarm_off
+  alias: motion_device_battery_alarm_off
+  mode: single
+  max_exceeded: silent
+  initial_state: off
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test setup complete'
+        condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_class','on') }}
+      - alias: 'battery alarm not off'
+        condition: template
+        value_template: >-
+          {{ 'battery' in state_attr('binary_sensor.motion_device_class','alarm') }}
+  variables:
+    alarm: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','alarm') -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set s = s|reject('==','battery')|list -%}
+        {%- if not s is string and s is iterable and s|count > 0 -%}
+          {% set alarm = s -%}
+        {%- else -%}
+          {% set alarm = [] -%}
+        {%- endif %}
+      {%- endif %}
+      {%- if alarm is defined -%}
+        {{ alarm }}
+      {%- else -%}none{%- endif %}
+  action:
+    - alias: 'test if alarm list of device classes is valid'
+      condition: template
+      value_template: >-
+        {{ alarm|lower != 'none' }}
+    - alias: 'update binary_sensor.motion_device_class alarm attribute; remove: battery'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        alarm: >-
+          {{ alarm }}
+    - alias: 'update binary_sensor.motion_device_battery_exist'
+      service: homeassistant.update_entity
+      entity_id: binary_sensor.motion_device_battery_exist
+
+- id: motion_device_battery_alarm_on
+  alias: motion_device_battery_alarm_on
+  mode: single
+  max_exceeded: silent
+  initial_state: off
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test setup complete'
+        condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_class','on') }}
+      - alias: 'battery alarm not on'
+        condition: template
+        value_template: >-
+          {{ not 'battery' in state_attr('binary_sensor.motion_device_class','alarm') }}
+  variables:
+    alarm: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','alarm') -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set alarm = (s|list + ['battery'])|sort|unique|list -%}
+      {%- else -%}
+        {%- set alarm = ['battery'] -%}
+      {%- endif %}
+      {%- if alarm is defined -%}
+        {{ alarm }}
+      {%- else -%}none{%- endif %}
+  action:
+    - alias: 'test if alarm list of device classes is valid'
+      condition: template
+      value_template: >-
+        {{ alarm|lower != 'none' }}
+    - alias: 'update binary_sensor.motion_device_class alarm attribute; remove: battery'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        alarm: >-
+          {{ alarm }}
+    - alias: 'update binary_sensor.motion_device_battery_exist'
+      service: homeassistant.update_entity
+      entity_id: binary_sensor.motion_device_battery_exist
+
+# required
+
+- id: motion_device_battery_required_off
+  alias: motion_device_battery_required_off
+  mode: single
+  max_exceeded: silent
+  initial_state: off
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test setup complete'
+        condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_class','on') }}
+      - alias: 'battery required not off'
+        condition: template
+        value_template: >-
+          {{ 'battery' in state_attr('binary_sensor.motion_device_class','required') }}
+  variables:
+    required: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','required') -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set s = s|reject('==','battery')|list -%}
+        {%- if not s is string and s is iterable and s|count > 0 -%}
+          {% set required = s -%}
+        {%- else -%}
+          {% set required = [] -%}
+        {%- endif %}
+      {%- endif %}
+      {%- if required is defined -%}
+        {{ required }}
+      {%- else -%}none{%- endif %}
+  action:
+    - alias: 'test if required list of device classes is valid'
+      condition: template
+      value_template: >-
+        {{ required|lower != 'none' }}
+    - alias: 'update binary_sensor.motion_device_class required attribute; remove: battery'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        required: >-
+          {{ required }}
+    - alias: 'update binary_sensor.motion_device_battery_exist'
+      service: homeassistant.update_entity
+      entity_id: binary_sensor.motion_device_battery_exist
+
+- id: motion_device_battery_required_on
+  alias: motion_device_battery_required_on
+  mode: single
+  max_exceeded: silent
+  initial_state: off
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test setup complete'
+        condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_class','on') }}
+      - alias: 'battery required not on'
+        condition: template
+        value_template: >-
+          {{ not 'battery' in state_attr('binary_sensor.motion_device_class','required') }}
+  variables:
+    required: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','required') -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set required = (s|list + ['battery'])|sort|unique|list -%}
+      {%- else -%}
+        {%- set required = ['battery'] -%}
+      {%- endif %}
+      {%- if required is defined -%}
+        {{ required }}
+      {%- else -%}none{%- endif %}
+  action:
+    - alias: 'test if required list of device classes is valid'
+      condition: template
+      value_template: >-
+        {{ required|lower != 'none' }}
+    - alias: 'update binary_sensor.motion_device_class required attribute; remove: battery'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        required: >-
+          {{ required }}
+    - alias: 'update binary_sensor.motion_device_battery_exist'
+      service: homeassistant.update_entity
+      entity_id: binary_sensor.motion_device_battery_exist
 
 ## update status
 
