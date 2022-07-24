@@ -21,7 +21,7 @@
 - platform: template
   sensors:
     uptimerobot_online_percent:
-      friendly_name: UptimeRobot online percent
+      friendly_name: Internet availability
       icon_template: 'mdi:percent'
       unit_of_measurement: '%'
       attribute_templates:
@@ -35,6 +35,27 @@
           {{ states('sensor.uptimerobot_online_percent_stdev')|default('null') }}
         oldest: >-
           {{ states('sensor.uptimerobot_online_oldest') }}
+        age: >-
+          {% set age = timedelta(days=7) %}
+          {{ age }}
+        relative: >-
+          {{ states('sensor.uptimerobot_online_oldest')|as_datetime|relative_time }}
+        markdown: >-
+          {%- set coverage = state_attr('sensor.uptimerobot_online_percent','coverage') -%}
+          {%- if coverage|lower != 'none' -%}
+            {%- set age = state_attr('sensor.uptimerobot_online_percent','age')|as_datetime -%}
+            {%- set oldest = state_attr('sensor.uptimerobot_online_percent','oldest') -%}
+            {%- set relative = oldest|as_datetime|relative_time -%}
+            {%- set current = states('sensor.uptimerobot_online_percent') -%}
+            {%- set coverage = state_attr('sensor.uptimerobot_online_percent','coverage') -%}
+            {%- set complete = oldest|as_datetime <= utcnow() - age %}
+            <a href="/notify-system/internet">Internet</a> availability for the past {{ relative }} is {{ current -}}%
+            {%- if not complete -%}
+              {{- ' (<b>warning</b>: statistics at ' + coverage|string + '% of target)' -}}
+            {%- endif -%}
+          {%- else -%}
+            <h2>No remote monitor availability information</h2>
+          {%- endif -%}
         coverage: >-
          {{ state_attr('sensor.uptimerobot_online_oldest','age_coverage_ratio')|float(0) * 100 }}
         usage: >-
