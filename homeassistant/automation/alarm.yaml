@@ -13,29 +13,46 @@
         notification_id: >-
           {{ state_attr('binary_sensor.motion_alarm','notification_id') }}
 
-- id: motion_alarm_on
-  alias: motion_alarm_on
+- id: motion_alarm_exist_on
+  alias: motion_alarm_exist_on
   initial_state: on
   mode: single
   trigger:
     - platform: state
       entity_id: binary_sensor.motion_alarm
       to: 'on'
+  variables:
+    timestamp: >-
+      {{- states.binary_sensor.motion_alarm.last_updated|as_timestamp -}}
+    when: >-
+      {{- timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}
+    status: >-
+      {{- states.binary_sensor.motion_alarm.attributes|default(none) -}}
+    markdown: >-
+      {%- if status|lower != 'none' and 'all' in status -%}
+        {%- for i in status.all|sort -%}
+          {%- if loop.first -%}<ul>{%- endif -%}
+          <li>{{- i|first -}}</li>
+          {%- if loop.last -%}</ul>{%- endif -%}
+        {%- endfor -%}
+      {%- else -%}No existing alarm information{%- endif -%}
   action:
     - alias: 'set binary_sensor.motion_alarm_exist to: on'
       service: python_script.set_state
       data_template:
         entity_id: binary_sensor.motion_alarm_exist
+        markdown: >-
+          {{- markdown -}}
         status: >-
-          {{- states.binary_sensor.motion_alarm.attributes|default(none) -}}
+          {{- status -}}
         timestamp: >-
-          {{- states.binary_sensor.motion_alarm.last_updated|as_timestamp -}}
+          {{- timestamp -}}
         when: >-
-          {{- states.binary_sensor.motion_alarm.last_updated|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}
+          {{- when -}}
         state: 'on'
 
-- id: motion_alarm_off
-  alias: motion_alarm_off
+- id: motion_alarm_exist_off
+  alias: motion_alarm_exist_off
   initial_state: on
   mode: single
   trigger:
