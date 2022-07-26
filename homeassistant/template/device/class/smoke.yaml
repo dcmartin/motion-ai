@@ -43,3 +43,34 @@
            and max|lower != 'unknown' and max|lower != 'null' and max|lower != 'none'
            and stdev|lower != 'unknown' and stdev|lower != 'null' and stdev|lower != 'none'
            and ( now|float(0.0) > (mean|float(0.0) + stdev|float(0.0)) or now|float(0.0) > (max|float(0.0) - stdev|float(0.0)) ) }}
+
+- unique_id: motion_device_smoke_alarm
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_smoke_alarm_exist
+  binary_sensor:
+    - name: 'motion_device_smoke_alarm'
+      device_class: problem
+      attributes:
+        status: >-
+          {{ '{' -}}
+          {%- for i in state_attr('binary_sensor.motion_device_class','alarms') -%}
+            {%- if not loop.first -%},{%- endif -%}
+            {{- '"' + i|string + '":"' ~ states('binary_sensor.motion_device_smoke_' + i) ~ '"' -}}
+          {%- endfor -%}
+          {{- '}' }}
+        markdown: >-
+          {%- for i in state_attr('binary_sensor.motion_device_class','alarms') if is_state('binary_sensor.motion_device_smoke_' + i|string,'on') -%}
+            {%- if loop.first -%}<ul>{%- endif -%}
+            {%- if states('binary_sensor.motion_device_smoke_' + i|string) -%}
+               <li>The smoke alarm is: <b>{{- i|upper -}}</b><br>{{- state_attr('binary_sensor.motion_device_smoke_' + i|string,'markdown') -}}</br></li>
+            {%- endif -%}
+            {%- if loop.last -%}</ul>{%- endif -%}
+          {%- endfor -%}
+      state: >-
+        {%- set s = state_attr('binary_sensor.motion_device_class','alarms') -%}
+        {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+          {%- for i in s if states('binary_sensor.motion_device_smoke_' + i)|lower == 'on' -%}
+            {%- if loop.first -%}on{%- endif -%}
+          {% else %}off{%- endfor -%}
+        {%- else -%}unknown{%- endif -%}
