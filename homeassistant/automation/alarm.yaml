@@ -26,56 +26,92 @@
       {{- states.binary_sensor.motion_alarm.last_updated|as_timestamp -}}
     when: >-
       {{- timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}
+    list: >-
+      {% set l = [] -%}
+      {%- set s = state_attr('binary_sensor.motion_alarm','good') -%}{%- if not s is string and s is iterable and s|count > 0 -%}{%- set l = l + s -%}{%- endif -%}
+      {%- set s = state_attr('binary_sensor.motion_alarm','bad') -%}{%- if not s is string and s is iterable and s|count > 0 -%}{%- set l = l + s -%}{%- endif -%}
+      {%- set s = state_attr('binary_sensor.motion_alarm','high') -%}{%- if not s is string and s is iterable and s|count > 0 -%}{%- set l = l + s -%}{%- endif -%}
+      {%- set s = state_attr('binary_sensor.motion_alarm','low') -%}{%- if not s is string and s is iterable and s|count > 0 -%}{%- set l = l + s -%}{%- endif -%}
+      {%- set s = state_attr('binary_sensor.motion_alarm','missing') -%}{%- if not s is string and s is iterable and s|count > 0 -%}{%- set l = l + s -%}{%- endif -%}
+      {%- set s = state_attr('binary_sensor.motion_alarm','unavailable') -%}{%- if not s is string and s is iterable and s|count > 0 -%}{%- set l = l + s -%}{%- endif -%}
+      {%- set s = state_attr('binary_sensor.motion_alarm','found') -%}{%- if not s is string and s is iterable and s|count > 0 -%}{%- set l = l + s -%}{%- endif -%}
+      {%- set s = state_attr('binary_sensor.motion_alarm','activity') -%}{%- if not s is string and s is iterable and s|count > 0 -%}{%- set l = l + s -%}{%- endif -%}
+      {%- if l|count > 0 -%}
+        {{- l -}}
+      {%- else -%}none{%- endif %}
+    sorted: >-
+      {%- set sorted = none -%}
+      {%- if list|lower != 'none' -%}
+        {%- set sorted = list|sort(attribute=1,reverse=true) -%}
+      {%- endif -%}
+      {{- sorted }}
+    id: >-
+      {%- set id = none -%}
+      {%- if sorted|lower != 'none' -%}
+        {%- set id = sorted|map(attribute=2)|list|first -%}
+      {%- endif -%}
+      {{- id }}
+    title: >-
+      {%- set title = none -%}
+      {%- if sorted|lower != 'none' -%}
+        {%- set title = sorted|map(attribute=0)|list|first -%}
+      {%- endif -%}
+      {{- title }}
+    message: >-
+      {%- set message = none -%}
+      {%- if sorted|lower != 'none' -%}
+        {%- set message = sorted|map(attribute=3)|list|first -%}
+      {%- endif -%}
+      {{- message }}
+    alarms: >-
+      {%- set alarms = none -%}
+      {% set s = state_attr('binary_sensor.motion_device_class','alarms') -%}
+      {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set alarms = s -%}
+      {%- endif -%}
+      {{- alarms }}
     status: >-
-      {{- states.binary_sensor.motion_alarm.attributes|default(none) -}}
-    markdown: >-
-      {%- if status|lower != 'none' and 'all' in status -%}
-        {%- for i in status.all|sort -%}
-          {%- if loop.first -%}<ul>{%- endif -%}
-          <li>{{- i|first -}}</li>
-          {%- if loop.last -%}</ul>{%- endif -%}
-        {%- endfor -%}
-      {%- else -%}No existing alarm information{%- endif -%}
-    states: >-
-      {%- set alarms = state_attr('binary_sensor.motion_device_class','alarms') -%}
-      {%- if alarms|lower != 'none' and status|lower != 'none'
-            and not alarms is string
-            and alarms is iterable
-            and alarms|count > 0
-            and not status is string
-            and 'all' in status -%}
-        {%- for i in alarms -%}
-        {%- if not loop.first -%},{%- else -%}{{- '{' -}}{%- endif -%}
-        "{{- i -}}":{{- status[i]|length > 0 -}}
-        {%- if loop.last -%}{{- '}' -}}{%- endif -%}
+      {%- if alarms|lower != 'none' -%}
+        {%- for i in alarms if state_attr('binary_sensor.motion_alarm',i) -%}
+          {%- if not loop.first -%},{%- else -%}{{- '{' -}}{%- endif -%}
+          {%- set s = state_attr('binary_sensor.motion_alarm',i) -%}
+          {%- set c = state_attr('binary_sensor.motion_alarm_' + i,'count')|int(none) -%}
+          {%- if s|length > 0 -%}
+            {%- set n = '%0.2f'|format((s|first)[1]|float(0)) -%}
+            {{- '"' ~ i ~ '":{"count":' ~ c ~ ',"ago":' ~ n ~ '}' -}}
+          {%- else -%}
+            {{- '"' ~ i ~ '":{"count":' ~ 0 ~ ',"ago":' ~ 0 ~ '}' -}}
+          {%- endif -%}
+          {%- if loop.last -%}{{- '}' -}}{%- endif -%}
         {%- endfor -%}
       {%- else -%}none{%- endif %}
-    ago: >-
-     {%- set alarms = state_attr('binary_sensor.motion_device_class','alarms') -%}
-     {%- if alarms|lower != 'none' and status|lower != 'none'
-         and not alarms is string
-         and alarms is iterable
-         and alarms|count > 0
-         and not status is string
-         and 'all' in status -%}
-       {%- set all = status.all -%}
-       {%- for i in alarms if status[i]|count > 0 -%}
-       {%- if not loop.first -%},{%- else -%}{{- '{' -}}{%- endif -%}
-         "{{- i -}}":{{- (status[i]|first)[1] -}}
-       {%- if loop.last -%}{{- '}' -}}{%- endif -%}
-       {%- endfor -%}
-     {%- endif %}
+    markdown: >-
+      {%- if title|lower != 'none' -%}
+        <h2>Latest</h2>{{- title -}}<br>{{- message -}}<hr>
+      {%- endif -%}
+      {% if status|lower != 'none' -%} 
+        {%- for i in status -%}
+          {%- if loop.first -%}<ul>{%- endif -%}
+          {%- set c = state_attr('binary_sensor.motion_alarm_' + i,'count')|int(none) -%}
+          <li><b>{{- i|upper -}}</b>: <i>{{- c -}}</i> notification(s)</li>
+          {%- if loop.last -%}</ul>{%- endif -%}
+        {%- endfor -%}
+      {%- else -%}No existing alarm information{%- endif %}
   action:
     - alias: 'set binary_sensor.motion_alarm_exist to: on'
       service: python_script.set_state
       data_template:
         entity_id: binary_sensor.motion_alarm_exist
+        id: >-
+          {{- id -}}
+        title: >-
+          {{- title -}}
+        message: >-
+          {{- message -}}
         markdown: >-
           {{- markdown -}}
         status: >-
           {{- status -}}
-        states: >-
-          {{- states -}}
         timestamp: >-
           {{- timestamp -}}
         when: >-
@@ -90,11 +126,36 @@
     - platform: state
       entity_id: binary_sensor.motion_alarm
       to: 'off'
+  variables:
+    alarms: >-
+      {%- set alarms = none -%}
+      {% set s = state_attr('binary_sensor.motion_device_class','alarms') -%}
+      {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set alarms = s -%}
+      {%- endif -%}
+      {{- alarms }}
+    status: >-
+      {%- if alarms|lower != 'none' -%}
+        {%- for i in alarms if state_attr('binary_sensor.motion_alarm',i) -%}
+          {%- if not loop.first -%},{%- else -%}{{- '{' -}}{%- endif -%}
+          {%- set s = state_attr('binary_sensor.motion_alarm',i) -%}
+          {%- set c = state_attr('binary_sensor.motion_alarm_' + i,'count')|int(none) -%}
+          {%- if s|length > 0 -%}
+            {%- set n = '%0.2f'|format((s|first)[1]|float(0)) -%}
+            {{- '"' ~ i ~ '":{"count":' ~ c ~ ',"ago":' ~ n ~ '}' -}}
+          {%- else -%}
+            {{- '"' ~ i ~ '":{"count":' ~ 0 ~ ',"ago":' ~ 0 ~ '}' -}}
+          {%- endif -%}
+          {%- if loop.last -%}{{- '}' -}}{%- endif -%}
+        {%- endfor -%}
+      {%- else -%}none{%- endif %}
   action:
     - alias: 'set binary_sensor.motion_alarm_exist to: off'
       service: python_script.set_state
       data_template:
         entity_id: binary_sensor.motion_alarm_exist
+        status: >-
+          {{- status -}}
         timestamp_off: >-
           {{ utcnow().timestamp() }}
         state: 'off'
