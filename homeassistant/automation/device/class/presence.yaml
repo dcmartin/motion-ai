@@ -305,6 +305,190 @@
         object_id: motion_device_presence_statistics
         entities: >-
           {{ statistics|reject('none')|map(attribute='entity_id')|list }}
+    - alias: 'trigger temperatus status update'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_presence_status
+
+## update status
+
+- id: motion_device_presence_status
+  alias: motion_device_presence_status
+  mode: single
+  max_exceeded: silent
+  initial_state: off
+  trigger:
+    - platform: time_pattern
+      minutes: '/1'
+  variables:
+    class: >-
+      {% set class = 'presence' %}
+      {{ class }}
+    ids: >-
+      {% set ids = state_attr('binary_sensor.motion_device_presence','ids') %}
+      {{ ids }}
+    status: >-
+      {%- set s = ids -%}
+      {%- if s|lower != 'none' and s|lower != 'unknown' and s is iterable -%}
+        [{%- for i in s -%}
+          {%- set o = loop -%}
+          {%- for state in (states.sensor|list + states.binary_sensor|list)
+            if device_attr(state.entity_id, 'name') == i
+              and (state.attributes.device_class|default('null')|string == class)  -%}
+            {%- if not o.first or not loop.first -%},{%- endif -%}
+            {"id":"{{- i -}}","name":"{{- state_attr(state.entity_id,'friendly_name') -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
+
+          {%- else -%}{% if o.first %}None{% endif %}{%- endfor -%}
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
+    statistics: >-
+      {%- set s = ids -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
+        [{%- for i in s -%}
+          {%- set o = loop -%}
+          {%- for state in (states.sensor|list + states.binary_sensor|list)
+            if device_attr(state.entity_id, 'name') == i
+              and state.attributes.device_class|default('null')|lower == 'null'
+              and state.attributes.state_class|default('null')|string == 'measurement' -%}
+            {%- if not o.first or not loop.first -%},{%- endif -%}
+            {"id":"{{- i -}}","name":"{{- state_attr(state.entity_id,'friendly_name') -}}","state":"{{- state.state }} {{ state.attributes.unit_of_measurement-}}","entity_id":"{{- state.entity_id -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
+          {%- else -%}{% if o.first %}None{% endif %}{%- endfor -%}
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
+    high: >-
+      {% if state_attr('binary_sensor.motion_device_presence_exist','high')|float('none') != 'none' -%}
+        {% set s = status -%}
+        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+          {% set n = state_attr('binary_sensor.motion_device_presence_exist','high')|float(0) -%}
+          [{% for i in s if 'entity_id' in i and states(i.entity_id)|float(n) > n -%}
+            {%- if not loop.first -%},{%- endif -%}
+            {"id":"{{- i.id -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- states[i.entity_id].last_updated|as_timestamp(None) -}}}
+          {%- endfor -%}]
+        {%- else -%}none{%- endif -%}
+      {%- else -%}none{%- endif %}
+    low: >-
+      {% if state_attr('binary_sensor.motion_device_presence_exist','low')|float('none') != 'none' -%}
+        {%- set s = status -%}
+        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+          {% set n = state_attr('binary_sensor.motion_device_presence_exist','low')|float(0) -%}
+          [{% for i in s if 'entity_id' in i and states(i.entity_id)|float(n) < n -%}
+            {%- if not loop.first -%},{%- endif -%}
+            {"id":"{{- i.id -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- states[i.entity_id].last_updated|as_timestamp(None) -}}}
+          {%- endfor -%}]
+        {%- else -%}none{%- endif -%}
+      {%- else -%}none{%- endif %}
+    good: >-
+      {% set good = state_attr('binary_sensor.motion_device_presence_exist','good') -%}
+      {%- if good|lower != 'none' -%}
+        {% set s = status -%}
+        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+          [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,good) -%}
+            {%- if not loop.first -%},{%- endif -%}
+            {"id":"{{- i.id -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- states[i.entity_id].last_updated|as_timestamp(None) -}}}
+          {%- endfor -%}]
+        {%- else -%}none{%- endif -%}
+      {%- else -%}none{%- endif %}
+    bad: >-
+      {% set bad = state_attr('binary_sensor.motion_device_presence_exist','bad') -%}
+      {%- if bad|lower != 'none' -%}
+        {% set s = status -%}
+        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+          [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,bad) -%}
+            {%- if not loop.first -%},{%- endif -%}
+            {"id":"{{- i.id -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- states[i.entity_id].last_updated|as_timestamp(None) -}}}
+          {%- endfor -%}]
+        {%- else -%}none{%- endif -%}
+      {%- else -%}none{%- endif %}
+    activity: >-
+      {% set activity = state_attr('binary_sensor.motion_device_presence_exist','activity') -%}
+      {%- if activity|lower != 'none' -%}
+        {% set s = status -%}
+        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+          [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,activity) -%}
+            {%- if not loop.first -%},{%- endif -%}
+            {"id":"{{- i.id -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- states[i.entity_id].last_updated|as_timestamp(None) -}}}
+          {%- endfor -%}]
+        {%- else -%}none{%- endif -%}
+      {%- else -%}none{%- endif %}
+    unavailable: >-
+      {%- set s = status -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+        [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,'unavailable') -%}
+          {%- if not loop.first -%},{%- endif -%}
+            {"id":"{{- i.id -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- states[i.entity_id].last_updated|as_timestamp(None) -}}}
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
+    values: >-
+      {% set g = state_attr('binary_sensor.motion_device_presence_exist','good') -%}
+      {% set b = state_attr('binary_sensor.motion_device_presence_exist','bad') -%}
+      {%- if g|lower != 'none' and b|lower != 'none' -%}
+        [{% for i in status if 'entity_id' in i and not i.entity_id is none -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {% if is_state(i.entity_id,g) %}1{% elif is_state(i.entity_id,b) %}0{% else %}none{% endif -%}
+        {%- endfor -%}]
+      {%- else -%}
+        [{% for i in status if 'entity_id' in i and not i.entity_id is none -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {{- states(i.entity_id)|float(none) -}}
+        {%- endfor -%}]
+      {%- endif %}
+    value: >-
+      {% if bad|lower != 'none' and not bad is string and bad is iterable -%}
+        {%- if bad|count > 0 -%}
+          {%- set result = 'on' -%}
+        {%- else -%}
+          {%- set result = 'off' -%}
+        {%- endif -%}
+      {%- endif -%}
+      {%- if low|lower != 'none' and not low is string and low is iterable -%}
+        {%- if low|count > 0 -%}
+          {%- set result = 'on' -%}
+        {%- else -%}
+          {%- set result = 'off' -%}
+        {%- endif -%}
+      {%- endif -%}
+      {%- if high|lower != 'none' and not high is string and high is iterable -%}
+        {%- if high|count > 0 -%}
+          {%- set result = 'on' -%}
+        {%- else -%}
+          {%- set result = 'off' -%}
+        {%- endif -%}
+      {%- endif -%}
+      {%- if activity|lower != 'none' and not activity is string and activity is iterable -%}
+        {%- if activity|count > 0 -%}
+          {%- set result = 'on' -%}
+        {%- else -%}
+          {%- set result = 'off' -%}
+        {%- endif -%}
+      {%- endif -%}
+      {%- if result is defined -%}
+        {{- result -}}
+      {%- else -%}unknown{%- endif %}
+  action:
+    - alias: 'update binary_sensor.motion_device_presence state'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_presence
+        status: >-
+          {{ status }}
+        statistics: >-
+          {{ statistics|reject('none')|list }}
+        high: >-
+          {{ high }}
+        low: >-
+          {{ low }}
+        good: >-
+          {{ good }}
+        bad: >-
+          {{ bad }}
+        activity: >-
+          {{ activity }}
+        unavailable: >-
+          {{ unavailable }}
+        values: >-
+          {{ values }}
+        state: >-
+          {{ value }}
 
 ## change presence class attributes (alarm,required,..)
 
@@ -517,204 +701,6 @@
     - alias: 'update binary_sensor.motion_device_presence_exist'
       service: homeassistant.update_entity
       entity_id: binary_sensor.motion_device_presence_exist
-
-## update status
-
-- id: motion_device_presence_status
-  alias: motion_device_presence_status
-  mode: single
-  max_exceeded: silent
-  initial_state: off
-  trigger:
-#    - platform: state
-#      entity_id: binary_sensor.motion_device_presence_exist
-#      to: 'on'
-#    - platform: state
-#      entity_id: group.motion_device_presence
-#      to: 'on'
-#    - platform: state
-#      entity_id: group.motion_device_presence
-#      to: 'off'
-#    - platform: state
-#      entity_id: binary_sensor.motion_device_presence
-#      to: 'on'
-#    - platform: state
-#      entity_id: binary_sensor.motion_device_presence
-#      to: 'off'
-#    - platform: state
-#      entity_id: binary_sensor.motion_device_class_rescan
-#      to: 'off'
-    - platform: time_pattern
-      minutes: '/1'
-  variables:
-    class: >-
-      {% set class = 'presence' %}
-      {{ class }}
-    ids: >-
-      {% set ids = state_attr('binary_sensor.motion_device_presence','ids') %}
-      {{ ids }}
-    status: >-
-      {%- set s = ids -%}
-      {%- if s|lower != 'none' and s|lower != 'unknown' and s is iterable -%}
-        [{%- for i in s -%}
-          {%- set o = loop -%}
-          {%- for state in (states.sensor|list + states.binary_sensor|list)
-            if device_attr(state.entity_id, 'name') == i
-              and (state.attributes.device_class|default('null')|string == class)  -%}
-            {%- if not o.first or not loop.first -%},{%- endif -%}
-            {"id":"{{- i -}}","name":"{{- state_attr(state.entity_id,'friendly_name') -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
-
-          {%- else -%}{% if o.first %}None{% endif %}{%- endfor -%}
-        {%- endfor -%}]
-      {%- else -%}none{%- endif %}
-    statistics: >-
-      {%- set s = ids -%}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
-        [{%- for i in s -%}
-          {%- set o = loop -%}
-          {%- for state in (states.sensor|list + states.binary_sensor|list)
-            if device_attr(state.entity_id, 'name') == i
-              and state.attributes.device_class|default('null')|lower == 'null'
-              and state.attributes.state_class|default('null')|string == 'measurement' -%}
-            {%- if not o.first or not loop.first -%},{%- endif -%}
-            {"id":"{{- i -}}","name":"{{- state_attr(state.entity_id,'friendly_name') -}}","state":"{{- state.state }} {{ state.attributes.unit_of_measurement-}}","entity_id":"{{- state.entity_id -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
-          {%- else -%}{% if o.first %}None{% endif %}{%- endfor -%}
-        {%- endfor -%}]
-      {%- else -%}none{%- endif %}
-    high: >-
-      {% if state_attr('binary_sensor.motion_device_presence_exist','high')|float('none') != 'none' -%}
-        {% set s = status -%}
-        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
-          {% set n = state_attr('binary_sensor.motion_device_presence_exist','high')|float(0) -%}
-          [{% for i in s if 'entity_id' in i and states(i.entity_id)|float(n) > n -%}
-            {%- if not loop.first -%},{%- endif -%}
-            {"id":"{{- i.id -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- states[i.entity_id].last_updated|as_timestamp(None) -}}}
-          {%- endfor -%}]
-        {%- else -%}none{%- endif -%}
-      {%- else -%}none{%- endif %}
-    low: >-
-      {% if state_attr('binary_sensor.motion_device_presence_exist','low')|float('none') != 'none' -%}
-        {%- set s = status -%}
-        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
-          {% set n = state_attr('binary_sensor.motion_device_presence_exist','low')|float(0) -%}
-          [{% for i in s if 'entity_id' in i and states(i.entity_id)|float(n) < n -%}
-            {%- if not loop.first -%},{%- endif -%}
-            {"id":"{{- i.id -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- states[i.entity_id].last_updated|as_timestamp(None) -}}}
-          {%- endfor -%}]
-        {%- else -%}none{%- endif -%}
-      {%- else -%}none{%- endif %}
-    good: >-
-      {% set good = state_attr('binary_sensor.motion_device_presence_exist','good') -%}
-      {%- if good|lower != 'none' -%}
-        {% set s = status -%}
-        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
-          [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,good) -%}
-            {%- if not loop.first -%},{%- endif -%}
-            {"id":"{{- i.id -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- states[i.entity_id].last_updated|as_timestamp(None) -}}}
-          {%- endfor -%}]
-        {%- else -%}none{%- endif -%}
-      {%- else -%}none{%- endif %}
-    bad: >-
-      {% set bad = state_attr('binary_sensor.motion_device_presence_exist','bad') -%}
-      {%- if bad|lower != 'none' -%}
-        {% set s = status -%}
-        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
-          [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,bad) -%}
-            {%- if not loop.first -%},{%- endif -%}
-            {"id":"{{- i.id -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- states[i.entity_id].last_updated|as_timestamp(None) -}}}
-          {%- endfor -%}]
-        {%- else -%}none{%- endif -%}
-      {%- else -%}none{%- endif %}
-    activity: >-
-      {% set activity = state_attr('binary_sensor.motion_device_presence_exist','activity') -%}
-      {%- if activity|lower != 'none' -%}
-        {% set s = status -%}
-        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
-          [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,activity) -%}
-            {%- if not loop.first -%},{%- endif -%}
-            {"id":"{{- i.id -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- states[i.entity_id].last_updated|as_timestamp(None) -}}}
-          {%- endfor -%}]
-        {%- else -%}none{%- endif -%}
-      {%- else -%}none{%- endif %}
-    unavailable: >-
-      {%- set s = status -%}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
-        [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,'unavailable') -%}
-          {%- if not loop.first -%},{%- endif -%}
-            {"id":"{{- i.id -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- states[i.entity_id].last_updated|as_timestamp(None) -}}}
-        {%- endfor -%}]
-      {%- else -%}none{%- endif %}
-    values: >-
-      {% set g = state_attr('binary_sensor.motion_device_presence_exist','good') -%}
-      {% set b = state_attr('binary_sensor.motion_device_presence_exist','bad') -%}
-      {%- if g|lower != 'none' and b|lower != 'none' -%}
-        [{% for i in status if 'entity_id' in i and not i.entity_id is none -%}
-          {%- if not loop.first -%},{%- endif -%}
-          {% if is_state(i.entity_id,g) %}1{% elif is_state(i.entity_id,b) %}0{% else %}none{% endif -%}
-        {%- endfor -%}]
-      {%- else -%}
-        [{% for i in status if 'entity_id' in i and not i.entity_id is none -%}
-          {%- if not loop.first -%},{%- endif -%}
-          {{- states(i.entity_id)|float(none) -}}
-        {%- endfor -%}]
-      {%- endif %}
-    value: >-
-      {% if bad|lower != 'none' and not bad is string and bad is iterable -%}
-        {%- if bad|count > 0 -%}
-          {%- set result = 'on' -%}
-        {%- else -%}
-          {%- set result = 'off' -%}
-        {%- endif -%}
-      {%- endif -%}
-      {%- if low|lower != 'none' and not low is string and low is iterable -%}
-        {%- if low|count > 0 -%}
-          {%- set result = 'on' -%}
-        {%- else -%}
-          {%- set result = 'off' -%}
-        {%- endif -%}
-      {%- endif -%}
-      {%- if high|lower != 'none' and not high is string and high is iterable -%}
-        {%- if high|count > 0 -%}
-          {%- set result = 'on' -%}
-        {%- else -%}
-          {%- set result = 'off' -%}
-        {%- endif -%}
-      {%- endif -%}
-      {%- if activity|lower != 'none' and not activity is string and activity is iterable -%}
-        {%- if activity|count > 0 -%}
-          {%- set result = 'on' -%}
-        {%- else -%}
-          {%- set result = 'off' -%}
-        {%- endif -%}
-      {%- endif -%}
-      {%- if result is defined -%}
-        {{- result -}}
-      {%- else -%}unknown{%- endif %}
-  action:
-    - alias: 'update binary_sensor.motion_device_presence state'
-      service: python_script.set_state
-      data_template:
-        entity_id: binary_sensor.motion_device_presence
-        status: >-
-          {{ status }}
-        statistics: >-
-          {{ statistics|reject('none')|list }}
-        high: >-
-          {{ high }}
-        low: >-
-          {{ low }}
-        good: >-
-          {{ good }}
-        bad: >-
-          {{ bad }}
-        activity: >-
-          {{ activity }}
-        unavailable: >-
-          {{ unavailable }}
-        values: >-
-          {{ values }}
-        state: >-
-          {{ value }}
 
 ## toggle
 
