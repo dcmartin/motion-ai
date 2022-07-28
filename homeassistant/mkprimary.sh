@@ -10,7 +10,7 @@ echo '[' > ${output}
 # loop over all device_class
 for i in ${device_class[@]}; do
   icon=$(jq -r '.[]|select(.class=="'${i}'")|.icon'  device_class.json)
-  sed -e "s/<deviceclass>/${i}/g" primary-template.json \
+  sed -e "s/<deviceclass>/${i}/g" primary.json.tmpl \
     | jq -c '.title="'${i^^}'"|.path="'${i}'"|.icon="'${icon}'"' \
     >> ${output}
   n=${#device_class[@]}
