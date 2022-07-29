@@ -633,98 +633,50 @@
       service: homeassistant.update_entity
       entity_id: binary_sensor.motion_device_moisture_exist
 
-# good
+## bad
 
-- id: motion_device_moisture_good_off
-  alias: motion_device_moisture_good_off
+- id: motion_device_moisture_bad
+  alias: motion_device_moisture_bad
   mode: single
-  max_exceeded: silent
   initial_state: 'off'
   trigger:
-  condition:
-    condition: and
-    conditions:
-      - alias: 'test setup complete'
-        condition: template
-        value_template: >-
-          {{ is_state('binary_sensor.motion_device_class','on') }}
-      - alias: 'moisture good not off'
-        condition: template
-        value_template: >-
-          {{ 'moisture' in state_attr('binary_sensor.motion_device_class','good') }}
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_moisture'
+      attribute: 'bad'
   variables:
-    good: >-
-      {% set s = state_attr('binary_sensor.motion_device_class','good') -%}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
-        {%- set s = s|reject('==','moisture')|list -%}
-        {%- if not s is string and s is iterable and s|count > 0 -%}
-          {% set good = s -%}
-        {%- else -%}
-          {% set good = [] -%}
-        {%- endif %}
-      {%- endif %}
-      {%- if good is defined -%}
-        {{ good }}
+    details: >-
+      {% if state_attr('binary_sensor.motion_device_moisture_exist','bad')|lower != 'none' %}
+        {% set s = state_attr('binary_sensor.motion_device_moisture','bad') %}
+        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+          [{% for i in s -%}
+            {%- if not loop.first -%},{%- endif -%}
+            "{{- state_attr(i.entity_id,'friendly_name') }} is {{ states(i.entity_id) -}}"
+          {%- endfor -%}]
+        {%- else -%}none{%- endif %}
       {%- else -%}none{%- endif %}
-  action:
-    - alias: 'test if good list of device classes is valid'
-      condition: template
-      value_template: >-
-        {{ good|lower != 'none' }}
-    - alias: 'update binary_sensor.motion_device_class good attribute; remove: moisture'
-      service: python_script.set_state
-      data_template:
-        entity_id: binary_sensor.motion_device_class
-        good: >-
-          {{ good }}
-    - alias: 'update binary_sensor.motion_device_moisture_exist'
-      service: homeassistant.update_entity
-      entity_id: binary_sensor.motion_device_moisture_exist
-
-- id: motion_device_moisture_good_on
-  alias: motion_device_moisture_good_on
-  mode: single
-  max_exceeded: silent
-  initial_state: 'off'
-  trigger:
+    state: >-
+      {% set s = state_attr('binary_sensor.motion_device_moisture','bad') %}
+      {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and not s is string and s is iterable %}
+        {% if s|list|count > 0 %}on{% else %}off{% endif %}
+      {% else %}unknown{% endif %}
+    last: >-
+      {% if state|lower == 'off' %}
+        {{ state_attr('binary_sensor.motion_device_moisture_bad','last') }}
+      {%- else -%}{{ utcnow().timestamp() }}{%- endif %}
   condition:
-    condition: and
-    conditions:
-      - alias: 'test setup complete'
-        condition: template
-        value_template: >-
-          {{ is_state('binary_sensor.motion_device_class','on') }}
-      - alias: 'moisture good not on'
-        condition: template
-        value_template: >-
-          {{ not 'moisture' in state_attr('binary_sensor.motion_device_class','good') }}
-  variables:
-    good: >-
-      {% set s = state_attr('binary_sensor.motion_device_class','good') -%}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
-        {%- set good = (s|list + ['moisture'])|sort|unique|list -%}
-      {%- else -%}
-        {%- set good = ['moisture'] -%}
-      {%- endif %}
-      {%- if good is defined -%}
-        {{ good }}
-      {%- else -%}none{%- endif %}
+    - condition: template
+      value_template: >
+        {{ state|lower != 'unknown' }}
   action:
-    - alias: 'test if good list of device classes is valid'
-      condition: template
-      value_template: >-
-        {{ good|lower != 'none' }}
-    - alias: 'update binary_sensor.motion_device_class good attribute; add: moisture'
-      service: python_script.set_state
+    - service: python_script.set_state
       data_template:
-        entity_id: binary_sensor.motion_device_class
-        good: >-
-          {{ good }}
-    - alias: 'update binary_sensor.motion_device_moisture_exist'
-      service: homeassistant.update_entity
-      entity_id: binary_sensor.motion_device_moisture_exist
-
-# bad
+        entity_id: binary_sensor.motion_device_moisture_bad
+        last: >-
+          {{ last }}
+        details: >-
+          {{ details }}
+        state: >-
+          {{ state }}
 
 - id: motion_device_moisture_bad_off
   alias: motion_device_moisture_bad_off
@@ -815,98 +767,188 @@
       service: homeassistant.update_entity
       entity_id: binary_sensor.motion_device_moisture_exist
 
-# high
-
-- id: motion_device_moisture_high_off
-  alias: motion_device_moisture_high_off
+- id: motion_device_moisture_alarm_bad_on
+  alias: motion_device_moisture_alarm_bad_on
   mode: single
-  max_exceeded: silent
   initial_state: 'off'
   trigger:
+    - platform: template
+      value_template: >-
+        {{ not is_state_attr('binary_sensor.motion_device_moisture_exist','bad','none')
+           and is_state_attr('binary_sensor.motion_device_moisture_exist','bad',states('binary_sensor.motion_device_moisture')) }}
+  variables:
+    devices: >-
+      {%- set devices = none -%}
+      {% set s = state_attr('binary_sensor.motion_device_moisture','devices') %}
+      {% if s|lower != 'none' and s|lower != 'null' and not s is string and s is iterable and s|count > 0 %}
+        {% set devices = s %}
+      {%- endif %}
+      {{ devices }}
+    last: >-
+      {% set last = none %}
+      {% set s = state_attr('binary_sensor.motion_device_moisture','status')|selectattr('state','==',state_attr('binary_sensor.motion_device_moisture_exist','bad'))|sort(attribute='updated',reverse=true)|list %}
+      {% if s|lower != 'none' and s|lower != 'null' and not s is string and s is iterable and s|count > 0 %}
+        {% set last = s %}
+      {%- endif %}
+      {{ last  }}
+    which: >-
+      {% set which = none %}
+      {% if last|lower != 'none' %}
+        {% set which = last|map(attribute='id')|first %}
+      {%- endif %}
+      {{ which }}
+    did: >-
+      {% set did = none %}
+      {% if devices|lower != 'none'  and which|lower != 'none' %}
+        {% set did = devices|selectattr('id','==',which)|map(attribute='did')|first %}
+      {%- endif %}
+      {{ did }}
+    where: >-
+      {% set where = none %}
+      {% if devices|lower != 'none'  and which|lower != 'none' %}
+        {% set where = devices|selectattr('id','==',which)|map(attribute='area')|first %}
+      {%- endif %}
+      {{ where }}
   condition:
     condition: and
     conditions:
-      - alias: 'test setup complete'
-        condition: template
-        value_template: >-
-          {{ is_state('binary_sensor.motion_device_class','on') }}
-      - alias: 'moisture high not off'
-        condition: template
-        value_template: >-
-          {{ 'moisture' in state_attr('binary_sensor.motion_device_class','high') }}
-  variables:
-    high: >-
-      {% set s = state_attr('binary_sensor.motion_device_class','high') -%}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
-        {%- set s = s|reject('==','moisture')|list -%}
-        {%- if not s is string and s is iterable and s|count > 0 -%}
-          {% set high = s -%}
-        {%- else -%}
-          {% set high = [] -%}
-        {%- endif %}
-      {%- endif %}
-      {%- if high is defined -%}
-        {{ high }}
-      {%- else -%}none{%- endif %}
+      - condition: template
+        value_template: >
+          {{ which|lower != 'none' and which|lower != 'null' and which|length > 0 }}
   action:
-    - alias: 'test if high list of device classes is valid'
-      condition: template
-      value_template: >-
-        {{ high|lower != 'none' }}
-    - alias: 'update binary_sensor.motion_device_class high attribute; remove: moisture'
+    - variables:
+        markdown: >-
+          A <a href="/lovelace-primary/moisture">moisture</a> alarm was triggered ({{- state_attr('binary_sensor.motion_device_moisture_exist','bad')|string -}}); sensor: {{ which -}}; where: {{ where -}}; at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}.
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_moisture_bad
+        markdown: >-
+          {{ markdown }}
+    - alias: 'update binary_sensor.motion_device_moisture which, where, did'
       service: python_script.set_state
       data_template:
-        entity_id: binary_sensor.motion_device_class
-        high: >-
-          {{ high }}
-    - alias: 'update binary_sensor.motion_device_moisture_exist'
-      service: homeassistant.update_entity
-      entity_id: binary_sensor.motion_device_moisture_exist
+        entity_id: binary_sensor.motion_device_moisture
+        which: >-
+          {{ which }}
+        where: >-
+          {{ where }}
+        did: >-
+          {{ did }}
+    - condition: template
+      value_template: >
+        {{ is_state_attr('binary_sensor.motion_device_moisture_exist','alarm','on') }}
+    - alias: 'trigger motion notification'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_moisture_bad_notify
 
-- id: motion_device_moisture_high_on
-  alias: motion_device_moisture_high_on
+- id: motion_device_moisture_bad_notify
+  alias: motion_device_moisture_bad_notify
   mode: single
-  max_exceeded: silent
   initial_state: 'off'
   trigger:
-  condition:
-    condition: and
-    conditions:
-      - alias: 'test setup complete'
-        condition: template
-        value_template: >-
-          {{ is_state('binary_sensor.motion_device_class','on') }}
-      - alias: 'moisture high not on'
-        condition: template
-        value_template: >-
-          {{ not 'moisture' in state_attr('binary_sensor.motion_device_class','high') }}
   variables:
-    high: >-
-      {% set s = state_attr('binary_sensor.motion_device_class','high') -%}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
-        {%- set high = (s|list + ['moisture'])|sort|unique|list -%}
-      {%- else -%}
-        {%- set high = ['moisture'] -%}
-      {%- endif %}
-      {%- if high is defined -%}
-        {{ high }}
-      {%- else -%}none{%- endif %}
+    class: >-
+      {{ 'moisture' }}
+    ids: >-
+      {% set ids = state_attr('binary_sensor.motion_device_moisture','ids') %}
+      {{ ids }}
+    which: >-
+      {% set which = state_attr('binary_sensor.motion_device_moisture','which') %}
+      {{ which }}
+    where: >-
+      {% set where = state_attr('binary_sensor.motion_device_moisture','where') %}
+      {{ where }}
+    did: >-
+      {% set did = state_attr('binary_sensor.motion_device_moisture','did') %}
+      {{ did }}
+    url: >-
+      {% set url = '/lovelace-primary/' + class %}
+      {{ url }}
+    action: >-
+      {% set action = class + '-view' %}
+      {{ action }}
+    title: >-
+      {% set title = states('sensor.motion_app') + ': moisture bad' %}
+      {{ title }}
+    notification_id: >-
+      {{ 'device-moisture-status-' + which|string }}
+    icon: >-
+      {% set icon = 'notification-moisture-bad' %}
+      {{ icon }}
+    header: >-
+      {{- '<img src="/local/images/icons/' + icon + '.png?v1">' -}}
+    footer: >-
+      <br><a href="/notify-devices/{{- class -}}"><img src="https://img.shields.io/badge/{{- class -}}-change-cyan.svg"></a>
+      {%- if did is defined and did|lower != 'none' and did|lower != 'null' -%}
+         <br><a href="/config/devices/device/{{- did -}}"><img src="https://img.shields.io/badge/{{- class -}}-config-orange.svg"></a>
+      {%- endif -%}
+    body: >-
+      {{ state_attr('binary_sensor.motion_device_moisture_bad','markdown') }}
+      <p>We have notified <b>{{- state_attr('sensor.motion_role_primary','friendly_name') -}}</b> about your moisture alarm.
+      To view and change parameters click the <b>{{- action -}}</b> button below.
+      {{- '<p>' -}}
+      <a href="{{- url -}}"><img src="https://img.shields.io/badge/{{- action -}}-blue.svg"></a>
+    message: >-
+      {{- header -}}
+      {{- '<hr>' -}}
+      {{- body -}}
+      {{- footer -}}
   action:
-    - alias: 'test if high list of device classes is valid'
-      condition: template
-      value_template: >-
-        {{ high|lower != 'none' }}
-    - alias: 'update binary_sensor.motion_device_class high attribute; add: moisture'
-      service: python_script.set_state
+    - alias: 'notify moisture sensor activated'
+      service: persistent_notification.create
       data_template:
-        entity_id: binary_sensor.motion_device_class
-        high: >-
-          {{ high }}
-    - alias: 'update binary_sensor.motion_device_moisture_exist'
-      service: homeassistant.update_entity
-      entity_id: binary_sensor.motion_device_moisture_exist
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
 
-# low
+## low
+
+- id: motion_device_moisture_low
+  alias: motion_device_moisture_low
+  mode: single
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_moisture'
+      attribute: 'low'
+  variables:
+    details: >-
+      {% if state_attr('binary_sensor.motion_device_moisture_exist','low')|lower != 'none' %}
+        {% set s = state_attr('binary_sensor.motion_device_moisture','low') %}
+        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+          [{% for i in s -%}
+            {%- if not loop.first -%},{%- endif -%}
+            "{{- state_attr(i.entity_id,'friendly_name') }} is {{ states(i.entity_id)|int('unknown') -}}{{ state_attr(i.entity_id,'unit_of_measurement') -}}"
+          {%- endfor -%}]
+        {%- else -%}none{%- endif %}
+      {%- else -%}none{%- endif %}
+    state: >-
+      {% set s = state_attr('binary_sensor.motion_device_moisture','low') %}
+      {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and not s is string and s is iterable %}
+        {% if s|list|count > 0 %}on{% else %}off{% endif %}
+      {% else %}unknown{% endif %}
+    last: >-
+      {% if state|lower == 'off' %}
+        {{ state_attr('binary_sensor.motion_device_moisture_low','last') }}
+      {%- else -%}{{ utcnow().timestamp() }}{%- endif %}
+  condition:
+    - condition: template
+      value_template: >
+        {{ state|lower != 'unknown' }}
+  action:
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_moisture_low
+        last: >-
+          {{ last }}
+        details: >-
+          {{ details }}
+        state: >-
+          {{ state }}
 
 - id: motion_device_moisture_low_off
   alias: motion_device_moisture_low_off
@@ -997,7 +1039,737 @@
       service: homeassistant.update_entity
       entity_id: binary_sensor.motion_device_moisture_exist
 
-# activity
+- id: motion_device_moisture_alarm_low_on
+  alias: motion_device_moisture_alarm_low_on
+  mode: single
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_moisture_low'
+      to: 'on'
+  variables:
+    low: >-
+      {{ state_attr('binary_sensor.motion_device_moisture','low') }}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{- low|lower != 'none' and low|lower != 'unknown' and not low is string and low is iterable and low|count > 0 -}}
+  action:
+    - variables:
+        markdown: >-
+          A <a href="/lovelace-primary/moisture">moisture</a> alarm was triggered (below {{ state_attr('binary_sensor.motion_device_moisture_exist','low') -}}) at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}:<br>
+          {%- for i in low if 'id' in i and i.id|lower != 'none' -%}
+            {%- if loop.first -%}{{- '<ul>' -}}{%- endif -%}
+            {%- set d = state_attr('binary_sensor.motion_device_class','devices') -%}
+            {%- if d|lower != 'none' and not d is string and d is iterable and d|count > 0 -%}
+              {%- set d = d|selectattr('id','==',i.id)|list -%}
+              {%- if d|lower != 'none' and not d is string and d is iterable and d|count > 0 -%}
+                {%- set d = d|first -%}
+                <li><a href="/config/devices/device/{{- d.did -}}">{{- d.friendly_name -}}</a> is {{ states(low[loop.index-1].entity_id) -}}{{- state_attr(low[loop.index-1].entity_id,'unit_of_measurement') }} in <a href="/config/areas/area/{{- area_id(low[loop.index-1].entity_id) -}}">{{- area_id(low[loop.index-1].entity_id) -}}</a></li>
+              {%- else -%}
+                <li>{{- i.id }} moisture is {{ states(i.entity_id) -}}{{- state_attr(i.entity_id,'unit_of_measurement') }}</li>
+              {%- endif -%}
+            {%- else -%}
+              {{- '<li>' -}}
+              {{- i.id }} moisture is {{ states(i.entity_id) -}}{{- state_attr(i.entity_id,'unit_of_measurement') }}
+              {{- '</li>' -}}
+            {%- endif -%}
+            {%- if loop.last -%}{{- '</ul>' -}}{%- endif -%}
+          {%- endfor -%}
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_moisture_low
+        markdown: >-
+          {{ markdown }}
+    - condition: template
+      value_template: >
+        {{ is_state_attr('binary_sensor.motion_device_moisture_exist','alarm','on') }}
+    - alias: 'trigger motion notification'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_moisture_low_notify
+
+- id: motion_device_moisture_alarm_low_off
+  alias: motion_device_moisture_alarm_low_off
+  mode: single
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_moisture_low'
+      to: 'off'
+  action:
+    - condition: template
+      value_template: >
+        {{ is_state_attr('binary_sensor.motion_device_moisture_exist','alarm','on') }}
+    - alias: 'trigger moisture low dismiss'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_moisture_low_dismiss
+
+- id: motion_device_moisture_low_notify
+  alias: motion_device_moisture_low_notify
+  mode: single
+  initial_state: 'off'
+  trigger:
+  variables:
+    class: >-
+      {{ 'moisture' }}
+    low: >-
+      {% set low = state_attr('binary_sensor.motion_device_moisture','low') %}
+      {{ low }}
+    action: >-
+      {% set action = class + '-view' %}
+      {{ action }}
+    url: >-
+      {% set url = '/lovelace-primary/' + class %}
+      {{ url }}
+    title: >-
+      {% set title = states('sensor.motion_app') + ': moisture low' %}
+      {{ title }}
+    notification_id: >-
+      {{ 'device-moisture-low' }}
+    icon: >-
+      {% set icon = 'notification-moisture-low' %}
+      {{ icon }}
+    header: >-
+      {{- '<img src="/local/images/icons/' + icon + '.png?v1">' -}}
+    footer: >-
+      <br><a href="/notify-devices/{{- class -}}"><img src="https://img.shields.io/badge/{{- class -}}-change-cyan.svg"></a>
+      {%- if did is defined and did|lower != 'none' and did|lower != 'null' -%}
+         <br><a href="/config/devices/device/{{- did -}}"><img src="https://img.shields.io/badge/{{- class -}}-config-orange.svg"></a>
+      {%- endif -%}
+    body: >-
+      {{ state_attr('binary_sensor.motion_device_moisture_low','markdown') }}
+      <p>We have notified <b>{{- state_attr('sensor.motion_role_primary','friendly_name') -}}</b> about your moisture alarm.
+      To view and change parameters click the <b>{{- action -}}</b> button below.
+      {{- '<p>' -}}
+      <a href="{{- url -}}"><img src="https://img.shields.io/badge/{{- action -}}-blue.svg"></a>
+    message: >-
+      {{- header -}}
+      {{- '<hr>' -}}
+      {{- body -}}
+      {{- footer -}}
+  action:
+    - alias: 'notify moisture sensor activated'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+- id: motion_device_moisture_low_dismiss
+  alias: motion_device_moisture_low_dismiss
+  mode: single
+  initial_state: 'off'
+  trigger:
+  variables:
+    notification_id: >-
+      {{ 'device-moisture-low' }}
+  action:
+    - alias: 'dismiss moisture low notification'
+      service: persistent_notification.dismiss
+      data_template:
+        notification_id: >-
+          {{ notification_id }}
+
+## high
+
+- id: motion_device_moisture_high
+  alias: motion_device_moisture_high
+  mode: single
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_moisture'
+      attribute: 'high'
+  variables:
+    details: >-
+      {% if state_attr('binary_sensor.motion_device_moisture_exist','high')|lower != 'none' %}
+        {% set s = state_attr('binary_sensor.motion_device_moisture','high') %}
+        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+          [{% for i in s -%}
+            {%- if not loop.first -%},{%- endif -%}
+            "{{- state_attr(i.entity_id,'friendly_name') }} is {{ states(i.entity_id)|int('unknown') -}}{{ state_attr(i.entity_id,'unit_of_measurement') -}}"
+          {%- endfor -%}]
+        {%- else -%}none{%- endif %}
+      {%- else -%}none{%- endif %}
+    state: >-
+      {% set s = state_attr('binary_sensor.motion_device_moisture','high') %}
+      {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and not s is string and s is iterable %}
+        {% if s|list|count > 0 %}on{% else %}off{% endif %}
+      {% else %}unknown{% endif %}
+    last: >-
+      {% if state|lower == 'off' %}
+        {{ state_attr('binary_sensor.motion_device_moisture_high','last') }}
+      {%- else -%}{{ utcnow().timestamp() }}{%- endif %}
+  condition:
+    - condition: template
+      value_template: >
+        {{ state|lower != 'unknown' }}
+  action:
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_moisture_high
+        last: >-
+          {{ last }}
+        details: >-
+          {{ details }}
+        state: >-
+          {{ state }}
+
+- id: motion_device_moisture_high_off
+  alias: motion_device_moisture_high_off
+  mode: single
+  max_exceeded: silent
+  initial_state: 'off'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test setup complete'
+        condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_class','on') }}
+      - alias: 'moisture high not off'
+        condition: template
+        value_template: >-
+          {{ 'moisture' in state_attr('binary_sensor.motion_device_class','high') }}
+  variables:
+    high: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','high') -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set s = s|reject('==','moisture')|list -%}
+        {%- if not s is string and s is iterable and s|count > 0 -%}
+          {% set high = s -%}
+        {%- else -%}
+          {% set high = [] -%}
+        {%- endif %}
+      {%- endif %}
+      {%- if high is defined -%}
+        {{ high }}
+      {%- else -%}none{%- endif %}
+  action:
+    - alias: 'test if high list of device classes is valid'
+      condition: template
+      value_template: >-
+        {{ high|lower != 'none' }}
+    - alias: 'update binary_sensor.motion_device_class high attribute; remove: moisture'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        high: >-
+          {{ high }}
+    - alias: 'update binary_sensor.motion_device_moisture_exist'
+      service: homeassistant.update_entity
+      entity_id: binary_sensor.motion_device_moisture_exist
+
+- id: motion_device_moisture_high_on
+  alias: motion_device_moisture_high_on
+  mode: single
+  max_exceeded: silent
+  initial_state: 'off'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test setup complete'
+        condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_class','on') }}
+      - alias: 'moisture high not on'
+        condition: template
+        value_template: >-
+          {{ not 'moisture' in state_attr('binary_sensor.motion_device_class','high') }}
+  variables:
+    high: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','high') -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set high = (s|list + ['moisture'])|sort|unique|list -%}
+      {%- else -%}
+        {%- set high = ['moisture'] -%}
+      {%- endif %}
+      {%- if high is defined -%}
+        {{ high }}
+      {%- else -%}none{%- endif %}
+  action:
+    - alias: 'test if high list of device classes is valid'
+      condition: template
+      value_template: >-
+        {{ high|lower != 'none' }}
+    - alias: 'update binary_sensor.motion_device_class high attribute; add: moisture'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        high: >-
+          {{ high }}
+    - alias: 'update binary_sensor.motion_device_moisture_exist'
+      service: homeassistant.update_entity
+      entity_id: binary_sensor.motion_device_moisture_exist
+
+
+- id: motion_device_moisture_alarm_high_on
+  alias: motion_device_moisture_alarm_high_on
+  mode: single
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_moisture_high'
+      to: 'on'
+  variables:
+    high: >-
+      {{ state_attr('binary_sensor.motion_device_moisture','high') }}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{- high|lower != 'none' and high|lower != 'unknown' and not high is string and high is iterable and high|count > 0 -}}
+  action:
+    - variables:
+        markdown: >-
+          A <a href="/lovelace-primary/moisture">moisture</a> alarm was triggered (above {{ state_attr('binary_sensor.motion_device_moisture_exist','high') -}}) at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}:<br>
+          {%- for i in high if 'id' in i and i.id|lower != 'none' -%}
+            {%- if loop.first -%}{{- '<ul>' -}}{%- endif -%}
+            {%- set d = state_attr('binary_sensor.motion_device_class','devices') -%}
+            {%- if d|lower != 'none' and not d is string and d is iterable and d|count > 0 -%}
+              {%- set d = d|selectattr('id','==',i.id)|list -%}
+              {%- if d|lower != 'none' and not d is string and d is iterable and d|count > 0 -%}
+                {%- set d = d|first -%}
+                <li><a href="/config/devices/device/{{- d.did -}}">{{- d.friendly_name -}}</a> is {{ states(high[loop.index-1].entity_id) -}}{{- state_attr(high[loop.index-1].entity_id,'unit_of_measurement') }} in <a href="/config/areas/area/{{- area_id(high[loop.index-1].entity_id) -}}">{{- area_id(high[loop.index-1].entity_id) -}}</a></li>
+              {%- else -%}
+                <li>{{- i.id }} moisture is {{ states(i.entity_id) -}}{{- state_attr(i.entity_id,'unit_of_measurement') }}</li>
+              {%- endif -%}
+            {%- else -%}
+              {{- '<li>' -}}
+              {{- i.id }} moisture is {{ states(i.entity_id) -}}{{- state_attr(i.entity_id,'unit_of_measurement') }}
+              {{- '</li>' -}}
+            {%- endif -%}
+            {%- if loop.last -%}{{- '</ul>' -}}{%- endif -%}
+          {%- endfor -%}
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_moisture_high
+        markdown: >-
+          {{ markdown }}
+    - condition: template
+      value_template: >
+        {{ is_state_attr('binary_sensor.motion_device_moisture_exist','alarm','on') }}
+    - alias: 'trigger motion notification'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_moisture_high_notify
+
+- id: motion_device_moisture_alarm_high_off
+  alias: motion_device_moisture_alarm_high_off
+  mode: single
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_moisture_high'
+      to: 'off'
+  action:
+    - condition: template
+      value_template: >
+        {{ is_state_attr('binary_sensor.motion_device_moisture_exist','alarm','on') }}
+    - alias: 'trigger moisture high dismiss'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_moisture_high_dismiss
+
+- id: motion_device_moisture_high_notify
+  alias: motion_device_moisture_high_notify
+  mode: single
+  initial_state: 'off'
+  trigger:
+  variables:
+    class: >-
+      {{ 'moisture' }}
+    high: >-
+      {% set high = state_attr('binary_sensor.motion_device_moisture','high') %}
+      {{ high }}
+    action: >-
+      {% set action = class + '-view' %}
+      {{ action }}
+    url: >-
+      {% set url = '/lovelace-primary/' + class %}
+      {{ url }}
+    title: >-
+      {% set title = states('sensor.motion_app') + ': ' + class + ' high' %}
+      {{ title }}
+    notification_id: >-
+      {{ 'device-' + class + '-high' }}
+    icon: >-
+      {% set icon = 'notification-' + class + '-high' %}
+      {{ icon }}
+    header: >-
+      {{- '<img src="/local/images/icons/' + icon + '.png?v1">' -}}
+    footer: >-
+      <br><a href="/notify-devices/{{- class -}}"><img src="https://img.shields.io/badge/{{- class -}}-change-cyan.svg"></a>
+      {%- if did is defined and did|lower != 'none' and did|lower != 'null' -%}
+         <br><a href="/config/devices/device/{{- did -}}"><img src="https://img.shields.io/badge/{{- class -}}-config-orange.svg"></a>
+      {%- endif -%}
+    body: >-
+      {{ state_attr('binary_sensor.motion_device_moisture_high','markdown') }}
+      <p>We have notified <b>{{- state_attr('sensor.motion_role_primary','friendly_name') -}}</b> about your moisture alarm.
+      To view and change parameters click the <b>{{- action -}}</b> button below.
+      {{- '<p>' -}}
+      <a href="{{- url -}}"><img src="https://img.shields.io/badge/{{- action -}}-blue.svg"></a>
+    message: >-
+      {{- header -}}
+      {{- '<hr>' -}}
+      {{- body -}}
+      {{- footer -}}
+  action:
+    - alias: 'notify moisture sensor activated'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+- id: motion_device_moisture_high_dismiss
+  alias: motion_device_moisture_high_dismiss
+  mode: single
+  initial_state: 'off'
+  trigger:
+  variables:
+    class: >-
+      {{ 'moisture' }}
+    notification_id: >-
+      {{ 'device-' + class + '-high' }}
+  action:
+    - alias: 'dismiss moisture high notification'
+      service: persistent_notification.dismiss
+      data_template:
+        notification_id: >-
+          {{ notification_id }}
+
+## good
+
+- id: motion_device_moisture_good
+  alias: motion_device_moisture_good
+  mode: single
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_moisture'
+      attribute: 'good'
+  variables:
+    details: >-
+      {% if state_attr('binary_sensor.motion_device_moisture_exist','good')|lower != 'none' %}
+        {% set s = state_attr('binary_sensor.motion_device_moisture','good') %}
+        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+          [{% for i in s -%}
+            {%- if not loop.first -%},{%- endif -%}
+            "{{- state_attr(i.entity_id,'friendly_name') }} is {{ states(i.entity_id) -}}"
+          {%- endfor -%}]
+        {%- else -%}none{%- endif %}
+      {%- else -%}none{%- endif %}
+    state: >-
+      {% set s = state_attr('binary_sensor.motion_device_moisture','good') %}
+      {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and not s is string and s is iterable %}
+        {% if s|list|count > 0 %}on{% else %}off{% endif %}
+      {% else %}unknown{% endif %}
+    last: >-
+      {% if state|lower == 'off' %}
+        {{ state_attr('binary_sensor.motion_device_moisture_good','last') }}
+      {%- else -%}{{ utcnow().timestamp() }}{%- endif %}
+  condition:
+    - condition: template
+      value_template: >
+        {{ state|lower != 'unknown' }}
+  action:
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_moisture_good
+        last: >-
+          {{ last }}
+        details: >-
+          {{ details }}
+        state: >-
+          {{ state }}
+
+- id: motion_device_moisture_good_off
+  alias: motion_device_moisture_good_off
+  mode: single
+  max_exceeded: silent
+  initial_state: 'off'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test setup complete'
+        condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_class','on') }}
+      - alias: 'moisture good not off'
+        condition: template
+        value_template: >-
+          {{ 'moisture' in state_attr('binary_sensor.motion_device_class','good') }}
+  variables:
+    good: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','good') -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set s = s|reject('==','moisture')|list -%}
+        {%- if not s is string and s is iterable and s|count > 0 -%}
+          {% set good = s -%}
+        {%- else -%}
+          {% set good = [] -%}
+        {%- endif %}
+      {%- endif %}
+      {%- if good is defined -%}
+        {{ good }}
+      {%- else -%}none{%- endif %}
+  action:
+    - alias: 'test if good list of device classes is valid'
+      condition: template
+      value_template: >-
+        {{ good|lower != 'none' }}
+    - alias: 'update binary_sensor.motion_device_class good attribute; remove: moisture'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        good: >-
+          {{ good }}
+    - alias: 'update binary_sensor.motion_device_moisture_exist'
+      service: homeassistant.update_entity
+      entity_id: binary_sensor.motion_device_moisture_exist
+
+- id: motion_device_moisture_good_on
+  alias: motion_device_moisture_good_on
+  mode: single
+  max_exceeded: silent
+  initial_state: 'off'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test setup complete'
+        condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_class','on') }}
+      - alias: 'moisture good not on'
+        condition: template
+        value_template: >-
+          {{ not 'moisture' in state_attr('binary_sensor.motion_device_class','good') }}
+  variables:
+    good: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','good') -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set good = (s|list + ['moisture'])|sort|unique|list -%}
+      {%- else -%}
+        {%- set good = ['moisture'] -%}
+      {%- endif %}
+      {%- if good is defined -%}
+        {{ good }}
+      {%- else -%}none{%- endif %}
+  action:
+    - alias: 'test if good list of device classes is valid'
+      condition: template
+      value_template: >-
+        {{ good|lower != 'none' }}
+    - alias: 'update binary_sensor.motion_device_class good attribute; add: moisture'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        good: >-
+          {{ good }}
+    - alias: 'update binary_sensor.motion_device_moisture_exist'
+      service: homeassistant.update_entity
+      entity_id: binary_sensor.motion_device_moisture_exist
+
+- id: motion_device_moisture_alarm_good_on
+  alias: motion_device_moisture_alarm_good_on
+  mode: single
+  initial_state: 'off'
+  trigger:
+    - platform: template
+      value_template: >-
+        {{ not is_state_attr('binary_sensor.motion_device_moisture_exist','good','none')
+           and is_state_attr('binary_sensor.motion_device_moisture_exist','good',states('binary_sensor.motion_device_moisture')) }}
+  variables:
+    devices: >-
+      {% set devices = none %}
+      {% set s = state_attr('binary_sensor.motion_device_moisture','devices') %}
+      {% if s|lower != 'none' and s|lower != 'null' and not s is string and s is iterable and s|count > 0 %}
+        {% set devices = s %}
+      {%- endif %}
+      {{ devices }}
+    last: >-
+      {% set last = none %}
+      {% set s = state_attr('binary_sensor.motion_device_moisture','status')|selectattr('state','==',state_attr('binary_sensor.motion_device_moisture_exist','good'))|sort(attribute='updated',reverse=true)|list %}
+      {% if s|lower != 'none' and s|lower != 'null' and not s is string and s is iterable and s|count > 0 %}
+        {% set last = s %}
+      {%- endif %}
+      {{ last  }}
+    which: >-
+      {% set which = none %}
+      {% if last|lower != 'none' %}
+        {% set which = last|map(attribute='id')|first %}
+      {%- endif %}
+      {{ which }}
+    did: >-
+      {% set did = none %}
+      {% if devices|lower != 'none'  and which|lower != 'none' %}
+        {% set did = devices|selectattr('id','==',which)|map(attribute='did')|first %}
+      {%- endif %}
+      {{ did }}
+    where: >-
+      {% set where = none %}
+      {% if devices|lower != 'none'  and which|lower != 'none' %}
+        {% set where = devices|selectattr('id','==',which)|map(attribute='area')|first %}
+      {%- endif %}
+      {{ where }}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ which|lower != 'none' and which|lower != 'null' and which|length > 0 }}
+  action:
+    - variables:
+        markdown: >-
+          A <a href="/lovelace-primary/moisture">moisture</a> alarm was triggered ({{- state_attr('binary_sensor.motion_device_moisture_exist','good')|string -}}); sensor: {{ which -}}; where: {{ where -}}; at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}.
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_moisture_good
+        markdown: >-
+          {{ markdown }}
+    - alias: 'update binary_sensor.motion_device_moisture which, where, did'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_moisture
+        which: >-
+          {{ which }}
+        where: >-
+          {{ where }}
+        did: >-
+          {{ did }}
+    - condition: template
+      value_template: >
+        {{ is_state_attr('binary_sensor.motion_device_moisture_exist','alarm','on') }}
+    - alias: 'trigger motion notification'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_moisture_good_notify
+
+- id: motion_device_moisture_good_notify
+  alias: motion_device_moisture_good_notify
+  mode: single
+  initial_state: 'off'
+  trigger:
+  variables:
+    class: >-
+      {{ 'moisture' }}
+    ids: >-
+      {% set ids = state_attr('binary_sensor.motion_device_moisture','ids') %}
+      {{ ids }}
+    which: >-
+      {% set which = state_attr('binary_sensor.motion_device_moisture','which') %}
+      {{ which }}
+    where: >-
+      {% set where = state_attr('binary_sensor.motion_device_moisture','where') %}
+      {{ where }}
+    did: >-
+      {% set did = state_attr('binary_sensor.motion_device_moisture','did') %}
+      {{ did }}
+    action: >-
+      {% set action = class + '-view' %}
+      {{ action }}
+    url: >-
+      {% set url = '/lovelace-primary/' + class %}
+      {{ url }}
+    title: >-
+      {% set title = states('sensor.motion_app') + ': moisture good' %}
+      {{ title }}
+    notification_id: >-
+      {{ 'device-moisture-status-' + which|string }}
+    icon: >-
+      {% set icon = 'notification-moisture-good' %}
+      {{ icon }}
+    header: >-
+      {{- '<img src="/local/images/icons/' + icon + '.png?v1">' -}}
+    footer: >-
+      <br><a href="/notify-devices/{{- class -}}"><img src="https://img.shields.io/badge/{{- class -}}-change-cyan.svg"></a>
+      {%- if did is defined and did|lower != 'none' and did|lower != 'null' -%}
+         <br><a href="/config/devices/device/{{- did -}}"><img src="https://img.shields.io/badge/{{- class -}}-config-orange.svg"></a>
+      {%- endif -%}
+    body: >-
+      {{ state_attr('binary_sensor.motion_device_moisture_good','markdown') }}
+      <p>We have notified <b>{{- state_attr('sensor.motion_role_primary','friendly_name') -}}</b> about your moisture alarm.
+      To view and change parameters click the <b>{{- action -}}</b> button below.
+      {{- '<p>' -}}
+      <a href="{{- url -}}"><img src="https://img.shields.io/badge/{{- action -}}-blue.svg"></a>
+    message: >-
+      {{- header -}}
+      {{- '<hr>' -}}
+      {{- body -}}
+      {{- footer -}}
+  action:
+    - alias: 'notify moisture sensor activated'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+## activity
+
+- id: motion_device_moisture_activity
+  alias: motion_device_moisture_activity
+  mode: single
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_moisture'
+      attribute: 'activity'
+  variables:
+    ids: >-
+      {% set s = state_attr('binary_sensor.motion_device_moisture','activity') %}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+        {{ s|map(attribute='id')|sort|unique|list }}
+      {%- else -%}none{%- endif %}
+    details: >-
+      {% set s = state_attr('binary_sensor.motion_device_moisture','activity') %}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+        "{{ s }}"
+      {%- else -%}none{%- endif %}
+    state: >-
+      {% set s = state_attr('binary_sensor.motion_device_moisture','activity') %}
+      {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and not s is string and s is iterable %}
+        {% if s|count > 0 %}on{% else %}off{% endif %}
+      {% else %}unknown{% endif %}
+    last: >-
+      {% if state|lower == 'off' %}
+        {{ state_attr('binary_sensor.motion_device_moisture_activity','last') }}
+      {%- else -%}{{ utcnow().timestamp() }}{%- endif %}
+  condition:
+    - condition: template
+      value_template: >
+        {{ state|lower != 'unknown' }}
+  action:
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_moisture_activity
+        last: >-
+          {{ last }}
+        ids: >-
+          {{ ids }}
+        details: >-
+          {{ details }}
+        state: >-
+          {{ state }}
 
 - id: motion_device_moisture_activity_off
   alias: motion_device_moisture_activity_off
@@ -1088,7 +1860,115 @@
       service: homeassistant.update_entity
       entity_id: binary_sensor.motion_device_moisture_exist
 
-# alarm
+- id: motion_device_moisture_alarm_activity
+  alias: motion_device_moisture_alarm_activity
+  mode: single
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_moisture_activity'
+      to: 'on'
+  variables:
+    activity: >-
+      {{ state_attr('binary_sensor.motion_device_moisture','activity') }}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ activity|lower != 'none' and activity|lower != 'null' and activity|length > 0 }}
+  action:
+    - variables:
+        markdown: >-
+          {%- if activity|lower != 'none' and not activity is string and activity is iterable and activity|count > 0 -%}
+            A <a href="/lovelace-primary/moisture">moisture</a> <a href="/notify-activity">activity</a> alarm was triggered at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}:
+            {%- for i in activity -%}
+              {%- if loop.first -%}{{- '<ul>' -}}{%- endif -%}
+              {%- set d = state_attr('binary_sensor.motion_device_class','devices') -%}
+              {%- if d|lower != 'none' and d|lower != 'unknown' and not d is string and d is iterable and d|count > 0 -%}
+                {%- set d = d|selectattr('id','==',i.id)|list -%}
+                {%- if d|lower != 'none' and d|lower != 'unknown' and not d is string and d is iterable and d|count > 0 -%}
+                  {%- set d = d|first -%}
+                  <li><a href="/config/devices/device/{{- d.did -}}">{{- d.friendly_name -}}</a> in <a href="/config/areas/area/{{- area_id(activity[loop.index-1].entity_id) -}})">{{- area_id(activity[loop.index-1].entity_id) -}}</a></li>
+                {%- else -%}
+                  <li>{{- i.id -}} is {{ states(i.entity_id) -}}</li>
+                {%- endif -%}
+              {%- else -%}
+                <li>{{- i.id -}} is {{ states(i.entity_id) -}}</li>
+              {%- endif -%}
+              {%- if loop.last -%}{{- '</ul>' -}}{%- endif -%}
+            {%- endfor -%}
+          {%- else -%}
+            {{- '<b>No moisture activity</b>' -}}
+          {%- endif -%}
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_moisture_activity
+        markdown: >-
+          {{ markdown }}
+    - condition: template
+      value_template: >
+        {{ is_state_attr('binary_sensor.motion_device_moisture_exist','alarm','on') }}
+    - alias: 'trigger motion notification'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_moisture_activity_notify
+
+- id: motion_device_moisture_activity_notify
+  alias: motion_device_moisture_activity_notify
+  mode: single
+  initial_state: 'off'
+  trigger:
+  variables:
+    class: >-
+      {{ 'moisture' }}
+    activity: >-
+      {% set activity = state_attr('binary_sensor.motion_device_moisture','activity') %}
+      {{ activity }}
+    action: >-
+      {% set action = class + '-view' %}
+      {{ action }}
+    url: >-
+      {% set url = '/notify-activity/' %}
+      {{ url }}
+    title: >-
+      {% set title = states('sensor.motion_app') + ': moisture activity alarm' %}
+      {{ title }}
+    notification_id: >-
+      {{ 'device-moisture-activity' }}
+    icon: >-
+      {% set icon = 'notification-moisture-activity' %}
+      {{ icon }}
+    header: >-
+      {{- '<img src="/local/images/icons/' + icon + '.png?v1">' -}}
+    footer: >-
+      <br><a href="/notify-devices/{{- class -}}"><img src="https://img.shields.io/badge/{{- class -}}-change-cyan.svg"></a>
+      {%- if did is defined and did|lower != 'none' and did|lower != 'null' -%}
+         <br><a href="/config/devices/device/{{- did -}}"><img src="https://img.shields.io/badge/{{- class -}}-config-orange.svg"></a>
+      {%- endif -%}
+    body: >-
+      {{ state_attr('binary_sensor.motion_device_class_moisture_activity','markdown') }}
+      <p>We have notified <b>{{- state_attr('sensor.motion_role_primary','friendly_name') -}}</b> about your moisture alarm.
+      To view and change parameters click the <b>{{- action -}}</b> button below.
+      {{- '<p>' -}}
+      <a href="{{- url -}}"><img src="https://img.shields.io/badge/{{- action -}}-blue.svg"></a>
+    message: >-
+      {{- header -}}
+      {{- '<hr>' -}}
+      {{- body -}}
+      {{- footer -}}
+  action:
+    - alias: 'notify moisture sensor activated'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+## alarm
 
 - id: motion_device_moisture_alarm_off
   alias: motion_device_moisture_alarm_off
@@ -1492,288 +2372,6 @@
         notification_id: >-
           {{ notification_id }}
 
-# bad
-
-- id: motion_device_moisture_alarm_bad_on
-  alias: motion_device_moisture_alarm_bad_on
-  mode: single
-  initial_state: 'off'
-  trigger:
-    - platform: template
-      value_template: >-
-        {{ not is_state_attr('binary_sensor.motion_device_moisture_exist','bad','none')
-           and is_state_attr('binary_sensor.motion_device_moisture_exist','bad',states('binary_sensor.motion_device_moisture')) }}
-  variables:
-    devices: >-
-      {%- set devices = none -%}
-      {% set s = state_attr('binary_sensor.motion_device_moisture','devices') %}
-      {% if s|lower != 'none' and s|lower != 'null' and not s is string and s is iterable and s|count > 0 %}
-        {% set devices = s %}
-      {%- endif %}
-      {{ devices }}
-    last: >-
-      {% set last = none %}
-      {% set s = state_attr('binary_sensor.motion_device_moisture','status')|selectattr('state','==',state_attr('binary_sensor.motion_device_moisture_exist','bad'))|sort(attribute='updated',reverse=true)|list %}
-      {% if s|lower != 'none' and s|lower != 'null' and not s is string and s is iterable and s|count > 0 %}
-        {% set last = s %}
-      {%- endif %}
-      {{ last  }}
-    which: >-
-      {% set which = none %}
-      {% if last|lower != 'none' %}
-        {% set which = last|map(attribute='id')|first %}
-      {%- endif %}
-      {{ which }}
-    did: >-
-      {% set did = none %}
-      {% if devices|lower != 'none'  and which|lower != 'none' %}
-        {% set did = devices|selectattr('id','==',which)|map(attribute='did')|first %}
-      {%- endif %}
-      {{ did }}
-    where: >-
-      {% set where = none %}
-      {% if devices|lower != 'none'  and which|lower != 'none' %}
-        {% set where = devices|selectattr('id','==',which)|map(attribute='area')|first %}
-      {%- endif %}
-      {{ where }}
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >
-          {{ which|lower != 'none' and which|lower != 'null' and which|length > 0 }}
-  action:
-    - variables:
-        markdown: >-
-          A <a href="/lovelace-primary/moisture">moisture</a> alarm was triggered ({{- state_attr('binary_sensor.motion_device_moisture_exist','bad')|string -}}); sensor: {{ which -}}; where: {{ where -}}; at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}.
-    - service: python_script.set_state
-      data_template:
-        entity_id: binary_sensor.motion_device_moisture_bad
-        markdown: >-
-          {{ markdown }}
-    - alias: 'update binary_sensor.motion_device_moisture which, where, did'
-      service: python_script.set_state
-      data_template:
-        entity_id: binary_sensor.motion_device_moisture
-        which: >-
-          {{ which }}
-        where: >-
-          {{ where }}
-        did: >-
-          {{ did }}
-    - condition: template
-      value_template: >
-        {{ is_state_attr('binary_sensor.motion_device_moisture_exist','alarm','on') }}
-    - alias: 'trigger motion notification'
-      service: automation.trigger
-      data_template:
-        entity_id: automation.motion_device_moisture_bad_notify
-
-# bad notify
-
-- id: motion_device_moisture_bad_notify
-  alias: motion_device_moisture_bad_notify
-  mode: single
-  initial_state: 'off'
-  trigger:
-  variables:
-    class: >-
-      {{ 'moisture' }}
-    ids: >-
-      {% set ids = state_attr('binary_sensor.motion_device_moisture','ids') %}
-      {{ ids }}
-    which: >-
-      {% set which = state_attr('binary_sensor.motion_device_moisture','which') %}
-      {{ which }}
-    where: >-
-      {% set where = state_attr('binary_sensor.motion_device_moisture','where') %}
-      {{ where }}
-    did: >-
-      {% set did = state_attr('binary_sensor.motion_device_moisture','did') %}
-      {{ did }}
-    url: >-
-      {% set url = '/lovelace-primary/' + class %}
-      {{ url }}
-    action: >-
-      {% set action = class + '-view' %}
-      {{ action }}
-    title: >-
-      {% set title = states('sensor.motion_app') + ': moisture bad' %}
-      {{ title }}
-    notification_id: >-
-      {{ 'device-moisture-status-' + which|string }}
-    icon: >-
-      {% set icon = 'notification-moisture-bad' %}
-      {{ icon }}
-    header: >-
-      {{- '<img src="/local/images/icons/' + icon + '.png?v1">' -}}
-    footer: >-
-      <br><a href="/notify-devices/{{- class -}}"><img src="https://img.shields.io/badge/{{- class -}}-change-cyan.svg"></a>
-      {%- if did is defined and did|lower != 'none' and did|lower != 'null' -%}
-         <br><a href="/config/devices/device/{{- did -}}"><img src="https://img.shields.io/badge/{{- class -}}-config-orange.svg"></a>
-      {%- endif -%}
-    body: >-
-      {{ state_attr('binary_sensor.motion_device_moisture_bad','markdown') }}
-      <p>We have notified <b>{{- state_attr('sensor.motion_role_primary','friendly_name') -}}</b> about your moisture alarm.
-      To view and change parameters click the <b>{{- action -}}</b> button below.
-      {{- '<p>' -}}
-      <a href="{{- url -}}"><img src="https://img.shields.io/badge/{{- action -}}-blue.svg"></a>
-    message: >-
-      {{- header -}}
-      {{- '<hr>' -}}
-      {{- body -}}
-      {{- footer -}}
-  action:
-    - alias: 'notify moisture sensor activated'
-      service: persistent_notification.create
-      data_template:
-        title: >-
-          {{- title -}}
-        notification_id: >-
-          {{- notification_id -}}
-        message: >-
-          {{- message -}}
-
-# good
-
-- id: motion_device_moisture_alarm_good_on
-  alias: motion_device_moisture_alarm_good_on
-  mode: single
-  initial_state: 'off'
-  trigger:
-    - platform: template
-      value_template: >-
-        {{ not is_state_attr('binary_sensor.motion_device_moisture_exist','good','none')
-           and is_state_attr('binary_sensor.motion_device_moisture_exist','good',states('binary_sensor.motion_device_moisture')) }}
-  variables:
-    devices: >-
-      {% set devices = none %}
-      {% set s = state_attr('binary_sensor.motion_device_moisture','devices') %}
-      {% if s|lower != 'none' and s|lower != 'null' and not s is string and s is iterable and s|count > 0 %}
-        {% set devices = s %}
-      {%- endif %}
-      {{ devices }}
-    last: >-
-      {% set last = none %}
-      {% set s = state_attr('binary_sensor.motion_device_moisture','status')|selectattr('state','==',state_attr('binary_sensor.motion_device_moisture_exist','good'))|sort(attribute='updated',reverse=true)|list %}
-      {% if s|lower != 'none' and s|lower != 'null' and not s is string and s is iterable and s|count > 0 %}
-        {% set last = s %}
-      {%- endif %}
-      {{ last  }}
-    which: >-
-      {% set which = none %}
-      {% if last|lower != 'none' %}
-        {% set which = last|map(attribute='id')|first %}
-      {%- endif %}
-      {{ which }}
-    did: >-
-      {% set did = none %}
-      {% if devices|lower != 'none'  and which|lower != 'none' %}
-        {% set did = devices|selectattr('id','==',which)|map(attribute='did')|first %}
-      {%- endif %}
-      {{ did }}
-    where: >-
-      {% set where = none %}
-      {% if devices|lower != 'none'  and which|lower != 'none' %}
-        {% set where = devices|selectattr('id','==',which)|map(attribute='area')|first %}
-      {%- endif %}
-      {{ where }}
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >
-          {{ which|lower != 'none' and which|lower != 'null' and which|length > 0 }}
-  action:
-    - variables:
-        markdown: >-
-          A <a href="/lovelace-primary/moisture">moisture</a> alarm was triggered ({{- state_attr('binary_sensor.motion_device_moisture_exist','good')|string -}}); sensor: {{ which -}}; where: {{ where -}}; at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}.
-    - service: python_script.set_state
-      data_template:
-        entity_id: binary_sensor.motion_device_moisture_good
-        markdown: >-
-          {{ markdown }}
-    - alias: 'update binary_sensor.motion_device_moisture which, where, did'
-      service: python_script.set_state
-      data_template:
-        entity_id: binary_sensor.motion_device_moisture
-        which: >-
-          {{ which }}
-        where: >-
-          {{ where }}
-        did: >-
-          {{ did }}
-    - condition: template
-      value_template: >
-        {{ is_state_attr('binary_sensor.motion_device_moisture_exist','alarm','on') }}
-    - alias: 'trigger motion notification'
-      service: automation.trigger
-      data_template:
-        entity_id: automation.motion_device_moisture_good_notify
-
-- id: motion_device_moisture_good_notify
-  alias: motion_device_moisture_good_notify
-  mode: single
-  initial_state: 'off'
-  trigger:
-  variables:
-    class: >-
-      {{ 'moisture' }}
-    ids: >-
-      {% set ids = state_attr('binary_sensor.motion_device_moisture','ids') %}
-      {{ ids }}
-    which: >-
-      {% set which = state_attr('binary_sensor.motion_device_moisture','which') %}
-      {{ which }}
-    where: >-
-      {% set where = state_attr('binary_sensor.motion_device_moisture','where') %}
-      {{ where }}
-    did: >-
-      {% set did = state_attr('binary_sensor.motion_device_moisture','did') %}
-      {{ did }}
-    action: >-
-      {% set action = class + '-view' %}
-      {{ action }}
-    url: >-
-      {% set url = '/lovelace-primary/' + class %}
-      {{ url }}
-    title: >-
-      {% set title = states('sensor.motion_app') + ': moisture good' %}
-      {{ title }}
-    notification_id: >-
-      {{ 'device-moisture-status-' + which|string }}
-    icon: >-
-      {% set icon = 'notification-moisture-good' %}
-      {{ icon }}
-    header: >-
-      {{- '<img src="/local/images/icons/' + icon + '.png?v1">' -}}
-    footer: >-
-      <br><a href="/notify-devices/{{- class -}}"><img src="https://img.shields.io/badge/{{- class -}}-change-cyan.svg"></a>
-      {%- if did is defined and did|lower != 'none' and did|lower != 'null' -%}
-         <br><a href="/config/devices/device/{{- did -}}"><img src="https://img.shields.io/badge/{{- class -}}-config-orange.svg"></a>
-      {%- endif -%}
-    body: >-
-      {{ state_attr('binary_sensor.motion_device_moisture_good','markdown') }}
-      <p>We have notified <b>{{- state_attr('sensor.motion_role_primary','friendly_name') -}}</b> about your moisture alarm.
-      To view and change parameters click the <b>{{- action -}}</b> button below.
-      {{- '<p>' -}}
-      <a href="{{- url -}}"><img src="https://img.shields.io/badge/{{- action -}}-blue.svg"></a>
-    message: >-
-      {{- header -}}
-      {{- '<hr>' -}}
-      {{- body -}}
-      {{- footer -}}
-  action:
-    - alias: 'notify moisture sensor activated'
-      service: persistent_notification.create
-      data_template:
-        title: >-
-          {{- title -}}
-        notification_id: >-
-          {{- notification_id -}}
-        message: >-
-          {{- message -}}
-
 # cleared notify
 
 - id: motion_device_moisture_cleared_notify
@@ -1874,707 +2472,7 @@
               notification_id: >-
                 {{ ids[repeat.index - 1] }}
 
-## low
-
-- id: motion_device_moisture_alarm_low_on
-  alias: motion_device_moisture_alarm_low_on
-  mode: single
-  initial_state: 'off'
-  trigger:
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_moisture_low'
-      to: 'on'
-  variables:
-    low: >-
-      {{ state_attr('binary_sensor.motion_device_moisture','low') }}
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >
-          {{- low|lower != 'none' and low|lower != 'unknown' and not low is string and low is iterable and low|count > 0 -}}
-  action:
-    - variables:
-        markdown: >-
-          A <a href="/lovelace-primary/moisture">moisture</a> alarm was triggered (below {{ state_attr('binary_sensor.motion_device_moisture_exist','low') -}}) at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}:<br>
-          {%- for i in low if 'id' in i and i.id|lower != 'none' -%}
-            {%- if loop.first -%}{{- '<ul>' -}}{%- endif -%}
-            {%- set d = state_attr('binary_sensor.motion_device_class','devices') -%}
-            {%- if d|lower != 'none' and not d is string and d is iterable and d|count > 0 -%}
-              {%- set d = d|selectattr('id','==',i.id)|list -%}
-              {%- if d|lower != 'none' and not d is string and d is iterable and d|count > 0 -%}
-                {%- set d = d|first -%}
-                <li><a href="/config/devices/device/{{- d.did -}}">{{- d.friendly_name -}}</a> is {{ states(low[loop.index-1].entity_id) -}}{{- state_attr(low[loop.index-1].entity_id,'unit_of_measurement') }} in <a href="/config/areas/area/{{- area_id(low[loop.index-1].entity_id) -}}">{{- area_id(low[loop.index-1].entity_id) -}}</a></li>
-              {%- else -%}
-                <li>{{- i.id }} moisture is {{ states(i.entity_id) -}}{{- state_attr(i.entity_id,'unit_of_measurement') }}</li>
-              {%- endif -%}
-            {%- else -%}
-              {{- '<li>' -}}
-              {{- i.id }} moisture is {{ states(i.entity_id) -}}{{- state_attr(i.entity_id,'unit_of_measurement') }}
-              {{- '</li>' -}}
-            {%- endif -%}
-            {%- if loop.last -%}{{- '</ul>' -}}{%- endif -%}
-          {%- endfor -%}
-    - service: python_script.set_state
-      data_template:
-        entity_id: binary_sensor.motion_device_moisture_low
-        markdown: >-
-          {{ markdown }}
-    - condition: template
-      value_template: >
-        {{ is_state_attr('binary_sensor.motion_device_moisture_exist','alarm','on') }}
-    - alias: 'trigger motion notification'
-      service: automation.trigger
-      data_template:
-        entity_id: automation.motion_device_moisture_low_notify
-
-- id: motion_device_moisture_alarm_low_off
-  alias: motion_device_moisture_alarm_low_off
-  mode: single
-  initial_state: 'off'
-  trigger:
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_moisture_low'
-      to: 'off'
-  action:
-    - condition: template
-      value_template: >
-        {{ is_state_attr('binary_sensor.motion_device_moisture_exist','alarm','on') }}
-    - alias: 'trigger moisture low dismiss'
-      service: automation.trigger
-      data_template:
-        entity_id: automation.motion_device_moisture_low_dismiss
-
-- id: motion_device_moisture_low_notify
-  alias: motion_device_moisture_low_notify
-  mode: single
-  initial_state: 'off'
-  trigger:
-  variables:
-    class: >-
-      {{ 'moisture' }}
-    low: >-
-      {% set low = state_attr('binary_sensor.motion_device_moisture','low') %}
-      {{ low }}
-    action: >-
-      {% set action = class + '-view' %}
-      {{ action }}
-    url: >-
-      {% set url = '/lovelace-primary/' + class %}
-      {{ url }}
-    title: >-
-      {% set title = states('sensor.motion_app') + ': moisture low' %}
-      {{ title }}
-    notification_id: >-
-      {{ 'device-moisture-low' }}
-    icon: >-
-      {% set icon = 'notification-moisture-low' %}
-      {{ icon }}
-    header: >-
-      {{- '<img src="/local/images/icons/' + icon + '.png?v1">' -}}
-    footer: >-
-      <br><a href="/notify-devices/{{- class -}}"><img src="https://img.shields.io/badge/{{- class -}}-change-cyan.svg"></a>
-      {%- if did is defined and did|lower != 'none' and did|lower != 'null' -%}
-         <br><a href="/config/devices/device/{{- did -}}"><img src="https://img.shields.io/badge/{{- class -}}-config-orange.svg"></a>
-      {%- endif -%}
-    body: >-
-      {{ state_attr('binary_sensor.motion_device_moisture_low','markdown') }}
-      <p>We have notified <b>{{- state_attr('sensor.motion_role_primary','friendly_name') -}}</b> about your moisture alarm.
-      To view and change parameters click the <b>{{- action -}}</b> button below.
-      {{- '<p>' -}}
-      <a href="{{- url -}}"><img src="https://img.shields.io/badge/{{- action -}}-blue.svg"></a>
-    message: >-
-      {{- header -}}
-      {{- '<hr>' -}}
-      {{- body -}}
-      {{- footer -}}
-  action:
-    - alias: 'notify moisture sensor activated'
-      service: persistent_notification.create
-      data_template:
-        title: >-
-          {{- title -}}
-        notification_id: >-
-          {{- notification_id -}}
-        message: >-
-          {{- message -}}
-
-- id: motion_device_moisture_low_dismiss
-  alias: motion_device_moisture_low_dismiss
-  mode: single
-  initial_state: 'off'
-  trigger:
-  variables:
-    notification_id: >-
-      {{ 'device-moisture-low' }}
-  action:
-    - alias: 'dismiss moisture low notification'
-      service: persistent_notification.dismiss
-      data_template:
-        notification_id: >-
-          {{ notification_id }}
-
-## high
-
-- id: motion_device_moisture_high_off
-  alias: motion_device_moisture_high_off
-  mode: single
-  max_exceeded: silent
-  initial_state: 'off'
-  trigger:
-  condition:
-    condition: and
-    conditions:
-      - alias: 'test setup complete'
-        condition: template
-        value_template: >-
-          {{ is_state('binary_sensor.motion_device_class','on') }}
-      - alias: 'moisture high not off'
-        condition: template
-        value_template: >-
-          {{ 'moisture' in state_attr('binary_sensor.motion_device_class','high') }}
-  variables:
-    high: >-
-      {% set s = state_attr('binary_sensor.motion_device_class','high') -%}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
-        {%- set s = s|reject('==','moisture')|list -%}
-        {%- if not s is string and s is iterable and s|count > 0 -%}
-          {% set high = s -%}
-        {%- else -%}
-          {% set high = [] -%}
-        {%- endif %}
-      {%- endif %}
-      {%- if high is defined -%}
-        {{ high }}
-      {%- else -%}none{%- endif %}
-  action:
-    - alias: 'test if high list of device classes is valid'
-      condition: template
-      value_template: >-
-        {{ high|lower != 'none' }}
-    - alias: 'update binary_sensor.motion_device_class high attribute; remove: moisture'
-      service: python_script.set_state
-      data_template:
-        entity_id: binary_sensor.motion_device_class
-        high: >-
-          {{ high }}
-    - alias: 'update binary_sensor.motion_device_moisture_exist'
-      service: homeassistant.update_entity
-      entity_id: binary_sensor.motion_device_moisture_exist
-
-- id: motion_device_moisture_high_on
-  alias: motion_device_moisture_high_on
-  mode: single
-  max_exceeded: silent
-  initial_state: 'off'
-  trigger:
-  condition:
-    condition: and
-    conditions:
-      - alias: 'test setup complete'
-        condition: template
-        value_template: >-
-          {{ is_state('binary_sensor.motion_device_class','on') }}
-      - alias: 'moisture high not on'
-        condition: template
-        value_template: >-
-          {{ not 'moisture' in state_attr('binary_sensor.motion_device_class','high') }}
-  variables:
-    high: >-
-      {% set s = state_attr('binary_sensor.motion_device_class','high') -%}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
-        {%- set high = (s|list + ['moisture'])|sort|unique|list -%}
-      {%- else -%}
-        {%- set high = ['moisture'] -%}
-      {%- endif %}
-      {%- if high is defined -%}
-        {{ high }}
-      {%- else -%}none{%- endif %}
-  action:
-    - alias: 'test if high list of device classes is valid'
-      condition: template
-      value_template: >-
-        {{ high|lower != 'none' }}
-    - alias: 'update binary_sensor.motion_device_class high attribute; add: moisture'
-      service: python_script.set_state
-      data_template:
-        entity_id: binary_sensor.motion_device_class
-        high: >-
-          {{ high }}
-    - alias: 'update binary_sensor.motion_device_moisture_exist'
-      service: homeassistant.update_entity
-      entity_id: binary_sensor.motion_device_moisture_exist
-
-- id: motion_device_moisture_alarm_high_on
-  alias: motion_device_moisture_alarm_high_on
-  mode: single
-  initial_state: 'off'
-  trigger:
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_moisture_high'
-      to: 'on'
-  variables:
-    high: >-
-      {{ state_attr('binary_sensor.motion_device_moisture','high') }}
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >
-          {{- high|lower != 'none' and high|lower != 'unknown' and not high is string and high is iterable and high|count > 0 -}}
-  action:
-    - variables:
-        markdown: >-
-          A <a href="/lovelace-primary/moisture">moisture</a> alarm was triggered (above {{ state_attr('binary_sensor.motion_device_moisture_exist','high') -}}) at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}:<br>
-          {%- for i in high if 'id' in i and i.id|lower != 'none' -%}
-            {%- if loop.first -%}{{- '<ul>' -}}{%- endif -%}
-            {%- set d = state_attr('binary_sensor.motion_device_class','devices') -%}
-            {%- if d|lower != 'none' and not d is string and d is iterable and d|count > 0 -%}
-              {%- set d = d|selectattr('id','==',i.id)|list -%}
-              {%- if d|lower != 'none' and not d is string and d is iterable and d|count > 0 -%}
-                {%- set d = d|first -%}
-                <li><a href="/config/devices/device/{{- d.did -}}">{{- d.friendly_name -}}</a> is {{ states(high[loop.index-1].entity_id) -}}{{- state_attr(high[loop.index-1].entity_id,'unit_of_measurement') }} in <a href="/config/areas/area/{{- area_id(high[loop.index-1].entity_id) -}}">{{- area_id(high[loop.index-1].entity_id) -}}</a></li>
-              {%- else -%}
-                <li>{{- i.id }} moisture is {{ states(i.entity_id) -}}{{- state_attr(i.entity_id,'unit_of_measurement') }}</li>
-              {%- endif -%}
-            {%- else -%}
-              {{- '<li>' -}}
-              {{- i.id }} moisture is {{ states(i.entity_id) -}}{{- state_attr(i.entity_id,'unit_of_measurement') }}
-              {{- '</li>' -}}
-            {%- endif -%}
-            {%- if loop.last -%}{{- '</ul>' -}}{%- endif -%}
-          {%- endfor -%}
-    - service: python_script.set_state
-      data_template:
-        entity_id: binary_sensor.motion_device_moisture_high
-        markdown: >-
-          {{ markdown }}
-    - condition: template
-      value_template: >
-        {{ is_state_attr('binary_sensor.motion_device_moisture_exist','alarm','on') }}
-    - alias: 'trigger motion notification'
-      service: automation.trigger
-      data_template:
-        entity_id: automation.motion_device_moisture_high_notify
-
-- id: motion_device_moisture_alarm_high_off
-  alias: motion_device_moisture_alarm_high_off
-  mode: single
-  initial_state: 'off'
-  trigger:
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_moisture_high'
-      to: 'off'
-  action:
-    - condition: template
-      value_template: >
-        {{ is_state_attr('binary_sensor.motion_device_moisture_exist','alarm','on') }}
-    - alias: 'trigger moisture high dismiss'
-      service: automation.trigger
-      data_template:
-        entity_id: automation.motion_device_moisture_high_dismiss
-
-- id: motion_device_moisture_high_notify
-  alias: motion_device_moisture_high_notify
-  mode: single
-  initial_state: 'off'
-  trigger:
-  variables:
-    class: >-
-      {{ 'moisture' }}
-    high: >-
-      {% set high = state_attr('binary_sensor.motion_device_moisture','high') %}
-      {{ high }}
-    action: >-
-      {% set action = class + '-view' %}
-      {{ action }}
-    url: >-
-      {% set url = '/lovelace-primary/' + class %}
-      {{ url }}
-    title: >-
-      {% set title = states('sensor.motion_app') + ': ' + class + ' high' %}
-      {{ title }}
-    notification_id: >-
-      {{ 'device-' + class + '-high' }}
-    icon: >-
-      {% set icon = 'notification-' + class + '-high' %}
-      {{ icon }}
-    header: >-
-      {{- '<img src="/local/images/icons/' + icon + '.png?v1">' -}}
-    footer: >-
-      <br><a href="/notify-devices/{{- class -}}"><img src="https://img.shields.io/badge/{{- class -}}-change-cyan.svg"></a>
-      {%- if did is defined and did|lower != 'none' and did|lower != 'null' -%}
-         <br><a href="/config/devices/device/{{- did -}}"><img src="https://img.shields.io/badge/{{- class -}}-config-orange.svg"></a>
-      {%- endif -%}
-    body: >-
-      {{ state_attr('binary_sensor.motion_device_moisture_high','markdown') }}
-      <p>We have notified <b>{{- state_attr('sensor.motion_role_primary','friendly_name') -}}</b> about your moisture alarm.
-      To view and change parameters click the <b>{{- action -}}</b> button below.
-      {{- '<p>' -}}
-      <a href="{{- url -}}"><img src="https://img.shields.io/badge/{{- action -}}-blue.svg"></a>
-    message: >-
-      {{- header -}}
-      {{- '<hr>' -}}
-      {{- body -}}
-      {{- footer -}}
-  action:
-    - alias: 'notify moisture sensor activated'
-      service: persistent_notification.create
-      data_template:
-        title: >-
-          {{- title -}}
-        notification_id: >-
-          {{- notification_id -}}
-        message: >-
-          {{- message -}}
-
-- id: motion_device_moisture_high_dismiss
-  alias: motion_device_moisture_high_dismiss
-  mode: single
-  initial_state: 'off'
-  trigger:
-  variables:
-    class: >-
-      {{ 'moisture' }}
-    notification_id: >-
-      {{ 'device-' + class + '-high' }}
-  action:
-    - alias: 'dismiss moisture high notification'
-      service: persistent_notification.dismiss
-      data_template:
-        notification_id: >-
-          {{ notification_id }}
-
-## activity
-
-- id: motion_device_moisture_alarm_activity
-  alias: motion_device_moisture_alarm_activity
-  mode: single
-  initial_state: 'off'
-  trigger:
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_moisture_activity'
-      to: 'on'
-  variables:
-    activity: >-
-      {{ state_attr('binary_sensor.motion_device_moisture','activity') }}
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >
-          {{ activity|lower != 'none' and activity|lower != 'null' and activity|length > 0 }}
-  action:
-    - variables:
-        markdown: >-
-          {%- if activity|lower != 'none' and not activity is string and activity is iterable and activity|count > 0 -%}
-            A <a href="/lovelace-primary/moisture">moisture</a> <a href="/notify-activity">activity</a> alarm was triggered at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}:
-            {%- for i in activity -%}
-              {%- if loop.first -%}{{- '<ul>' -}}{%- endif -%}
-              {%- set d = state_attr('binary_sensor.motion_device_class','devices') -%}
-              {%- if d|lower != 'none' and d|lower != 'unknown' and not d is string and d is iterable and d|count > 0 -%}
-                {%- set d = d|selectattr('id','==',i.id)|list -%}
-                {%- if d|lower != 'none' and d|lower != 'unknown' and not d is string and d is iterable and d|count > 0 -%}
-                  {%- set d = d|first -%}
-                  <li><a href="/config/devices/device/{{- d.did -}}">{{- d.friendly_name -}}</a> in <a href="/config/areas/area/{{- area_id(activity[loop.index-1].entity_id) -}})">{{- area_id(activity[loop.index-1].entity_id) -}}</a></li>
-                {%- else -%}
-                  <li>{{- i.id -}} is {{ states(i.entity_id) -}}</li>
-                {%- endif -%}
-              {%- else -%}
-                <li>{{- i.id -}} is {{ states(i.entity_id) -}}</li>
-              {%- endif -%}
-              {%- if loop.last -%}{{- '</ul>' -}}{%- endif -%}
-            {%- endfor -%}
-          {%- else -%}
-            {{- '<b>No moisture activity</b>' -}}
-          {%- endif -%}
-    - service: python_script.set_state
-      data_template:
-        entity_id: binary_sensor.motion_device_moisture_activity
-        markdown: >-
-          {{ markdown }}
-    - condition: template
-      value_template: >
-        {{ is_state_attr('binary_sensor.motion_device_moisture_exist','alarm','on') }}
-    - alias: 'trigger motion notification'
-      service: automation.trigger
-      data_template:
-        entity_id: automation.motion_device_moisture_activity_notify
-
-- id: motion_device_moisture_activity_notify
-  alias: motion_device_moisture_activity_notify
-  mode: single
-  initial_state: 'off'
-  trigger:
-  variables:
-    class: >-
-      {{ 'moisture' }}
-    activity: >-
-      {% set activity = state_attr('binary_sensor.motion_device_moisture','activity') %}
-      {{ activity }}
-    action: >-
-      {% set action = class + '-view' %}
-      {{ action }}
-    url: >-
-      {% set url = '/notify-activity/' %}
-      {{ url }}
-    title: >-
-      {% set title = states('sensor.motion_app') + ': moisture activity alarm' %}
-      {{ title }}
-    notification_id: >-
-      {{ 'device-moisture-activity' }}
-    icon: >-
-      {% set icon = 'notification-moisture-activity' %}
-      {{ icon }}
-    header: >-
-      {{- '<img src="/local/images/icons/' + icon + '.png?v1">' -}}
-    footer: >-
-      <br><a href="/notify-devices/{{- class -}}"><img src="https://img.shields.io/badge/{{- class -}}-change-cyan.svg"></a>
-      {%- if did is defined and did|lower != 'none' and did|lower != 'null' -%}
-         <br><a href="/config/devices/device/{{- did -}}"><img src="https://img.shields.io/badge/{{- class -}}-config-orange.svg"></a>
-      {%- endif -%}
-    body: >-
-      {{ state_attr('binary_sensor.motion_device_class_moisture_activity','markdown') }}
-      <p>We have notified <b>{{- state_attr('sensor.motion_role_primary','friendly_name') -}}</b> about your moisture alarm.
-      To view and change parameters click the <b>{{- action -}}</b> button below.
-      {{- '<p>' -}}
-      <a href="{{- url -}}"><img src="https://img.shields.io/badge/{{- action -}}-blue.svg"></a>
-    message: >-
-      {{- header -}}
-      {{- '<hr>' -}}
-      {{- body -}}
-      {{- footer -}}
-  action:
-    - alias: 'notify moisture sensor activated'
-      service: persistent_notification.create
-      data_template:
-        title: >-
-          {{- title -}}
-        notification_id: >-
-          {{- notification_id -}}
-        message: >-
-          {{- message -}}
-
-# good,bad,high,low
-
-- id: motion_device_moisture_bad
-  alias: motion_device_moisture_bad
-  mode: single
-  initial_state: 'off'
-  trigger:
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_moisture'
-      attribute: 'bad'
-  variables:
-    details: >-
-      {% if state_attr('binary_sensor.motion_device_moisture_exist','bad')|lower != 'none' %}
-        {% set s = state_attr('binary_sensor.motion_device_moisture','bad') %}
-        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
-          [{% for i in s -%}
-            {%- if not loop.first -%},{%- endif -%}
-            "{{- state_attr(i.entity_id,'friendly_name') }} is {{ states(i.entity_id) -}}"
-          {%- endfor -%}]
-        {%- else -%}none{%- endif %}
-      {%- else -%}none{%- endif %}
-    state: >-
-      {% set s = state_attr('binary_sensor.motion_device_moisture','bad') %}
-      {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and not s is string and s is iterable %}
-        {% if s|list|count > 0 %}on{% else %}off{% endif %}
-      {% else %}unknown{% endif %}
-    last: >-
-      {% if state|lower == 'off' %}
-        {{ state_attr('binary_sensor.motion_device_moisture_bad','last') }}
-      {%- else -%}{{ utcnow().timestamp() }}{%- endif %}
-  condition:
-    - condition: template
-      value_template: >
-        {{ state|lower != 'unknown' }}
-  action:
-    - service: python_script.set_state
-      data_template:
-        entity_id: binary_sensor.motion_device_moisture_bad
-        last: >-
-          {{ last }}
-        details: >-
-          {{ details }}
-        state: >-
-          {{ state }}
-
-- id: motion_device_moisture_good
-  alias: motion_device_moisture_good
-  mode: single
-  initial_state: 'off'
-  trigger:
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_moisture'
-      attribute: 'good'
-  variables:
-    details: >-
-      {% if state_attr('binary_sensor.motion_device_moisture_exist','good')|lower != 'none' %}
-        {% set s = state_attr('binary_sensor.motion_device_moisture','good') %}
-        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
-          [{% for i in s -%}
-            {%- if not loop.first -%},{%- endif -%}
-            "{{- state_attr(i.entity_id,'friendly_name') }} is {{ states(i.entity_id) -}}"
-          {%- endfor -%}]
-        {%- else -%}none{%- endif %}
-      {%- else -%}none{%- endif %}
-    state: >-
-      {% set s = state_attr('binary_sensor.motion_device_moisture','good') %}
-      {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and not s is string and s is iterable %}
-        {% if s|list|count > 0 %}on{% else %}off{% endif %}
-      {% else %}unknown{% endif %}
-    last: >-
-      {% if state|lower == 'off' %}
-        {{ state_attr('binary_sensor.motion_device_moisture_good','last') }}
-      {%- else -%}{{ utcnow().timestamp() }}{%- endif %}
-  condition:
-    - condition: template
-      value_template: >
-        {{ state|lower != 'unknown' }}
-  action:
-    - service: python_script.set_state
-      data_template:
-        entity_id: binary_sensor.motion_device_moisture_good
-        last: >-
-          {{ last }}
-        details: >-
-          {{ details }}
-        state: >-
-          {{ state }}
-
-- id: motion_device_moisture_low
-  alias: motion_device_moisture_low
-  mode: single
-  initial_state: 'off'
-  trigger:
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_moisture'
-      attribute: 'low'
-  variables:
-    details: >-
-      {% if state_attr('binary_sensor.motion_device_moisture_exist','low')|lower != 'none' %}
-        {% set s = state_attr('binary_sensor.motion_device_moisture','low') %}
-        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
-          [{% for i in s -%}
-            {%- if not loop.first -%},{%- endif -%}
-            "{{- state_attr(i.entity_id,'friendly_name') }} is {{ states(i.entity_id)|int('unknown') -}}{{ state_attr(i.entity_id,'unit_of_measurement') -}}"
-          {%- endfor -%}]
-        {%- else -%}none{%- endif %}
-      {%- else -%}none{%- endif %}
-    state: >-
-      {% set s = state_attr('binary_sensor.motion_device_moisture','low') %}
-      {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and not s is string and s is iterable %}
-        {% if s|list|count > 0 %}on{% else %}off{% endif %}
-      {% else %}unknown{% endif %}
-    last: >-
-      {% if state|lower == 'off' %}
-        {{ state_attr('binary_sensor.motion_device_moisture_low','last') }}
-      {%- else -%}{{ utcnow().timestamp() }}{%- endif %}
-  condition:
-    - condition: template
-      value_template: >
-        {{ state|lower != 'unknown' }}
-  action:
-    - service: python_script.set_state
-      data_template:
-        entity_id: binary_sensor.motion_device_moisture_low
-        last: >-
-          {{ last }}
-        details: >-
-          {{ details }}
-        state: >-
-          {{ state }}
-
-- id: motion_device_moisture_high
-  alias: motion_device_moisture_high
-  mode: single
-  initial_state: 'off'
-  trigger:
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_moisture'
-      attribute: 'high'
-  variables:
-    details: >-
-      {% if state_attr('binary_sensor.motion_device_moisture_exist','high')|lower != 'none' %}
-        {% set s = state_attr('binary_sensor.motion_device_moisture','high') %}
-        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
-          [{% for i in s -%}
-            {%- if not loop.first -%},{%- endif -%}
-            "{{- state_attr(i.entity_id,'friendly_name') }} is {{ states(i.entity_id)|int('unknown') -}}{{ state_attr(i.entity_id,'unit_of_measurement') -}}"
-          {%- endfor -%}]
-        {%- else -%}none{%- endif %}
-      {%- else -%}none{%- endif %}
-    state: >-
-      {% set s = state_attr('binary_sensor.motion_device_moisture','high') %}
-      {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and not s is string and s is iterable %}
-        {% if s|list|count > 0 %}on{% else %}off{% endif %}
-      {% else %}unknown{% endif %}
-    last: >-
-      {% if state|lower == 'off' %}
-        {{ state_attr('binary_sensor.motion_device_moisture_high','last') }}
-      {%- else -%}{{ utcnow().timestamp() }}{%- endif %}
-  condition:
-    - condition: template
-      value_template: >
-        {{ state|lower != 'unknown' }}
-  action:
-    - service: python_script.set_state
-      data_template:
-        entity_id: binary_sensor.motion_device_moisture_high
-        last: >-
-          {{ last }}
-        details: >-
-          {{ details }}
-        state: >-
-          {{ state }}
-
 # activity,unavailable
-
-- id: motion_device_moisture_activity
-  alias: motion_device_moisture_activity
-  mode: single
-  initial_state: 'off'
-  trigger:
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_moisture'
-      attribute: 'activity'
-  variables:
-    ids: >-
-      {% set s = state_attr('binary_sensor.motion_device_moisture','activity') %}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
-        {{ s|map(attribute='id')|sort|unique|list }}
-      {%- else -%}none{%- endif %}
-    details: >-
-      {% set s = state_attr('binary_sensor.motion_device_moisture','activity') %}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
-        "{{ s }}"
-      {%- else -%}none{%- endif %}
-    state: >-
-      {% set s = state_attr('binary_sensor.motion_device_moisture','activity') %}
-      {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and not s is string and s is iterable %}
-        {% if s|count > 0 %}on{% else %}off{% endif %}
-      {% else %}unknown{% endif %}
-    last: >-
-      {% if state|lower == 'off' %}
-        {{ state_attr('binary_sensor.motion_device_moisture_activity','last') }}
-      {%- else -%}{{ utcnow().timestamp() }}{%- endif %}
-  condition:
-    - condition: template
-      value_template: >
-        {{ state|lower != 'unknown' }}
-  action:
-    - service: python_script.set_state
-      data_template:
-        entity_id: binary_sensor.motion_device_moisture_activity
-        last: >-
-          {{ last }}
-        ids: >-
-          {{ ids }}
-        details: >-
-          {{ details }}
-        state: >-
-          {{ state }}
 
 - id: motion_device_moisture_unavailable
   alias: motion_device_moisture_unavailable
