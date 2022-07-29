@@ -515,3 +515,62 @@
       data_template:
         entity_id: binary_sensor.motion_reload
         state: 'off'
+
+- id: motion_refresh
+  alias: motion_refresh
+  mode: single
+  initial_state: on
+  trigger:
+    - platform: state
+      entity_id: input_boolean.motion_refresh
+      to: 'on'
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
+  action:
+    - choose:
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ states('input_select.motion_log_level') in ['debug','info'] }}
+          - alias: 'test if add-on is defined'
+            condition: template
+            value_template: >
+              {{ state_attr('binary_sensor.motion_addon_update','id')|lower == 'none' }}
+        sequence:
+          - alias: 'notify add-on refresh'
+            service: persistent_notification.create
+            data_template:
+              title: >-
+                INFO: Add-on restart
+              notification_id: >-
+                {{ 'motion-addon-refresh' }}
+              message: >-
+                Add-on undefined: "{{- state_attr('binary_sensor.motion_addon_update','id') -}}"
+          - alias: 'reset input_boolean.motion_refresh'
+            service: input_boolean.turn_off
+            data_template:
+              entity_id: input_boolean.motion_refresh
+    - choose:
+      - conditions:
+          - alias: 'test if add-on is defined'
+            condition: template
+            value_template: >
+              {{ state_attr('binary_sensor.motion_addon_update','id')|lower != 'none' }}
+        sequence:
+          - alias: 'notify add-on refresh'
+            service: persistent_notification.create
+            data_template:
+              title: >-
+                ALERT: Add-on restarting
+              notification_id: >-
+                {{ 'motion-addon-refresh' }}
+              message: >-
+                Add-on {{ state_attr('binary_sensor.motion_addon_update','id') }} refreshing at {{ when }}
+          - alias: 'trigger automation.motion_addon_restart'
+            service: automation.trigger
+            entity_id: automation.motion_addon_restart
+
