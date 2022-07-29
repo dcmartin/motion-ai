@@ -6,9 +6,11 @@
   trigger:
     - platform: state
       entity_id: sensor.motion_device_voltage_1w_max
-  binary_sensor:
+  sensor:
     - name: 'motion_device_voltage_high_spike'
-      device_class: 'problem'
+      state_class: 'measurement'
+      device_class: 'power_factor'
+      unit_of_measurement: '%'
       attributes:
         limit: >-
           {% set mean = states('sensor.motion_device_voltage_max_1w_mean') %}
@@ -19,23 +21,21 @@
         spike: >-
          {{ states.sensor.motion_device_voltage_max.attributes }}
       state: >-
-        {% set now = states('sensor.motion_device_voltage_max') %}
         {% set mean = states('sensor.motion_device_voltage_max_1w_mean') %}
-        {% set max = states('sensor.motion_device_voltage_max_1w_max') %}
         {% set stdev = states('sensor.motion_device_voltage_max_1w_stdev') %}
-        {{ now|lower != 'unknown' and now|lower != 'null' and now|lower != 'none'
-           and mean|lower != 'unknown' and mean|lower != 'null'and mean|lower != 'none'
-           and max|lower != 'unknown' and max|lower != 'null' and max|lower != 'none'
-           and stdev|lower != 'unknown' and stdev|lower != 'null' and stdev|lower != 'none'
-           and now|float(0.0) > (mean|float(0.0) + stdev|float(0.0)) }}
+        {%- if mean|lower != 'none' and mean is number and stdev|lower != 'none' and stdev is number -%}
+          {{ (mean|float(0) + stdev|float(0)) / mean|float(1) * 100 }}
+        {%- else -%}none{%- endif -%}
 
 - unique_id: motion_device_voltage_low_spike
   trigger:
     - platform: state
       entity_id: sensor.motion_device_voltage_1w_min
-  binary_sensor:
+  sensor:
     - name: 'motion_device_voltage_low_spike'
-      device_class: 'problem'
+      state_class: 'measurement'
+      device_class: 'power_factor'
+      unit_of_measurement: '%'
       attributes:
         limit: >-
           {% set mean = states('sensor.motion_device_voltage_min_1w_mean') %}
@@ -46,15 +46,11 @@
         spike: >-
          {{ states.sensor.motion_device_voltage_min.attributes }}
       state: >-
-        {% set now = states('sensor.motion_device_voltage_min') %}
         {% set mean = states('sensor.motion_device_voltage_min_1w_mean') %}
-        {% set max = states('sensor.motion_device_voltage_min_1w_max') %}
         {% set stdev = states('sensor.motion_device_voltage_min_1w_stdev') %}
-        {{ now|lower != 'unknown' and now|lower != 'null' and now|lower != 'none'
-           and mean|lower != 'unknown' and mean|lower != 'null'and mean|lower != 'none'
-           and max|lower != 'unknown' and max|lower != 'null' and max|lower != 'none'
-           and stdev|lower != 'unknown' and stdev|lower != 'null' and stdev|lower != 'none'
-           and now|float(0.0) < (max|float(0.0) - stdev|float(0.0))  }}
+        {%- if mean|lower != 'none' and mean is number and stdev|lower != 'none' and stdev is number -%}
+          {{ (mean|float(0) - stdev|float(0)) / mean|float(1) * 100 }}
+        {%- else -%}none{%- endif -%}
 
 - unique_id: motion_device_voltage_alarm
   trigger:
@@ -62,6 +58,7 @@
       entity_id: binary_sensor.motion_device_voltage_alarm_exist
   binary_sensor:
     - name: 'motion_device_voltage_alarm'
+      state_class: 'measurement'
       device_class: problem
       attributes:
         status: >-
