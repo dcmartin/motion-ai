@@ -43,6 +43,9 @@ MOTION_GROUP ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_GROUP' $(S
 MOTION_DEVICE ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_DEVICE' $(SETUP)) && echo "${TS}++ MOTION_DEVICE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_DEVICE),$(shell v=$$(cat MOTION_DEVICE) && echo "${TG}== MOTION_DEVICE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v=$$(echo $(HOST_NAME) | sed -e "s/-//g" -e "s/ /_/g") && echo "${TB}** MOTION_DEVICE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 MOTION_CLIENT ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_CLIENT' $(SETUP)) && echo "${TS}++ MOTION_CLIENT: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_CLIENT),$(shell v=$$(cat MOTION_CLIENT) && echo "${TG}== MOTION_CLIENT: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='$(MOTION_DEVICE)' && echo "${TB}** MOTION_CLIENT unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 MOTION_USER ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_USER' $(SETUP)) && echo "${TS}++ MOTION_USER: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_USER),$(shell v=$$(cat MOTION_USER) && echo "${TG}== MOTION_USER: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='none' && echo "${TB}** MOTION_USER unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+MOTION_PRIMARY ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_PRIMARY' $(SETUP)) && echo "${TS}++ MOTION_PRIMARY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_PRIMARY),$(shell v=$$(cat MOTION_PRIMARY) && echo "${TG}== MOTION_PRIMARY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='none' && echo "${TB}** MOTION_PRIMARY unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+MOTION_SECONDARY ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_SECONDARY' $(SETUP)) && echo "${TS}++ MOTION_SECONDARY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_SECONDARY),$(shell v=$$(cat MOTION_SECONDARY) && echo "${TG}== MOTION_SECONDARY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='none' && echo "${TB}** MOTION_SECONDARY unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+MOTION_TERTIARY ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_TERTIARY' $(SETUP)) && echo "${TS}++ MOTION_TERTIARY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_TERTIARY),$(shell v=$$(cat MOTION_TERTIARY) && echo "${TG}== MOTION_TERTIARY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='none' && echo "${TB}** MOTION_TERTIARY unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 
 MOTION_NOTIFY_SMARTPHONE ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_NOTIFY_SMARTPHONE' $(SETUP)) && echo "${TS}++ MOTION_NOTIFY_SMARTPHONE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_NOTIFY_SMARTPHONE),$(shell v=$$(cat MOTION_NOTIFY_SMARTPHONE) && echo "${TG}== MOTION_NOTIFY_SMARTPHONE: ${MC}$${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='false' && echo "${TB}** MOTION_NOTIFY_SMARTPHONE unset; default: ${DF}$${v}${NC}" > /dev/stderr && echo "$${v}")))
 
@@ -359,6 +362,9 @@ secrets.yaml: secrets.yaml.tmpl
           MOTION_TWILIO_SID="$(MOTION_TWILIO_SID)" \
           MOTION_TWILIO_TOKEN="$(MOTION_TWILIO_TOKEN)" \
 	  MOTION_USER="$(MOTION_USER)" \
+	  MOTION_PRIMARY="$(MOTION_PRIMARY)" \
+	  MOTION_SECONDARY="$(MOTION_SECONDARY)" \
+	  MOTION_TERTIARY="$(MOTION_TERTIARY)" \
 	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
 	  MQTT_HOST="$(MQTT_HOST)" \
 	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
@@ -380,6 +386,7 @@ lovelace_dashboards.json: lovelace_dashboards.json.tmpl
 	  HOST_NAME="$(HOST_NAME)" \
 	  MOTION_APP="$(MOTION_APP)" \
 	  MOTION_USER="$(MOTION_USER)" \
+	  MOTION_SITE="$(MOTION_SITE)" \
 	&& cat $< \
 	  | envsubst \
 	 > $@
