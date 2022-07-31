@@ -4,18 +4,28 @@
 
 - platform: template
   sensors:
-    motion_reload_enabled:
-      friendly_name: 'Reload enabled'
+    motion_reload:
+      friendly_name: 'Reload configuration'
       icon_template: >-
+        {{- 'mdi:reload' -}}
+      value_template: >-
         {% if is_state('input_boolean.motion_reload','on') %}
-          {{- 'mdi:auto-download' -}}
+          {{- 'mdi:reload' -}}
         {% else %}
-          {{- 'mdi:download-off' -}}
+          {{- 'mdi:cancel' -}}
+        {% endif %}
+    motion_reload_off:
+      friendly_name: 'Automatic reload disabled'
+      icon_template: >-
+        {% if is_state('input_boolean.motion_reload_off','on') %}
+          {{- 'mdi:cancel' -}}
+        {% else %}
+          {{- 'mdi:reload' -}}
         {% endif %}
       value_template: >-
-        {{ is_state('input_boolean.motion_reload','on') }}
-    motion_reload:
-      friendly_name: 'Reload indicator'
+        {{ is_state('input_boolean.motion_reload_off','on') }}
+    motion_reload_required:
+      friendly_name: 'Reload required'
       icon_template: >-
         {% if is_state('binary_sensor.motion_addon_reload','on') %}
           {{- 'mdi:refresh' -}}
@@ -26,40 +36,83 @@
         {% endif %}
       value_template: >-
         {{ is_state('binary_sensor.motion_addon_reload','on') or is_state('binary_sensor.motion_addon_update','on') }}
-    motion_reloaded:
-      friendly_name: 'Reloaded'
-      icon_template: >-
-        {% if is_state('binary_sensor.motion_reloaded','on') %}
-          {{- 'mdi:download-box' -}}
-        {% else %}
-          {{- 'mdi:download-box-outline' -}}
-        {% endif %}
-      value_template: >-
-        {% set s = states('binary_sensor.motion_reloaded') %}
-        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
-          {{ s }}
-        {% else %}null{% endif %}
-    motion_restarting:
+    motion_reloading:
       friendly_name: 'Reloading'
       icon_template: >-
         {% set s = state_attr('automation.motion_reload','current') %}
         {% if s|int(0) > 0 %}
-          {{- 'mdi:download-lock' -}}
-        {% elif s|int(-1) >= 0 %}
-          {{- 'mdi:download-outline' -}}
+          {{- 'mdi:reload' -}}
         {% else %}
-          {{- 'mdi:download-off' -}}
+          {{- 'mdi:cancel' -}}
         {% endif %}
       attribute_templates:
-        delay: 30
+        timestamp: >-
+          {{ state_attr('automation.motion_reload','last_triggered')|as_timestamp(none)  }}
         markdown: >-
-          {% if is_state('binary_sensor.motion_restarting','on') %}
-            <b>Restarting</b> at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
-          {% else %}
-            Restarted {{ states('sensor.motion_uptime')|as_datetime|relative_time }} ago
+          {% if is_state('binary_sensor.motion_reloading','on') -%}
+            <b>Reloading</b> at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}
+          {%- else -%}
+            {%- set s = state_attr('binary_sensor.motion_reloading','timestamp') -%}
+            {%- if s|float(0) > 0 -%}
+              {%- set s = s|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -%}
+              <b>Reloaded</b> at {{ s }}
+            {%- else -%}<i>Reload unknown</i>{%- endif -%}
           {% endif %}
       value_template: >-
         {% set s = state_attr('automation.motion_reload','current') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+          {{ s|int(0) > 0 }}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_restart:
+      friendly_name: 'Restart system'
+      icon_template: >-
+        {% if is_state('input_boolean.motion_restart','on') %}
+          {{- 'mdi:restart' -}}
+        {% else %}
+          {{- 'mdi:restart-off' -}}
+        {% endif %}
+      value_template: >-
+        {{ is_state('input_boolean.motion_restart','on') }}
+    motion_restart_off:
+      friendly_name: 'Automatics sestart disabled'
+      icon_template: >-
+        {% if is_state('input_boolean.motion_restart_off','on') %}
+          {{- 'mdi:restart-off' -}}
+        {% else %}
+          {{- 'mdi:restart' -}}
+        {% endif %}
+      value_template: >-
+        {{ is_state('input_boolean.motion_restart_off','on') }}
+    motion_restarting:
+      friendly_name: 'Restarting'
+      icon_template: >-
+        {% set s = state_attr('automation.motion_restart','current') %}
+        {% if s|int(0) > 0 %}
+          {{- 'mdi:restart' -}}
+        {% elif s|int(-1) >= 0 %}
+          {{- 'mdi:restart-off' -}}
+        {% else %}
+          {{- 'mdi:cancel' -}}
+        {% endif %}
+      attribute_templates:
+        delay: 30
+        timestamp: >-
+          {{ state_attr('automation.motion_restart','last_triggered')|as_timestamp(none)  }}
+        markdown: >-
+          {% if is_state('binary_sensor.motion_restarting','on') -%}
+            <b>Restarting</b> at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}
+          {%- else -%}
+            {%- set s = state_attr('binary_sensor.motion_restarting','timestamp') -%}
+            {%- if s|float(0) > 0 -%}
+              {%- set s = s|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -%}
+              <b>Restarted</b> at {{ s }}
+            {%- else -%}<i>Restart unknown</i>{%- endif -%}
+          {% endif %}
+      value_template: >-
+        {% set s = state_attr('automation.motion_restart','current') %}
         {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
           {{ s|int(0) > 0 }}
         {% else %}null{% endif %}
@@ -88,14 +141,8 @@
 - platform: template
   sensors:
     motion_refresh:
-      friendly_name: 'Add-on restarted'
+      friendly_name: 'Restart add-on'
       icon_template: >-
         {{- 'mdi:refresh' -}}
       value_template: >-
         {{ is_state('input_boolean.motion_addon_refresh','on') }}
-    motion_restart_off:
-      friendly_name: 'Automatic restart disabled'
-      icon_template: >-
-        {{- 'mdi:restart-off' -}}
-      value_template: >-
-        {{ is_state('input_boolean.motion_addon_restart_off','on') }}

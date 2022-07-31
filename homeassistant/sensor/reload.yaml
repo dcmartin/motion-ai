@@ -4,16 +4,29 @@
 
 - platform: template
   sensors:
-    motion_reload_notify:
+    motion_repository:
+      friendly_name: 'Git repository'
+      icon_template: 'mdi:github'
+      attribute_templates:
+        branch: >-
+          {{ 'master' }}
+        release: >-
+          {{ 'unknown' }}
+      value_template: >-
+        {% set s = states('input_text.motion_repository') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+          {{ s }}
+        {% else %}null{% endif %}
+    motion_restart_notify:
       friendly_name: 'Reload notify status'
       icon_template: 'mdi:cloud-refresh'
       attribute_templates:
         id: >-
-          {{ 'reload-notification' }}
+          {{ 'restart-notification' }}
         actions: >-
-          {% set id = state_attr('sensor.motion_reload_notify','id') %}
+          {% set id = state_attr('sensor.motion_restart_notify','id') %}
           {% if id|lower != 'none' %}
-            {% set interval = state_attr('sensor.motion_reload_notify','interval')|int(5) %}
+            {% set interval = state_attr('sensor.motion_restart_notify','interval')|int(5) %}
             {% set actions = [
               {'action': id|string + '-approve','icon':'sfsymbols:hand.thumbsup','title':'Approve system restart','destructive':false},
               {'action': id|string + '-wait','icon':'sfsymbols:timer','title':'Ask again in ' + interval|string + ' minutes','destructive':false},
@@ -62,6 +75,9 @@
           {% else %}none{% endif %}
       value_template: >-
         {{ 'unknown' }}
+
+- platform: template
+  sensors:
     motion_reload_updates:
       friendly_name: 'Updated'
       icon_template: 'mdi:cloud-refresh'
@@ -87,24 +103,3 @@
               {{ s.last_updated|as_timestamp }}
             {% else %}none{% endif %}
           {% else %}none{% endif %}
-    motion_reload_repository:
-      value_template: >-
-        {% set s = states('input_text.motion_reload_repository') %}
-        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
-          {{ s }}
-        {% else %}null{% endif %}
-    motion_reload_apk:
-      value_template: >-
-        apk add make gettext sudo
-    motion_reload_git:
-      value_template: >-
-        {% set s = states('sensor.motion_reload_repository') %}
-        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
-          if [ ! -d /tmp/mai ]; then git clone {{ s|string }} /tmp/mai; fi
-        {% else %}null{% endif %}
-    motion_reload_tar:
-      value_template: >-
-        cd /tmp/mai/homeassistant && git pull && tar cf - . | ( cd /config ; tar xf - )
-    motion_reload_make:
-      value_template: >-
-        cd /config && make
