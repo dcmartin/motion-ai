@@ -2,14 +2,46 @@
 # homeassistant/automation/reload.yaml
 ###
 
+- id: motion_restart_request
+  alias: motion_restart_request
+  mode: single
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: input_boolean.motion_restart
+      to: 'on'
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('input_boolean.motion_restart_off','on') }}
+      - condition: template
+        value_template: >
+          {{ not is_state('binary_sensor.motion_restarting','on') }}
+      - condition: template
+        value_template: >
+          {{ not is_state('binary_sensor.motion_rebooting','on') }}
+  action:
+    - variables:
+        delay: >-
+          {{ state_attr('binary_sensor.motion_restarting','delay') }}
+        timestamp: >-
+          {{ (utcnow() + timedelta(seconds=delay))|as_timestamp }}
+        when: >-
+          {{ timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+    - alias: 'set input_boolean.motion_restart_request'
+      service: input_boolean.turn_on
+      entity_id: input_boolean.motion_restart_request
+
 - id: motion_restart_notification
   alias: motion_restart_notification
   initial_state: 'on'
   mode: restart
   trigger:
     - platform: state
-      entity_id: sensor.motion_restart_notify
-      to: 'request'
+      entity_id: input_boolean.motion_restart_request
+      to: 'on'
   variables:
     service: >-
       {% set s = state_attr('sensor.motion_restart_notify','device') %}
@@ -315,17 +347,14 @@
 
 ## restart
 
-- id: motion_restart
-  alias: motion_restart
+- id: motion_restart_on
+  alias: motion_restart_on
   mode: single
   initial_state: 'on'
   trigger:
     - platform: state
       entity_id: input_boolean.motion_restart
       to: 'on'
-    - platform: state
-      entity_id: sensor.motion_restart_notify
-      to: 'approve'
   condition:
     condition: and
     conditions:
@@ -335,6 +364,19 @@
       - condition: template
         value_template: >
           {{ is_state('input_boolean.motion_restart_off','off') }}
+  action:
+    - alias: 'trigger automation.motion_restart'
+      service: automation.trigger
+      entity_id: automation.motion_restart
+
+- id: motion_restart
+  alias: motion_restart
+  mode: single
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_restart
+      to: 'approve'
   action:
     - variables:
         delay: >-
