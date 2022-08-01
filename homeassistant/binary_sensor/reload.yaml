@@ -17,6 +17,56 @@
       value_template: >-
         {{ is_state('binary_sensor.motion_addon_update','on') }}
 
+# refresh
+
+- platform: template
+  sensors:
+    motion_refresh:
+      friendly_name: 'Refresh add-on'
+      icon_template: >-
+        {{- 'mdi:refresh' -}}
+      value_template: >-
+        {{ is_state('input_boolean.motion_addon_refresh','on') }}
+    motion_refresh_off:
+      friendly_name: 'Automatic add-on restart disabled'
+      icon_template: >-
+        {% if is_state('input_boolean.motion_refresh_off','on') %}
+          {{- 'mdi:cancel' -}}
+        {% else %}
+          {{- 'mdi:refresh' -}}
+        {% endif %}
+      value_template: >-
+        {{ is_state('input_boolean.motion_refresh_off','on') }}
+    motion_refreshing:
+      friendly_name: 'Refreshing add-on'
+      icon_template: >-
+        {% set s = state_attr('automation.motion_refresh','current') %}
+        {% if s|int(0) > 0 %}
+          {{- 'mdi:refresh' -}}
+        {% else %}
+          {{- 'mdi:cancel' -}}
+        {% endif %}
+      attribute_templates:
+        timestamp: >-
+          {{ state_attr('automation.motion_refresh','last_triggered')|as_timestamp(none)  }}
+        markdown: >-
+          {% set icon = 'refresh-icon' -%}
+          <h2>Refreshing add-on</h2><img src="/local/images/icons/'{{- icon -}}'.png?v1"><hr>
+          {% if is_state('binary_sensor.motion_refreshing','on') -%}
+            Add-on <b>{{- state_attr('sensor.motion_name','title') -}}</b> restarting at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}
+          {%- else -%}
+            {%- set s = state_attr('binary_sensor.motion_refreshing','timestamp') -%}
+            {%- if s|float(0) > 0 -%}
+              {%- set s = s|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -%}
+              <b>Restarted</b> {{ state_attr('sensor.motion_name','title') }} at {{ s }}
+            {%- else -%}<i>Reload unknown</i>{%- endif -%}
+          {% endif %}
+      value_template: >-
+        {% set s = state_attr('automation.motion_refresh','current') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+          {{ s|int(0) > 0 }}
+        {% else %}null{% endif %}
+
 ## reload
 
 - platform: template
@@ -121,7 +171,7 @@
         {% set s = state_attr('automation.motion_restart','current') %}
         {% if s|int(0) > 0 %}
           {{- 'mdi:restart' -}}
-        {% elif s|int(-1) >= 0 %}
+        {% elif is_state('binary_sensor.motion_restart_off','on') -%}
           {{- 'mdi:restart-off' -}}
         {% else %}
           {{- 'mdi:cancel' -}}
@@ -135,6 +185,11 @@
           <h2>Restarting system</h2><img src="/local/images/icons/'{{- icon -}}'.png?v1"><hr>
           {% if is_state('binary_sensor.motion_restarting','on') -%}
             System <b>restarting</b> at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}
+            {{- '<ul>' -}}
+            <li>{{- state_attr('','friendly_name') -}}: {{ states('input_boolean.motion_restart') -}}</li>
+            <li>{{- state_attr('','friendly_name') -}}: {{ states('input_boolean.motion_restart_requested') -}}</li>
+            <li>{{- state_attr('','friendly_name') -}}: {{ states('binary_sensor.motion_restart_required') -}}</li>
+            {{- '</ul>' -}}
           {%- else -%}
             {%- set s = state_attr('binary_sensor.motion_restarting','timestamp') -%}
             {%- if s|float(0) > 0 -%}
@@ -147,6 +202,11 @@
         {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
           {{ s|int(0) > 0 }}
         {% else %}null{% endif %}
+
+# reboot
+
+- platform: template
+  sensors:
     motion_rebooting:
       friendly_name: 'Rebooting'
       icon_template: >-
@@ -159,9 +219,9 @@
         delay: 30
         markdown: >-
           {% set icon = 'refresh-icon' -%}
-          <h2>Restarting add-on</h2><img src="/local/images/icons/'{{- icon -}}'.png?v1"><hr>
+          <h2>Rebooting</h2><img src="/local/images/icons/'{{- icon -}}'.png?v1"><hr>
           {% if is_state('binary_sensor.motion_rebooting','on') %}
-            <b>Rebooting</b> at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+            Hub <b>rebooting</b> at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
           {% else %}
             Rebooted {{ states('sensor.last_boot')|as_datetime|relative_time }} ago
           {% endif %}
@@ -170,52 +230,3 @@
         {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
           {{ s|int(0) > 0 }}
         {% else %}null{% endif %}
-
-- platform: template
-  sensors:
-    motion_refresh:
-      friendly_name: 'Refresh add-on'
-      icon_template: >-
-        {{- 'mdi:refresh' -}}
-      value_template: >-
-        {{ is_state('input_boolean.motion_addon_refresh','on') }}
-    motion_refresh_off:
-      friendly_name: 'Automatic add-on restart disabled'
-      icon_template: >-
-        {% if is_state('input_boolean.motion_refresh_off','on') %}
-          {{- 'mdi:cancel' -}}
-        {% else %}
-          {{- 'mdi:refresh' -}}
-        {% endif %}
-      value_template: >-
-        {{ is_state('input_boolean.motion_refresh_off','on') }}
-    motion_refreshing:
-      friendly_name: 'Refreshing add-on'
-      icon_template: >-
-        {% set s = state_attr('automation.motion_refresh','current') %}
-        {% if s|int(0) > 0 %}
-          {{- 'mdi:refresh' -}}
-        {% else %}
-          {{- 'mdi:cancel' -}}
-        {% endif %}
-      attribute_templates:
-        timestamp: >-
-          {{ state_attr('automation.motion_refresh','last_triggered')|as_timestamp(none)  }}
-        markdown: >-
-          {% set icon = 'refresh-icon' -%}
-          <h2>Refreshing add-on</h2><img src="/local/images/icons/'{{- icon -}}'.png?v1"><hr>
-          {% if is_state('binary_sensor.motion_refreshing','on') -%}
-            Add-on <b>{{- state_attr('sensor.motion_name','title') -}}</b> restarting at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}
-          {%- else -%}
-            {%- set s = state_attr('binary_sensor.motion_refreshing','timestamp') -%}
-            {%- if s|float(0) > 0 -%}
-              {%- set s = s|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -%}
-              <b>Restarted</b> {{ state_attr('sensor.motion_name','title') }} at {{ s }}
-            {%- else -%}<i>Reload unknown</i>{%- endif -%}
-          {% endif %}
-      value_template: >-
-        {% set s = state_attr('automation.motion_refresh','current') %}
-        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
-          {{ s|int(0) > 0 }}
-        {% else %}null{% endif %}
-
