@@ -1,7 +1,7 @@
 #!/bin/bash
 
 CLASS=( battery connectivity current device door energy gas humidity illuminance light moisture motion occupancy opening plug power presence problem safety smoke tamper temperature update vibration voltage )
-NOTIFICATION=( activity cleared found good bad high low missing unavailable )
+NOTIFICATION=( activity cleared found good bad high low high_spike low_spike missing unavailable )
 
 for i in ${CLASS[@]}; do 
   for j in ${NOTIFICATION[@]}; do
