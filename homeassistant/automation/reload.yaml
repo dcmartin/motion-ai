@@ -230,13 +230,23 @@
                   - service: persistent_notification.create
                     data_template:
                       title: >-
-                        DEBUG: Reload notification
+                        DEBUG: Restart notification
                       notification_id: >-
                         {{ 'debug-restart-notification' }}
                       message: >-
                         <b>Timeout</b> after {{ interval }} minutes; repeating at <i>{{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}</i>
-        until: >-
-          {{ wait.remaining > 0 }}
+        until:
+          - condition: template
+            value_template: >-
+              {{ wait.remaining > 0 }}
+          - condition: template
+            value_template: >-
+              {{ repeat.index > 5 }}
+          - condition: state
+            entity_id: 'binary_sensor.motion_restart_requested'
+            state: 'on'
+            for:
+              minutes: 15
     - choose:
         - conditions:
             - condition: template
@@ -246,11 +256,13 @@
             - service: persistent_notification.create
               data_template:
                 title: >-
-                  DEBUG: Reload notification
+                  DEBUG: Restart notification
                 notification_id: >-
                   {{ 'debug-restart-notification' }}
                 message: >-
                   <b>Complete</b> at <i>{{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}</i>
+                  {%- if is_state('binary_sensor.motion_restart_requested','on') and states.binary_sensor.motion_restart_requested.last_updated|as_timestamp
+                  <ul><li>Time since request 
 
 - id: motion_restart_notification_response
   alias: motion_restart_notification_response
@@ -320,18 +332,15 @@
                     - condition: template
                       value_template: >
                         {{ states('input_select.motion_log_level') in ['debug','info','notice','alert','critical'] }}
-                    - condition: template
-                      value_template: >
-                        {{ state|lower == 'approve' }}
                   sequence:
                     - service: persistent_notification.create
                       data_template:
                         title: >-
-                          ALERT: Reload approved
+                          ALERT: Restart response
                         notification_id: >-
-                          {{ 'restart-notification-approve' }}
+                          {{ 'restart-notification-response' }}
                         message: >-
-                          <b>Update</b> to <code>{{- state -}}</code> at <i>{{- when -}}</i>
+                          Response received: Updated to <b><code>{{- state -}}</code></b> at <i>{{- when -}}</i>
             - alias: 'set sensor.motion_restart_notify to new state w/ timestamp, when'
               service: python_script.set_state
               data_template:
@@ -342,6 +351,10 @@
                   {{ when }}
                 state: >-
                   {{ state }}
+    - alias: 'turn off restart_requested'
+      service: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.motion_restart_requested
 
 - id: motion_restart_on
   alias: motion_restart_on
