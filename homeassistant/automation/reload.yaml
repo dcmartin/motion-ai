@@ -130,7 +130,7 @@
     badge: >-
       {{ 1 }}
     timeout: >-
-      {{ interval|int * 60 }}
+      {{ interval|int(1) * 60 }}
   action:
     - choose:
         - conditions:
@@ -225,8 +225,9 @@
                    {# third action - deny #}
                    {{ actions[2].action }}
             timeout:
-              minutes: >-
-                {{ interval }}
+              seconds: >-
+                {{ timeout }}
+            continue_on_timeout: true
           - choose:
               - conditions:
                   - condition: template
@@ -240,8 +241,16 @@
                       notification_id: >-
                         {{ 'motion-restart-notification' }}
                       message: >-
-                        <b>Timeout</b> after {{ interval }} minutes; repeating at <i>{{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}</i>
+                        {%- if wait.trigger|lower == 'none' -%}
+                          <b>Timeout</b> after {{ timeout }} seconds; repeating at <i>{{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}</i>
+                        {%- elif wait.completed|lower == 'true' -%}
+                          <b>Trigger</b>: {{ wait.trigger }}
+                        {%- endif -%}
         until:
+          - condition: template
+            value_template: >-
+              {{ wait.completed|lower == 'true' }}
+          - condition: template
           - condition: template
             value_template: >-
               {{ wait.remaining > 0 }}
