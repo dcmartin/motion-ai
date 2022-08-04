@@ -143,7 +143,7 @@
                 title: >-
                   DEBUG: Reload notification
                 notification_id: >-
-                  {{ 'motion-restart-notification' }}
+                  {{ 'motion-restart-notification-start' }}
                 message: >-
                   <b>Start</b> at <i>{{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}</i>
                   <ul>
@@ -239,13 +239,28 @@
                       title: >-
                         DEBUG: Restart notification
                       notification_id: >-
-                        {{ 'motion-restart-notification' }}
+                        {{ 'motion-restart-notification-repeat' }}
                       message: >-
                         {%- if wait.trigger|lower == 'none' -%}
                           <b>Timeout</b> after {{ timeout }} seconds; repeating at <i>{{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}</i>
                         {%- elif wait.completed|lower == 'true' -%}
                           <b>Trigger</b>: {{ wait.trigger }}
                         {%- endif -%}
+          - choose:
+              - conditions:
+                  - alias: 'test if trigger specified'
+                    condition: template
+                    value_template: >
+                      {{ wait.trigger|lower != 'none' and 'event_data' in wait.trigger and wait.trigger.event_data|lower != 'none' and 'action' in wait.trigger.event_data }}
+                  - alias: 'test if response valid'
+                    condition: template
+                    value_template: > 
+                      {{ wait.trigger.event_data.action|lower in state_attr('sensor.motion_restart_notify','responses') }}
+                sequence:
+                  - alias: 'turn off restart_requested'
+                    service: input_boolean.turn_off
+                    target:
+                      entity_id: input_boolean.motion_restart_requested
         until:
           - condition: template
             value_template: >-
@@ -275,7 +290,7 @@
                 title: >-
                   INFO: Restart request
                 notification_id: >-
-                  {{ 'motion-restart-notification' }}
+                  {{ 'motion-restart-notification-complete' }}
                 message: >-
                   {%- set s = states.binary_sensor.motion_restart_requested.last_updated|default('unknown') -%}
                   {%- if s|lower != 'unknown' -%}{%- set s = s|relative_time -%}{%- endif -%}
@@ -368,10 +383,6 @@
                   {{ when }}
                 state: >-
                   {{ state }}
-    - alias: 'turn off restart_requested'
-      service: input_boolean.turn_off
-      target:
-        entity_id: input_boolean.motion_restart_requested
 
 - id: motion_restart_on
   alias: motion_restart_on
