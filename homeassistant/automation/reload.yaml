@@ -239,14 +239,14 @@
                   - service: persistent_notification.create
                     data_template:
                       title: >-
-                        DEBUG: Trigger wait
+                        DEBUG: Waiting complete
                       notification_id: >-
                         {{ 'motion-restart-notification-wait' }}
                       message: >-
-                        {%- if not 'trigger' in wait or wait.trigger|lower == 'none' -%}
+                        {%- if wait.remaining <= 0 -%}
                           <b>Timeout</b> after {{ timeout }} seconds at <i>{{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}</i>
-                        {%- elif 'completed' in wait and wait.completed|lower == 'true' -%}
-                          <b>Trigger</b>: {{ wait.trigger }}
+                        {%- elif 'platform' in wait and wait.platform|lower == 'event' and 'trigger' in wait and 'event' in wait.trigger -%}
+                          <b>Action</b> after {{ timeout - wait.remaining }}: {{ wait.trigger.event.action }}
                         {%- else -%}
                           Wait: {{ wait }} at <i>{{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}</i>
                         {%- endif -%}
@@ -256,24 +256,21 @@
                   - alias: 'test if trigger specified'
                     condition: template
                     value_template: >
-                      {{ wait.trigger|lower != 'none' and 'event_data' in wait.trigger and wait.trigger.event_data|lower != 'none' and 'action' in wait.trigger.event_data }}
+                      {{ wait.trigger|lower != 'none' and 'event' in wait.trigger and wait.trigger.event|lower != 'none' and 'action' in wait.trigger.event }}
                   - alias: 'test if response valid'
                     condition: template
                     value_template: > 
-                      {{ wait.trigger.event.data.action|default(none)|string|replace('restart-notification-','') in state_attr('sensor.motion_restart_notify','responses') }}
+                      {{ wait.trigger.event.action|default(none)|string|replace('restart-notification-','') in state_attr('sensor.motion_restart_notify','responses') }}
                 sequence:
                   - alias: 'turn off restart_requested'
                     service: input_boolean.turn_off
                     target:
                       entity_id: input_boolean.motion_restart_requested
         until:
-          - condition: template
+          - alias: 'until requested is off'
+            condition: template
             value_template: >-
               {{ is_state('input_boolean.motion_restart_requested','off') }}
-    - alias: 'turn off restart_requested'
-      service: input_boolean.turn_off
-      target:
-        entity_id: input_boolean.motion_restart_requested
     - alias: 'debug notification'
       choose:
         - conditions:
