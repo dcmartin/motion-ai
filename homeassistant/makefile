@@ -411,7 +411,7 @@ lovelace_resources.json: lovelace_resources.json.tmpl
 
 ## notifications
 
-notify.system.json: notify.system.json.tmpl
+notify.system.json: notify.system.json.tmpl setup.json
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  MOTION_APP="$(MOTION_APP)" \
@@ -423,7 +423,7 @@ notify.system.json: notify.system.json.tmpl
 	-@mkdir -p .storage/
 	@ln -s ../$@ .storage/lovelace.notify_system
 
-notify.devices.json: notify.devices.json.tmpl
+notify.devices.json: notify.devices.json.tmpl setup.json
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  MOTION_APP="$(MOTION_APP)" \
@@ -435,7 +435,7 @@ notify.devices.json: notify.devices.json.tmpl
 	-@mkdir -p .storage/
 	@ln -s ../$@ .storage/lovelace.notify_devices
 
-notify.unavailable.json: notify.unavailable.json.tmpl
+notify.unavailable.json: notify.unavailable.json.tmpl setup.json
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  MOTION_APP="$(MOTION_APP)" \
@@ -447,7 +447,7 @@ notify.unavailable.json: notify.unavailable.json.tmpl
 	-@mkdir -p .storage/
 	@ln -s ../$@ .storage/lovelace.notify_unavailable
 
-notify.missing.json: notify.missing.json.tmpl
+notify.missing.json: notify.missing.json.tmpl setup.json
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  MOTION_APP="$(MOTION_APP)" \
@@ -459,7 +459,7 @@ notify.missing.json: notify.missing.json.tmpl
 	-@mkdir -p .storage/
 	@ln -s ../$@ .storage/lovelace.notify_missing
 
-notify.activity.json: notify.activity.json.tmpl
+notify.activity.json: notify.activity.json.tmpl setup.json
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  MOTION_APP="$(MOTION_APP)" \
@@ -476,7 +476,7 @@ notify.activity.json: notify.activity.json.tmpl
 .storage/lovelace: lovelace.json.tmpl
 	${MAKE} lovelace.json
 
-lovelace.json: lovelace.json.tmpl
+lovelace.json: lovelace.json.tmpl setup.json
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  MOTION_APP="$(MOTION_APP)" \
@@ -488,7 +488,7 @@ lovelace.json: lovelace.json.tmpl
 	-@mkdir -p .storage/
 	@ln -s ../$@ .storage/lovelace
 
-lovelace.owner.json: lovelace.owner.json.tmpl
+lovelace.owner.json: lovelace.owner.json.tmpl setup.json
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  MOTION_APP="$(MOTION_APP)" \
@@ -500,7 +500,7 @@ lovelace.owner.json: lovelace.owner.json.tmpl
 	-@mkdir -p .storage/
 	@ln -s ../$@ .storage/lovelace.lovelace_owner
 
-lovelace.primary.json: lovelace.primary.json.tmpl
+lovelace.primary.json: lovelace.primary.json.tmpl setup.json
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  MOTION_APP="$(MOTION_APP)" \
@@ -514,7 +514,7 @@ lovelace.primary.json: lovelace.primary.json.tmpl
 
 # legacy not deprecated
 
-lovelace.developer.json: lovelace.developer.json.tmpl $(WEBCAMS)
+lovelace.developer.json: lovelace.developer.json.tmpl setup.json $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  MOTION_APP="$(MOTION_APP)" \
@@ -528,7 +528,7 @@ lovelace.developer.json: lovelace.developer.json.tmpl $(WEBCAMS)
 	-@mkdir -p .storage/
 	@ln -s ../$@ .storage/lovelace.lovelace_developer
 
-lovelace.person.json: lovelace.person.json.tmpl $(WEBCAMS)
+lovelace.person.json: lovelace.person.json.tmpl setup.json $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  HOST_NAME="$(HOST_NAME)" \
@@ -550,7 +550,7 @@ lovelace.person.json: lovelace.person.json.tmpl $(WEBCAMS)
 	-@mkdir -p .storage/
 	@ln -s ../$@ .storage/lovelace.lovelace_person
 
-lovelace.vehicle.json: lovelace.vehicle.json.tmpl $(WEBCAMS)
+lovelace.vehicle.json: lovelace.vehicle.json.tmpl setup.json $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  HOST_NAME="$(HOST_NAME)" \
@@ -567,7 +567,7 @@ lovelace.vehicle.json: lovelace.vehicle.json.tmpl $(WEBCAMS)
 	-@mkdir -p .storage/
 	@ln -s ../$@ .storage/lovelace.lovelace_vehicle
 
-lovelace.animal.json: lovelace.animal.json.tmpl $(WEBCAMS)
+lovelace.animal.json: lovelace.animal.json.tmpl setup.json $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  HOST_NAME="$(HOST_NAME)" \
@@ -593,7 +593,7 @@ lovelace.animal.json: lovelace.animal.json.tmpl $(WEBCAMS)
 #	  | jq '(.data.config.views[]|select(.path=="motion_live").cards[].cards[]|select(.card.title=="COMPLETE").card.entities)+='"$$(jq '[.[]|{"entity":("sensor.motion_"+.name+"_complete_mean")}]' $(WEBCAMS))" \
 #	  | jq '(.data.config.views[]|select(.path=="motion_live").cards[].cards[]|select(.card.title=="RATIO").card.entities)+='"$$(jq '[.[]|{"entity":("sensor.motion_"+.name+"_complete_ratio")}]' $(WEBCAMS))" \
 
-lovelace.experimental.json: lovelace.experimental.json.tmpl $(WEBCAMS)
+lovelace.experimental.json: lovelace.experimental.json.tmpl setup.json $(WEBCAMS)
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  HOST_NAME="$(HOST_NAME)" \
