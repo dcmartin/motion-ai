@@ -244,26 +244,14 @@
                         {{ 'motion-restart-notification-wait' }}
                       message: >-
                         {%- if wait.remaining <= 0 -%}
-                          <b>Timeout</b> after {{ timeout }} seconds at <i>{{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}</i>
+                          Timeout <b>expired</b> after {{ timeout }} seconds at <i>{{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}</i>
                         {%- else -%}
-                          Wait: {{ wait }} at <i>{{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}</i>
+                          Timeout <b>remaining</b> {{ wait.remaining|default(0) -})s at <i>{{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}</i>
+                          <br>
+                          <code>
+                          {{- wait -}}
+                          </code>
                         {%- endif -%}
-          - alias: 'end of trigger'
-            choose:
-              - conditions:
-                  - alias: 'test if trigger specified'
-                    condition: template
-                    value_template: >
-                      {{- 'trigger' in wait and 'event' in wait.trigger and 'action' in wait.trigger.event -}}
-                  - alias: 'test if response valid'
-                    condition: template
-                    value_template: > 
-                      {{ wait.trigger.event.action|default(none)|string|replace('restart-notification-','') in state_attr('sensor.motion_restart_notify','responses') }}
-                sequence:
-                  - alias: 'turn off restart_requested'
-                    service: input_boolean.turn_off
-                    target:
-                      entity_id: input_boolean.motion_restart_requested
         until:
           - alias: 'until requested is off'
             condition: template
@@ -341,6 +329,10 @@
               value_template: >
                 {{ response|lower in responses }}
           sequence:
+            - alias: 'turn off restart_requested'
+              service: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.motion_restart_requested
             - alias: 'set motion_restart_notify: timestamp, when'
               variables:
                 timestamp: >-
