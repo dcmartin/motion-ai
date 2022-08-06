@@ -245,9 +245,9 @@
 #  "share_dir": "/share/motion"
 #}
 
-- id: motion_addons_start
-  alias: motion_addons_start
-  initial_state: 'on'
+- id: motion_addons_mqtt_start
+  alias: motion_addons_mqtt_start
+  initial_state: 'off'
   mode: queued
   max_exceeded: warn
   max: 1000
@@ -308,7 +308,7 @@
               service: persistent_notification.dismiss
               data_template:
                 notification_id: >-
-                  {{ 'addon-started-' + id|lower }}
+                  {{ 'addon-discovered-' + id|lower }}
             - choose:
                 - conditions:
                     - condition: template
@@ -344,11 +344,11 @@
             - service: persistent_notification.create
               data_template:
                 title: >-
-                  NOTICE: Add-on started
+                  NOTICE: Add-on discovered
                 notification_id: >-
-                  {{ 'addon-started-' + id|lower }}
+                  {{ 'addon-discovered-' + id|lower }}
                 message: >-
-                  Add-on {{ id }} has started at {{ when -}}; ; IP: {{ ipaddr -}}; [{{- group -}},{{- device -}},{{- client -}}]
+                  Add-on discovery of <b>{{- id -}}</b>; started at {{ when -}}; ; IP: {{ ipaddr -}}; [{{- group -}},{{- device -}},{{- client -}}]
     - alias: 'set start state'
       service: python_script.set_state
       data_template:
@@ -367,6 +367,141 @@
           {{ timestamp }}
         config: >-
           {{ trigger.payload_json }}
+        state: >-
+          {{ group|lower != 'null' and device|lower != 'null' }}
+    - alias: add to group
+      service: group.set
+      data_template:
+        object_id: motion_addons
+        name: 'All add-ons'
+        add_entities: >-
+          {{ sensor }}
+ 
+## config start
+
+- id: motion_addons_config_start
+  alias: motion_addons_config_start
+  initial_state: 'on'
+  mode: single
+  max_exceeded: warn
+  trigger:
+    - platform: state
+      entity_id: 'sensor.motion_addon_config'
+      attribute: 'timestamp'
+  variables:
+    config: >-
+      {% set config = none -%}
+      {%- set s = state_attr('sensor.motion_addon_config','config') -%}
+      {%- if s|lower != 'none' -%}
+        {%- set config = s -%}
+      {%- endif -%}
+      {{- config }}
+    group: >-
+      {% set group = config.group|default(none) -%}
+      {{- group }}
+    device: >-
+      {% set device = config.device|default(none) -%}
+      {{- device }}
+    id: >-
+      {% set id = none -%}
+      {% if device|lower != 'null' and device|lower != 'none' and device|lower|length > 0 -%}
+        {%- set id = device|replace('-','_')|replace(' ','_')|replace('.','_') -%}
+      {%- endif -%}
+      {{- id }}
+    timestamp: >-
+      {% set timestamp = config.date|default(none) -%}
+      {{- timestamp }}
+    client: >-
+      {% set client = config.client|default(none) -%}
+      {{- client }}
+    ipaddr: >-
+      {% set ipaddr = config.ipaddr |default(none) -%}
+      {{- ipaddr }}
+    sensor: >-
+      {% if id|lower != 'null' and id|lower != 'none' and id|lower|length > 0 -%}
+        {%- set id = id|replace('.','_')|replace('-','_')|replace(' ','_')|replace('$','_') -%}
+        {{- 'binary_sensor.motion_addon_' + id|lower + '_start' -}}
+      {%- else -%}null{%- endif %}
+  action:
+    - alias: 'sensor is not null'
+      condition: template
+      value_template: >-
+        {{ sensor|lower != 'null' }}
+    - choose:
+        - conditions:
+            - alias: 'sensor state is not unknown'
+              condition: template
+              value_template: >
+                {{ states(sensor)|lower != 'unknown' }}
+            - alias: 'new timestamp == old timestamp'
+              condition: template
+              value_template: >
+                {% set s = state_attr(sensor,'timestamp') %}
+                {{ s|lower != 'none' and s|int(0) > 0 and timestamp|lower != 'null' and timestamp|int(0) > 0 and timestamp|int(0) == s|int(0) }}
+          sequence:
+            - alias: 'sensor timestamp unchanged; dismiss prior started notification'
+              service: persistent_notification.dismiss
+              data_template:
+                notification_id: >-
+                  {{ 'addon-configured-' + id|lower }}
+            - choose:
+                - conditions:
+                    - condition: template
+                      value_template: >
+                        {{ states('input_select.motion_log_level') in ['debug'] }}
+                  sequence:
+                    - variables:
+                        when: >-
+                          {{ state_attr(sensor,'timestamp')|int(none)|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+                    - service: persistent_notification.create
+                      data_template:
+                        title: >-
+                          DEBUG: Add-on running
+                        notification_id: >-
+                          {{ 'addon-running-' + id|lower }}
+                        message: >-
+                          Add-on {{ id }} is running; started {{ when -}}.
+    - alias: 'sensor state unknown or timestamp gt existing'
+      condition: template
+      value_template: >
+        {% set s = state_attr(sensor,'timestamp') %}
+        {{ states(sensor)|lower == 'unknown' 
+           or (s|lower != 'none' and s|int(0) > 0 and timestamp|lower != 'null' and timestamp|int(0) > 0 and timestamp|int(0) > s|int(0)) }}
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('input_select.motion_log_level') in ['debug','info','notice'] }}
+          sequence:
+            - variables:
+                when: >-
+                  {{ timestamp|int|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  NOTICE: Add-on configured
+                notification_id: >-
+                  {{ 'addon-configured-' + id|lower }}
+                message: >-
+                  Add-on configuration for <b>{{- id -}}</b>; started at {{ when -}}; ; IP: {{ ipaddr -}}; [{{- group -}},{{- device -}},{{- client -}}]
+    - alias: 'set start state'
+      service: python_script.set_state
+      data_template:
+        allow_create: true
+        entity_id: >-
+          {{ sensor }}
+        group: >-
+          {{ group }}
+        device: >-
+          {{ device }}
+        client: >-
+          {{ client }}
+        ipaddr: >-
+          {{ ipaddr }}
+        timestamp: >-
+          {{ timestamp }}
+        config: >-
+          {{ config }}
         state: >-
           {{ group|lower != 'null' and device|lower != 'null' }}
     - alias: add to group
