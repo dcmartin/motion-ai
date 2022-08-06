@@ -201,7 +201,7 @@ NOTIFY_DASHBOARDS := $(shell for C in $(MOTION_NOTIFY); do echo notify.$${C}.jso
 
 default: all
 
-all: chown $(WEBCAMS) .storage/lovelace lovelace_dashboards.json lovelace_resources.json ${LOVELACE_DASHBOARDS} $(NOTIFY_DASHBOARDS) $(MOTION_DIRS) $(PACKAGES) secrets.yaml
+all: chown $(WEBCAMS) lovelace.json lovelace_dashboards.json lovelace_resources.json ${LOVELACE_DASHBOARDS} $(NOTIFY_DASHBOARDS) $(MOTION_DIRS) $(PACKAGES) secrets.yaml
 
 chown:
 	@echo "${MC}Making: $@${NC}"
@@ -472,9 +472,6 @@ notify.activity.json: notify.activity.json.tmpl setup.json
 	@ln -s ../$@ .storage/lovelace.notify_activity
 
 ## lovelace panels
-
-.storage/lovelace: lovelace.json.tmpl
-	${MAKE} lovelace.json
 
 lovelace.json: lovelace.json.tmpl setup.json
 	@echo "${MC}Making: $@${NC}"
