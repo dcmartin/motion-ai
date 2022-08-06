@@ -258,7 +258,7 @@ logs:
 	@echo "${MC}Making: $@${NC}"
 	docker logs -f homeassistant
 
-secrets.yaml: secrets.yaml.tmpl
+secrets.yaml: secrets.yaml.tmpl setup.json
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  AUTOMATION_INTERNET="$(AUTOMATION_INTERNET)" \
