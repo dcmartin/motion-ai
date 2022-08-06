@@ -1,0 +1,216 @@
+###
+# homeassistant/automation/device/class/class_unavailable.yaml
+###
+
+- id: motion_device_class_unavailable_approve
+  alias: motion_device_class_unavailable_approve
+  mode: single
+  initial_state: 'on'
+  trigger:
+  variables:
+    timestamp: >-
+      {{ utcnow().timestamp() }}
+    when: >-
+      {{ timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+    response: >-
+      {{ 'approve' }}
+    actions: >-
+      {{ state_attr('binary_sensor.motion_device_class_unavailable','actions') }}
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('input_select.motion_log_level') in ['debug','info'] }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  INFO: Unavailable device approve
+                notification_id: >-
+                  {{ 'device-unavailable-approve' }}
+                message: >-
+                  Unavailable device <b>approved</b> at <i>{{- when -}}</i>
+    - alias: 'set sensor.motion_restart_notify to new state w/ timestamp, when'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class_unavailable
+        timestamp: >-
+          {{ timestamp }}
+        when: >-
+          {{ when }}
+        response: >-
+          {{ response }}
+    - alias: 'trigger automation'
+      service: 'automation.trigger'
+      entity_id: automation.motion_device_class_unavailable_response
+
+- id: motion_device_class_unavailable_response
+  alias: motion_device_class_unavailable_response
+  mode: single
+  initial_state: 'on'
+  trigger:
+    - platform: event
+      event_type: mobile_app_notification_action
+      event_data:
+        action: "device-unavailable-wait"
+    - platform: event
+      event_type: mobile_app_notification_action
+      event_data:
+        action: "device-unavailable-help"
+    - platform: event
+      event_type: mobile_app_notification_action
+      event_data:
+        action: "device-unavailable-deny"
+    - platform: event
+      event_type: mobile_app_notification_action
+      event_data:
+        action: "device-unavailable-approve"
+  variables:
+    origin: >-
+      {% if trigger|lower != 'none' %}
+        {{ trigger.event.origin|default(none) }}
+      {% else %}none{% endif %}
+    time_fired: >-
+      {% if trigger|lower != 'none' %}
+        {{ trigger.event.time_fired|default(none) }}
+      {% else %}none{% endif %}
+    context: >-
+      {% if trigger|lower != 'none' %}
+        {{ trigger.event.context }}
+      {% else %}none{% endif %}
+    responses: >-
+      {%- set response = none -%}
+      {%- set s = state_attr('binary_sensor.motion_device_class_unavailable','responses') -%}
+      {%- if s|lower != 'none' -%}
+        {%- set response = s -%}
+      {%- endif -%}
+      {{- responses -}}
+    actions: >-
+      {%- set actions = none -%}
+      {%- set s = state_attr('binary_sensor.motion_device_class_unavailable','actions') -%}
+      {%- if s|lower != 'none' and 'id' in s -%}
+        {%- set actions = s -%}
+      {%- endif -%}
+      {{- actions -}}
+    response: >-
+      {% if trigger|lower != 'none' and actions|lower != 'none' %}
+        {{ trigger.event.data.action|default(none)|string|replace(actions.id|string + '-','') }}
+      {% else %}
+        {{- state_attr('binary_sensor.motion_device_class_unavailable','response') -}}
+      {% endif %}
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('input_select.motion_log_level') in ['debug','info'] }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  INFO: Device unavailable response
+                notification_id: >-
+                  {{ 'device-unavailable-response' }}
+                message: >-
+                  Response <b>received</b>: "{{ response -}}"; context: {{ context|string -}}; at: {{ time_fired }}
+    - choose:
+        - alias: 'test if response in responses'
+          conditions:
+            - condition: template
+              value_template: >
+                {{ response|lower in responses }}
+          sequence:
+            - alias: 'set device_class_unavailable: timestamp, when'
+              variables:
+                timestamp: >-
+                  {{ utcnow().timestamp() }}
+                when: >-
+                  {{ timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+                response: >-
+                  {{ response }}
+            - choose:
+                - conditions:
+                    - condition: template
+                      value_template: >
+                        {{ states('input_select.motion_log_level') in ['debug','info','notice','alert','critical'] }}
+                  sequence:
+                    - service: persistent_notification.create
+                      data_template:
+                        title: >-
+                          ALERT: Unavailable device updated
+                        notification_id: >-
+                          {{ 'device-unavailable-response' }}
+                        message: >-
+                          Unavailable device <b>updated</b> to <code>{{- response -}}</code> at <i>{{- when -}}</i>
+            - alias: 'set sensor.motion_restart_notify to new state w/ timestamp, when'
+              service: python_script.set_state
+              data_template:
+                entity_id: binary_sensor.motion_device_class_unavailable
+                timestamp: >-
+                  {{ timestamp }}
+                when: >-
+                  {{ when }}
+                response: >-
+                  {{ response }}
+
+
+- id: motion_device_class_unavailable_deny
+  alias: motion_device_class_unavailable_deny
+  mode: single
+  initial_state: 'off'
+  trigger:
+  variables:
+    title: 'Unavailable deny'
+    notification_id: 'device-unavailable-deny'
+    message: 'The unavailable deny option was selected'
+  action:
+    - alias: 'unavailable deny'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          DEBUG: {{ title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+- id: motion_device_class_unavailable_wait
+  alias: motion_device_class_unavailable_wait
+  mode: single
+  initial_state: 'off'
+  trigger:
+  variables:
+    title: 'Unavailable wait'
+    notification_id: 'device-unavailable-wait'
+    message: 'The unavailable wait option was selected'
+  action:
+    - alias: 'unavailable wait'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          DEBUG: {{ title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+- id: motion_device_class_unavailable_help
+  alias: motion_device_class_unavailable_help
+  mode: single
+  initial_state: 'off'
+  trigger:
+  variables:
+    title: 'Unavailable help'
+    notification_id: 'device-unavailable-help'
+    message: 'The unavailable help option was selected'
+  action:
+    - alias: 'unavailable help'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          DEBUG: {{ title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
