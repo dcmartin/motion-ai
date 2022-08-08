@@ -1,0 +1,215 @@
+###
+# homeassistant/automation/notification/inactive_day_response.yaml
+###
+
+- id: motion_inactive_day_approve
+  alias: motion_inactive_day_approve
+  mode: single
+  initial_state: 'on'
+  trigger:
+  variables:
+    timestamp: >-
+      {{ utcnow().timestamp() }}
+    when: >-
+      {{ timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+    response: >-
+      {{ 'approve' }}
+    actions: >-
+      {{ state_attr('binary_sensor.motion_inactive_day','actions') }}
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('input_select.motion_log_level') in ['debug','info'] }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  INFO: Inactive day approve
+                notification_id: >-
+                  {{ 'inactive-day-approve' }}
+                message: >-
+                  Inactive day <b>approved</b> at <i>{{- when -}}</i>
+    - alias: 'set sensor.motion_restart_notify to new state w/ timestamp, when'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_inactive_day
+        timestamp: >-
+          {{ timestamp }}
+        when: >-
+          {{ when }}
+        response: >-
+          {{ response }}
+    - alias: 'trigger automation'
+      service: 'automation.trigger'
+      entity_id: automation.motion_inactive_day_response
+
+- id: motion_inactive_day_response
+  alias: motion_inactive_day_response
+  mode: single
+  initial_state: 'on'
+  trigger:
+    - platform: event
+      event_type: mobile_app_notification_action
+      event_data:
+        action: "inactive-day-wait"
+    - platform: event
+      event_type: mobile_app_notification_action
+      event_data:
+        action: "inactive-day-help"
+    - platform: event
+      event_type: mobile_app_notification_action
+      event_data:
+        action: "inactive-day-deny"
+    - platform: event
+      event_type: mobile_app_notification_action
+      event_data:
+        action: "inactive-day-approve"
+  variables:
+    origin: >-
+      {% if trigger|lower != 'none' %}
+        {{ trigger.event.origin|default(none) }}
+      {% else %}none{% endif %}
+    time_fired: >-
+      {% if trigger|lower != 'none' %}
+        {{ trigger.event.time_fired|default(none) }}
+      {% else %}none{% endif %}
+    context: >-
+      {% if trigger|lower != 'none' %}
+        {{ trigger.event.context }}
+      {% else %}none{% endif %}
+    responses: >-
+      {%- set response = none -%}
+      {%- set s = state_attr('binary_sensor.motion_inactive_day','responses') -%}
+      {%- if s|lower != 'none' -%}
+        {%- set response = s -%}
+      {%- endif -%}
+      {{- responses -}}
+    actions: >-
+      {%- set actions = none -%}
+      {%- set s = state_attr('binary_sensor.motion_inactive_day','actions') -%}
+      {%- if s|lower != 'none' and 'id' in s -%}
+        {%- set actions = s -%}
+      {%- endif -%}
+      {{- actions -}}
+    response: >-
+      {% if trigger|lower != 'none' and actions|lower != 'none' %}
+        {{ trigger.event.data.action|default(none)|string|replace(actions.id|string + '-','') }}
+      {% else %}
+        {{- state_attr('binary_sensor.motion_inactive_day','response') -}}
+      {% endif %}
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('input_select.motion_log_level') in ['debug','info'] }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  INFO: Device inactive day response
+                notification_id: >-
+                  {{ 'inactive-day-response' }}
+                message: >-
+                  Response <b>received</b>: "{{ response -}}"; context: {{ context|string -}}; at: {{ time_fired }}
+    - choose:
+        - alias: 'test if response in responses'
+          conditions:
+            - condition: template
+              value_template: >
+                {{ response|lower in responses }}
+          sequence:
+            - alias: 'set inactive_day: timestamp, when'
+              variables:
+                timestamp: >-
+                  {{ utcnow().timestamp() }}
+                when: >-
+                  {{ timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+                response: >-
+                  {{ response }}
+            - choose:
+                - conditions:
+                    - condition: template
+                      value_template: >
+                        {{ states('input_select.motion_log_level') in ['debug','info','notice','alert','critical'] }}
+                  sequence:
+                    - service: persistent_notification.create
+                      data_template:
+                        title: >-
+                          ALERT: Inactive day updated
+                        notification_id: >-
+                          {{ 'inactive-day-response' }}
+                        message: >-
+                          Inactive day <b>updated</b> to <code>{{- response -}}</code> at <i>{{- when -}}</i>
+            - alias: 'set sensor.motion_restart_notify to new state w/ timestamp, when'
+              service: python_script.set_state
+              data_template:
+                entity_id: binary_sensor.motion_inactive_day
+                timestamp: >-
+                  {{ timestamp }}
+                when: >-
+                  {{ when }}
+                response: >-
+                  {{ response }}
+
+- id: motion_inactive_day_deny
+  alias: motion_inactive_day_deny
+  mode: single
+  initial_state: 'off'
+  trigger:
+  variables:
+    title: 'Inactive day deny'
+    notification_id: 'inactive-day-deny'
+    message: 'The inactive day deny option was selected'
+  action:
+    - alias: 'inactivity deny'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          DEBUG: {{ title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+- id: motion_inactive_day_wait
+  alias: motion_inactive_day_wait
+  mode: single
+  initial_state: 'off'
+  trigger:
+  variables:
+    title: 'Inactive day wait'
+    notification_id: 'inactive-day-wait'
+    message: 'The inactive day wait option was selected'
+  action:
+    - alias: 'inactivity wait'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          DEBUG: {{ title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+- id: motion_inactive_day_help
+  alias: motion_inactive_day_help
+  mode: single
+  initial_state: 'off'
+  trigger:
+  variables:
+    title: 'Inactive day help'
+    notification_id: 'inactive-day-help'
+    message: 'The inactive day help option was selected'
+  action:
+    - alias: 'inactivity help'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          DEBUG: {{ title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
