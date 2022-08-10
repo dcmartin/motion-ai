@@ -103,3 +103,38 @@
               {{ s.last_updated|as_timestamp }}
             {% else %}none{% endif %}
           {% else %}none{% endif %}
+
+- platform: template
+  sensors:
+    motion_reset_ago:
+      friendly_name: Reset ago
+      unit_of_measurement: s
+      icon_template: 'mdi:av-timer'
+      attribute_templates:
+        command: >-
+          {{- state_attr('sensor.motion_reset','command') -}}
+      value_template: >-
+        {{- utcnow().timestamp()|int(0) - state_attr('sensor.motion_reset','date')|int(0) -}}
+
+- platform: template
+  sensors:
+    motion_reset_command:
+      value_template: >-
+        {%- if is_state('input_boolean.motion_reset','on') -%}
+          echo '{"date":'$(date -u "+%s")',"command":"'$(cd /config/.storage && rm -f core.entity_registry core.restore_state core.device_registry core.area_registry && echo true || echo false)'"}'
+        {%- else -%}
+          echo '{"date":'$(date -u "+%s")',"command":"none"}'
+        {%- endif -%}
+
+- platform: command_line
+  name: motion_reset
+  scan_interval: 86400
+  command_timeout: 60
+  command: "eval {{- states('sensor.motion_reset_command') -}}"
+  json_attributes:
+    - date
+    - command
+  value_template: >
+    {%- if value_json is defined -%}
+      {{ value_json.command|lower == 'true' }}
+    {%- else -%}null{%- endif -%}
