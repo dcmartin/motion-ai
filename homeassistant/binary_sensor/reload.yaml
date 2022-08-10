@@ -2,6 +2,46 @@
 ## homeassistant/binary_sensor/reload.yaml
 ###
 
+# reset
+
+- platform: template
+  sensors:
+    motion_reset:
+      friendly_name: 'Reseting'
+      icon_template: >-
+        {% set s = state_attr('automation.motion_reset','current') %}
+        {% if s|int(0) > 0 %}
+          {{- 'mdi:reset-lock' -}}
+        {% else %}
+          {{- 'mdi:cancel' -}}
+        {% endif %}
+      attribute_templates:
+        delay: 30
+        command: >-
+          {%- if is_state('input_boolean.motion_reset','on') -%}
+            echo '{"date":'$(date -u "+%s")',"command":"'$(cd /config/.storage && rm -f core.entity_registry core.device_registry core.area_registry && echo true || echo false)'"}'
+          {%- else -%}none{%- endif -%}
+        timestamp: >-
+          {{ state_attr('automation.motion_reset','last_triggered')|as_timestamp(none)  }}
+        markdown: >-
+          {% set icon = 'reset-icon' -%}
+          {% set s =  %}
+          {% if state_attr('automation.motion_reset','current')|int(0) > 0 -%}
+            System <b>reset</b> in-progress at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}
+          {%- else -%}
+            {%- set s = state_attr('binary_sensor.motion_reset','timestamp') -%}
+            {%- if s|float(0) > 0 -%}
+              {%- set s = s|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -%}
+              <b>Reset</b> at {{ s }}
+            {%- else -%}<i>Reset unknown</i>{%- endif -%}
+          {%- endif -%}
+          <p><i>Last updated</i>: {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+      value_template: >-
+        {% set s = state_attr('automation.motion_reset','current') %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+          {{ s|int(0) > 0 }}
+        {% else %}null{% endif %}
+
 # refresh
 
 - platform: template
