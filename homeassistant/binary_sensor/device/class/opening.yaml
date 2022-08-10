@@ -2,17 +2,31 @@
 # homeassistant/binary_sensor/device/opening.yaml
 ###
 
-#- platform: template
-#  sensors:
-#    motion_device_opening_alarm:
-#      friendly_name: 'Alarm status: opening'
-#      attribute_templates:
-#        markdown: >-
-#          {{ '<h2>No opening alarm information</h2>' }}
-#        status: >-
-#          {{ 'unknown' }}
-#      value_template: >-
-#        {{ 'unknown' }}
+- platform: template
+  sensors:
+    motion_device_opening_required:
+      attribute_templates:
+        approve: >-
+          {%- set approve = {'title':'Okay','icon':'sfsymbols:hand.thumbsup'} -%}
+          {{ approve }}
+        deny: >-
+          {%- set deny = {'title':'Ignore','icon':'sfsymbols:hand.thumbsdown.fill'} -%}
+          {{ deny }}
+        wait: >-
+          {%- set wait = {"title":"Remind me","icon":"'icon':'sfsymbols:timer'"} -%}
+          {{ wait }}
+        help: >-
+          {%- set p = state_attr('sensor.motion_role_primary','friendly_name') -%}
+          {%- set help = {'title':'Notify ' + p,'icon':'sfsymbols:message'} -%}
+          {{ help }}
+        reponses: >-
+          {%- set responses = ['approve','deny','wait','help'] -%}
+          {{ responses }}
+      value_template: >-
+        {% set s = state_attr('binary_sensor.motion_device_opening_exist','required') %}
+        {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' %}
+          {{ s }}
+        {% else %}unknown{% endif %}
 
 - platform: template
   sensors:
@@ -38,17 +52,24 @@
         unavailable: >-
           {{ is_state('binary_sensor.motion_device_opening_unavailable','on') }}
         notify: >-
-          {%- set id = 'opening-alarm-notification' -%}
-          {% set g = 'home-environment' -%}
-          {%- set i = 30 -%}
-          {%- set r = ['approve','deny'] -%}
-          {%- set p = state_attr('sensor.motion_role_primary','friendly_name') -%}
-          {%- set a = [
-            {'action': id|string + '-approve','icon':'sfsymbols:hand.thumbsup','title':'Approve opening increase','destructive':false},
-            {'action': id|string + '-wait','icon':'sfsymbols:timer','title':'Ask again in ' + i|string + ' minutes','destructive':false},
-            {'action': id|string + '-deny','icon':'sfsymbols:hand.thumbsdown.fill','title':'Notify ' + p|string,'destructive':true}
-          ] -%}
-          {"id":"{{- id -}}","group":"{{- g -}}","interval":{{- i -}},"responses":{{- r -}},"primary":"{{- p -}}","action":{{ a }}}
+          {%- set responses = state_attr('binary_sensor.motion_device_opening_required','responses') -%}
+          {% if responses|lower == 'none' or responses is string or not responses is iterable -%}
+            {%- set approve = state_attr('binary_sensor.motion_device_opening_required','approve') -%}
+            {%- set deny = state_attr('binary_sensor.motion_device_opening_required','deny') -%}
+            {%- set wait = state_attr('binary_sensor.motion_device_opening_required','wait') -%}
+            {%- set help = state_attr('binary_sensor.motion_device_opening_required','help') -%}
+            {%- set p = state_attr('sensor.motion_role_primary','friendly_name') -%}
+            {%- set id = 'opening-alarm-notification' -%}
+            {%- set g = 'home-environment' -%}
+            {%- set i = 30 -%}
+            {%- set a = [
+              {'action': id|string + '-approve','icon': approve.icon|string,'title': approve.title|string,'destructive':false},
+              {'action': id|string + '-deny','icon': deny.icon|string,'title': deny.title|string,'destructive':true},
+              {'action': id|string + '-wait','icon': wait.icon|string,'title': wait.title|string,'destructive':false},
+              {'action': id|string + '-help','icon': help.icon|string,'title': help.title|string,'destructive':false}
+              ] -%}
+            {"id":"{{- id -}}","group":"{{- g -}}","interval":{{- i -}},"responses":{{- responses -}},"primary":"{{- p -}}","actions":{{ a }}}
+          {% else %}none{% endif %}
         active: >-
           {%- set s = state_attr('binary_sensor.motion_device_opening_alarm','status') -%}
           {% if s|lower != 'none' and not s is string and s is iterable and s|count > 0 %}
@@ -302,12 +323,6 @@
         {% set s = state_attr('binary_sensor.motion_device_opening_controls','status') %}
         {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s is iterable %}
           {{ s|count > 0 }}
-        {% else %}unknown{% endif %}
-    motion_device_opening_required:
-      value_template: >-
-        {% set s = state_attr('binary_sensor.motion_device_opening_exist','required') %}
-        {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' %}
-          {{ s }}
         {% else %}unknown{% endif %}
     motion_device_opening_self_test:
       icon_template: 'mdi:gesture-tap-button'
