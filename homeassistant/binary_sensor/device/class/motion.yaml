@@ -4,24 +4,71 @@
 
 - platform: template
   sensors:
-    motion_device_motion_required:
+    motion_device_motion_alarm_notify:
       attribute_templates:
-        approve: >-
-          {%- set approve = {'title':'Okay','icon':'sfsymbols:hand.thumbsup'} -%}
-          {{ approve }}
-        deny: >-
-          {%- set deny = {'title':'Ignore','icon':'sfsymbols:hand.thumbsdown.fill'} -%}
-          {{ deny }}
-        wait: >-
-          {%- set wait = {"title":"Remind me","icon":"'icon':'sfsymbols:timer'"} -%}
-          {{ wait }}
-        help: >-
-          {%- set p = state_attr('sensor.motion_role_primary','friendly_name') -%}
-          {%- set help = {'title':'Notify ' + p,'icon':'sfsymbols:message'} -%}
-          {{ help }}
-        reponses: >-
-          {%- set responses = ['approve','deny','wait','help'] -%}
-          {{ responses }}
+        activity: >-
+          {%- if state_attr('binary_sensor.motion_device_motion_alarm_exist','activity')|lower == 'true' -%}
+            {%- set responses = state_attr('binary_sensor.motion_device_motion_activity','responses') -%}
+            {%- set approve = state_attr('binary_sensor.motion_device_motion_activity','approve') -%}
+            {%- set deny = state_attr('binary_sensor.motion_device_motion_activity','deny') -%}
+            {%- set wait = state_attr('binary_sensor.motion_device_motion_activity','wait') -%}
+            {%- set help = state_attr('binary_sensor.motion_device_motion_activity','help') -%}
+            {%- set p = state_attr('sensor.motion_role_primary','friendly_name') -%}
+            {%- set id = 'motion-alarm-activity' -%}
+            {%- set g = 'home-activity' -%}
+            {%- set i = 30 -%}
+            {%- set a = [
+              {'action': id|string + '-approve','icon': approve.icon|string,'title': approve.title|string,'destructive':false},
+              {'action': id|string + '-deny','icon': deny.icon|string,'title': deny.title|string,'destructive':true},
+              {'action': id|string + '-wait','icon': wait.icon|string,'title': wait.title|string,'destructive':false},
+              {'action': id|string + '-help','icon': help.icon|string,'title': help.title|string,'destructive':false}
+              ] -%}
+            {"id":"{{- id -}}","group":"{{- g -}}","interval":{{- i -}},"responses":{{- responses -}},"primary":"{{- p -}}","actions":{{ a }}}
+          {% else %}none{% endif %}
+        missing: >-
+          {%- if state_attr('binary_sensor.motion_device_motion_alarm_exist','missing')|lower == 'true' -%}
+            {%- set responses = state_attr('binary_sensor.motion_device_motion_missing','responses') -%}
+            {%- set approve = state_attr('binary_sensor.motion_device_motion_missing','approve') -%}
+            {%- set deny = state_attr('binary_sensor.motion_device_motion_missing','deny') -%}
+            {%- set wait = state_attr('binary_sensor.motion_device_motion_missing','wait') -%}
+            {%- set help = state_attr('binary_sensor.motion_device_motion_missing','help') -%}
+            {%- set p = state_attr('sensor.motion_role_primary','friendly_name') -%}
+            {%- set id = 'motion-alarm-missing' -%}
+            {%- set g = 'home-device' -%}
+            {%- set i = 30 -%}
+            {%- set a = [
+              {'action': id|string + '-approve','icon': approve.icon|string,'title': approve.title|string,'destructive':false},
+              {'action': id|string + '-deny','icon': deny.icon|string,'title': deny.title|string,'destructive':true},
+              {'action': id|string + '-wait','icon': wait.icon|string,'title': wait.title|string,'destructive':false},
+              {'action': id|string + '-help','icon': help.icon|string,'title': help.title|string,'destructive':false}
+              ] -%}
+            {"id":"{{- id -}}","group":"{{- g -}}","interval":{{- i -}},"responses":{{- responses -}},"primary":"{{- p -}}","actions":{{ a }}}
+          {% else %}none{% endif %}
+        unavailable: >-
+          {%- if state_attr('binary_sensor.motion_device_motion_alarm_exist','unavailable')|lower == 'true' -%}
+            {%- set responses = state_attr('binary_sensor.motion_device_motion_unavailable','responses') -%}
+            {%- set approve = state_attr('binary_sensor.motion_device_motion_unavailable','approve') -%}
+            {%- set deny = state_attr('binary_sensor.motion_device_motion_unavailable','deny') -%}
+            {%- set wait = state_attr('binary_sensor.motion_device_motion_unavailable','wait') -%}
+            {%- set help = state_attr('binary_sensor.motion_device_motion_unavailable','help') -%}
+            {%- set p = state_attr('sensor.motion_role_primary','friendly_name') -%}
+            {%- set id = 'motion-alarm-unavailable' -%}
+            {%- set g = 'home-device' -%}
+            {%- set i = 30 -%}
+            {%- set a = [
+              {'action': id|string + '-approve','icon': approve.icon|string,'title': approve.title|string,'destructive':false},
+              {'action': id|string + '-deny','icon': deny.icon|string,'title': deny.title|string,'destructive':true},
+              {'action': id|string + '-wait','icon': wait.icon|string,'title': wait.title|string,'destructive':false},
+              {'action': id|string + '-help','icon': help.icon|string,'title': help.title|string,'destructive':false}
+              ] -%}
+            {"id":"{{- id -}}","group":"{{- g -}}","interval":{{- i -}},"responses":{{- responses -}},"primary":"{{- p -}}","actions":{{ a }}}
+          {% else %}none{% endif %}
+      value_template: >-
+        {{ state_attr('binary_sensor.motion_device_motion_alarm_exist','activity') }}
+
+- platform: template
+  sensors:
+    motion_device_motion_required:
       value_template: >-
         {% set s = state_attr('binary_sensor.motion_device_motion_exist','required') %}
         {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' %}
@@ -51,25 +98,6 @@
           {{ not is_state_attr('binary_sensor.motion_device_motion_exist','required','none') and is_state('binary_sensor.motion_device_motion_missing','on') }}
         unavailable: >-
           {{ is_state('binary_sensor.motion_device_motion_unavailable','on') }}
-        notify: >-
-          {%- set responses = state_attr('binary_sensor.motion_device_motion_required','responses') -%}
-          {% if responses|lower == 'none' or responses is string or not responses is iterable -%}
-            {%- set approve = state_attr('binary_sensor.motion_device_motion_required','approve') -%}
-            {%- set deny = state_attr('binary_sensor.motion_device_motion_required','deny') -%}
-            {%- set wait = state_attr('binary_sensor.motion_device_motion_required','wait') -%}
-            {%- set help = state_attr('binary_sensor.motion_device_motion_required','help') -%}
-            {%- set p = state_attr('sensor.motion_role_primary','friendly_name') -%}
-            {%- set id = 'motion-alarm-notification' -%}
-            {%- set g = 'home-environment' -%}
-            {%- set i = 30 -%}
-            {%- set a = [
-              {'action': id|string + '-approve','icon': approve.icon|string,'title': approve.title|string,'destructive':false},
-              {'action': id|string + '-deny','icon': deny.icon|string,'title': deny.title|string,'destructive':true},
-              {'action': id|string + '-wait','icon': wait.icon|string,'title': wait.title|string,'destructive':false},
-              {'action': id|string + '-help','icon': help.icon|string,'title': help.title|string,'destructive':false}
-              ] -%}
-            {"id":"{{- id -}}","group":"{{- g -}}","interval":{{- i -}},"responses":{{- responses -}},"primary":"{{- p -}}","actions":{{ a }}}
-          {% else %}none{% endif %}
         active: >-
           {%- set s = state_attr('binary_sensor.motion_device_motion_alarm','status') -%}
           {% if s|lower != 'none' and not s is string and s is iterable and s|count > 0 %}
@@ -565,6 +593,22 @@
     motion_device_motion_activity:
       friendly_name: Activity motion
       attribute_templates:
+        approve: >-
+          {%- set approve = {'title':'Okay','icon':'sfsymbols:hand.thumbsup'} -%}
+          {{ approve }}
+        deny: >-
+          {%- set deny = {'title':'Ignore','icon':'sfsymbols:hand.thumbsdown.fill'} -%}
+          {{ deny }}
+        wait: >-
+          {%- set wait = {"title":"Remind me","icon":"'icon':'sfsymbols:timer'"} -%}
+          {{ wait }}
+        help: >-
+          {%- set p = state_attr('sensor.motion_role_primary','friendly_name') -%}
+          {%- set help = {'title':'Notify ' + p,'icon':'sfsymbols:message'} -%}
+          {{ help }}
+        responses: >-
+          {%- set responses = ['approve','deny','wait','help'] -%}
+          {{ responses }}
         last: >-
           {{ 'unknown' }}
         ids: >-
@@ -577,6 +621,22 @@
       friendly_name: Unavailable motion
       device_class: 'connectivity'
       attribute_templates:
+        approve: >-
+          {%- set approve = {'title':'Okay','icon':'sfsymbols:hand.thumbsup'} -%}
+          {{ approve }}
+        deny: >-
+          {%- set deny = {'title':'Ignore','icon':'sfsymbols:hand.thumbsdown.fill'} -%}
+          {{ deny }}
+        wait: >-
+          {%- set wait = {"title":"Remind me","icon":"'icon':'sfsymbols:timer'"} -%}
+          {{ wait }}
+        help: >-
+          {%- set p = state_attr('sensor.motion_role_primary','friendly_name') -%}
+          {%- set help = {'title':'Notify ' + p,'icon':'sfsymbols:message'} -%}
+          {{ help }}
+        responses: >-
+          {%- set responses = ['approve','deny','wait','help'] -%}
+          {{ responses }}
         last: >-
           {{ 'unknown' }}
         ids: >-
@@ -587,6 +647,22 @@
         {{ 'unknown' }}
     motion_device_motion_missing:
       attribute_templates:
+        approve: >-
+          {%- set approve = {'title':'Okay','icon':'sfsymbols:hand.thumbsup'} -%}
+          {{ approve }}
+        deny: >-
+          {%- set deny = {'title':'Ignore','icon':'sfsymbols:hand.thumbsdown.fill'} -%}
+          {{ deny }}
+        wait: >-
+          {%- set wait = {"title":"Remind me","icon":"'icon':'sfsymbols:timer'"} -%}
+          {{ wait }}
+        help: >-
+          {%- set p = state_attr('sensor.motion_role_primary','friendly_name') -%}
+          {%- set help = {'title':'Notify ' + p,'icon':'sfsymbols:message'} -%}
+          {{ help }}
+        responses: >-
+          {%- set responses = ['approve','deny','wait','help'] -%}
+          {{ responses }}
         last: >-
           {{ 'unknown' }}
         ids: >-
