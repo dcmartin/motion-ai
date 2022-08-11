@@ -14,3 +14,215 @@
     - alias: 'trigger device_class_missing_notify'
       service: automation.trigger
       entity_id: automation.motion_device_class_missing_notify
+
+- id: motion_device_class_missing_approve
+  alias: motion_device_class_missing_approve
+  mode: single
+  initial_state: 'on'
+  trigger:
+  variables:
+    timestamp: >-
+      {{ utcnow().timestamp() }}
+    when: >-
+      {{ timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+    response: >-
+      {{ 'approve' }}
+    actions: >-
+      {{ state_attr('binary_sensor.motion_device_class_missing','actions') }}
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('input_select.motion_log_level') in ['debug','info'] }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  INFO: Missing device approve
+                notification_id: >-
+                  {{ 'device-missing-approve' }}
+                message: >-
+                  Missing device <b>approved</b> at <i>{{- when -}}</i>
+    - alias: 'set sensor.motion_restart_notify to new state w/ timestamp, when'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class_missing
+        timestamp: >-
+          {{ timestamp }}
+        when: >-
+          {{ when }}
+        response: >-
+          {{ response }}
+    - alias: 'trigger automation'
+      service: 'automation.trigger'
+      entity_id: automation.motion_device_class_missing_response
+
+- id: motion_device_class_missing_response
+  alias: motion_device_class_missing_response
+  mode: single
+  initial_state: 'on'
+  trigger:
+    - platform: event
+      event_type: mobile_app_notification_action
+      event_data:
+        action: "device-missing-wait"
+    - platform: event
+      event_type: mobile_app_notification_action
+      event_data:
+        action: "device-missing-help"
+    - platform: event
+      event_type: mobile_app_notification_action
+      event_data:
+        action: "device-missing-deny"
+    - platform: event
+      event_type: mobile_app_notification_action
+      event_data:
+        action: "device-missing-approve"
+  variables:
+    origin: >-
+      {% if trigger|lower != 'none' %}
+        {{ trigger.event.origin|default(none) }}
+      {% else %}none{% endif %}
+    time_fired: >-
+      {% if trigger|lower != 'none' %}
+        {{ trigger.event.time_fired|default(none) }}
+      {% else %}none{% endif %}
+    context: >-
+      {% if trigger|lower != 'none' %}
+        {{ trigger.event.context }}
+      {% else %}none{% endif %}
+    responses: >-
+      {%- set response = none -%}
+      {%- set s = state_attr('binary_sensor.motion_device_class_missing','responses') -%}
+      {%- if s|lower != 'none' -%}
+        {%- set response = s -%}
+      {%- endif -%}
+      {{- responses -}}
+    actions: >-
+      {%- set actions = none -%}
+      {%- set s = state_attr('binary_sensor.motion_device_class_missing','actions') -%}
+      {%- if s|lower != 'none' and 'id' in s -%}
+        {%- set actions = s -%}
+      {%- endif -%}
+      {{- actions -}}
+    response: >-
+      {% if trigger|lower != 'none' and actions|lower != 'none' %}
+        {{ trigger.event.data.action|default(none)|string|replace(actions.id|string + '-','') }}
+      {% else %}
+        {{- state_attr('binary_sensor.motion_device_class_missing','response') -}}
+      {% endif %}
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('input_select.motion_log_level') in ['debug','info'] }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  INFO: Device missing response
+                notification_id: >-
+                  {{ 'device-missing-response' }}
+                message: >-
+                  Response <b>received</b>: "{{ response -}}"; context: {{ context|string -}}; at: {{ time_fired }}
+    - choose:
+        - alias: 'test if response in responses'
+          conditions:
+            - condition: template
+              value_template: >
+                {{ response|lower in responses }}
+          sequence:
+            - alias: 'set device_class_missing: timestamp, when'
+              variables:
+                timestamp: >-
+                  {{ utcnow().timestamp() }}
+                when: >-
+                  {{ timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+                response: >-
+                  {{ response }}
+            - choose:
+                - conditions:
+                    - condition: template
+                      value_template: >
+                        {{ states('input_select.motion_log_level') in ['debug','info','notice','alert','critical'] }}
+                  sequence:
+                    - service: persistent_notification.create
+                      data_template:
+                        title: >-
+                          ALERT: Missing device updated
+                        notification_id: >-
+                          {{ 'device-missing-response' }}
+                        message: >-
+                          Missing device <b>updated</b> to <code>{{- response -}}</code> at <i>{{- when -}}</i>
+            - alias: 'set sensor.motion_restart_notify to new state w/ timestamp, when'
+              service: python_script.set_state
+              data_template:
+                entity_id: binary_sensor.motion_device_class_missing
+                timestamp: >-
+                  {{ timestamp }}
+                when: >-
+                  {{ when }}
+                response: >-
+                  {{ response }}
+
+- id: motion_device_class_missing_deny
+  alias: motion_device_class_missing_deny
+  mode: single
+  initial_state: 'off'
+  trigger:
+  variables:
+    title: 'Missing deny'
+    notification_id: 'device-missing-deny'
+    message: 'The missing deny option was selected'
+  action:
+    - alias: 'missing deny'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          DEBUG: {{ title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+- id: motion_device_class_missing_wait
+  alias: motion_device_class_missing_wait
+  mode: single
+  initial_state: 'off'
+  trigger:
+  variables:
+    title: 'Missing wait'
+    notification_id: 'device-missing-wait'
+    message: 'The missing wait option was selected'
+  action:
+    - alias: 'missing wait'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          DEBUG: {{ title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+- id: motion_device_class_missing_help
+  alias: motion_device_class_missing_help
+  mode: single
+  initial_state: 'off'
+  trigger:
+  variables:
+    title: 'Missing help'
+    notification_id: 'device-missing-help'
+    message: 'The missing help option was selected'
+  action:
+    - alias: 'missing help'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          DEBUG: {{ title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
