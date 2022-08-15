@@ -100,21 +100,39 @@
     motion_addon_config:
       attribute_templates:
         command: >-
-          {{states('sensor.motion_addon_config_command')|lower == 'true' }}
+          {{ states('sensor.motion_addon_config_command')|lower == 'true' }}
         rest: >-
           {{ states('sensor.motion_addon_config_rest')|lower == 'true' }}
+        source: >-
+          {% if states('sensor.motion_addon_config_rest')|lower == 'true' %}
+            {% set r = state_attr('sensor.motion_addon_config_rest','timestamp') %}
+          {% endif %}
+          {% if states('sensor.motion_addon_config_command')|lower == 'true' %}
+            {% set c = state_attr('sensor.motion_addon_config_command','timestamp') %}
+          {% endif %}
+          {% if r is defined and r|lower != 'none' and r|float(0) > 0  and c is defined and c|lower != 'none' and c|float(0) > 0 %}
+            {% if r|float > c|float %}
+              {{ 'rest' }}
+            {% else %}
+              {{ 'command' }}
+            {% endif %}
+          {% elif r is defined and r|lower != 'none' and r|float(0) > 0 %}
+            {{ 'rest' }}
+          {% elif c is defined and c|lower != 'none' and c|float(0) > 0 %}
+            {{ 'command' }}
+          {% else %}none{% endif %}
         timestamp: >-
-          {% if states('sensor.motion_addon_config_rest')|lower == 'true' -%}
+          {% if is_state_attr('sensor.motion_addon_config','source','rest' %}
             {{ state_attr('sensor.motion_addon_config_rest','timestamp') }}
-          {%- elif states('sensor.motion_addon_config_command')|lower == 'true' -%}
+          {% elif is_state_attr('sensor.motion_addon_config','source','command' %}
             {{ state_attr('sensor.motion_addon_config_command','timestamp') }}
-          {%- else -%}none{%- endif -%}
+          {% else %}none{% endif %}
         config: >-
-          {% if states('sensor.motion_addon_config_rest')|lower == 'true' -%}
+          {% if is_state_attr('sensor.motion_addon_config','source','rest' %}
             {{ state_attr('sensor.motion_addon_config_rest','config') }}
-          {%- elif states('sensor.motion_addon_config_command')|lower == 'true' -%}
+          {% elif is_state_attr('sensor.motion_addon_config','source','command' %}
             {{ state_attr('sensor.motion_addon_config_command','config') }}
-          {%- else -%}none{%- endif -%}
+          {% else %}none{% endif %}
       value_template: >-
         {{ states('sensor.motion_addon_config_rest')|lower == 'true' or states('sensor.motion_addon_config_command')|lower == 'true' }}
 
