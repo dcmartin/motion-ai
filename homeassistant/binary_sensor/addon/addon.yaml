@@ -74,7 +74,7 @@
         markdown: >-
           <h2>No markdown (yet)</h2>
       value_template: >-
-        {{ is_state_attr('binary_sensor.motion_addon_status','auto_update','on') }}
+        {{ is_state_attr('binary_sensor.motion_addon_config','auto_update','on') }}
 
 - platform: template
   sensors:
@@ -82,6 +82,15 @@
       friendly_name: Add-on configuration
       icon_template: 'mdi:cog'
       device_class: connectivity
+      icon_template: >-
+        {%- set e = states('sensor.motion_addon_config') -%}
+        {%- if e|lower != 'unknown' and e|lower != 'unavailable' and e|lower != 'none' and e|lower != 'null' -%}
+          {%- if e|lower == 'true' -%}
+            {{- 'mdi:apps' -}}
+          {% else %}
+            {{- 'mdi:cancel' -}}
+          {% endif %}
+        {%- else -%}{{- 'mdi:video' -}}{%- endif -%}
       attribute_templates:
         resource: >-
           {% set s = states('sensor.motion_addon_config_api') %}
@@ -94,41 +103,13 @@
           {{ 120 }}
         timeout: >-
           {{ 10 }}
-        markdown: >-
-          <h2>Add-on configuration</h2>
-          {%- if is_state('binary_sensor.motion_addon_config','on') -%}
-            Add-on configuration is <b>defined</b>.
-          {%- else -%}
-            Add-on configuration is <b>unavailable</b>.
-          {%- endif -%}
-      value_template: >-
-        {% set s = states('sensor.motion_addon_config') %}
-        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-          {{ s|lower == 'true' }}
-        {% else %}unknown{% endif %}
-
-- platform: template
-  sensors:
-    motion_addon_status:
-      friendly_name: 'Add-on status'
-      device_class: connectivity
-      icon_template: >-
-        {%- set e = states('sensor.motion_addon_config') -%}
-        {%- if e|lower != 'unknown' and e|lower != 'unavailable' and e|lower != 'none' and e|lower != 'null' -%}
-          {%- if e|lower == 'true' -%}
-            {{- 'mdi:apps' -}}
-          {% else %}
-            {{- 'mdi:cancel' -}}
-          {% endif %}
-        {%- else -%}{{- 'mdi:video' -}}{%- endif -%}
-      attribute_templates:
         sensor: >-
           {% set s = state_attr('group.motion_addons','entity_id') -%}
           {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' and s is iterable and s|count > 0 %}
             {{ s|first }}
           {% else %}none{% endif %}
         ago: >-
-          {% set s = state_attr('binary_sensor.motion_addon_status','sensor') -%}
+          {% set s = state_attr('binary_sensor.motion_addon_config','sensor') -%}
           {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
             {% set s = state_attr(s,'timestamp') -%}
             {% if s|lower != 'none' and s|int(0) > 0 %}
@@ -136,7 +117,7 @@
             {% else %}none{% endif %}
           {% else %}none{% endif %}
         relative: >-
-          {% set s = state_attr('binary_sensor.motion_addon_status','sensor') -%}
+          {% set s = state_attr('binary_sensor.motion_addon_config','sensor') -%}
           {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
             {% set s = state_attr(s,'timestamp') -%}
             {% if s|lower != 'none' and s|int(0) > 0 %}
@@ -144,7 +125,7 @@
             {% else %}none{% endif %}
           {% else %}none{% endif %}
         restart: >-
-          {% set s = state_attr('binary_sensor.motion_addon_status','sensor') -%}
+          {% set s = state_attr('binary_sensor.motion_addon_config','sensor') -%}
           {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
             {% set s = state_attr(s,'timestamp') -%}
             {% if s|lower != 'none' and s|int(0) > 0 %}
@@ -177,7 +158,7 @@
               {%- set icon = 'refresh-icon' -%}
               {%- set image = '/local/images/icons/' + icon + '.png' -%}
             {%- endif -%}
-            {%- set relative = state_attr('binary_sensor.motion_addon_status','relative') -%}
+            {%- set relative = state_attr('binary_sensor.motion_addon_config','relative') -%}
             <img src="{{- image -}}?v1">
             {%- if is_state('binary_sensor.motion_addon_update','on') -%}
               <h2>Update available for {{ title -}}</h2>
@@ -186,15 +167,39 @@
               <h2>{{- title }} v. <i>{{ latest -}}</i></h2>
             {%- endif -%}
             <br><i>Started</i>: <b>{{- relative -}}</b> ago
-            {%- set s = 'binary_sensor.motion_addon_status' -%}{%- set a = 'auto_update' -%}
+            {%- set s = 'binary_sensor.motion_addon_config' -%}{%- set a = 'auto_update' -%}
             <br><i>Auto-update</i>: <b>{{- state_attr(s,a) -}}</b>
-            {%- set s = 'binary_sensor.motion_addon_status' -%}{%- set a = 'restart' -%}
+            {%- set s = 'binary_sensor.motion_addon_config' -%}{%- set a = 'restart' -%}
             <br><i>Restart required</i>: <b>{{- state_attr(s,a) -}}</b>
             <p>Click <a href="/hassio/addon/{{- id -}}/info">here</a> to view the add-on
           {%- else -%}<h2>No add-on status information</h2>{%- endif -%}
           <p><i>Last updated</i>: {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
       value_template: >-
-        {% set s = states('binary_sensor.motion_addon_config') %}
+        {% set s = states('sensor.motion_addon_config') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+          {{ s|lower == 'true' }}
+        {% else %}unknown{% endif %}
+
+- platform: template
+  sensors:
+    motion_addon_status:
+      friendly_name: Add-on status 
+      icon_template: 'mdi:list-status'
+      device_class: connectivity
+      attribute_templates:
+        interval: >-
+          {{ 120 }}
+        timeout: >-
+          {{ 10 }}
+        resource: >-
+          {% set s = states('sensor.motion_addon_status_api') %}
+          {% if s|lower !='none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {{- s -}}
+          {% else %}
+            {{ 'http://' + states('input_text.motion_addon_apache_host') + ':7999/cgi-bin/status' }}
+          {% endif %}
+      value_template: >-
+        {% set s = states('sensor.motion_addon_status') %}
         {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
           {{ s|lower == 'true' }}
         {% else %}unknown{% endif %}
