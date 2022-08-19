@@ -4,24 +4,47 @@
 
 - platform: template
   sensors:
+    intranet_ip:
+      friendly_name: Intranet IP
+      icon_template: 'mdi:lan'
+      value_template: >
+        {% set s = state_attr('sensor.intranet_test','client') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' %}
+          {{ s.ip }}
+        {%- else -%}null{%- endif -%}
     intranet_receive:
       friendly_name: Intranet receive
       icon_template: 'mdi:download-network-outline'
       unit_of_measurement: Mbps
+      attribute_templates:
+        max: >-
+          {{ states('sensor.intranet_receive_max') }}
+        min: >-
+          {{ states('sensor.intranet_receive_min') }}
+        mean: >-
+          {{ states('sensor.intranet_receive_mean') }}
+        stdev: >-
+          {{ states('sensor.intranet_receive_stdev') }}
       value_template: >
-        {% set s = state_attr('sensor.intranet_test','receive') %}
-        {% if s|lower != 'none' and s|lower != 'unknown' %}
+        {% set s = state_attr('sensor.intranet_test','download') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'unavailable' %}
           {{ '%0.2f' | format(s|float(0.0) / 1000000.0) }}
         {%- else -%}null{%- endif -%}
-
-- platform: template
-  sensors:
     intranet_send:
       friendly_name: Intranet send
       icon_template: 'mdi:upload-network-outline'
       unit_of_measurement: Mbps
+      attribute_templates:
+        max: >-
+          {{ states('sensor.intranet_send_max') }}
+        min: >-
+          {{ states('sensor.intranet_send_min') }}
+        mean: >-
+          {{ states('sensor.intranet_send_mean') }}
+        stdev: >-
+          {{ states('sensor.intranet_send_stdev') }}
       value_template: >
-        {% set s = state_attr('sensor.intranet_test','send') %}
+        {% set s = state_attr('sensor.intranet_test','upload') %}
         {% if s|lower != 'none' and s|lower != 'unknown' %}
           {{ '%0.2f' | format(s|float(0.0) / 1000000.0) }}
         {%- else -%}null{%- endif -%}
@@ -34,10 +57,10 @@
       value_template: >-
         {%- if states.sensor.intranet_test|lower != 'none'
                and states.sensor.intranet_test.state|lower != 'unknown'
-               and states.sensor.intranet_receive.state|lower != 'unknown'
-               and states.sensor.intranet_receive_mean.state|lower != 'unknown'
-               and states.sensor.intranet_receive_mean.state|lower != 'null'
-               and states.sensor.intranet_receive.state|lower != 'null'
+               and states.sensor.intranet_receive.state|lower != 'unknown' 
+               and states.sensor.intranet_receive_mean.state|lower != 'unknown' 
+               and states.sensor.intranet_receive_mean.state|lower != 'null' 
+               and states.sensor.intranet_receive.state|lower != 'null' 
                and states('sensor.intranet_test')|lower == 'true' -%}
           {{- states.sensor.intranet_receive.state }} Mbps; {{ states.sensor.intranet_receive_mean.state }} μ;
         {%- endif %}
@@ -47,22 +70,45 @@
 - platform: template
   sensors:
     intranet_good:
+      unique_id: intranet_good
       friendly_name: 'Intranet status'
       icon_template: 'mdi:check-network-outline'
+      attribute_templates:
+        test: >-
+          {{ states('binary_sensor.intranet_test') }}
+        client: >-
+          {{ state_attr('sensor.intranet_test','client') }}
+        status: >-
+          {{ states('sensor.intranet_metrics') }}
+        ago: >-
+          {{ states('sensor.intranet_ago') }}
+        relative: >-
+          {% set s = states('sensor.intranet_ago')|int(-1) %}
+          {% if s >= 0 %}
+            {{ (utcnow().timestamp() - s)|as_datetime|relative_time  }}
+          {% else %}unknown{% endif %}
+        fast: >-
+          {{ states('sensor.intranet_fast_percent') }}
+        slow: >-
+          {{ states('sensor.intranet_slow_percent') }}
+        send: >-
+          [{{- states('sensor.intranet_send')|float(none) -}},{{- states.sensor.intranet_send.attributes|default(none) -}}]
+        receive: >-
+          [{{- states('sensor.intranet_receive')|float(none) -}},{{- states.sensor.intranet_receive.attributes|default(none) -}}]
       value_template: >-
         {%- if states.sensor.intranet_test|lower != 'none'
                and states.sensor.intranet_test.state|lower != 'unknown'
-               and states.sensor.intranet_receive.state|lower != 'unknown'
-               and states.sensor.intranet_receive_mean.state|lower != 'unknown'
-               and states.sensor.intranet_receive_mean.state|lower != 'null'
-               and states.sensor.intranet_receive.state|lower != 'null'
+               and states.sensor.intranet_receive.state|lower != 'unknown' 
+               and states.sensor.intranet_receive_mean.state|lower != 'unknown' 
+               and states.sensor.intranet_receive_mean.state|lower != 'null' 
+               and states.sensor.intranet_receive.state|lower != 'null' 
                and states('sensor.intranet_test')|lower == 'true' -%}
           {%- if is_state('binary_sensor.intranet_slow_persistent','on') -%}
             Slow
           {%- elif is_state('binary_sensor.intranet_slow','on') -%}
-            Slowing 
+            Slowing
           {%- elif is_state('binary_sensor.intranet_fast_persistent','on') -%}
-            Fast 
+            Fast
           {%- elif is_state('binary_sensor.intranet_fast','on') -%}
             Increasing
           {%- else -%}
@@ -161,6 +207,7 @@
 - platform: template
   sensors:
     intranet_ago:
+      icon_template: mdi:av-timer
       unit_of_measurement: 's'
       value_template: >-
         {% set t = states('sensor.time') %}
