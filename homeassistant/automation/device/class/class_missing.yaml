@@ -2,6 +2,108 @@
 # homeassistant/automation/device/class/class_missing.yaml
 ###
 
+- id: motion_device_class_missing_required_off
+  alias: motion_device_class_missing_required_off
+  mode: single
+  initial_state: 'on'
+  trigger:
+  variables:
+    missing: >-
+      {% set missing = state_attr('binary_sensor.motion_device_class_missing','ids') %}
+      {{ missing }}
+  action:
+    - condition: template
+      value_template: >
+        {{ missing|lower != 'none' and not missing is string and missing is iterable and missing|count > 0 }}
+    - alias: 'required_off missing device class(s)'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = missing[repeat.index-1]|default('') %}
+              {{ s|string != '' }}
+        sequence:
+          - variables:
+              automation: >-
+                {% set s = missing[repeat.index-1] %}
+                {% set automation = 'automation.motion_device_' + s|string + '_required_off' %}
+                {{ automation }}
+          - service: automation.trigger
+            data_template:
+              entity_id: >-
+                {{ automation }}
+          - service: automation.trigger
+            data_template:
+              entity_id: >-
+                {{ 'automation.motion_device_temperature_missing_dismiss' }}
+          - condition: template
+            value_template: >
+              {{ states('input_select.motion_log_level') in ['debug'] }}
+          - service: persistent_notification.create
+            data_template:
+              title: >-
+                {% set s = missing[repeat.index-1] %}
+                DEBUG: Require OFF: {{ s }}
+              notification_id: >
+                {{- 'debug-device-class-missing-actions' -}}
+              message: >-
+                Class {{ s }} is no longer required; automation: {{ automation }}
+    - service: automation.trigger
+      data_template:
+        entity_id: >-
+          {{ 'automation.motion_device_class_missing_dismiss' }}
+
+- id: motion_device_class_missing_dismiss_all
+  alias: motion_device_class_missing_dismiss_all
+  mode: single
+  initial_state: 'on'
+  trigger:
+  variables:
+    missing: >-
+      {% set missing = state_attr('binary_sensor.motion_device_class_missing','ids') %}
+      {{ missing }}
+  action:
+    - condition: template
+      value_template: >
+        {{ missing|lower != 'none' and not missing is string and missing is iterable and missing|count > 0 }}
+    - alias: 'dismiss all missing device class(s)'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = missing[repeat.index-1]|default('') %}
+              {{ s|string != '' }}
+        sequence:
+          - variables:
+              automation: >-
+                {% set s = missing[repeat.index-1] %}
+                {% set automation = 'automation.motion_device_' + s|string + '_dismiss' %}
+                {{ automation }}
+          - service: automation.trigger
+            data_template:
+              entity_id: >-
+                {{ automation }}
+          - service: automation.trigger
+            data_template:
+              entity_id: >-
+                {{ 'automation.motion_device_temperature_missing_dismiss' }}
+          - condition: template
+            value_template: >
+              {{ states('input_select.motion_log_level') in ['debug'] }}
+          - service: persistent_notification.create
+            data_template:
+              title: >-
+                {% set s = missing[repeat.index-1] %}
+                DEBUG: Dismiss missing alarm: {{ s }}
+              notification_id: >
+                {{- 'debug-device-class-missing-actions' -}}
+              message: >-
+                Class {{ s }} is no longer required; automation: {{ automation }}
+    - service: automation.trigger
+      data_template:
+        entity_id: >-
+          {{ 'automation.motion_device_class_missing_dismiss' }}
+
 - id: motion_device_class_missing_on
   alias: motion_device_class_missing_on
   mode: single
@@ -11,7 +113,7 @@
       entity_id: 'binary_sensor.motion_device_class_missing'
       to: 'on'
   action:
-    - alias: 'trigger device_class_missing_notify'
+    - alias: 'trigger automation.motion_device_class_missing_notify'
       service: automation.trigger
       entity_id: automation.motion_device_class_missing_notify
 

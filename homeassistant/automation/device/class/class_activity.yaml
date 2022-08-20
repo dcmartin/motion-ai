@@ -99,6 +99,59 @@
 
 ###
 
+- id: motion_device_class_activity_dismiss_all
+  alias: motion_device_class_activity_dismiss_all
+  mode: single
+  initial_state: 'on'
+  trigger:
+  variables:
+    activity: >-
+      {% set activity = state_attr('binary_sensor.motion_device_class_activity','ids') %}
+      {{ activity }}
+  action:
+    - condition: template
+      value_template: >
+        {{ activity|lower != 'none' and not activity is string and activity is iterable and activity|count > 0 }}
+    - alias: 'dismiss all activity device class(s)'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = activity[repeat.index-1]|default('') %}
+              {{ s|string != '' }}
+        sequence:
+          - variables:
+              automation: >-
+                {% set s = activity[repeat.index-1] %}
+                {% set automation = 'automation.motion_device_' + s|string + '_dismiss' %}
+                {{ automation }}
+          - service: automation.trigger
+            data_template:
+              entity_id: >-
+                {{ automation }}
+          - service: automation.trigger
+            data_template:
+              entity_id: >-
+                {{ 'automation.motion_device_temperature_activity_dismiss' }}
+          - condition: template
+            value_template: >
+              {{ states('input_select.motion_log_level') in ['debug'] }}
+          - service: persistent_notification.create
+            data_template:
+              title: >-
+                {% set s = activity[repeat.index-1] %}
+                DEBUG: Dismiss activity alarm: {{ s }}
+              notification_id: >
+                {{- 'debug-device-class-activity-actions' -}}
+              message: >-
+                Class {{ s }} is no longer required; automation: {{ automation }}
+    - service: automation.trigger
+      data_template:
+        entity_id: >-
+          {{ 'automation.motion_device_class_activity_dismiss' }}
+ 
+###
+
 - id: motion_device_class_activity_on
   alias: motion_device_class_activity_on
   mode: single
