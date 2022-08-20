@@ -196,7 +196,7 @@ MOTION_DIRS := \
 MOTION_DASHBOARDS := owner primary developer experimental person animal vehicle
 LOVELACE_DASHBOARDS := $(shell for C in $(MOTION_DASHBOARDS); do echo lovelace.$${C}.json; done)
 
-MOTION_NOTIFY:= system devices unavailable missing activity # weather batterylow wakeup nothomeyet awayintruder 
+MOTION_NOTIFY:= system devices unavailable missing activity found # weather batterylow wakeup nothomeyet awayintruder 
 NOTIFY_DASHBOARDS := $(shell for C in $(MOTION_NOTIFY); do echo notify.$${C}.json; done)
 
 default: all
@@ -446,6 +446,18 @@ notify.unavailable.json: notify.unavailable.json.tmpl setup.json
 	@rm -f .storage/lovelace.notify_unavailable
 	-@mkdir -p .storage/
 	@ln -s ../$@ .storage/lovelace.notify_unavailable
+
+notify.found.json: notify.found.json.tmpl setup.json
+	@echo "${MC}Making: $@${NC}"
+	@export \
+	  MOTION_APP="$(MOTION_APP)" \
+	  MOTION_SITE="$(MOTION_SITE)" \
+	&& cat $< \
+	  | envsubst \
+	> $@
+	@rm -f .storage/lovelace.notify_found
+	-@mkdir -p .storage/
+	@ln -s ../$@ .storage/lovelace.notify_found
 
 notify.missing.json: notify.missing.json.tmpl setup.json
 	@echo "${MC}Making: $@${NC}"
