@@ -2,6 +2,57 @@
 # homeassistant/automation/device/class/class_found.yaml
 ###
 
+- id: motion_device_class_found_dismiss_all
+  alias: motion_device_class_found_dismiss_all
+  mode: single
+  initial_state: 'on'
+  trigger:
+  variables:
+    found: >-
+      {% set found = state_attr('binary_sensor.motion_device_class_found','ids') %}
+      {{ found }}
+  action:
+    - condition: template
+      value_template: >
+        {{ found|lower != 'none' and not found is string and found is iterable and found|count > 0 }}
+    - alias: 'dismiss all found device class(s)'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = found[repeat.index-1]|default('') %}
+              {{ s|string != '' }}
+        sequence:
+          - variables:
+              automation: >-
+                {% set s = found[repeat.index-1] %}
+                {% set automation = 'automation.motion_device_' + s|string + '_dismiss' %}
+                {{ automation }}
+          - service: automation.trigger
+            data_template:
+              entity_id: >-
+                {{ automation }}
+          - service: automation.trigger
+            data_template:
+              entity_id: >-
+                {{ 'automation.motion_device_temperature_found_dismiss' }}
+          - condition: template
+            value_template: >
+              {{ states('input_select.motion_log_level') in ['debug'] }}
+          - service: persistent_notification.create
+            data_template:
+              title: >-
+                {% set s = found[repeat.index-1] %}
+                DEBUG: Dismiss found alarm: {{ s }}
+              notification_id: >
+                {{- 'debug-device-class-found-actions' -}}
+              message: >-
+                Class {{ s }} is no longer required; automation: {{ automation }}
+    - service: automation.trigger
+      data_template:
+        entity_id: >-
+          {{ 'automation.motion_device_class_found_dismiss' }}
+
 - id: motion_device_class_found_on
   alias: motion_device_class_found_on
   mode: single
@@ -10,10 +61,55 @@
     - platform: state
       entity_id: 'binary_sensor.motion_device_class_found'
       to: 'on'
+  variables:
+    responses: >-
+      {% set responses = state_attr('binary_sensor.motion_device_class_found_exist','responses') %}
+      {{ responses }}
   action:
     - alias: 'trigger device_class_found_notify'
       service: automation.trigger
       entity_id: automation.motion_device_class_found_notify
+    - alias: 'test if responses are valid'
+      condition: template
+      value_template: >
+        {{ responses|lower != 'none' and not responses is string and responses is iterable and responses|count > 0 }}
+    - alias: 'enable response automations'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = responses[repeat.index-1]|default('') %}
+              {{ s|string != '' }}
+        sequence:
+          - variables:
+              automation: >-
+                {% set s = responses[repeat.index-1] %}
+                {% set automation = 'automation.motion_device_class_found_' + s|string %}
+                {{ automation }}
+              trigger: >-
+                {% set s = responses[repeat.index-1] %}
+                {% set a = state_attr('binary_sensor..motion_device_class_found_exist',s) %}
+                {% set trigger = a.trigger|default(none)
+                {{ trigger }}
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: >
+                      {{ trigger|lower != 'none' }}
+                sequence:
+                  - service: automation.turn_on
+                    data_template:
+                      entity_id: >-
+                        {{ automation }}
+              - conditions:
+                  - condition: template
+                    value_template: >
+                      {{ trigger|lower == 'none' }}
+                sequence:
+                  - service: automation.turn_off
+                    data_template:
+                      entity_id: >-
+                        {{ automation }}
 
 - id: motion_device_class_found_response
   alias: motion_device_class_found_response
@@ -129,7 +225,7 @@
 - id: motion_device_class_found_approve
   alias: motion_device_class_found_approve
   mode: single
-  initial_state: 'on'
+  initial_state: 'off'
   trigger:
     - platform: state
       entity_id: 'binary_sensor.motion_device_class_found'
@@ -185,7 +281,7 @@
 - id: motion_device_class_found_deny
   alias: motion_device_class_found_deny
   mode: single
-  initial_state: 'on'
+  initial_state: 'off'
   trigger:
     - platform: state
       entity_id: 'binary_sensor.motion_device_class_found'
