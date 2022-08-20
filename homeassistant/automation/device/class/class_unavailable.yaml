@@ -112,10 +112,58 @@
     - platform: state
       entity_id: 'binary_sensor.motion_device_class_unavailable'
       to: 'on'
+  variables:
+    responses: >-
+      {% set responses = state_attr('binary_sensor.motion_device_class_unavailable_exist','responses') %}
+      {{ responses }}
   action:
     - alias: 'trigger device_class_unavailable_notify'
       service: automation.trigger
       entity_id: automation.motion_device_class_unavailable_notify
+    - alias: 'test if responses are valid'
+      condition: template
+      value_template: >
+        {{ responses|lower != 'none' and not responses is string and responses is iterable and responses|count > 0 }}
+    - alias: 'enable or disable response automations'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = responses[repeat.index-1]|default('') %}
+              {{ s|string != '' }}
+        sequence:
+          - variables:
+              automation: >-
+                {% set s = responses[repeat.index-1] %}
+                {% set automation = 'automation.motion_device_class_unavailable_' + s|string %}
+                {{ automation }}
+              trigger: >-
+                {% set s = responses[repeat.index-1] %}
+                {% set a = state_attr('binary_sensor..motion_device_class_unavailable_exist',s) %}
+                {% set trigger = a.trigger|default(none)
+                {{ trigger }}
+          - choose:
+              - alias: 'test if trigger is valid'
+                conditions:
+                  - condition: template
+                    value_template: >
+                      {{ trigger|lower != 'none' }}
+                sequence:
+                  - alias: 'turn on automation'
+                  - service: automation.turn_on
+                    data_template:
+                      entity_id: >-
+                        {{ automation }}
+              - conditions:
+                  - condition: template
+                    value_template: >
+                      {{ trigger|lower == 'none' }}
+                sequence:
+                  - alias: 'turn off automation'
+                  - service: automation.turn_off
+                    data_template:
+                      entity_id: >-
+                        {{ automation }}
 
 - id: motion_device_class_unavailable_response
   alias: motion_device_class_unavailable_response
@@ -231,7 +279,7 @@
 - id: motion_device_class_unavailable_approve
   alias: motion_device_class_unavailable_approve
   mode: single
-  initial_state: 'on'
+  initial_state: 'off'
   trigger:
     - platform: state
       entity_id: 'binary_sensor.motion_device_class_unavailable'
@@ -286,7 +334,7 @@
 - id: motion_device_class_unavailable_deny
   alias: motion_device_class_unavailable_deny
   mode: single
-  initial_state: 'on'
+  initial_state: 'off'
   trigger:
     - platform: state
       entity_id: 'binary_sensor.motion_device_class_unavailable'
@@ -341,7 +389,7 @@
 - id: motion_device_class_unavailable_wait
   alias: motion_device_class_unavailable_wait
   mode: single
-  initial_state: 'on'
+  initial_state: 'off'
   trigger:
     - platform: state
       entity_id: 'binary_sensor.motion_device_class_unavailable'
@@ -396,7 +444,7 @@
 - id: motion_device_class_unavailable_help
   alias: motion_device_class_unavailable_help
   mode: single
-  initial_state: 'on'
+  initial_state: 'off'
   trigger:
     - platform: state
       entity_id: 'binary_sensor.motion_device_class_unavailable'
