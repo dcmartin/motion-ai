@@ -1187,6 +1187,38 @@
         message: >-
           {{- message -}}
 
+- id: motion_device_occupancy_dismiss
+  alias: motion_device_occupancy_dismiss
+  mode: single
+  initial_state: 'off'
+  trigger:
+  variables:
+    alarms: >-
+      {% set alarms = state_attr('binary_sensor.motion_device_class','alarms') %}
+      {{ alarms }}
+  condition:
+    - condition: template
+      value_template: >
+        {{ alarms|lower != 'none' and not alarms is string and alarms is iterable and alarms|count > 0 }}
+  action:
+    - repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = alarms[repeat.index - 1]|default('unknown') -%}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - variables:
+              alarm: >-
+                {% set alarm = alarms[repeat.index - 1]|default('unknown') -%}
+                {{ alarm }}
+              automation: >-
+                {{ 'automation.motion_device_occupancy_' + alarm + '_dismiss' }}
+          - service: automation.trigger
+            data_template:
+              entity_id: >-
+                {{ automation }}
+
 - id: motion_device_occupancy_low_dismiss
   alias: motion_device_occupancy_low_dismiss
   mode: single
