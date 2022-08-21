@@ -140,13 +140,15 @@
               {{ s|string != '' }}
         sequence:
           - variables:
+              which: >-
+                {% set which = responses[repeat.index-1] %}
+                {{ which|string }}
               automation: >-
-                {% set s = responses[repeat.index-1] %}
-                {% set automation = 'automation.motion_device_class_unavailable_' + s|string %}
+                {% set automation = 'automation.motion_device_class_unavailable_' + which %}
                 {{ automation }}
               trigger: >-
                 {% set s = responses[repeat.index-1] %}
-                {% set a = state_attr('binary_sensor..motion_device_class_unavailable_exist',s) %}
+                {% set a = state_attr('binary_sensor.motion_device_class_unavailable_exist',which) %}
                 {% set trigger = a.trigger|default(none) %}
                 {{ trigger }}
           - choose:
@@ -169,20 +171,20 @@
                     data_template:
                       entity_id: >-
                         {{ automation }}
-    - choose:
-        - conditions:
-            - condition: template
-              value_template: >
-                {{ states('input_select.motion_log_level') in ['debug','info'] }}
-          sequence:
-            - service: persistent_notification.create
-              data_template:
-                title: >-
-                  INFO: Device class unavailable: ON
-                notification_id: >-
-                  {{ 'device-class-unavailable' }}
-                message: >-
-                  Class unavailable responses: ON; responses: {{ responses }}
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: >
+                      {{ states('input_select.motion_log_level') in ['debug','info'] }}
+                sequence:
+                  - service: persistent_notification.create
+                    data_template:
+                      title: >-
+                        INFO: Class unavailable: {{ automation }}
+                      notification_id: >-
+                        {{ 'device-class-unavailable-' + which }}
+                      message: >-
+                        Class unavailable: {{ which -}}; responses: {{ responses -}}; trigger: {{ trigger -}}
 
 - id: motion_device_class_unavailable_response
   alias: motion_device_class_unavailable_response

@@ -188,13 +188,14 @@
               {{ s|string != '' }}
         sequence:
           - variables:
+              which: >-
+                {% set which = responses[repeat.index-1] %}
+                {{ which|string }}
               automation: >-
-                {% set s = responses[repeat.index-1] %}
-                {% set automation = 'automation.motion_device_class_activity_' + s|string %}
+                {% set automation = 'automation.motion_device_class_activity_' + which %}
                 {{ automation }}
               trigger: >-
-                {% set s = responses[repeat.index-1] %}
-                {% set a = state_attr('binary_sensor..motion_device_class_activity_exist',s) %}
+                {% set a = state_attr('binary_sensor.motion_device_class_activity_exist',which) %}
                 {% set trigger = a.trigger|default(none) %}
                 {{ trigger }}
           - choose:
@@ -203,7 +204,8 @@
                     value_template: >
                       {{ trigger|lower != 'none' }}
                 sequence:
-                  - service: automation.turn_on
+                  - alias: 'turn on activity automation'
+                    service: automation.turn_on
                     data_template:
                       entity_id: >-
                         {{ automation }}
@@ -213,25 +215,25 @@
                     value_template: >
                       {{ trigger|lower == 'none' }}
                 sequence:
-                  - service: automation.turn_off
+                  - alias: 'turn off activity automation'
+                    service: automation.turn_off
                     data_template:
                       entity_id: >-
                         {{ automation }}
-    - choose:
-        - conditions:
-            - condition: template
-              value_template: >
-                {{ states('input_select.motion_log_level') in ['debug','info'] }}
-          sequence:
-            - service: persistent_notification.create
-              data_template:
-                title: >-
-                  INFO: Device class activity: ON
-                notification_id: >-
-                  {{ 'device-class-activity' }}
-                message: >-
-                  Class activity responses: ON; responses: {{ responses }}
-
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: >
+                      {{ states('input_select.motion_log_level') in ['debug','info'] }}
+                sequence:
+                  - service: persistent_notification.create
+                    data_template:
+                      title: >-
+                        INFO: Class activity: {{ automation }}
+                      notification_id: >-
+                        {{ 'device-class-activity-' + which }}
+                      message: >-
+                        Class activity: {{ which -}}; responses: {{ responses -}}; trigger: {{ trigger -}}
 
 - id: motion_device_class_activity_response
   alias: motion_device_class_activity_response
