@@ -1,0 +1,104 @@
+###
+# homeassistant/sensor/person/person_smartphone_activity.yaml
+###
+
+- platform: template
+  sensors:
+    motion_person_smartphone_activity:
+      unique_id: motion_person_smartphone_activity
+      friendly_name: 'Smartphone activity'
+      icon_template: 'mdi:cellphone-check'
+      attribute_templates:
+        today: >-
+          {{- '{' -}}
+          {%- set s = states('sensor.motion_person_unknown_ratio_history_stats_1d') -%}
+          "unknown":{{- s|float(none) -}}
+          {{- ',' -}}
+          {%- set s = states('sensor.motion_person_running_ratio_history_stats_1d') -%}
+          "running":{{- s|float(none) -}}
+          {{- ',' -}}
+          {%- set s = states('sensor.motion_person_cycling_ratio_history_stats_1d') -%}
+          "cycling":{{- s|float(none) -}}
+          {{- ',' -}}
+          {%- set s = states('sensor.motion_person_walking_ratio_history_stats_1d') -%}
+          "walking":{{- s|float(none) -}}
+          {{- ',' -}}
+          {%- set s = states('sensor.motion_person_automotive_ratio_history_stats_1d') -%}
+          "automotive":{{- s|float(none) -}}
+          {{- ',' -}}
+          {%- set s = states('sensor.motion_person_stationary_ratio_history_stats_1d') -%}
+          "stationary":{{- s|float(none) -}}
+          {{- '}' -}}
+        week: >-
+          {{- '{' -}}
+          {%- set s = states('sensor.motion_person_unknown_ratio_history_stats_1w') -%}
+          "unknown":{{- s|float(none) -}}
+          {{- ',' -}}
+          {%- set s = states('sensor.motion_person_running_ratio_history_stats_1w') -%}
+          "running":{{- s|float(none) -}}
+          {{- ',' -}}
+          {%- set s = states('sensor.motion_person_cycling_ratio_history_stats_1w') -%}
+          "cycling":{{- s|float(none) -}}
+          {{- ',' -}}
+          {%- set s = states('sensor.motion_person_walking_ratio_history_stats_1w') -%}
+          "walking":{{- s|float(none) -}}
+          {{- ',' -}}
+          {%- set s = states('sensor.motion_person_automotive_ratio_history_stats_1w') -%}
+          "automotive":{{- s|float(none) -}}
+          {{- ',' -}}
+          {%- set s = states('sensor.motion_person_stationary_ratio_history_stats_1w') -%}
+          "stationary":{{- s|float(none) -}}
+          {{- '}' -}}
+        coverage: >-
+         {{ state_attr('sensor.motion_person_smartphone_activity_oldest','age_coverage_ratio')|float(0) * 100 }}
+        usage: >-
+         {{ state_attr('sensor.motion_person_smartphone_activity_oldest','buffer_usage_ratio')|float(0) * 100 }}
+        count: >-
+          {{ states('sensor.motion_person_smartphone_activity_count') }}
+        duration: >-
+          {% set s = states('sensor.motion_person_smartphone_activity_oldest') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 %}
+            {{ utcnow().timestamp() - s|as_timestamp }}
+          {%- else -%}null{%- endif -%}
+        relative: >-
+          {% set s = states('sensor.motion_person_smartphone_activity_oldest') %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 %}
+            {{ s|relative_time }}
+          {%- else -%}null{%- endif -%}
+      value_template: >-
+        {{ states('sensor.motion_person_device_activity') }}
+
+##
+
+- platform: history_stats
+  name: motion_person_unknown_ratio_history_stats_1d
+  entity_id: binary_sensor.motion_person_stationary
+  state: 'unknown'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_person_unknown_ratio_history_stats_1w
+  entity_id: binary_sensor.motion_person_stationary
+  state: 'unknown'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - states('sensor.motion_person_weeks_timestamp')|int(0) }}
+  end: '{{ now() }}'
+
+- platform: statistics
+  name: motion_person_smartphone_activity_count
+  entity_id: sensor.motion_person_smartphone_activity
+  state_characteristic: count
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_person_smartphone_activity_oldest
+  entity_id: sensor.motion_person_smartphone_activity
+  state_characteristic: datetime_oldest
+  sampling_size: 1000
+  max_age:
+    days: 7
