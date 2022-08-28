@@ -126,6 +126,57 @@
         entity_id: >-
           {{ 'automation.motion_device_class_rescan' }}
 
+- id: motion_device_class_missing_rescan
+  alias: motion_device_class_missing_rescan
+  mode: restart
+  initial_state: 'on'
+  trigger:
+  variables:
+    missing: >-
+      {%- set s = state_attr('binary_sensor.motion_device_class','sensor_list')|list + state_attr('binary_sensor.motion_device_class','binary_sensor_list')|list -%}
+      [{%- for i in s|sort|unique if is_state('binary_sensor.motion_device_' + i + '_missing','on') -%}
+        {%- if not loop.first -%},{%- endif -%}
+        "{{- i -}}"
+      {%- endfor -%}]
+  action:
+    - alias: 'update sensor.motion_device_class ids'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        missing: >-
+          {{ missing }}
+    - alias: 'update binary_sensor.motion_device_class_missing'
+      service: homeassistant.update_entity
+      data_template:
+        entity_id: binary_sensor.motion_device_class_missing
+
+- id: motion_device_class_unavailable_rescan
+  alias: motion_device_class_unavailable_rescan
+  mode: restart
+  initial_state: 'on'
+  trigger:
+  variables:
+    unavailable: >-
+      {%- set s = state_attr('binary_sensor.motion_device_class','sensor_list')|list + state_attr('binary_sensor.motion_device_class','binary_sensor_list')|list -%}
+      [{%- for i in s|sort|unique if is_state('binary_sensor.motion_device_' + i + '_unavailable','on') -%}
+        {%- if not loop.first -%},{%- endif -%}
+        {%- for j in state_attr('binary_sensor.motion_device_' + i + '_unavailable','ids') -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {"id":"{{- j -}}","class":"{{- i -}}"}
+        {%- endfor -%}
+      {%- endfor -%}]
+  action:
+    - alias: 'update sensor.motion_device_class ids'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        unavailable: >-
+          {{ unavailable }}
+    - alias: 'update binary_sensor.motion_device_class_unavailable'
+      service: homeassistant.update_entity
+      data_template:
+        entity_id: binary_sensor.motion_device_class_unavailable
+
 - id: motion_device_class_rescan
   alias: motion_device_class_rescan
   mode: restart
