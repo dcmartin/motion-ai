@@ -2,6 +2,64 @@
 # homeassistant/automation/device/class/class_unavailable.yaml
 ###
 
+- id: motion_device_class_unavailable_alarm_off
+  alias: motion_device_class_unavailable_alarm_off
+  mode: single
+  initial_state: 'on'
+  trigger:
+  variables:
+    unavailable: >-
+      {% set unavailable = state_attr('binary_sensor.motion_device_class_unavailable','ids') %}
+      {{ unavailable }}
+  action:
+    - service: automation.trigger
+      data_template:
+        entity_id: >-
+          {{ 'automation.motion_device_class_unavailable_dismiss_all' }}
+    - condition: template
+      value_template: >
+        {{ unavailable|lower != 'none' and not unavailable is string and unavailable is iterable and unavailable|count > 0 }}
+    - alias: 'alarm_off unavailable device class(s)'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = unavailable[repeat.index-1]|default('') %}
+              {{ s|string != '' }}
+        sequence:
+          - variables:
+              which: >-
+                {% set which = unavailable[repeat.index-1] %}
+                {{ which }}
+              automation: >-
+                {% set automation = 'automation.motion_device_' + which|string + '_alarm_off' %}
+                {{ automation }}
+          - service: automation.trigger
+            data_template:
+              entity_id: >-
+                {{ automation }}
+          - service: automation.trigger
+            data_template:
+              entity_id: >-
+                {{ 'automation.motion_device_' + which|string + '_unavailable_dismiss' }}
+          - condition: template
+            value_template: >
+              {{ states('input_select.motion_log_level') in ['debug'] }}
+          - service: persistent_notification.create
+            data_template:
+              title: >-
+                {% set s = unavailable[repeat.index-1] %}
+                DEBUG: Require OFF: {{ s }}
+              notification_id: >
+                {{- 'debug-device-class-unavailable-actions' -}}
+              message: >-
+                {% set s = unavailable[repeat.index-1] %}
+                Class {{ s }} is no longer alarm; automation: {{ automation }}
+    - service: automation.trigger
+      data_template:
+        entity_id: >-
+          {{ 'automation.motion_device_class_unavailable_rescan' }}
+
 - id: motion_device_class_unavailable_required_off
   alias: motion_device_class_unavailable_required_off
   mode: single
