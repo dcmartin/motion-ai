@@ -60,6 +60,12 @@
   alias: motion_device_class_found_dismiss_all
   mode: single
   initial_state: 'on'
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('input_select.motion_log_level') in ['debug'] }}
+          sequence:
   trigger:
   variables:
     found: >-
@@ -86,27 +92,31 @@
                 {% set which = found[repeat.index-1] %}
                 {{ which }}
               automation: >-
-                {% set automation = 'automation.motion_device_' + which|string + '_dismiss' %}
+                {% set automation = 'automation.motion_device_' + which|string + '_found_dismiss' %}
                 {{ automation }}
           - service: automation.trigger
             data_template:
               entity_id: >-
                 {{ automation }}
-          - service: automation.trigger
+          - alias: 'dismiss device <class> activity'
+            service: automation.trigger
             data_template:
               entity_id: >-
-                {{ 'automation.motion_device_' + which|string + '_found_dismiss' }}
-          - condition: template
-            value_template: >
-              {{ states('input_select.motion_log_level') in ['debug'] }}
-          - service: persistent_notification.create
-            data_template:
-              title: >-
-                DEBUG: Dismiss found alarm: {{ which }}
-              notification_id: >
-                {{- 'debug-device-class-found-actions' -}}
-              message: >-
-                Dismissed all {{ which }} class found notifications
+                {{ automation }}
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: >
+                      {{ states('input_select.motion_log_level') in ['debug'] }}
+                sequence:
+                  - service: persistent_notification.create
+                    data_template:
+                      title: >-
+                        DEBUG: Dismiss found alarm: {{ which }}
+                      notification_id: >
+                        {{- 'debug-device-class-found-actions' -}}
+                      message: >-
+                        Dismiss all {{ which }} found notifications
 
 ##
 
