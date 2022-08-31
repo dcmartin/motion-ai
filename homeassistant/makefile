@@ -201,7 +201,7 @@ NOTIFY_DASHBOARDS := $(shell for C in $(MOTION_NOTIFY); do echo notify.$${C}.jso
 
 default: all
 
-all: chown $(WEBCAMS) lovelace.json lovelace_dashboards.json lovelace_resources.json ${LOVELACE_DASHBOARDS} $(NOTIFY_DASHBOARDS) $(MOTION_DIRS) $(PACKAGES) secrets.yaml
+all: chown $(WEBCAMS) lovelace.json lovelace_dashboards.json ${LOVELACE_DASHBOARDS} $(NOTIFY_DASHBOARDS) $(MOTION_DIRS) $(PACKAGES) secrets.yaml # lovelace_resources.json
 
 chown:
 	@echo "${MC}Making: $@${NC}"
