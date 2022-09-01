@@ -158,13 +158,6 @@
   trigger:
     platform: state
     entity_id: binary_sensor.motion_device_class_exist
-    to: 'on'
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >
-          {{ trigger.to_state.state != trigger.from_state.state }}
   variables:
     responses: >-
       {% set responses = state_attr('binary_sensor.motion_device_class_missing_exist','responses') %}
@@ -174,7 +167,7 @@
       condition: template
       value_template: >
         {{ responses|lower != 'none' and not responses is string and responses is iterable and responses|count > 0 }}
-    - alias: 'enable response automations'
+    - alias: 'enable or disable response trigger automations'
       repeat:
         while:
           - condition: template
@@ -190,14 +183,18 @@
                 {% set automation = 'automation.motion_device_class_missing_' + which %}
                 {{ automation }}
               trigger: >-
-                {% set s = state_attr('binary_sensor.motion_device_class_missing_exist',which) %}
-                {% set trigger = s.trigger|default(none) %}
+                {% set s = responses[repeat.index-1] %}
+                {% set a = state_attr('binary_sensor.motion_device_class_missing_exist',which) %}
+                {% set trigger = a.trigger|default(none) %}
                 {{ trigger }}
           - choose:
               - conditions:
                   - condition: template
                     value_template: >
                       {{ trigger|lower != 'none' }}
+                  - condition: template
+                    value_template: >
+                      {{ is_state(automation,'off') }}
                 sequence:
                   - service: automation.turn_on
                     data_template:
@@ -208,6 +205,9 @@
                   - condition: template
                     value_template: >
                       {{ trigger|lower == 'none' }}
+                  - condition: template
+                    value_template: >
+                      {{ is_state(automation,'on') }}
                 sequence:
                   - service: automation.turn_off
                     data_template:
@@ -222,11 +222,11 @@
                   - service: persistent_notification.create
                     data_template:
                       title: >-
-                        DEBUG: Missing: {{ which }}
+                        DEBUG: Missing response: {{ which }}
                       notification_id: >-
                         {{ 'device-class-missing-responses' }}
                       message: >-
-                        Response: {{ which -}}; trigger: {{ trigger -}}; automation: {{ automation -}}
+                        Response: {{ which -}}; trigger: {{ trigger -}}; automation: {{ automation }}
 
 - id: motion_device_class_missing_response
   alias: motion_device_class_missing_response

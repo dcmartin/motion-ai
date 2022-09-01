@@ -263,13 +263,6 @@
   trigger:
     platform: state
     entity_id: binary_sensor.motion_device_class_exist
-    to: 'on'
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >
-          {{ trigger.to_state.state != trigger.from_state.state }}
   variables:
     responses: >-
       {% set responses = state_attr('binary_sensor.motion_device_class_activity_exist','responses') %}
@@ -279,7 +272,7 @@
       condition: template
       value_template: >
         {{ responses|lower != 'none' and not responses is string and responses is iterable and responses|count > 0 }}
-    - alias: 'enable or disable response automations'
+    - alias: 'enable or disable response trigger automations'
       repeat:
         while:
           - condition: template
@@ -295,6 +288,7 @@
                 {% set automation = 'automation.motion_device_class_activity_' + which %}
                 {{ automation }}
               trigger: >-
+                {% set s = responses[repeat.index-1] %}
                 {% set a = state_attr('binary_sensor.motion_device_class_activity_exist',which) %}
                 {% set trigger = a.trigger|default(none) %}
                 {{ trigger }}
@@ -303,9 +297,11 @@
                   - condition: template
                     value_template: >
                       {{ trigger|lower != 'none' }}
+                  - condition: template
+                    value_template: >
+                      {{ is_state(automation,'off') }}
                 sequence:
-                  - alias: 'turn on activity automation'
-                    service: automation.turn_on
+                  - service: automation.turn_on
                     data_template:
                       entity_id: >-
                         {{ automation }}
@@ -314,9 +310,11 @@
                   - condition: template
                     value_template: >
                       {{ trigger|lower == 'none' }}
+                  - condition: template
+                    value_template: >
+                      {{ is_state(automation,'on') }}
                 sequence:
-                  - alias: 'turn off activity automation'
-                    service: automation.turn_off
+                  - service: automation.turn_off
                     data_template:
                       entity_id: >-
                         {{ automation }}
@@ -329,7 +327,7 @@
                   - service: persistent_notification.create
                     data_template:
                       title: >-
-                        DEBUG: Activity: {{ which }}
+                        DEBUG: Activity response: {{ which }}
                       notification_id: >-
                         {{ 'device-class-activity-responses' }}
                       message: >-
