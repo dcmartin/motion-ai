@@ -201,7 +201,7 @@ NOTIFY_DASHBOARDS := $(shell for C in $(MOTION_NOTIFY); do echo notify.$${C}.jso
 
 default: all
 
-all: chown $(WEBCAMS) lovelace.json lovelace_dashboards.json ${LOVELACE_DASHBOARDS} $(NOTIFY_DASHBOARDS) $(MOTION_DIRS) $(PACKAGES) secrets.yaml # lovelace_resources.json
+all: chown $(WEBCAMS) lovelace.json lovelace_dashboards.json ${LOVELACE_DASHBOARDS} $(NOTIFY_DASHBOARDS) $(MOTION_DIRS) $(PACKAGES) secrets.yaml
 
 chown:
 	@echo "${MC}Making: $@${NC}"
@@ -393,21 +393,6 @@ lovelace_dashboards.json: lovelace_dashboards.json.tmpl
 	@rm -f .storage/lovelace_dashboards
 	-@mkdir -p .storage/
 	@ln -s ../$@ .storage/lovelace_dashboards
-
-## resources
-
-lovelace_resources.json: lovelace_resources.json.tmpl
-	@echo "${MC}Making: $@${NC}"
-	@export \
-	  HOST_NAME="$(HOST_NAME)" \
-	  MOTION_APP="$(MOTION_APP)" \
-	  MOTION_USER="$(MOTION_USER)" \
-	&& cat $< \
-	  | envsubst \
-	 > $@
-	@rm -f .storage/lovelace_resources
-	-@mkdir -p .storage/
-	@ln -s ../$@ .storage/lovelace_resources
 
 ## notifications
 
