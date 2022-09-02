@@ -321,17 +321,18 @@ git merge upstream/master
 
 Language|files|blank|comment|code
 :-------|-------:|-------:|-------:|-------:
-YAML|724|6662|6549|153449
+YAML|785|7504|6507|199524
 JSON|51|2|0|47163
 Python|23|655|648|5843
 Bourne Shell|60|582|303|2887
 Markdown|13|548|0|1849
-make|3|198|92|1356
+make|3|198|92|1375
 Jupyter Notebook|1|0|1020|927
+JavaScript|2|130|7|776
 HTML|1|19|1|89
 XML|1|1|0|89
 --------|--------|--------|--------|--------
-SUM:|877|8667|8613|213652
+SUM:|940|9639|8578|260522
 
 <img src="http://clustrmaps.com/map_v2.png?cl=ffffff&w=a&t=n&d=8TDxxKn9npMT6_70gwlS3FcPjhdcBm5j4LskwHzTO5U" width="1">
 
