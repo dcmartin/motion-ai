@@ -230,6 +230,8 @@
         {% else %}
           {{- 'mdi:restart-off' -}}
         {% endif %}
+      attribute_templates:
+        timeout: 300
       value_template: >-
         {{ is_state('input_boolean.motion_restart','on') }}
     motion_restart_required:
@@ -366,3 +368,34 @@
         {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
           {{ s|int(0) > 0 }}
         {% else %}null{% endif %}
+
+# restart & reboot available options
+
+- platform: template
+  sensors:
+    motion_restart_available:
+      value_template: >-
+        {%- set n = utcnow().timestamp() -%}
+        {%- set t = state_attr('binary_sensor.motion_restart','timeout') -%}
+        {%- set s = is_state('binary_sensor.motion_restart_required','on')
+           and is_state('binary_sensor.motion_restart_requested','off')
+           and state_attr('automation.motion_restart','current')|int(1) < 1
+           and n - states.binary_sensor.motion_addon_restart.last_updated|as_timestamp(n) > t|int(300) -%}
+        {{ s }}
+    motion_reboot_available:
+      value_template: >-
+        {%- set n = utcnow().timestamp() -%}
+        {%- set t = state_attr('binary_sensor.motion_restart','timeout') -%}
+        {%- set s = is_state('binary_sensor.motion_restarting','on')
+           and state_attr('automation.motion_restart','current')|int(0) > 0
+           and n - states.binary_sensor.motion_addon_restart.last_updated|as_timestamp(n) > t|int(300) -%}
+        {{ s }}
+    motion_restart_force:
+      value_template: >-
+        {%- set n = utcnow().timestamp() -%}
+        {%- set t = state_attr('binary_sensor.motion_restart','timeout') -%}
+        {%- set s = is_state('binary_sensor.motion_restart_required','on')
+           and is_state('binary_sensor.motion_restart_requested','on')
+           and state_attr('automation.motion_restart','current')|int(1) < 1
+           and n - states.binary_sensor.motion_addon_restart.last_updated|as_timestamp(n) > t|int(300) -%}
+        {{ s }}
