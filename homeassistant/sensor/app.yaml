@@ -2,10 +2,31 @@
 ## homeassistant/sensor/app.yaml
 ###
 
-- platform: filesize
-  scan_interval: 1800
-  file_paths:
-    - /config/home-assistant_v2.db
+- platform: command_line
+  name: motion_database_size
+  scan_interval: 120
+  command_timeout: 10
+  command: "eval {{- state_attr('sensor.motion_hub','command') -}}"
+  json_attributes:
+    - kbytes
+    - file
+  value_template: >
+    {{- value_json is defined and 'kbytes' in value_json and 'file' in value_json -}}
+
+- platform: template
+  sensors:
+    motion_hub:
+      friendly_name: Device
+      icon_template: 'mdi:raspberry-pi'
+      attribute_templates:
+        database: >-
+          {{ state_attr('sensor.motion_database_size','kbytes') }}
+        command: >-
+          du -k /config/home-assistant_v2.db | awk '{ printf("{\"kbytes\":%d,\"file\":\"%s\"}",$1,$2) }'
+      value_template: >-
+        {% if states.input_text.motion_hub is defined %}
+          {{ states('input_text.motion_hub') }}
+        {% else %}null{% endif %}
 
 - platform: template
   sensors:
@@ -60,19 +81,6 @@
       value_template: >-
         {% if states.input_text.motion_group is defined %}
           {{ states.input_text.motion_group.state }}
-        {% else %}null{% endif %}
-
-- platform: template
-  sensors:
-    motion_hub:
-      friendly_name: Device
-      icon_template: 'mdi:raspberry-pi'
-      attribute_templates:
-        database_size: >-
-          {{ states('sensor.home_assistant_v2_db') }}
-      value_template: >-
-        {% if states.input_text.motion_hub is defined %}
-          {{ states('input_text.motion_hub') }}
         {% else %}null{% endif %}
 
 - platform: template
