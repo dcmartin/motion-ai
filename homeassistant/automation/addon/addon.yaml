@@ -95,17 +95,25 @@
       data:
         addon: >-
           {{ state_attr('binary_sensor.motion_addon_update','id') }}
-    - wait_for_trigger:
-        - platform: state
-          entity_id: 'binary_sensor.motion_addon_reload'
-          to: 'on'
-      continue_on_timeout: true
-      timeout:
-        seconds: >-
-          {{ state_attr('binary_sensor.motion_addon_updating','delay') }}
-#    - alias: 'trigger automation.motion_addon_config_update'
-#      service: automation.trigger
-#      entity_id: 'automation.motion_addon_config_update'
+    - repeat:
+        sequence:
+          - alias: 'wait for binary_sensor.motion_addon_update to off'
+            wait_for_trigger:
+              - platform: state
+                entity_id: 'binary_sensor.motion_addon_update'
+                to: 'off'
+            continue_on_timeout: true
+            timeout:
+              seconds: >-
+                {{ state_attr('binary_sensor.motion_addon_updating','delay') }}
+          - alias: 'check for configuration update; automation.motion_addon_config_update'
+            service: automation.trigger
+            entity_id: 'automation.motion_addon_config_update'
+      until:
+        - alias: 'until addon has completed update'
+          condition: template
+          value_template: >-
+            {{ is_state('binary_sensor.motion_addon_update','off') }}
 
 - id: motion_addon_template_update
   alias: motion_addon_template_update
