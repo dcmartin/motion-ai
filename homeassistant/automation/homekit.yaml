@@ -12,13 +12,12 @@
       entity_id: sensor.motion_domain_persistent_notification_count
   variables:
     homekit: >-
-      {%- for state in states.persistent_notification|sort(reverse=true,attribute='last_updated')
+      [{%- for state in states.persistent_notification|sort(reverse=true,attribute='last_updated')
         if state.state_with_unit|lower == 'notifying' and 'HomeKit' in state.attributes.title -%}
-        {%- if not loop.first -%},{% else %}[{%- endif -%}
+        {%- if not loop.first -%},{%- endif -%}
         {%- set i = state.entity_id|replace('persistent_notification.','') -%}
         ["{{- i -}}",{{- utcnow().timestamp() - state.last_updated|as_timestamp -}}]
-        {%- if loop.last -%}]{%- endif -%}
-      {%- endfor -%}
+      {%- endfor -%}]
   condition:
     condition: and
     conditions:
@@ -27,7 +26,7 @@
           {{ is_state('input_boolean.motion_homekit_autodismiss','on') }}
       - condition: template
         value_template: >
-          {{ homekit|lower != 'none' and homekit is iterable and homekit|count > 0 }}
+          {{ not homekit is string and homekit is iterable and homekit|count > 0 }}
   action:
     - repeat:
         while:
@@ -38,8 +37,12 @@
         sequence:
           - variables:
               id: >-
-                {% set s = homekit[repeat.index-1]|default('') %}
-                {{ s|first }}
+                {%- set s = homekit[repeat.index-1]|default('') -%}
+                {%- set id = s|first|default('none') -%}
+                {{ id }}
+          - condition: template
+            value_template: >-
+              {{ id|lower != 'none' and id|string|length > 0 }}
           - alias: 'dismiss homekit notifications'
             service: persistent_notification.dismiss
             data_template:
