@@ -1,0 +1,109 @@
+###
+# homeassistant/automation/motion/person.yaml
+###
+
+- id: motion_primary_selected
+  alias: motion_primary_selected
+  initial_state: 'off'
+  mode: restart
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_primary
+      to:
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {% set s = states('sensor.motion_primary') %}
+          {{- s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -}}
+  action:
+    - service: input_text.set_value
+      target:
+        entity_id: input_text.motion_primary
+      data:
+        value: >-
+          {{ states('sensor.motion_primary') }}
+
+- id: motion_primary_select_set_options
+  alias: motion_primary_select_set_options
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_domain_primary_status
+      attribute: 'ids'
+    - platform: time_pattern
+      minutes: /2
+  variables:
+    person: >-
+      {% set person = states('sensor.motion_primary') -%}
+      {{- person }}
+    old: >-
+      {% set old = state_attr('input_select.motion_primary','options') -%}
+      {{- old }}
+    new: >-
+      {% set s = state_attr('sensor.motion_domain_primary_status','ids') -%}
+      {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+        {%- for i in s -%}
+          {%- if loop.first -%}[{%- else -%},{%- endif -%}
+          '{{- i -}}'
+          {%- if loop.last -%}]{%- endif -%}
+        {%- endfor -%}
+      {%- else -%}[]{%- endif %}
+    selected: >-
+      {% set selected = states('input_select.motion_primary') -%}
+      {{- selected }}
+    specified: >-
+      {% set specified = states('input_text.motion_primary') -%}
+      {{- specified }}
+    current: >-
+      {% set current = none -%}
+      {%- set s = states('sensor.motion_primary_selected') -%}
+      {%- if s|lower != 'none' and s|string|length > 0 -%}
+        {%- set current = s -%}
+      {%- endif -%}
+      {{- current }}
+    default: >-
+      {% set s = selected -%}
+      {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+        {%- set p = s -%} 
+      {%- elif s|lower == 'none' -%}
+        {%- set s = person -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'auto' -%}
+          {%- set p = s -%}
+        {%- endif -%}
+        {%- if not p is defined -%}
+          {%- set s = specified -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {%- set p = s -%}
+          {%- endif -%}
+        {%- endif -%}
+      {%- endif -%}
+      {%- if p is defined -%}
+        {{ p }}
+      {%- else -%}
+        {%- set s = states('sensor.motion_primary_calculator') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 -%}
+          {{- s -}} 
+        {%- else -%}none{%- endif -%}
+      {%- endif %}
+  condition:
+    condition: and
+    conditions:
+  action:
+    - variables:
+        options: >-
+          {{ (['none'] + new)|sort|unique|list }}
+    - condition: template
+      value_template: >-
+        {{- options != old }}
+    - service: input_select.set_options
+      data_template:
+        entity_id: input_select.motion_primary
+        options: >-
+          {{ options }}
+    - service: input_select.select_option
+      data_template:
+        entity_id: input_select.motion_primary
+        option: >-
+          {{ default }}
