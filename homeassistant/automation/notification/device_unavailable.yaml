@@ -13,66 +13,31 @@
     after: >-
       {%- set s = state_attr('binary_sensor.motion_notification_device_unavailable_exist','after') -%}
       {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-        {{- s -}}
+        {%- set after = s -%}
       {%- else -%}
         {%- set s = states('input_datetime.motion_schedule_wakeup_begin') -%}
         {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-          {{- s -}}
+          {%- set after = s -%}
         {%- else -%}
-          {{- '05:00:00' -}}
+          {%- set after = '05:00:00' -%}
         {%- endif -%}
       {%- endif %}
+      {%- set after = now().replace(hour=0).replace(minute=0).replace(second=0)|string|replace('00:00:00',after)|as_timestamp -%}
     before: >-
       {%- set s = state_attr('binary_sensor.motion_notification_device_unavailable_exist','before') -%}
       {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-        {{- s -}}
+        {%- set before = s -%}
       {%- else -%}
         {%- set s = states('input_datetime.motion_schedule_bedtime_end') -%}
         {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-          {{- s -}}
+          {%- set before = s -%}
         {%- else -%}
-          {{- '23:00:00' -}}
+          {%- set before = '23:00:00' -%}
         {%- endif %}
       {%- endif %}
-    title: >-
-      {%- set title = states('sensor.motion_app') + ': unavailable device' -%}
-      {{- title -}}
-    notification_id: >-
-      {{ 'device-unavailable-help' }}
-    icon: >-
-      {% set icon = 'notification-unavailable-device' %}
-      {{ icon }}
-    actions: >-
-      {%- set actions = state_attr('binary_sensor.motion_notification_device_unavailable_exist','actions') -%}
-      {{- actions -}}
-    action: >-
-      {%- set action = 'device-unavailable' -%}
-      {{- action -}}
-    url: >-
-      {%- set url = '/notify-unavailable/all' -%}
-      {{- url -}}
-    header: >-
-      {{- '<img src="/local/images/icons/' + icon + '.png?v1"><hr>' -}}
-    footer: >-
-      <hr><a href="{{- url -}}"><img src="https://img.shields.io/badge/{{- action -}}-blue.svg"></a>
-    hours: >-
-      {{ state_attr('binary_sensor.motion_device_class_unavailable_exist','high') }}
-    since: >-
-      {%- set s = state_attr('binary_sensor.motion_device_class_unavailable','timestamp') -%}
-      {%- if s|lower != 'none' and s|float(0) > 0 -%}
-        {%- set s = s|as_datetime|relative_time -%}
-      {%- else -%}
-        {%- set s = 'none' -%}
-      {%- endif -%}
-      {{ s }}
-    body: >-
-      <h2>Unavaliable device</h2>
-      There are unavailable device(s) for the past {{ hours }} hours; since {{ since -}}.
-      <p>{{- state_attr('binary_sensor.motion_notification_device_unavailable','markdown') -}}
-    message: >-
-      {{- header -}}
-      {{- body -}}
-      {{- footer -}}
+      {%- set before = now().replace(hour=0).replace(minute=0).replace(second=0)|string|replace('00:00:00',before)|as_timestamp -%}
+    now: >-
+      {{ now().timestamp() }}
   condition:
     condition: and
     conditions:
@@ -80,21 +45,55 @@
         condition: state
         entity_id: binary_sensor.motion_person_home
         state: 'on'
-      - alias: 'test before and after not none'
+      - alias: 'test if now > after'
         condition: template
         value_template: >-
-          {{ after|lower != 'none' and before|lower != 'none' }}
-      - alias: 'test before and after not empty'
+          {{ now > after }}
+      - alias: 'test if now < before'
         condition: template
         value_template: >-
-          {{ after|lower != '' and before|lower != '' }}
-      - alias: 'test if between wakeup and bedtime'
-        condition: time
-        after: >-
-          {{ after }}
-        before: >-
-          {{ before }}
+          {{ now < before}}
   action:
+    - variables:
+        title: >-
+          {%- set title = states('sensor.motion_app') + ': unavailable device' -%}
+          {{- title -}}
+        notification_id: >-
+          {{ 'device-unavailable-help' }}
+        icon: >-
+          {% set icon = 'notification-unavailable-device' %}
+          {{ icon }}
+        actions: >-
+          {%- set actions = state_attr('binary_sensor.motion_notification_device_unavailable_exist','actions') -%}
+          {{- actions -}}
+        action: >-
+          {%- set action = 'device-unavailable' -%}
+          {{- action -}}
+        url: >-
+          {%- set url = '/notify-unavailable/all' -%}
+          {{- url -}}
+        header: >-
+          {{- '<img src="/local/images/icons/' + icon + '.png?v1"><hr>' -}}
+        footer: >-
+          <hr><a href="{{- url -}}"><img src="https://img.shields.io/badge/{{- action -}}-blue.svg"></a>
+        hours: >-
+          {{ state_attr('binary_sensor.motion_device_class_unavailable_exist','high') }}
+        since: >-
+          {%- set s = state_attr('binary_sensor.motion_device_class_unavailable','timestamp') -%}
+          {%- if s|lower != 'none' and s|float(0) > 0 -%}
+            {%- set s = s|as_datetime|relative_time -%}
+          {%- else -%}
+            {%- set s = 'none' -%}
+          {%- endif -%}
+          {{ s }}
+        body: >-
+          <h2>Unavaliable device</h2>
+          There are unavailable device(s) for the past {{ hours }} hours; since {{ since -}}.
+          <p>{{- state_attr('binary_sensor.motion_notification_device_unavailable','markdown') -}}
+        message: >-
+          {{- header -}}
+          {{- body -}}
+          {{- footer -}}
     - alias: 'notify device_unavailable'
       service: persistent_notification.create
       data_template:
