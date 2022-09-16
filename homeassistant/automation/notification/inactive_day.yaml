@@ -12,6 +12,35 @@
     - platform: state
       entity_id: binary_sensor.motion_device_class_activity_inactive
       to: 'on'
+  variables:
+    after: >-
+      {%- set s = state_attr('binary_sensor.motion_notification_device_inactive_day_exist','after') -%}
+      {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+        {%- set after = s -%}
+      {%- else -%}
+        {%- set s = states('input_datetime.motion_schedule_wakeup_begin') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {%- set after = s -%}
+        {%- else -%}
+          {%- set after = '05:00:00' -%}
+        {%- endif -%}
+      {%- endif %}
+      {%- set after = now().replace(hour=0).replace(minute=0).replace(second=0)|string|replace('00:00:00',after)|as_timestamp -%}
+    before: >-
+      {%- set s = state_attr('binary_sensor.motion_notification_device_inactive_day_exist','before') -%}
+      {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+        {%- set before = s -%}
+      {%- else -%}
+        {%- set s = states('input_datetime.motion_schedule_bedtime_end') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {%- set before = s -%}
+        {%- else -%}
+          {%- set before = '23:00:00' -%}
+        {%- endif %}
+      {%- endif %}
+      {%- set before = now().replace(hour=0).replace(minute=0).replace(second=0)|string|replace('00:00:00',before)|as_timestamp -%}
+    now: >-
+      {{ now().timestamp() }}
   condition:
     condition: and
     conditions:
@@ -19,71 +48,53 @@
         condition: state
         entity_id: binary_sensor.motion_person_home
         state: 'on'
-      - alias: 'test if between wakeup and bedtime'
-        condition: time
-        after: >-
-          {%- set s = state_attr('binary_sensor.motion_notification_inactive_day_exist','after') -%}
-          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-            {{- s -}}
-          {%- else -%}
-            {%- set s = states('input_datetime.motion_schedule_wakeup_begin') -%}
-            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-              {{- s -}}
-            {%- else -%}
-              {{- '05:00:00' -}}
-            {%- endif -%}
-          {%- endif %}
-        before: >-
-          {%- set s = state_attr('binary_sensor.motion_notification_inactive_day_exist','before') -%}
-          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-            {{- s -}}
-          {%- else -%}
-            {%- set s = states('input_datetime.motion_schedule_bedtime_end') -%}
-            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-              {{- s -}}
-            {%- else -%}
-              {{- '23:00:00' -}}
-            {%- endif %}
-          {%- endif %}
-  variables:
-    title: >-
-      {%- set title = states('sensor.motion_app') + ': inactive' -%}
-      {{- title -}}
-    notification_id: >-
-      {{ 'inactive_day' }}
-    icon: >-
-      {% set icon = 'notification-inactive-day' %}
-      {{ icon }}
-    actions: >-
-      {%- set actions = state_attr('binary_sensor.motion_notification_inactive_day_exist','actions') -%}
-      {{- actions -}}
-    action: >-
-      {%- set action = 'day-inactive' -%}
-      {{- action -}}
-    url: >-
-      {%- set url = '/notify-activity/inactive_day' -%}
-      {{- url -}}
-    header: >-
-      {{- '<img src="/local/images/icons/' + icon + '.png?v1"><hr>' -}}
-    footer: >-
-      <hr><a href="{{- url -}}"><img src="https://img.shields.io/badge/{{- action -}}-blue.svg"></a>
-    hours: >-
-      {{ state_attr('binary_sensor.motion_device_class_activity_exist','high') }}
-    wakeup: >-
-      {%- set s = state_attr('sensor.motion_person','wakeup') -%}
-      {%- if s|lower != 'none' -%}
-        {%- set s = s|int|string + ':' + (s - s|int)*60|int|string -%}
-      {%- endif -%}
-      {{ s }}
-    body: >-
-      <h2>Inactive day</h2>
-      There has been no activity in the home for the past {{ hours }} hours; after {{ wakeup }} today.
-      <p>{{- state_attr('binary_sensor.motion_notification_inactive_day','markdown') -}}
-    message: >-
-      {{- header -}}
-      {{- body -}}
-      {{- footer -}}
+      - alias: 'test if now > after'
+        condition: template
+        value_template: >-
+          {{ now > after }}
+      - alias: 'test if now < before'
+        condition: template
+        value_template: >-
+          {{ now < before}}
   action:
+    - variables:
+        title: >-
+          {%- set title = states('sensor.motion_app') + ': inactive' -%}
+          {{- title -}}
+        notification_id: >-
+          {{ 'inactive_day' }}
+        icon: >-
+          {% set icon = 'notification-inactive-day' %}
+          {{ icon }}
+        actions: >-
+          {%- set actions = state_attr('binary_sensor.motion_notification_inactive_day_exist','actions') -%}
+          {{- actions -}}
+        action: >-
+          {%- set action = 'day-inactive' -%}
+          {{- action -}}
+        url: >-
+          {%- set url = '/notify-activity/inactive_day' -%}
+          {{- url -}}
+        header: >-
+          {{- '<img src="/local/images/icons/' + icon + '.png?v1"><hr>' -}}
+        footer: >-
+          <hr><a href="{{- url -}}"><img src="https://img.shields.io/badge/{{- action -}}-blue.svg"></a>
+        hours: >-
+          {{ state_attr('binary_sensor.motion_device_class_activity_exist','high') }}
+        wakeup: >-
+          {%- set s = state_attr('sensor.motion_person','wakeup') -%}
+          {%- if s|lower != 'none' -%}
+            {%- set s = s|int|string + ':' + (s - s|int)*60|int|string -%}
+          {%- endif -%}
+          {{ s }}
+        body: >-
+          <h2>Inactive day</h2>
+          There has been no activity in the home for the past {{ hours }} hours; after {{ wakeup }} today.
+          <p>{{- state_attr('binary_sensor.motion_notification_inactive_day','markdown') -}}
+        message: >-
+          {{- header -}}
+          {{- body -}}
+          {{- footer -}}
     - alias: 'notify inactive_day'
       service: persistent_notification.create
       data_template:
