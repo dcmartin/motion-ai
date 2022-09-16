@@ -9,40 +9,31 @@
   mode: single
   initial_state: 'on'
   trigger:
-  condition:
-    condition: and
-    conditions:
-      - alias: 'test if home'
-        condition: state
-        entity_id: binary_sensor.motion_person_home
-        state: 'on'
-      - alias: 'test if between wakeup and bedtime'
-        condition: time
-        after: >-
-          {%- set s = state_attr('binary_sensor.motion_notification_device_unavailable_exist','after') -%}
-          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-            {{- s -}}
-          {%- else -%}
-            {%- set s = states('input_datetime.motion_schedule_wakeup_begin') -%}
-            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-              {{- s -}}
-            {%- else -%}
-              {{- '05:00:00' -}}
-            {%- endif -%}
-          {%- endif %}
-        before: >-
-          {%- set s = state_attr('binary_sensor.motion_notification_device_unavailable_exist','before') -%}
-          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-            {{- s -}}
-          {%- else -%}
-            {%- set s = states('input_datetime.motion_schedule_bedtime_end') -%}
-            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-              {{- s -}}
-            {%- else -%}
-              {{- '23:00:00' -}}
-            {%- endif %}
-          {%- endif %}
   variables:
+    after: >-
+      {%- set s = state_attr('binary_sensor.motion_notification_device_unavailable_exist','after') -%}
+      {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+        {{- s -}}
+      {%- else -%}
+        {%- set s = states('input_datetime.motion_schedule_wakeup_begin') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {{- s -}}
+        {%- else -%}
+          {{- '05:00:00' -}}
+        {%- endif -%}
+      {%- endif %}
+    before: >-
+      {%- set s = state_attr('binary_sensor.motion_notification_device_unavailable_exist','before') -%}
+      {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+        {{- s -}}
+      {%- else -%}
+        {%- set s = states('input_datetime.motion_schedule_bedtime_end') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {{- s -}}
+        {%- else -%}
+          {{- '23:00:00' -}}
+        {%- endif %}
+      {%- endif %}
     title: >-
       {%- set title = states('sensor.motion_app') + ': unavailable device' -%}
       {{- title -}}
@@ -82,6 +73,23 @@
       {{- header -}}
       {{- body -}}
       {{- footer -}}
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test if home'
+        condition: state
+        entity_id: binary_sensor.motion_person_home
+        state: 'on'
+      - alias: 'test before and after'
+        condition: template
+        value_template: >-
+          {{ after|lower != 'none' and before|lower != 'none' }}
+      - alias: 'test if between wakeup and bedtime'
+        condition: time
+        after: >-
+          {{ after }}
+        before: >-
+          {{ before }}
   action:
     - alias: 'notify device_unavailable'
       service: persistent_notification.create
