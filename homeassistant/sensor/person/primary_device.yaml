@@ -1,0 +1,542 @@
+###
+# homeassistant/sensor/motion/person.yaml
+###
+
+# device
+
+- platform: template
+  sensors:
+    motion_primary_device:
+      unique_id: motion_primary_device
+      icon_template: 'mdi:cellphone'
+      friendly_name: >-
+        {% set s = state_attr('sensor.motion_primary','device') -%}
+        {%- if s|lower != 'none' -%}
+          {{- '👸 device' -}}
+        {%- else -%}
+          {{- '👸 device (pending)' -}}
+        {%- endif %}
+      attribute_templates:
+        entity_picture: >-
+          {% set s = state_attr('sensor.motion_primary','device') -%}
+          {%- if s|lower != 'none' -%}
+            {%- set s = state_attr(s,'entity_picture') -%}
+          {%- endif -%}
+          {%- if s|lower != 'none' -%}
+            {{ s }}
+          {%- else -%}
+            {{- '/local/images/icons/mobile-icon.png' -}}
+          {%- endif %}
+        did: >-
+          {# could be changed to reference above tracker attribute #}
+          {% set s = state_attr('sensor.motion_primary','device') -%}
+          {%- if s|lower != 'none' -%}
+            {% set s = device_id(s) -%}
+          {%- else -%}none{%- endif %}
+          {{ s }}
+        name: >-
+          {% set s = state_attr('sensor.motion_primary','device') -%}
+          {%- if s|lower != 'none' -%}
+            {% set s = device_id(s) -%}
+            {%- if s|lower != 'none' -%}
+              {%- set s = device_attr(s,'name') -%}
+            {%- else -%}none{%- endif %}
+          {%- else -%}none{%- endif %}
+          {{ s }}
+        latitude: >-
+          {% set s = state_attr('sensor.motion_primary','device') %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {{ state_attr(s,'latitude') }}
+          {%- else -%}none{%- endif %}
+        longitude: >-
+          {% set s = state_attr('sensor.motion_primary','device') %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {{ state_attr(s,'longitude') }}
+          {%- else -%}none{%- endif %}
+        gps_accuracy: >-
+          {% set s = state_attr('sensor.motion_primary','device') %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {{ state_attr(s,'gps_accuracy') }}
+          {%- else -%}none{%- endif %}
+        radius: >-
+          {% set s = state_attr('sensor.motion_primary','device') %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {{ state_attr(s,'radius') }}
+          {%- else -%}none{%- endif %}
+        distance: >- 
+          {% set s = states('sensor.motion_primary_device_distance_measurement') %}
+          {% if s|float(-1) > 0 %}
+            {{ '%0.1f'|format(s|float) }}
+          {% else %}none{% endif %}
+        zone: >- 
+          {% if is_state('binary_sensor.motion_primary_zones','on') -%}
+            {% set s = state_attr('sensor.motion_primary','device') %}
+            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+              {% set lat = state_attr(s,'latitude')|float(-1) -%}
+              {% set lng = state_attr(s,'longitude')|float(-1) -%}
+            {% endif %}
+            {%- if lat is defined and lat > 0 and lng is defined and lng > 0 %}
+              {%- set zones = state_attr('binary_sensor.motion_primary_zones','zones') -%}
+              {%- if zones|lower != 'unknown' and zones|lower != 'none' and zones|lower != 'unavailable' and zones is iterable and zones|length > 0 -%}
+                {%- set s = closest(lat,lng,zones) %}
+                {%- if s|lower != 'none' and s.entity_id|lower != 'none' and s.entity_id|string in zones -%}
+                  {%- set d = distance(lat, lng, s) -%}
+                  {%- if d|lower != 'none' and d|lower != 'null' and d|lower != 'unknown' and d|lower != 'unavailable' and d|int(0) is number and d|int(0) < 40075 -%}
+                    {%- set d = '%0.2f'|format(d|float(0.0) * 1000) -%}
+                  {%- else -%}{%- set d = None -%}{%- endif -%}
+                  {%- set r = s.attributes.radius|default(None) -%}
+                  {{- '{"name":"' + s.attributes.friendly_name + '","radius":' + r|string + ',"entity_id":"' + s.entity_id + '","inside":' + (d|int(0) < r|int(0))|string + ',"distance":' + d|string + '}' -}}
+                {%- else -%}unknown{%- endif -%}
+              {%- else -%}none{%- endif -%}
+            {%- else -%}none{%- endif -%}
+          {%- else -%}none{%- endif -%}
+      value_template: >-
+        {%- set s = state_attr('sensor.motion_primary','device') %}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 -%}
+          {{- s|replace('device_tracker.','') -}}
+        {%- else -%}none{%- endif -%}
+
+# activity
+
+- platform: template
+  sensors:
+    motion_primary_device_activity:
+      unique_id: motion_primary_device_activity
+      friendly_name: '👸 device activity'
+      icon_template: >-
+        {%- set s = states('sensor.motion_primary_device') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {% set s = states('sensor.' + s + '_activity')|lower %}
+          {% if s == 'stationary' %}{{- 'mdi:sofa-single' -}}
+          {% elif s == 'walking' %}{{- 'mdi:walk' -}}
+          {% elif s == 'running' %}{{- 'mdi:run' -}}
+          {% elif s == 'automotive' %}{{- 'mdi:car' -}}
+          {% elif s == 'cycling' %}{{- 'mdi:bike' -}}
+          {% else %}{{- 'mdi:crosshairs-question' -}}{% endif %}
+        {% else %}{{- 'mdi:crosshairs-question' -}}{% endif %}
+      value_template: >-
+        {%- set s = states('sensor.motion_primary_device') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {{ states('sensor.' + states('sensor.motion_primary_device') + '_activity') }}
+        {%- else -%}null{%- endif -%}
+
+# battery
+
+- platform: template
+  sensors:
+    motion_primary_device_battery:
+      unique_id: motion_primary_device_battery
+      friendly_name: '👸 device battery'
+      icon_template: >-
+        {%- if states('sensor.motion_primary_device_battery_state')|lower == 'charging' %}
+          {{- 'mdi:battery-charging' -}}
+        {%- else %}
+          {%- set s = states('sensor.motion_primary_device_battery_level') %}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {%- if s|int(0) >= 75 %}
+              {{- 'mdi:battery-high' -}}
+            {%- elif s|int(0) >= 50 %}
+              {{- 'mdi:battery-medium' -}}
+            {%- elif s|int(0) >= 25 %}
+              {{- 'mdi:battery-low' -}}
+            {%- else %}
+              {{- 'mdi:battery-outline' -}}
+            {% endif %}
+          {%- else %}
+            {{- 'mdi:battery' -}}
+          {% endif %}
+        {% endif %}
+      value_template: >-
+        {%- if is_state('binary_sensor.motion_smartphone_powersave','on') -%}
+            {{- 'Power-save mode' -}}
+        {%- else -%}
+          {%- set s = states('sensor.motion_primary_device_battery_state') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {{- s -}}
+          {%- else -%}
+            {{- 'Pending' -}}
+          {%- endif -%}
+        {%- endif -%}
+        {%- set s = states('sensor.motion_primary_device_battery_level') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {{- '; ' + s + '%' -}}
+        {%- endif -%}
+
+# human-reable location
+
+- platform: template
+  sensors:
+    motion_primary_device_location:
+      unique_id: motion_primary_device_location
+      friendly_name: '👸 device location'
+      icon_template: 'mdi:map'
+      attribute_templates:
+        status: >-
+          {%- set s = states('sensor.motion_primary_device') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {{ '%0.4f' | format(state_attr('device_tracker.' + s,'latitude')|float(0.0)) -}},
+            {{- '%0.4f' | format(state_attr('device_tracker.' + s,'longitude')|float(0.0)) -}}
+            {{- ' ±' -}}
+            {{- state_attr('device_tracker.' + s,'gps_accuracy') -}}m
+            ({{- state_attr('device_tracker.' + s,'source_type')|upper -}});
+            {{ state_attr('device_tracker.' + s,'altitude')|int(0) -}}
+            {{- '±' -}}
+            {{- state_attr('device_tracker.' + s,'vertical_accuracy') -}}m
+          {%- else -%}Pending{%- endif -%}
+      value_template: >-
+        {%- set s = states('sensor.motion_primary_device') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {{ states(state_attr('sensor.motion_primary','device')) }}
+        {%- else -%}unknown{%- endif -%}
+
+# device characteristics
+
+- platform: template
+  sensors:
+    motion_primary_device_focus:
+      unique_id: motion_primary_device_focus
+      friendly_name: '👸 device focus'
+      icon_template: 'mdi:minus-circle'
+      value_template: >-
+        {%- set s = states('sensor.motion_primary_device') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {{ states('sensor.' + states('sensor.motion_primary_device') + '_focus') }}
+        {%- else -%}null{%- endif -%}
+    motion_primary_device_bssid:
+      unique_id: motion_primary_device_bssid
+      friendly_name: '👸 device BSSID'
+      icon_template: 'mdi:signal-cellular-outline'
+      value_template: >-
+        {%- set s = states('sensor.motion_primary_device') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {{ states('sensor.' + states('sensor.motion_primary_device') + '_bssid') }}
+        {%- else -%}null{%- endif -%}
+    motion_primary_device_battery_state:
+      unique_id: motion_primary_device_battery_state
+      friendly_name: '👸 device battery'
+      icon_template: 'mdi:battery-outline'
+      value_template: >-
+        {%- set s = states('sensor.motion_primary_device') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {{ states('sensor.' + states('sensor.motion_primary_device') + '_battery_state') }}
+        {%- else -%}null{%- endif -%}
+    motion_primary_device_connection_type:
+      unique_id: motion_primary_device_connection_type
+      friendly_name: '👸 device connection'
+      icon_template: 'mdi:cellphone-wireless'
+      value_template: >-
+        {%- set s = states('sensor.motion_primary_device') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {{ states('sensor.' + states('sensor.motion_primary_device') + '_connection_type') }}
+        {%- else -%}null{%- endif -%}
+    motion_primary_device_geocoded_location:
+      unique_id: motion_primary_device_geocoded_location
+      friendly_name: '👸 device geocoded'
+      icon_template: 'mdi:map-marker'
+      value_template: >-
+        {%- set s = states('sensor.motion_primary_device') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {{ states('sensor.' + states('sensor.motion_primary_device') + '_geocoded_location') }}
+        {%- else -%}null{%- endif -%}
+    motion_primary_device_last_update_trigger:
+      unique_id: motion_primary_device_last_update_trigger
+      friendly_name: '👸 device update trigger'
+      icon_template: 'mdi:alarm-check'
+      value_template: >-
+        {%- set s = states('sensor.motion_primary_device') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {{ states('sensor.' + states('sensor.motion_primary_device') + '_last_update_trigger') }}
+        {%- else -%}null{%- endif -%}
+    motion_primary_device_ssid:
+      unique_id: motion_primary_device_ssid
+      friendly_name: '👸 device SSID'
+      icon_template: 'mdi:wifi'
+      value_template: >-
+        {%- set s = states('sensor.motion_primary_device') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {{ states('sensor.' + states('sensor.motion_primary_device') + '_ssid') }}
+        {%- else -%}null{%- endif -%}
+    motion_primary_device_storage:
+      unique_id: motion_primary_device_storage
+      friendly_name: '👸 device storage'
+      icon_template: 'mdi:database'
+      unit_of_measurement: '℀'
+      value_template: >-
+        {%- set s = states('sensor.motion_primary_device') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {{ states('sensor.' + s + '_storage') }}
+        {%- else -%}null{%- endif -%}
+    motion_primary_device_status:
+      unique_id: motion_primary_device_status
+      friendly_name: '👸 device status'
+      icon_template: 'mdi:cellphone'
+      value_template: >-
+        {%- set s = states('sensor.motion_primary_device') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {{- states('device_tracker.' + s) -}}
+        {%- else -%}Pending{%- endif -%}
+    motion_primary_device_battery_level:
+      unique_id: motion_primary_device_battery_level
+      friendly_name: '👸 device battery level'
+      icon_template: 'mdi:battery'
+      unit_of_measurement: '🔋'
+      value_template: >-
+        {%- set s = states('sensor.motion_primary_device') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {{- state_attr('device_tracker.' + s,'battery_level') -}}
+        {%- else -%}null{%- endif -%}
+    motion_primary_device_source_type:
+      unique_id: motion_primary_device_source_type
+      friendly_name: '👸 device source'
+      icon_template: 'mdi:map'
+      value_template: >-
+        {%- set s = states('sensor.motion_primary_device') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {{- state_attr('device_tracker.' + s,'source_type') -}}
+        {%- else -%}null{%- endif -%}
+    motion_primary_device_latitude:
+      unique_id: motion_primary_device_latitude
+      friendly_name: '👸 device latitude'
+      icon_template: 'mdi:latitude'
+      value_template: >-
+        {%- set s = states('sensor.motion_primary_device') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {{- state_attr('device_tracker.' + s,'latitude') -}}
+        {%- else -%}null{%- endif -%}
+    motion_primary_device_longitude:
+      unique_id: motion_primary_device_longitude
+      friendly_name: '👸 device longitude'
+      icon_template: 'mdi:longitude'
+      value_template: >-
+        {%- set s = states('sensor.motion_primary_device') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {{- state_attr('device_tracker.' + s,'longitude') -}}
+        {%- else -%}null{%- endif -%}
+    motion_primary_device_gps_accuracy:
+      unique_id: motion_primary_device_gps_accuracy
+      friendly_name: '👸 device GPS accuracy'
+      icon_template: 'mdi:human'
+      unit_of_measurement: 'm'
+      value_template: >-
+        {%- set s = states('sensor.motion_primary_device') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {{- state_attr('device_tracker.' + s,'gps_accuracy') -}}
+        {%- else -%}null{%- endif -%}
+    motion_primary_device_altitude:
+      unique_id: motion_primary_device_altitude
+      friendly_name: '👸 device altitude'
+      icon_template: 'mdi:altimeter'
+      unit_of_measurement: 'm'
+      value_template: >-
+        {%- set s = states('sensor.motion_primary_device') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {{- state_attr('device_tracker.' + s,'altitude') -}}
+        {%- else -%}null{%- endif -%}
+    motion_primary_device_vertical_accuracy:
+      unique_id: motion_primary_device_vertical_accuracy
+      friendly_name: '👸 device vertical accuracy'
+      icon_template: 'mdi:human'
+      unit_of_measurement: 'm'
+      value_template: >-
+        {%- set s = states('sensor.motion_primary_device') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {{- state_attr('device_tracker.' + s,'vertical_accuracy') -}}
+        {%- else -%}null{%- endif -%}
+    motion_primary_device_steps:
+      unique_id: motion_primary_device_steps
+      friendly_name: '👸 device steps'
+      icon_template: 'mdi:foot-print'
+      unit_of_measurement: '🦶'
+      value_template: >-
+        {%- set s = states('sensor.motion_primary_device') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {%- set s = states('sensor.' + s + '_steps') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {{- s -}}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+    motion_primary_pedometer_pace:
+      unique_id: motion_primary_pedometer_pace
+      friendly_name: '👸 device pedometer pace'
+      unit_of_measurement: 'm/s'
+      icon_template: 'mdi:shoe-print'
+      value_template: >-
+        {%- set s = states('sensor.motion_primary_device') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {{ states('sensor.' + s + '_average_active_pace') }}
+        {%- else -%}null{%- endif -%}
+    motion_primary_floors:
+      unique_id: motion_primary_floors
+      friendly_name: '👸 device floors total'
+      unit_of_measurement: '⬆⬇'
+      icon_template: 'mdi:stairs'
+      value_template: >-
+        {{ states('sensor.motion_primary_floors_ascended')|int(0) + states('sensor.motion_primary_floors_descended')|int(0) }}
+    motion_primary_floors_ascended:
+      unique_id: motion_primary_floors_ascended
+      friendly_name: '👸 device floors up'
+      icon_template: 'mdi:stairs'
+      unit_of_measurement: '⬆'
+      value_template: >-
+        {%- set s = states('sensor.motion_primary_device') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {%- set s = states('sensor.' + s + '_floors_ascended') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {{- s -}}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+    motion_primary_floors_descended:
+      unique_id: motion_primary_floors_descended
+      friendly_name: '👸 device floors down'
+      unit_of_measurement: '⬇'
+      icon_template: 'mdi:stairs'
+      value_template: >-
+        {%- set s = states('sensor.motion_primary_device') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {%- set s = states('sensor.' + s + '_floors_descended') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {{- s -}}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+    motion_primary_frontmost_app:
+      unique_id: motion_primary_frontmost_app
+      friendly_name: '👸 device current app'
+      icon_template: 'mdi:cellphone-play'
+      value_template: >-
+        {%- set s = states('sensor.motion_primary_device') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {%- set s = states('sensor.' + s + '_frontmost_app') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {{- s -}}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+
+# ago
+
+- platform: template
+  sensors:
+    motion_primary_device_ago:
+      unique_id: motion_primary_device_ago
+      friendly_name: '👸 device ago'
+      icon_template: 'mdi:av-timer'
+      unit_of_measurement: 's'
+      attribute_templates:
+        age: >-
+          {%- set age = timedelta(days=7) -%}
+          {{- age -}}
+        min: >-
+          {{ states('sensor.motion_primary_device_ago_min_1w') }}
+        max: >-
+          {{ states('sensor.motion_primary_device_ago_max_1w') }}
+        stdev: >-
+          {{ states('sensor.motion_primary_device_ago_stdev_1w') }}
+        mean: >-
+          {{ states('sensor.motion_primary_device_ago_mean_1w') }}
+        oldest: >-
+          {{ states('sensor.motion_primary_device_oldest') }}
+        coverage: >-
+         {{ state_attr('sensor.motion_primary_device_oldest','age_coverage_ratio')|float(0) * 100 }}
+        usage: >-
+         {{ state_attr('sensor.motion_primary_device_oldest','buffer_usage_ratio')|float(0) * 100 }}
+        online: >-
+          {{ states('sensor.motion_primary_device_history_1w') }}
+        relative: >-
+          {% set s = states('sensor.motion_primary_device_ago') -%}
+          {%- if s|float(0) > 0 -%}
+            {{ (utcnow().timestamp() - s|float(0))|as_datetime|relative_time }}
+          {% else -%}Pending{% endif %}
+        markdown: >-
+          {%- set coverage = state_attr('sensor.motion_primary_device_ago','coverage') -%}
+          {%- set oldest = state_attr('sensor.motion_primary_device_ago','oldest') -%}
+          {%- set age = state_attr('sensor.motion_primary_device_ago','age') -%}
+          {%- set online = state_attr('sensor.motion_primary_device_ago','online') -%}
+          {%- set current = 'unknown' -%}
+          {%- set s = states('sensor.motion_primary_device_ago') -%}
+          {%- if s|float(0) > 0 -%}
+            {%- set current = (utcnow().timestamp() - s|float(0))|as_datetime|relative_time -%}
+          {%- endif -%}
+          {%- if coverage|lower != 'none' and age|lower != 'none' and oldest|lower != 'none' -%}
+            {%- set age = age|as_datetime -%}
+            {%- set oldest = oldest|as_datetime -%}
+            {%- set relative = oldest|relative_time -%}
+            {%- set coverage = state_attr('sensor.motion_primary_device_ago','coverage') -%}
+            {%- set complete = age|lower != 'none' and oldest|lower != 'none' and oldest <= utcnow() - age %}
+            Device last updated {{ current }} ago; on-line {{ online -}}% over the past {{ relative -}}
+            {%- if not complete -%}
+              {{- ' (<i>statistics at ' + '%0.1f'|format(coverage) + '% of target</i>)' -}}
+            {%- else -%}
+              <ul>
+              <li>Mean: {{ state_attr('sensor.motion_primary_device_ago','mean') -}}</li>
+              <li>Maximum: {{ state_attr('sensor.motion_primary_device_ago','max') -}}</li>
+              <li>Minimum: {{ state_attr('sensor.motion_primary_device_ago','min') -}}</li>
+              <li>Stdev: {{ state_attr('sensor.motion_primary_device_ago','stdev') -}}</li>
+              </ul>
+            {%- endif -%}
+          {%- elif current|lower != 'none' -%}
+            Device last updated {{ current -}} ago (warning: no statistics)
+          {%- else -%}
+            <h2>No device ago statistics.</h2>
+          {%- endif -%}
+      value_template: >-
+        {% set s = states('sensor.motion_primary') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 -%}
+          {%- set s = state_attr('sensor.motion_primary','device') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 -%}
+            {%- set s = states[s] -%}
+            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 -%}
+               {{ utcnow().timestamp() - s.last_updated|as_timestamp }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+ 
+# history
+
+- platform: history_stats
+  name: motion_primary_device_history_1w
+  entity_id: binary_sensor.motion_primary_device
+  state: 'on'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7) }}'
+  end: '{{ now() }}'
+
+# statistics
+
+- platform: statistics
+  name: motion_primary_device_oldest
+  entity_id: sensor.motion_primary_device_history_1w
+  state_characteristic: datetime_oldest
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_primary_device_ago_mean_1w
+  entity_id: sensor.motion_primary_device_ago
+  state_characteristic: mean
+  sampling_size: 500
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_primary_device_ago_min_1w
+  entity_id: sensor.motion_primary_device_ago
+  state_characteristic: value_min
+  sampling_size: 500
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_primary_device_ago_max_1w
+  entity_id: sensor.motion_primary_device_ago
+  state_characteristic: value_max
+  sampling_size: 500
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_primary_device_ago_stdev_1w
+  entity_id: sensor.motion_primary_device_ago
+  state_characteristic: standard_deviation
+  sampling_size: 500
+  max_age:
+    days: 7
