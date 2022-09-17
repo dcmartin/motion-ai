@@ -43,12 +43,12 @@ MOTION_GROUP ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_GROUP' $(S
 MOTION_DEVICE ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_DEVICE' $(SETUP)) && echo "${TS}++ MOTION_DEVICE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_DEVICE),$(shell v=$$(cat MOTION_DEVICE) && echo "${TG}== MOTION_DEVICE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v=$$(echo $(HOST_NAME) | sed -e "s/-//g" -e "s/ /_/g") && echo "${TB}** MOTION_DEVICE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 MOTION_CLIENT ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_CLIENT' $(SETUP)) && echo "${TS}++ MOTION_CLIENT: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_CLIENT),$(shell v=$$(cat MOTION_CLIENT) && echo "${TG}== MOTION_CLIENT: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='$(MOTION_DEVICE)' && echo "${TB}** MOTION_CLIENT unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 
-MOTION_USER ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_USER' $(SETUP)) && echo "${TS}++ MOTION_USER: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_USER),$(shell v=$$(cat MOTION_USER) && echo "${TG}== MOTION_USER: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='none' && echo "${TB}** MOTION_USER unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+MOTION_USER ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_USER' $(SETUP)) && echo "${TS}++ MOTION_USER: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_USER),$(shell v=$$(cat MOTION_USER) && echo "${TG}== MOTION_USER: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='unknown' && echo "${TB}** MOTION_USER unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 MOTION_PRIMARY ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_PRIMARY' $(SETUP)) && echo "${TS}++ MOTION_PRIMARY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_PRIMARY),$(shell v=$$(cat MOTION_PRIMARY) && echo "${TG}== MOTION_PRIMARY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='unknown' && echo "${TB}** MOTION_PRIMARY unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 MOTION_SECONDARY ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_SECONDARY' $(SETUP)) && echo "${TS}++ MOTION_SECONDARY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_SECONDARY),$(shell v=$$(cat MOTION_SECONDARY) && echo "${TG}== MOTION_SECONDARY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='unknown' && echo "${TB}** MOTION_SECONDARY unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 MOTION_TERTIARY ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_TERTIARY' $(SETUP)) && echo "${TS}++ MOTION_TERTIARY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_TERTIARY),$(shell v=$$(cat MOTION_TERTIARY) && echo "${TG}== MOTION_TERTIARY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='unknown' && echo "${TB}** MOTION_TERTIARY unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 
-MOTION_USER_DEVICE ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_USER_DEVICE' $(SETUP)) && echo "${TS}++ MOTION_USER_DEVICE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_USER_DEVICE),$(shell v=$$(cat MOTION_USER_DEVICE) && echo "${TG}== MOTION_USER_DEVICE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='none' && echo "${TB}** MOTION_USER_DEVICE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+MOTION_USER_DEVICE ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_USER_DEVICE' $(SETUP)) && echo "${TS}++ MOTION_USER_DEVICE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_USER_DEVICE),$(shell v=$$(cat MOTION_USER_DEVICE) && echo "${TG}== MOTION_USER_DEVICE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='unknown' && echo "${TB}** MOTION_USER_DEVICE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 MOTION_PRIMARY_DEVICE ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_PRIMARY_DEVICE' $(SETUP)) && echo "${TS}++ MOTION_PRIMARY_DEVICE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_PRIMARY_DEVICE),$(shell v=$$(cat MOTION_PRIMARY_DEVICE) && echo "${TG}== MOTION_PRIMARY_DEVICE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='unknown' && echo "${TB}** MOTION_PRIMARY_DEVICE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 MOTION_SECONDARY_DEVICE ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_SECONDARY_DEVICE' $(SETUP)) && echo "${TS}++ MOTION_SECONDARY_DEVICE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_SECONDARY_DEVICE),$(shell v=$$(cat MOTION_SECONDARY_DEVICE) && echo "${TG}== MOTION_SECONDARY_DEVICE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='unknown' && echo "${TB}** MOTION_SECONDARY_DEVICE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 MOTION_TERTIARY_DEVICE ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_TERTIARY_DEVICE' $(SETUP)) && echo "${TS}++ MOTION_TERTIARY_DEVICE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard MOTION_TERTIARY_DEVICE),$(shell v=$$(cat MOTION_TERTIARY_DEVICE) && echo "${TG}== MOTION_TERTIARY_DEVICE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='unknown' && echo "${TB}** MOTION_TERTIARY_DEVICE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
@@ -229,23 +229,24 @@ $(PACKAGES): makefile
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  DOMAIN_NAME="$(DOMAIN_NAME)" \
+	  HOST_IPADDR="$(HOST_IPADDR)" \
 	  HOST_LATITUDE="$(HOST_LATITUDE)" \
 	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
 	  HOST_NAME="$(HOST_NAME)" \
-	  HOST_IPADDR="$(HOST_IPADDR)" \
 	  HOST_PORT="$(HOST_PORT)" \
 	  IPERF_HOST="$(IPERF_HOST)" \
-	  MQTT_HOST="$(MQTT_HOST)" \
-	  MQTT_PORT="$(MQTT_PORT)" \
-	  MQTT_USERNAME="$(MQTT_USERNAME)" \
-	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
 	  MARIADB_HOST="$(MARIADB_HOST)" \
 	  MARIADB_PASSWORD="$(MARIADB_PASSWORD)" \
 	  MOTION_APP="$(MOTION_APP)" \
-	  MOTION_GROUP="$(MOTION_GROUP)" \
-	  MOTION_DEVICE="$(MOTION_DEVICE)" \
 	  MOTION_CLIENT="$(MOTION_CLIENT)" \
+	  MOTION_DEVICE="$(MOTION_DEVICE)" \
+	  MOTION_GROUP="$(MOTION_GROUP)" \
+	  MOTION_SITE="$(MOTION_SITE)" \
 	  MOTION_USER="$(MOTION_USER)" \
+	  MQTT_HOST="$(MQTT_HOST)" \
+	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
+	  MQTT_PORT="$(MQTT_PORT)" \
+	  MQTT_USERNAME="$(MQTT_USERNAME)" \
 	  && ${MAKE} -C $@
 
 run: all configuration.yaml stop
@@ -307,8 +308,9 @@ secrets.yaml: secrets.yaml.tmpl setup.json
           MOTION_ALPR_DETECTED_SPEAK="$(MOTION_ALPR_DETECTED_SPEAK)" \
           MOTION_ALPR_DETECTED_TUNE="$(MOTION_ALPR_DETECTED_TUNE)" \
           MOTION_ANNOTATED_AGO="$(MOTION_ANNOTATED_AGO)" \
-	  MOTION_CAMERA_RESTART="$(MOTION_CAMERA_RESTART)" \
+	  MOTION_APP="$(MOTION_APP)" \
 	  MOTION_CAMERA_ANY="$(MOTION_CAMERA_ANY)" \
+	  MOTION_CAMERA_RESTART="$(MOTION_CAMERA_RESTART)" \
 	  MOTIONCAM_PASSWORD="$(MOTIONCAM_PASSWORD)" \
 	  MOTIONCAM_USERNAME="$(MOTIONCAM_USERNAME)" \
 	  MOTION_CLIENT="$(MOTION_CLIENT)" \
@@ -343,15 +345,11 @@ secrets.yaml: secrets.yaml.tmpl setup.json
           MOTION_FACE_DETECTED_SPEAK="$(MOTION_FACE_DETECTED_SPEAK)" \
           MOTION_FACE_DETECTED_TUNE="$(MOTION_FACE_DETECTED_TUNE)" \
 	  MOTION_FORCE_UPDATE="$(MOTION_FORCE_UPDATE)" \
-	  MOTION_APP="$(MOTION_APP)" \
-	  MOTION_SITE="$(MOTION_SITE)" \
 	  MOTION_GROUP="$(MOTION_GROUP)" \
 	  MOTION_LOG_LEVEL="$(MOTION_LOG_LEVEL)" \
-	  MOTION_NOTIFY_SMARTPHONE="$(MOTION_NOTIFY_SMARTPHONE)" \
 	  MOTION_MEDIA_MASK="$(MOTION_MEDIA_MASK)" \
 	  MOTION_MEDIA_SAVE="$(MOTION_MEDIA_SAVE)" \
-	  MOTION_W3W_APIKEY="$(MOTION_W3W_APIKEY)" \
-	  MOTION_W3W_WORDS="$(MOTION_W3W_WORDS)" \
+	  MOTION_NOTIFY_SMARTPHONE="$(MOTION_NOTIFY_SMARTPHONE)" \
 	  MOTION_OVERVIEW_APIKEY="$(MOTION_OVERVIEW_APIKEY)" \
 	  MOTION_OVERVIEW_IMAGE="$(MOTION_OVERVIEW_IMAGE)" \
 	  MOTION_OVERVIEW_MODE="$(MOTION_OVERVIEW_MODE)" \
@@ -361,20 +359,23 @@ secrets.yaml: secrets.yaml.tmpl setup.json
           MOTION_POSE_DETECTED_NOTIFY="$(MOTION_POSE_DETECTED_NOTIFY)" \
           MOTION_POSE_DETECTED_SPEAK="$(MOTION_POSE_DETECTED_SPEAK)" \
           MOTION_POSE_DETECTED_TUNE="$(MOTION_POSE_DETECTED_TUNE)" \
+	  MOTION_PRIMARY_DEVICE="$(MOTION_PRIMARY_DEVICE)" \
+	  MOTION_PRIMARY="$(MOTION_PRIMARY)" \
 	  MOTION_REPOSITORY="$(MOTION_REPOSITORY)" \
 	  MOTION_ROUTER_NAME="$(MOTION_ROUTER_NAME)" \
+	  MOTION_SECONDARY_DEVICE="$(MOTION_SECONDARY_DEVICE)" \
+	  MOTION_SECONDARY="$(MOTION_SECONDARY)" \
+	  MOTION_SITE="$(MOTION_SITE)" \
+	  MOTION_TERTIARY_DEVICE="$(MOTION_TERTIARY_DEVICE)" \
+	  MOTION_TERTIARY="$(MOTION_TERTIARY)" \
           MOTION_TWILIO_NAME="$(MOTION_TWILIO_NAME)" \
           MOTION_TWILIO_NUMBER="$(MOTION_TWILIO_NUMBER)" \
           MOTION_TWILIO_SID="$(MOTION_TWILIO_SID)" \
           MOTION_TWILIO_TOKEN="$(MOTION_TWILIO_TOKEN)" \
-	  MOTION_USER="$(MOTION_USER)" \
-	  MOTION_PRIMARY="$(MOTION_PRIMARY)" \
-	  MOTION_SECONDARY="$(MOTION_SECONDARY)" \
-	  MOTION_TERTIARY="$(MOTION_TERTIARY)" \
 	  MOTION_USER_DEVICE="$(MOTION_USER_DEVICE)" \
-	  MOTION_PRIMARY_DEVICE="$(MOTION_PRIMARY_DEVICE)" \
-	  MOTION_SECONDARY_DEVICE="$(MOTION_SECONDARY_DEVICE)" \
-	  MOTION_TERTIARY_DEVICE="$(MOTION_TERTIARY_DEVICE)" \
+	  MOTION_USER="$(MOTION_USER)" \
+	  MOTION_W3W_APIKEY="$(MOTION_W3W_APIKEY)" \
+	  MOTION_W3W_WORDS="$(MOTION_W3W_WORDS)" \
 	  MOTION_YOLO_IP="$(MOTION_YOLO_IP)" \
 	  MQTT_HOST="$(MQTT_HOST)" \
 	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
@@ -383,9 +384,9 @@ secrets.yaml: secrets.yaml.tmpl setup.json
 	  NETCAM_PASSWORD="$(NETCAM_PASSWORD)" \
 	  NETCAM_USERNAME="$(NETCAM_USERNAME)" \
 	  NETDATA_URL="$(NETDATA_URL)" \
-	  OMADA_USERNAME="$(OMADA_USERNAME)" \
 	  OMADA_PASSWORD="$(OMADA_PASSWORD)" \
 	  OMADA_URL="$(OMADA_URL)" \
+	  OMADA_USERNAME="$(OMADA_USERNAME)" \
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	  UPTIMEROBOT_RSSURL="$(UPTIMEROBOT_RSSURL)" \
 	&& cat $< | envsubst > $@
@@ -395,8 +396,8 @@ lovelace_dashboards.json: lovelace_dashboards.json.tmpl
 	@export \
 	  HOST_NAME="$(HOST_NAME)" \
 	  MOTION_APP="$(MOTION_APP)" \
-	  MOTION_USER="$(MOTION_USER)" \
 	  MOTION_SITE="$(MOTION_SITE)" \
+	  MOTION_USER="$(MOTION_USER)" \
 	&& cat $< \
 	  | envsubst \
 	 > $@
