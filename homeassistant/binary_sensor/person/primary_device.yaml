@@ -1,0 +1,157 @@
+###
+# binary_sensor/motion/person/device.yaml
+###
+
+- platform: template
+  sensors:
+    motion_primary_device_exist:
+      friendly_name: '👸 device exists'
+      device_class: presence
+      attribute_templates:
+        sensor: >-
+          {{ state_attr('sensor.motion_primary','device') }}
+        tracker: >-
+          {%- set s = states('sensor.motion_primary_device') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {%- set s = 'device_tracker.' + s|string -%}
+            {%- if states(s)|lower != 'unknown' -%}
+              {{- s -}}
+            {%- else -%}unknown{%- endif -%}
+          {%- else -%}none{%- endif -%}
+        location: >-
+          {%- set s = states('sensor.motion_primary_device') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {{- states('sensor.' + s|string + '_geocoded_location') -}}
+          {%- else -%}none{%- endif -%}
+        timestamp: >-
+          {%- set s = states('sensor.motion_primary_device') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {% set s = states['device_tracker.' + s]|default(none) -%}
+            {% if s|lower != 'none' -%}
+              {{ s.last_updated|as_timestamp(none) }}
+            {%- else -%}none{%- endif -%}
+          {%- else -%}none{%- endif -%}
+        relative: >-
+          {%- set s = states('sensor.motion_primary_device') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {% set s = states['device_tracker.' + s]|default(none) -%}
+            {% if s|lower != 'none' -%}
+              {% set s = s.last_updated|as_timestamp(none) %}
+              {{- s|as_datetime|relative_time -}}
+            {%- else -%}none{%- endif -%}
+          {%- else -%}none{%- endif -%}
+        markdown: >-
+          {%- set location = 'unknown' -%}
+          {%- set s = states('sensor.motion_primary_device') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {%- set id = s|string -%}
+            {%- set location = states('device_tracker.' + id) -%}
+          {%- endif -%}
+          {%- if location|lower == 'away' -%}
+            {%- set location = states('sensor.' + id + '_geocoded_location') -%}
+          {%- endif -%}
+          {%- set who = state_attr('sensor.motion_primary','name') -%}
+          The device for {{ who }} is {{ location }}.
+      value_template: >-
+        {%- set s = states('sensor.motion_primary_device') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {% set s = states('device_tracker.' + s) -%}
+          {% if s|lower == 'home' or s|lower == 'not_home' %}on{% else %}off{% endif %}
+        {%- else -%}none{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_primary_device:
+      friendly_name: '👸 device'
+      device_class: connectivity
+      attribute_templates:
+        latitude: >-
+          {{ state_attr('sensor.motion_primary_device','latitude') }}
+        longitude: >-
+          {{ state_attr('sensor.motion_primary_device','longitude') }}
+        gps_accuracy: >- 
+          {{ state_attr('sensor.motion_primary_device','gps') }}
+        radius: >-
+          {{ state_attr('sensor.motion_primary_device','radius') }}
+        entity_picture: >-
+          {% if is_state('binary_sensor.motion_primary_device','on') %}
+            {{ '/local/images/icons/mobile-found.png' }}
+          {%- else %}
+            {{ '/local/images/icons/mobile-missing.png' }}
+          {%- endif %} 
+        tracker: >-
+          {% set s = state_attr('sensor.motion_primary_device','did') -%}
+          {%- if s|lower != 'none' -%}
+            {% set did = s %}
+            {% set s = state_attr('binary_sensor.motion_device_tracker','devices') %}
+            {%- if s|lower != 'none' -%}
+              {% set s = s|selectattr('did','==',did)|list %}
+              {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+                {{ s|first }}
+              {%- else -%}none{%- endif %}
+            {%- else -%}none{%- endif %}
+          {%- else -%}none{%- endif %}
+        markdown: >-
+          {% set s = states('binary_sensor.motion_primary_device_exist') -%}
+          <h2>{{ state_attr('sensor.motion_primary','name') }} is <i>{{- s -}}</i></h2>
+          {%- if s|lower != 'home' -%}
+            {%- set location = state_attr('binary_sensor.motion_primary_device_exist','location') -%}
+            {%- if location|lower != 'none' and location|lower != 'unknown' -%}
+              <br><b>Current location</b>: {{ location -}}
+            {%- endif -%}
+          {%- endif -%}
+          <br><i>Last updated</i>: {{ state_attr('binary_sensor.motion_primary_device_exist','relative') }} ago
+      icon_template: >- 
+        {% if is_state('binary_sensor.motion_primary_device','on') %}
+          {{- 'mdi:cellphone' -}}
+        {%- else %}
+          {{- 'mdi:cellphone-off' -}}
+        {%- endif %}
+      value_template: >-
+        {% set s = states('sensor.motion_primary') %}
+        {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' %}
+          {% set r = state_attr('sensor.motion_primary','device') %}
+          {% if r|lower != 'unknown' and r|lower != 'unavailable' and r|lower != 'none' and r|lower != 'null' and r|length > 0 %}
+            {% set s = states(r) %}
+            {% set p = s|lower == 'home' or s|lower == 'not_home' %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% else %}false{% endif %}
+
+- platform: template
+  sensors:
+    motion_primary_device_battery_low:
+      friendly_name: '👸 device battery low'
+      device_class: battery
+      attribute_templates:
+        level: >-
+          {%- set s = states('sensor.motion_primary_device') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {% set s = states('sensor.' + s + '_battery_level') -%}
+            {{- s -}}
+          {%- else -%}none{%- endif -%}
+      value_template: >-
+        {%- set s = states('sensor.motion_primary_device') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {% set s = states('sensor.' + s + '_battery_level') -%}
+          {% if s|int(100) < 25 %}on{% elif s|int(0) >= 25 %}off{% else %}unknown{% endif %}
+        {%- else -%}unknown{%- endif -%}
+    motion_primary_device_battery_charging:
+      friendly_name: '👸 device battery charging'
+      device_class: battery_charging
+      attribute_templates:
+        state: >-
+          {%- set s = states('sensor.motion_primary_device') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {% set s = states('sensor.' + s + '_battery_state') -%}
+            {{- s -}}
+          {%- else -%}none{%- endif -%}
+      value_template: >-
+        {%- set s = states('sensor.motion_primary_device') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {% set s = states('sensor.' + s + '_battery_state') -%}
+          {% if s|lower == 'charging' %}on{% elif s|lower == 'not_charging' %}off{% else %}unknown{% endif %}
+        {%- else -%}unknown{%- endif -%}
+
