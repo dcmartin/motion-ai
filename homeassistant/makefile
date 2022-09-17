@@ -229,23 +229,24 @@ $(PACKAGES): makefile
 	@echo "${MC}Making: $@${NC}"
 	@export \
 	  DOMAIN_NAME="$(DOMAIN_NAME)" \
+	  HOST_IPADDR="$(HOST_IPADDR)" \
 	  HOST_LATITUDE="$(HOST_LATITUDE)" \
 	  HOST_LONGITUDE="$(HOST_LONGITUDE)" \
 	  HOST_NAME="$(HOST_NAME)" \
-	  HOST_IPADDR="$(HOST_IPADDR)" \
 	  HOST_PORT="$(HOST_PORT)" \
 	  IPERF_HOST="$(IPERF_HOST)" \
-	  MQTT_HOST="$(MQTT_HOST)" \
-	  MQTT_PORT="$(MQTT_PORT)" \
-	  MQTT_USERNAME="$(MQTT_USERNAME)" \
-	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
 	  MARIADB_HOST="$(MARIADB_HOST)" \
 	  MARIADB_PASSWORD="$(MARIADB_PASSWORD)" \
 	  MOTION_APP="$(MOTION_APP)" \
-	  MOTION_GROUP="$(MOTION_GROUP)" \
-	  MOTION_DEVICE="$(MOTION_DEVICE)" \
 	  MOTION_CLIENT="$(MOTION_CLIENT)" \
+	  MOTION_DEVICE="$(MOTION_DEVICE)" \
+	  MOTION_GROUP="$(MOTION_GROUP)" \
+	  MOTION_SITE="$(MOTION_SITE)" \
 	  MOTION_USER="$(MOTION_USER)" \
+	  MQTT_HOST="$(MQTT_HOST)" \
+	  MQTT_PASSWORD="$(MQTT_PASSWORD)" \
+	  MQTT_PORT="$(MQTT_PORT)" \
+	  MQTT_USERNAME="$(MQTT_USERNAME)" \
 	  && ${MAKE} -C $@
 
 run: all configuration.yaml stop
@@ -395,8 +396,8 @@ lovelace_dashboards.json: lovelace_dashboards.json.tmpl
 	@export \
 	  HOST_NAME="$(HOST_NAME)" \
 	  MOTION_APP="$(MOTION_APP)" \
-	  MOTION_USER="$(MOTION_USER)" \
 	  MOTION_SITE="$(MOTION_SITE)" \
+	  MOTION_USER="$(MOTION_USER)" \
 	&& cat $< \
 	  | envsubst \
 	 > $@
