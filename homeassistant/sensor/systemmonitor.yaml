@@ -14,3 +14,91 @@
     - type: processor_temperature
     - type: last_boot
     - type: disk_use_percent
+    - type: disk_use
+    - type: disk_free
+
+## storage
+
+- platform: template
+  sensors:
+    motion_sysmon_disk:
+      friendly_name: System Disk Monitor
+      unit_of_measurement: '%'
+      icon_template: 'mdi:percent'
+      attribute_templates:
+        used: >-
+          {%- set s = states('sensor.disk_use') -%}
+          {%- if s|lower != 'none' and s|float(-1) > 0 -%}
+            {{ s|float }} {{ state_attr('sensor.disk_use','unit_of_measurement') }}
+          {% else %}null{% endif %}
+        free: >-
+          {%- set s = states('sensor.disk_free') -%}
+          {%- if s|lower != 'none' and s|float(-1) > 0 -%}
+            {{ s|float }} {{ state_attr('sensor.disk_free','unit_of_measurement') }}
+          {% else %}null{% endif %}
+        total: >-
+          {{ '%0.1f'|format(states('sensor.disk_free')|float(0) + states('sensor.disk_use')|float(0)) }} {{ state_attr('sensor.disk_free','unit_of_measurement') }}
+        min: >-
+          {{ states('sensor.motion_sysmon_disk_min')|default('null') }}
+        max: >-
+          {{ states('sensor.motion_sysmon_disk_max')|default('null') }}
+        mean: >-
+          {{ states('sensor.motion_sysmon_disk_mean')|default('null') }}
+        stdev: >-
+          {{ states('sensor.motion_sysmon_disk_stdev')|default('null') }}
+        oldest: >-
+          {{ states('sensor.motion_sysmon_disk_oldest') }}
+        coverage: >-
+         {{ state_attr('sensor.motion_sysmon_disk_oldest','age_coverage_ratio')|float(0) * 100 }}
+        usage: >-
+         {{ state_attr('sensor.motion_sysmon_disk_oldest','buffer_usage_ratio')|float(0) * 100 }}
+        relative: >-
+          {%- set s = states('sensor.motion_sysmon_disk_oldest') -%}
+          {%- if s|as_timestamp(0) > 0 -%}
+            {{ s|as_datetime|relative_time }}
+          {%- else -%}null{%- endif -%}
+      value_template: >-
+        {%- set s = states('sensor.disk_use_percent') -%}
+        {%- if s|lower != 'none' and s|float(-1) > 0 -%}
+          {{- s -}}
+        {% else %}null{% endif %}
+
+- platform: statistics
+  name: motion_sysmon_disk_oldest
+  entity_id: sensor.disk_use_percent
+  state_characteristic: datetime_oldest
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_sysmon_disk_min
+  entity_id: sensor.disk_use_percent
+  state_characteristic: value_min
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_sysmon_disk_mean
+  entity_id: sensor.disk_use_percent
+  state_characteristic: mean
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_sysmon_disk_max
+  entity_id: sensor.disk_use_percent
+  state_characteristic: value_max
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_sysmon_disk_stdev
+  entity_id: sensor.disk_use_percent
+  state_characteristic: standard_deviation
+  sampling_size: 1000
+  max_age:
+    days: 7

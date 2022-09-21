@@ -456,14 +456,29 @@
   sensors:
     motion_addon_status_api:
       friendly_name: Motion add-on status URL
+      attribute_templates:
+        command: >-
+          {%- set s = state_attr('binary_sensor.motion_addon_status','resource') -%}
+          {{- 'curl -sSL -k "' +  s|string + '"' -}}
       value_template: >-
         {% set s = states('sensor.motion_addon_api') %}
         {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
           {{ s + '/cgi-bin/status' }}
         {% else %}null{% endif %}
 
+- platform: command_line
+  name: motion_addon_status_command
+  scan_interval: 120
+  command_timeout: 10
+  command: "eval {{- state_attr('sensor.motion_addon_status_api','command') -}}"
+  json_attributes:
+    - timestamp
+    - config
+  value_template: >
+    {{- value_json is defined and 'timestamp' in value_json and 'config' in value_json -}}
+
 - platform: rest
-  name: motion_addon_status
+  name: motion_addon_status_rest
   scan_interval: 1800
   force_update: true
   json_attributes:
@@ -478,6 +493,85 @@
     {% endif %}
   value_template: >-
     {% if value_json is defined %}True{% else %}False{% endif %}
+
+- platform: template
+  sensors:
+    motion_addon_status:
+      friendly_name: Add-on status
+      icon_template: 'mdi:list-status'
+      attribute_templates:
+        rest: >-
+          {% set s = states('sensor.motion_addon_status_rest') %}
+          {% if s|lower == 'true' %}on{% elif s|lower == 'false' %}off{% else %}unknown{% endif %}
+        command: >-
+          {% set s = states('sensor.motion_addon_status_command') %}
+          {% if s|lower == 'true' %}on{% elif s|lower == 'false' %}off{% else %}unknown{% endif %}
+        source: >-
+          {% set s = states('sensor.motion_addon_status_rest') %}
+          {% if s|lower == 'true' %}
+            {% set r = state_attr('sensor.motion_addon_status_rest','timestamp') %}
+          {% endif %}
+          {% set s = states('sensor.motion_addon_status_command') %}
+          {% if s|lower == 'true' %}
+            {% set c = state_attr('sensor.motion_addon_status_command','timestamp') %}
+          {% endif %}
+          {% if r is defined and r|lower != 'none' and r|as_timestamp(0) > 0  and c is defined and c|lower != 'none' and c|as_timestamp(0) > 0 %}
+            {% if r|as_timestamp > c|as_timestamp %}
+              {{ 'rest' }}
+            {% else %}
+              {{ 'command' }}
+            {% endif %}
+          {% elif r is defined and r|lower != 'none' and r|as_timestamp(0) > 0 %}
+            {{ 'rest' }}
+          {% elif c is defined and c|lower != 'none' and c|as_timestamp(0) > 0 %}
+            {{ 'command' }}
+          {% else %}none{% endif %}
+        timestamp: >-
+          {% set s = states('sensor.motion_addon_status_rest') %}
+          {% if s|lower == 'true' %}
+            {% set r = state_attr('sensor.motion_addon_status_rest','timestamp') %}
+          {% endif %}
+          {% set s = states('sensor.motion_addon_status_command') %}
+          {% if s|lower == 'true' %}
+            {% set c = state_attr('sensor.motion_addon_status_command','timestamp') %}
+          {% endif %}
+          {% if r is defined and r|lower != 'none' and r|as_timestamp(0) > 0  and c is defined and c|lower != 'none' and c|as_timestamp(0) > 0 %}
+            {% if r|as_timestamp > c|as_timestamp %}
+              {% set s = state_attr('sensor.motion_addon_status_rest','status') %}
+              {{ s.date|int(none) }}
+            {% else %}
+              {% set s = state_attr('sensor.motion_addon_status_command','status') %}
+              {{ s.date|int(none) }}
+            {% endif %}
+          {% elif r is defined and r|lower != 'none' and r|as_timestamp(0) > 0 %}
+            {% set s = state_attr('sensor.motion_addon_status_rest','status') %}
+            {{ s.date|int(none) }}
+          {% elif c is defined and c|lower != 'none' and c|as_timestamp(0) > 0 %}
+            {% set s = state_attr('sensor.motion_addon_status_command','status') %}
+            {{ s.date|int(none) }}
+          {% else %}none{% endif %}
+        status: >-
+          {% set s = states('sensor.motion_addon_status_rest') %}
+          {% if s|lower == 'true' %}
+            {% set r = state_attr('sensor.motion_addon_status_rest','timestamp') %}
+          {% endif %}
+          {% set s = states('sensor.motion_addon_status_command') %}
+          {% if s|lower == 'true' %}
+            {% set c = state_attr('sensor.motion_addon_status_command','timestamp') %}
+          {% endif %}
+          {% if r is defined and r|lower != 'none' and r|as_timestamp(0) > 0  and c is defined and c|lower != 'none' and c|as_timestamp(0) > 0 %}
+            {% if r|as_timestamp > c|as_timestamp %}
+              {{ state_attr('sensor.motion_addon_status_rest','status') }}
+            {% else %}
+              {{ state_attr('sensor.motion_addon_status_command','status') }}
+            {% endif %}
+          {% elif r is defined and r|lower != 'none' and r|as_timestamp(0) > 0 %}
+            {{ state_attr('sensor.motion_addon_status_rest','status') }}
+          {% elif c is defined and c|lower != 'none' and c|as_timestamp(0) > 0 %}
+            {{ state_attr('sensor.motion_addon_status_command','status') }}
+          {% else %}none{% endif %}
+      value_template: >-
+        {{ states('sensor.motion_addon_status_rest')|lower == 'true' or states('sensor.motion_addon_status_command')|lower == 'true' }}
 
 - platform: template
   sensors:
