@@ -26,7 +26,18 @@
         disk: >-
           {{ states.sensor.motion_sysmon_disk.attributes|default(null) }}
         database: >-
-          {{ state_attr('sensor.motion_database_size','kbytes') }}
+          {% set s = state_attr('sensor.motion_database_size','kbytes') %}
+          {% if s|lower != 'none' and s|float(0) > 0 %}
+            {% set kb = s|float %}
+            {% set gib = kb/1000000 %}
+            {% set s = states('sensor.disk_use') %}
+            {% if s|lower != 'none' and s|float(0) > 0 %}
+              {% set use = gib / s|float * 100 %}
+            {% else %}
+              {% set use = none %}
+            {% endif %}
+              {"gib":{{ '%0.2f'|format(gib) }},"use":"{{- '%0.2f'|format(use) -}}%" }
+          {% else %}none{% endif %}
         file: >-
           {{ state_attr('sensor.motion_database_size','file') }}
         command: >-
