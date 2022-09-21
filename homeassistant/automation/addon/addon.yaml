@@ -39,26 +39,29 @@
   mode: single
   initial_state: 'on'
   trigger:
-    - platform: 'time_pattern'
+    - platform: time_pattern
       minutes: '/15'
     - platform: state
       entity_id: sensor.motion_addon_status_api
+    - platform: state
+      entity_id: 'binary_sensor.motion_addon_status'
+      to: 'off'
+      for:
+        seconds: >-
+         {{ state_attr('sensor.motion_uptime','wait')|int(300) }}
   condition:
     condition: and
     conditions:
       - condition: template
         value_template: >
           {{ states('sensor.motion_addon_status_api')|lower != 'null' }}
-      - condition: template
-        value_template: >-
-          {% if trigger.platform == 'time_pattern' %}
-            {% set s = state_attr('sensor.motion_addon_status','timestamp') -%}
-            {{ s|lower == 'none' or utcnow().timestamp() - s|as_timestamp > states('input_number.motion_addon_status_ago')|int(0) }}
-          {% else %}true{% endif %}
   action:
-    - alias: 'update sensor.motion_addon_status'
+    - alias: 'update sensor.motion_addon_status_rest'
       service: homeassistant.update_entity
-      entity_id: sensor.motion_addon_status
+      entity_id: sensor.motion_addon_status_rest
+    - alias: 'update sensor.motion_addon_status_command'
+      service: homeassistant.update_entity
+      entity_id: sensor.motion_addon_status_command
 
 - id: motion_addon_restart
   alias: motion_addon_restart
