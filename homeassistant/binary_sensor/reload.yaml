@@ -150,13 +150,49 @@
     motion_reload:
       friendly_name: 'Reload configuration'
       icon_template: >-
-        {{- 'mdi:reload' -}}
-      value_template: >-
-        {% if is_state('input_boolean.motion_reload','on') %}
+        {% if is_state('binary_sensor.motion_reload','on') %}
           {{- 'mdi:reload' -}}
         {% else %}
           {{- 'mdi:cancel' -}}
         {% endif %}
+      attribute_templates:
+        summary: >-
+          Configutation is {{ state_attr('binary_sensor.motion_reload','valid') -}};
+          Configuration tested {{ state_attr('binary_sensor.motion_reload','status') }} ago;
+          Add-on refreshed {{ state_attr('binary_sensor.motion_reload','config') }} ago
+        config:  >-
+          {% set config = state_attr('sensor.motion_addon_config','config') %}
+          {% if config|lower != 'none' and 'date' in config and config.date|int(0) > 0 %}
+            {% set config = config.date|as_datetime|relative_time %}
+          {% endif %}
+          {{ config }}
+        status:  >-
+          {% set status = state_attr('sensor.motion_addon_status','status') %}
+          {% if status|lower != 'none' and 'date' in status and status.date|int(0) > 0 %}
+            {% set status = status.date|as_datetime|relative_time %}
+          {% endif %}
+          {{ status }}
+        valid: >-
+          {% set status = state_attr('sensor.motion_addon_status','status') %}
+          {%- set valid = none -%}
+          {%- if status|lower != 'none' and 'valid' in status and 'result' in status.valid -%}
+            {%- set valid = status.valid.result == 'valid' -%}
+          {%- endif -%}
+          {{ valid }}
+      value_template: >-
+        {% set status = state_attr('sensor.motion_addon_status','status') -%}
+        {%- set config = state_attr('sensor.motion_addon_config','config') -%}
+        {%- if status|lower != 'none' and config|lower != 'none' -%}
+          {%- set valid = none -%}
+          {%- if 'valid' in status and 'result' in status.valid -%}
+            {%- set valid = status.valid.result == 'valid' -%}
+          {%- endif -%}
+          {%- if 'date' in status and 'date' in config -%}
+            {%- set status = status.date|int(0) %}
+            {%- set config = config.date|int(0) %}
+            {{ valid|lower == 'true'  and status > config and is_state('binary_sensor.motion_reload_required','on') }}
+          {% else %}unknown{% endif %}
+        {% else %}unknown{% endif %}
     motion_reload_off:
       friendly_name: 'Automatic reload disabled'
       icon_template: >-
@@ -225,7 +261,7 @@
     motion_restart:
       friendly_name: 'Restart system'
       icon_template: >-
-        {% if is_state('input_boolean.motion_restart','on') %}
+        {% if is_state('binary_sensor.motion_restart','on') %}
           {{- 'mdi:restart' -}}
         {% else %}
           {{- 'mdi:restart-off' -}}
@@ -234,8 +270,6 @@
         timeout: 300
         timestamp: >-
           {{ state_attr('binary_sensor.motion_addon_status','timestamp') }}
-        valid: >-
-          {{ state_attr('binary_sensor.motion_addon_status','valid') }}
         markdown: >-
           {% if is_state_attr('binary_sensor.motion_addon_status','valid','true') -%}
             {% set icon = 'okay-2-icon' -%}
@@ -253,8 +287,43 @@
           <li><i>Timestamp</i>: <b>{{- state_attr('binary_sensor.motion_addon_status','timestamp') -}}</b></li>
           </ul>
           <p><i>Last updated</i>: {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+        summary: >-
+          Configutation is {{ state_attr('binary_sensor.motion_restart','valid') -}};
+          Configuration tested {{ state_attr('binary_sensor.motion_restart','status') }} ago;
+          Add-on refreshed {{ state_attr('binary_sensor.motion_restart','config') }} ago
+        config:  >-
+          {% set config = state_attr('sensor.motion_addon_config','config') %}
+          {% if config|lower != 'none' and 'date' in config and config.date|int(0) > 0 %}
+            {% set config = config.date|as_datetime|relative_time %}
+          {% endif %}
+          {{ config }}
+        status:  >-
+          {% set status = state_attr('sensor.motion_addon_status','status') %}
+          {% if status|lower != 'none' and 'date' in status and status.date|int(0) > 0 %}
+            {% set status = status.date|as_datetime|relative_time %}
+          {% endif %}
+          {{ status }}
+        valid: >-
+          {% set status = state_attr('sensor.motion_addon_status','status') %}
+          {%- set valid = false -%}
+          {%- if status|lower != 'none' and 'valid' in status and 'result' in status.valid -%}
+            {%- set valid = status.valid.result == 'valid' -%}
+          {%- endif -%}
+          {{ valid }}
       value_template: >-
-        {{ is_state('input_boolean.motion_restart','on') and state_attr('binary_sensor.motion_addon_status','valid') == 'true' }}
+        {% set status = state_attr('sensor.motion_addon_status','status') -%}
+        {%- set config = state_attr('sensor.motion_addon_config','config') -%}
+        {%- if status|lower != 'none' and config|lower != 'none' -%}
+          {%- set valid = none -%}
+          {%- if 'valid' in status and 'result' in status.valid -%}
+            {%- set valid = status.valid.result == 'valid' -%}
+          {%- endif -%}
+          {%- if 'date' in status and 'date' in config -%}
+            {%- set status = status.date|int(0) %}
+            {%- set config = config.date|int(0) %}
+            {{ valid|lower == 'true'  and status > config and is_state('binary_sensor.motion_restart_required','on') }}
+          {% else %}unknown{% endif %}
+        {% else %}unknown{% endif %}
     motion_restart_required:
       friendly_name: 'Restart required'
       icon_template: >-
