@@ -150,13 +150,20 @@
     motion_reload:
       friendly_name: 'Reload configuration'
       icon_template: >-
-        {{- 'mdi:reload' -}}
-      value_template: >-
         {% if is_state('input_boolean.motion_reload','on') %}
           {{- 'mdi:reload' -}}
         {% else %}
           {{- 'mdi:cancel' -}}
         {% endif %}
+      value_template: >-
+        {% set status = state_attr('sensor.motion_addon_status','status') -%}
+        {%- set config = state_attr('sensor.motion_addon_config','config') -%}
+        {%- if status|lower != 'none' and 'valid' in status and 'date' in status and status.date|int(0) > 0 and config|lower != 'none' and 'date' in config and config.date|int(0) > 0 -%}
+          {%- set valid = status.valid.result|default(none) == 'valid' -%}
+          {%- set status = status.date|int %}
+          {%- set config = config.date|int %}
+          {{ is_state('input_boolean.motion_reload','on') and valid and status > config and is_state('binary_sensor.motion_reload_required','on') }}
+        {% else %}unknown{% endif %}
     motion_reload_off:
       friendly_name: 'Automatic reload disabled'
       icon_template: >-
@@ -254,7 +261,14 @@
           </ul>
           <p><i>Last updated</i>: {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
       value_template: >-
-        {{ is_state('input_boolean.motion_restart','on') and state_attr('binary_sensor.motion_addon_status','valid') == 'true' }}
+        {% set status = state_attr('sensor.motion_addon_status','status') -%}
+        {%- set config = state_attr('sensor.motion_addon_config','config') -%}
+        {%- if status|lower != 'none' and 'valid' in status and 'date' in status and status.date|int(0) > 0 and config|lower != 'none' and 'date' in config and config.date|int(0) > 0 -%}
+          {%- set valid = status.valid.result|default(none) == 'valid' -%}
+          {%- set status = status.date|int %}
+          {%- set config = config.date|int %}
+          {{ is_state('input_boolean.motion_restart','on') and valid and status > config and is_state('binary_sensor.motion_restart_required','on') }}
+        {% else %}unknown{% endif %}
     motion_restart_required:
       friendly_name: 'Restart required'
       icon_template: >-
