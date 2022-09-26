@@ -1,35 +1,125 @@
 ###
-# homeassistant/sensor/motion/addon.yaml
-###
-
-###
-# config
+# homeassistant/sensor/motion/addon_rtsp.yaml
 ###
 
 - platform: template
   sensors:
     motion_addon_rtsp_api:
-      friendly_name: Motion RTSP API
-      icon_template: 'mdi:web'
+      friendly_name: Motion add-on rtsp URL
+      attribute_templates:
+        command: >-
+          {%- set s = state_attr('binary_sensor.motion_addon_rtsp','resource') -%}
+          {{- 'curl -sSL -k "' +  s|string + '"' -}}
       value_template: >-
         {% set s = states('sensor.motion_addon_api') %}
-        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s != null %}
+        {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
           {{ s + '/cgi-bin/rtsp' }}
         {% else %}null{% endif %}
 
-- platform: rest
-  name: motion_addon_rtsp
+- platform: command_line
+  name: motion_addon_rtsp_command
+  scan_interval: 120
+  command_timeout: 10
+  command: "eval {{- state_attr('sensor.motion_addon_rtsp_api','command') -}}"
   json_attributes:
     - timestamp
     - rtsp
-  scan_interval: 300
+  value_template: >
+    {{- value_json is defined and 'timestamp' in value_json and 'rtsp' in value_json -}}
+
+- platform: rest
+  name: motion_addon_rtsp_rest
+  scan_interval: 1800
   force_update: true
+  json_attributes:
+    - timestamp
+    - rtsp
   resource_template: >-
     {% set s = states('sensor.motion_addon_rtsp_api') %}
-    {% if s|lower !='none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+    {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
       {{- s -}}
     {% else %}
       {{ 'http://' + states('input_text.motion_addon_apache_host') + ':7999/cgi-bin/rtsp' }}
     {% endif %}
   value_template: >-
-    {% if value_json is defined %}True{% else %}False{% endif %}
+    {% if value_json is defined and 'rtsp' in value_json %}True{% else %}False{% endif %}
+
+- platform: template
+  sensors:
+    motion_addon_rtsp:
+      friendly_name: Add-on rtsp
+      icon_template: 'mdi:list-status'
+      attribute_templates:
+        rest: >-
+          {% set s = states('sensor.motion_addon_rtsp_rest') %}
+          {% if s|lower == 'true' %}on{% elif s|lower == 'false' %}off{% else %}unknown{% endif %}
+        command: >-
+          {% set s = states('sensor.motion_addon_rtsp_command') %}
+          {% if s|lower == 'true' %}on{% elif s|lower == 'false' %}off{% else %}unknown{% endif %}
+        source: >-
+          {% set s = states('sensor.motion_addon_rtsp_rest') %}
+          {% if s|lower == 'true' %}
+            {% set r = state_attr('sensor.motion_addon_rtsp_rest','timestamp') %}
+          {% endif %}
+          {% set s = states('sensor.motion_addon_rtsp_command') %}
+          {% if s|lower == 'true' %}
+            {% set c = state_attr('sensor.motion_addon_rtsp_command','timestamp') %}
+          {% endif %}
+          {% if r is defined and r|lower != 'none' and r|as_timestamp(0) > 0  and c is defined and c|lower != 'none' and c|as_timestamp(0) > 0 %}
+            {% if r|as_timestamp > c|as_timestamp %}
+              {{ 'rest' }}
+            {% else %}
+              {{ 'command' }}
+            {% endif %}
+          {% elif r is defined and r|lower != 'none' and r|as_timestamp(0) > 0 %}
+            {{ 'rest' }}
+          {% elif c is defined and c|lower != 'none' and c|as_timestamp(0) > 0 %}
+            {{ 'command' }}
+          {% else %}none{% endif %}
+        timestamp: >-
+          {% set s = states('sensor.motion_addon_rtsp_rest') %}
+          {% if s|lower == 'true' %}
+            {% set r = state_attr('sensor.motion_addon_rtsp_rest','timestamp') %}
+          {% endif %}
+          {% set s = states('sensor.motion_addon_rtsp_command') %}
+          {% if s|lower == 'true' %}
+            {% set c = state_attr('sensor.motion_addon_rtsp_command','timestamp') %}
+          {% endif %}
+          {% if r is defined and r|lower != 'none' and r|as_timestamp(0) > 0  and c is defined and c|lower != 'none' and c|as_timestamp(0) > 0 %}
+            {% if r|as_timestamp > c|as_timestamp %}
+              {% set s = state_attr('sensor.motion_addon_rtsp_rest','rtsp') %}
+              {{ s.date|int(none) }}
+            {% else %}
+              {% set s = state_attr('sensor.motion_addon_rtsp_command','rtsp') %}
+              {{ s.date|int(none) }}
+            {% endif %}
+          {% elif r is defined and r|lower != 'none' and r|as_timestamp(0) > 0 %}
+            {% set s = state_attr('sensor.motion_addon_rtsp_rest','rtsp') %}
+            {{ s.date|int(none) }}
+          {% elif c is defined and c|lower != 'none' and c|as_timestamp(0) > 0 %}
+            {% set s = state_attr('sensor.motion_addon_rtsp_command','rtsp') %}
+            {{ s.date|int(none) }}
+          {% else %}none{% endif %}
+        rtsp: >-
+          {% set s = states('sensor.motion_addon_rtsp_rest') %}
+          {% if s|lower == 'true' %}
+            {% set r = state_attr('sensor.motion_addon_rtsp_rest','timestamp') %}
+          {% endif %}
+          {% set s = states('sensor.motion_addon_rtsp_command') %}
+          {% if s|lower == 'true' %}
+            {% set c = state_attr('sensor.motion_addon_rtsp_command','timestamp') %}
+          {% endif %}
+          {% if r is defined and r|lower != 'none' and r|as_timestamp(0) > 0  and c is defined and c|lower != 'none' and c|as_timestamp(0) > 0 %}
+            {% if r|as_timestamp > c|as_timestamp %}
+              {{ state_attr('sensor.motion_addon_rtsp_rest','rtsp') }}
+            {% else %}
+              {{ state_attr('sensor.motion_addon_rtsp_command','rtsp') }}
+            {% endif %}
+          {% elif r is defined and r|lower != 'none' and r|as_timestamp(0) > 0 %}
+            {{ state_attr('sensor.motion_addon_rtsp_rest','rtsp') }}
+          {% elif c is defined and c|lower != 'none' and c|as_timestamp(0) > 0 %}
+            {{ state_attr('sensor.motion_addon_rtsp_command','rtsp') }}
+          {% else %}none{% endif %}
+      value_template: >-
+        {{ states('sensor.motion_addon_rtsp_rest')|lower == 'true' or states('sensor.motion_addon_rtsp_command')|lower == 'true' }}
+
