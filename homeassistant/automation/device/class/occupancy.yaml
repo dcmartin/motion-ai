@@ -2558,12 +2558,21 @@
     dids: >-
       {% set dids = [] -%}
       {%- if devices|lower != 'none' and devices|count > 0 -%}
-        {%- set s = devices|selectattr('manufacturer','==','Shelly')|map(attribute='did')|list -%}
+        {%- set s = devices|map(attribute='did')|list -%}
         {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
           {%- set dids = s|sort|unique|list -%}
         {%- endif -%}
       {%- endif -%}
       {{ dids }}
+    shellys: >-
+      {% set shellys = [] -%}
+      {%- if devices|lower != 'none' and devices|count > 0 -%}
+        {%- set s = devices|selectattr('manufacturer','==','Shelly')|map(attribute='did')|list -%}
+        {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+          {%- set shellys = s|sort|unique|list -%}
+        {%- endif -%}
+      {%- endif -%}
+      {{ shellys }}
     old: >-
       {% set old = [] %}
       {% set s = trigger.to_state.state %}
@@ -2572,46 +2581,49 @@
       {% endif %}
       {{ old }}
   condition:
-    - alias: 'test if no change in device ids'
-      condition: template
-      value_template: >
-        {{ old != dids }}
-    - alias: 'test for device ids'
-      condition: template
-      value_template: >
-        {{ dids|lower != 'none' and not dids is string and dids is iterable and dids|count > 0 }}
+    condition: and
+    conditions:
+      - alias: 'test if no change in device ids'
+        condition: template
+        value_template: >-
+          {{ old != dids }}
+      - alias: 'test for device ids'
+        condition: template
+        value_template: >-
+          {{ dids|lower != 'none' and not dids is string and dids is iterable and dids|count > 0 }}
   action:
     - alias: 'process all occupancy devices by device id'
       repeat:
         while:
-          - variables:
-              did: >-
-                {{ dids[repeat.index - 1]|default('none') }}
           - alias: 'test if not done'
             condition: template
             value_template: >-
-              {{ did|lower != 'none' and did|lower != 'unknown' and did|lower != 'null' and did|string|length > 0 }}
+              {% set s = dids[repeat.index - 1]|default('none') %}
+              {{ s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
         sequence:
           - variables:
+              did: >-
+                {{ dids[repeat.index - 1]|default('none') }}
               sensor: >-
-                {% set sensor = 'binary_sensor.motion_device_occupancy_' + did|string %}
+                {% set sensor = 'binary_sensor.motion_device_' + did|string %}
                 {{ sensor }}
               url: >-
                 {% set url = device_attr(did,'configuration_url') %}
                 {{ url }}
-              cloud: >-
-                {% set cloud= url|string + '/settings/cloud?enabled=false' %}
-                {{ cloud }}
-              coiot: >-
-                {% set coiot = url|string + '/settings?coiot_enable=true&coiot_peer=' + states('sensor.host_lan_ipv4') %}
-                {{ coiot }}
-              settings: >-
-                {% set settings = 'none' %}
-                {{ settings }}
+              config: >-
+                {% set config = [] %}
+                {% if did in shellys %}
+                  {% set cloud= url|string + '/settings/cloud?enabled=false' %}
+                  {% set coiot = url|string + '/settings?coiot_enable=true&coiot_peer=' + states('sensor.host_lan_ipv4') %}
+                  {% set config = [cloud,coiot] %}
+                {% endif %}
+                {{ config }}
+              state: >-
+                {% if not did in shellys %}on{% else %}unknown{% endif %}
           - alias: 'test if device sensor already in occupancy group'
             condition: template
             value_template: >-
-              {{ not sensor in state_attr('group.motion_device_occupancy_devices','entity_id') }}
+              {{ not sensor in state_attr('group.motion_devices','entity_id') }}
           - alias: 'create occupancy device sensor'
             service: python_script.set_state
             data_template:
@@ -2620,18 +2632,15 @@
                 {{  sensor }}
               url: >-
                 {{- url -}}
-              cloud: >-
-                {{- cloud -}}
-              coiot: >-
-                {{- coiot -}}
-              settings: >-
-                {{- settings -}}
-              state: 'unknown'
+              config: >-
+                {{- config -}}
+              state: >-
+                {{- state -}}
           - alias: 'add to group'
             service: group.set
             data_template:
-              object_id: motion_device_occupancy_devices
-              name: 'All occupancy devices'
+              object_id: motion_devices
+              name: 'All devices'
               add_entities: >-
                 {{ sensor }}
  
