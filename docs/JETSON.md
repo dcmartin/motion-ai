@@ -184,18 +184,15 @@ There are seven (7) steps:
 1. Restart Motion AI
 
 ## Step 1
-Install Motion-AI from the Github [repository](http://github.com/dcmartin/motion-ai) using the following commands:
 
+Install Home-Assistant supervised installation pre-requisites:
 ```
 sudo apt update -qq -y
-sudo apt install -qq -y make git curl jq apt-utils ssh apparmor grub2-common
+sudo apt install -qq -y apparmor jq wget curl udisks2 libglib2.0-bin network-manager dbus systemd-journal-remote grub2-common
 sudo touch /etc/default/grub
-sudo mkdir /usr/share/hassio
-sudo chmod 775 /usr/share/hassio
-cd /usr/share/hassio
-git clone http://github.com/dcmartin/motion-ai .
-make
 ```
+
+Install Docker-CE
 ```
 sudo apt install apt-transport-https ca-certificates curl software-properties-common
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
@@ -203,15 +200,27 @@ sudo add-apt-repository "deb [arch=arm64] https://download.docker.com/linux/ubun
 sudo apt update
 sudo apt install docker-ce
 ```
+
+Get most recent platform-dependent OS Agent:
 ```
-wget https://github.com/home-assistant/os-agent/releases/download/1.2.2/os-agent_1.2.2_linux_aarch64.deb
-sudo dpkg -i os-agent_1.2.2_linux_aarch64.deb
+wget https://github.com/home-assistant/os-agent/releases/download/1.4.1/os-agent_1.4.1_linux_aarch64.deb
+sudo dpkg -i os-agent_1.4.1_linux_aarch64.deb
+```
+
+Get most recent platform-independent Supervised installer:
+```
 wget https://github.com/home-assistant/supervised-installer/releases/latest/download/homeassistant-supervised.deb
 sudo dpkg -i homeassistant-supervised.deb
 ```
+
+Modify supervisor source code for addons; requires restart; recommended reboot.
 ```
-ha jobs options --ignore-conditions healthy
+docker exec -it hassio_supervisor bash << EOF
+sed -i -e 's/conditions=ADDON_UPDATE_CONDITION/conditions=[]/' /usr/src/supervisor/supervisor/addons/__init__.py
+EOF
 ```
+
+Return Docker configuration for Jetson to original; requires restart; recommended reboot.
 ```
 cat > /etc/docker/daemon.json << EOF
 {
@@ -229,7 +238,24 @@ cat > /etc/docker/daemon.json << EOF
 EOF
 ```
 
+<b>REBOOT</b>
+
+When system has successfully installed `ha-cli` docker container (e.g. after reboot); turn of `healthy` check:
+```
+ha jobs options --ignore-conditions healthy
+```
+
 ## Step 2
+
+Install Motion-AI from the Github [repository](http://github.com/dcmartin/motion-ai) using the following commands:
+```
+sudo mkdir /usr/share/hassio
+sudo chmod 775 /usr/share/hassio
+cd /usr/share/hassio
+git clone http://github.com/dcmartin/motion-ai .
+make
+```
+
 The above will upgrade the operating sytem components, install all pre-requisites, and initialize.    First step is to connect to the Home Assistant server at `http://127.0.0.1:8123` using the installed Chromium browser (n.b. see icon on the desktop).
 
 <img src="initial.png" width="50%">
