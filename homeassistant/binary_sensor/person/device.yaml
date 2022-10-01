@@ -11,57 +11,58 @@
         sensor: >-
           {{ state_attr('sensor.motion_person','device') }}
         tracker: >-
-          {%- set s = states('sensor.motion_person_device') -%}
+          {%- set s = state_attr('sensor.motion_person','device') -%}
           {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-            {%- set s = 'device_tracker.' + s|string -%}
-            {%- if states(s)|lower != 'unknown' -%}
+            {%- if states(s)|lower != 'none' -%}
               {{- s -}}
-            {%- else -%}unknown{%- endif -%}
-          {%- else -%}none{%- endif -%}
-        location: >-
-          {%- set s = states('sensor.motion_person_device') -%}
-          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-            {{- states('sensor.' + s|string + '_geocoded_location') -}}
-          {%- else -%}none{%- endif -%}
+            {%- else -%}unavailable{%- endif -%}
+          {%- else -%}unknown{%- endif -%}
         timestamp: >-
-          {%- set s = states('sensor.motion_person_device') -%}
+          {%- set s = state_attr('sensor.motion_person','device') -%}
           {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-            {% set s = states['device_tracker.' + s]|default(none) -%}
+            {% set s = states[s]|default(none) -%}
             {% if s|lower != 'none' -%}
               {{ s.last_updated|as_timestamp(none) }}
             {%- else -%}none{%- endif -%}
           {%- else -%}none{%- endif -%}
         relative: >-
-          {%- set s = states('sensor.motion_person_device') -%}
+          {%- set s = state_attr('sensor.motion_person','device') -%}
           {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-            {% set s = states['device_tracker.' + s]|default(none) -%}
+            {% set s = states[s]|default(none) -%}
             {% if s|lower != 'none' -%}
-              {% set s = s.last_updated|as_timestamp(none) %}
               {{- s|as_datetime|relative_time -}}
             {%- else -%}none{%- endif -%}
           {%- else -%}none{%- endif -%}
-        markdown: >-
+        location: >-
           {%- set location = 'unknown' -%}
-          {%- set s = states('sensor.motion_person_device') -%}
+          {%- set s = state_attr('sensor.motion_person','device') -%}
           {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-            {%- set id = s|string -%}
-            {%- set location = states('device_tracker.' + id) -%}
+            {%- set location = states(s) -%}
+            {%- if location|lower != 'home' -%}
+              {%- set s = states('sensor.motion_person_device') -%}
+              {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+                {%- set s = states('sensor.' + s + '_geocoded_location') -%}
+                {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+                  {%- set location = s|string -%}
+                {%- endif -%}
+              {%- endif -%}
+            {%- endif -%}
           {%- endif -%}
-          {%- if location|lower == 'away' -%}
-            {%- set location = states('sensor.' + id + '_geocoded_location') -%}
-          {%- endif -%}
-          {%- set who = state_attr('sensor.motion_person','name') -%}
-          The device for {{ who }} is {{ location }}.
+          {{ location }}
       value_template: >-
-        {%- set s = states('sensor.motion_person_device') -%}
+        {%- set s = state_attr('sensor.motion_person','device') -%}
         {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-          {% set s = states('device_tracker.' + s) -%}
-          {% if s|lower == 'home' or s|lower == 'not_home' %}on{% else %}off{% endif %}
-        {%- else -%}none{%- endif -%}
+          {% set s = state_attr('binary_sensor.motion_person_device','tracker') -%}
+          {% if s is iterable and 'person' in s -%}
+            {% set person = s.person %}
+            {{ person|lower != 'none' and person|lower == states('sensor.motion_person') }}
+          {%- else -%}off{%- endif -%}
+        {%- else -%}off{%- endif -%}
 
 - platform: template
   sensors:
     motion_person_device:
+      unique_id: 'motion_person_device'
       friendly_name: '👱 device'
       device_class: connectivity
       attribute_templates:
@@ -92,14 +93,9 @@
             {%- else -%}none{%- endif %}
           {%- else -%}none{%- endif %}
         markdown: >-
-          {% set s = states('binary_sensor.motion_person_device_exist') -%}
-          <h2>{{ state_attr('sensor.motion_person','name') }} is <i>{{- s -}}</i></h2>
-          {%- if s|lower != 'home' -%}
-            {%- set location = state_attr('binary_sensor.motion_person_device_exist','location') -%}
-            {%- if location|lower != 'none' and location|lower != 'unknown' -%}
-              <br><b>Current location</b>: {{ location -}}
-            {%- endif -%}
-          {%- endif -%}
+          {{- '<img src="/local/images/icons/' + state_attr('binary_sensor.motion_person_device','entity_picture')|string + '?v1">' -}}
+          <h2>{{- state_attr('sensor.motion_person','name') }} is <i>{{- states('binary_sensor.motion_person_device_exist') -}}</i></h2>
+          <b>Current location</b>: {{ state_attr('binary_sensor.motion_person_device_exist','location') -}}
           <br><i>Last updated</i>: {{ state_attr('binary_sensor.motion_person_device_exist','relative') }} ago
       icon_template: >- 
         {% if is_state('binary_sensor.motion_person_device','on') %}
