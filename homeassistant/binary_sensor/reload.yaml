@@ -117,25 +117,34 @@
         timestamp: >-
           {{ state_attr('automation.motion_refresh','last_triggered')|as_timestamp(none)  }}
         markdown: >-
-          {% set icon = 'refresh-icon' -%}
-          {%- set title = state_attr('binary_sensor.motion_addon_update','title') -%}
-          {%- if title|lower != 'none' -%}
-          <h2>{{ title }} refreshing</h2><img src="/local/images/icons/{{- icon -}}.png?v1"><hr>
-          {% if is_state('binary_sensor.motion_refreshing','on') -%}
-            Add-on {{ title }} <b>refreshing</b> at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}
-            {{- '<ul>' -}}
-            <li>{%- set s = 'binary_sensor.motion_refreshing' -%}{{- state_attr(s,'friendly_name') -}}: {{ states(s) -}}</li>
-            <li>{%- set s = 'input_boolean.motion_refresh' -%}{{- state_attr(s,'friendly_name') -}}: {{ states(s) -}}</li>
-            <li>{%- set s = 'input_boolean.motion_refresh_off' -%}{{- state_attr(s,'friendly_name') -}}: {{ states(s) -}}</li>
-            {{- '</ul>' -}}
+          {%- if is_state('binary_sensor.motion_addon_status','on') and is_state('binary_sensor.motion_addon_config','on') -%}
+            {%- set title = state_attr('binary_sensor.motion_addon_update','title') -%}
+            {%- if title|lower != 'none' -%}
+              {% set icon = 'refresh-icon' -%}
+              <h2>{{ title }} refreshing</h2><img src="/local/images/icons/{{- icon -}}.png?v1"><hr>
+              {% if is_state('binary_sensor.motion_refreshing','on') -%}
+                Add-on {{ title }} <b>refreshing</b> at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}
+                {{- '<ul>' -}}
+                <li>{%- set s = 'binary_sensor.motion_refreshing' -%}{{- state_attr(s,'friendly_name') -}}: {{ states(s) -}}</li>
+                <li>{%- set s = 'input_boolean.motion_refresh' -%}{{- state_attr(s,'friendly_name') -}}: {{ states(s) -}}</li>
+                <li>{%- set s = 'input_boolean.motion_refresh_off' -%}{{- state_attr(s,'friendly_name') -}}: {{ states(s) -}}</li>
+                {{- '</ul>' -}}
+              {%- else -%}
+                {%- set s = state_attr('binary_sensor.motion_refreshing','timestamp') -%}
+                {%- if s|float(0) > 0 -%}
+                  {%- set s = s|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -%}
+                  <b>Restarted</b> {{ state_attr('sensor.motion_name','title') }} at {{ s }}
+                {%- else -%}<i>Reload unknown</i>{%- endif -%}
+              {%- endif -%}
+            {%- else -%}<h2>No add-on refresh information</h2>{%- endif -%}
           {%- else -%}
-            {%- set s = state_attr('binary_sensor.motion_refreshing','timestamp') -%}
-            {%- if s|float(0) > 0 -%}
-              {%- set s = s|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -%}
-              <b>Restarted</b> {{ state_attr('sensor.motion_name','title') }} at {{ s }}
-            {%- else -%}<i>Reload unknown</i>{%- endif -%}
+            {% set icon = 'important-icon' -%}
+            <h2>Add-on pending</h2><img src="/local/images/icons/{{- icon -}}.png?v1"><hr>
+            <ul>
+            <li>Status: <b>{{ states('binary_sensor.motion_addon_status') }}</b>: <i>{{- state_attr('binary_sensor.motion_addon_status','timestamp')|as_datetime|relative_time -}}</i> ago</li>
+            <li>Configuration: <b>{{ states('binary_sensor.motion_addon_config') }}</b>: <i>{{- state_attr('binary_sensor.motion_addon_config','timestamp')|as_datetime|relative_time -}}</i> ago</li>
+            </ul>
           {%- endif -%}
-          {%- else -%}<h2>No add-on refresh information</h2>{%- endif -%}
           <p><i>Last updated</i>: {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
       value_template: >-
         {% set s = state_attr('automation.motion_refresh','current') %}
