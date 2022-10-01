@@ -6,7 +6,7 @@
   sensors:
     motion_primary_device_exist:
       friendly_name: '👸 device exists'
-      device_class: presence
+      device_class: connectivity
       attribute_templates:
         sensor: >-
           {{ state_attr('sensor.motion_primary','device') }}
@@ -27,10 +27,10 @@
           {%- else -%}none{%- endif -%}
         relative: >-
           {%- set s = state_attr('sensor.motion_primary','device') -%}
-          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-            {% set s = states[s]|default(none) -%}
+          {%- if s|lower != 'none' -%}
+            {% set s = states[s].last_updated|default(none) -%}
             {% if s|lower != 'none' -%}
-              {{- s|as_datetime|relative_time -}}
+              {{- s|relative_time -}}
             {%- else -%}none{%- endif -%}
           {%- else -%}none{%- endif -%}
         location: >-
@@ -64,7 +64,7 @@
     motion_primary_device:
       unique_id: 'motion_primary_device'
       friendly_name: '👸 device'
-      device_class: connectivity
+      device_class: presence 
       attribute_templates:
         latitude: >-
           {{ state_attr('sensor.motion_primary_device','latitude') }}
@@ -93,14 +93,18 @@
             {%- else -%}none{%- endif %}
           {%- else -%}none{%- endif %}
         markdown: >-
-          {{- '<img src="/local/images/icons/' + state_attr('binary_sensor.motion_primary_device','entity_picture')|string + '?v1">' -}}
-          <h2>{{- state_attr('sensor.motion_primary','name') }} is <i>{{- states('binary_sensor.motion_primary_device_exist') -}}</i></h2>
+          {{- '<img src="' + state_attr('binary_sensor.motion_primary_device','entity_picture')|string + '?v1">' -}}
+          {%- if is_state('binary_sensor.motion_primary_device_exist','on') -%}{%- set c = 'connected' -%}{%- endif -%}
+          <h2>{{- state_attr('sensor.motion_primary','name') -}}\'s smartphone is <i>{{- c -}}</i></h2>
           {%- if is_state('binary_sensor.motion_primary_device','on') and not is_state('binary_sensor.motion_primary_device_exist','on') -%}
             The device {{ state_attr('sensor.motion_primary_device','name') }} is not associated with {{ states('sensor.motion_primary') -}}.
             Please contact support.
           {%- endif -%}
-          <b>Current location</b>: {{ state_attr('binary_sensor.motion_primary_device_exist','location') -}}
-          <br><i>Last updated</i>: {{ state_attr('binary_sensor.motion_primary_device_exist','relative') }} ago
+          <ul>
+          <li>Location: <b>{{- state_attr('binary_sensor.motion_primary_device_exist','location') -}}</b></li>
+          <li>Ago: <b>{{- state_attr('binary_sensor.motion_primary_device_exist','relative') -}}</b></li>
+          </ul>
+          <i>Last updated</i>: {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
       icon_template: >- 
         {% if is_state('binary_sensor.motion_primary_device','on') %}
           {{- 'mdi:cellphone' -}}
