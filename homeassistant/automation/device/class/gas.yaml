@@ -146,7 +146,8 @@
       minutes: '/5'
   variables:
     class: >-
-      {{- 'gas' -}}
+      {%- set class = 'gas' -%}
+      {{- class -}}
     all: >-
       [{%- for state in (states.sensor|list + states.binary_sensor|list)
        if 'device_class' in state.attributes and device_id(state.entity_id)|lower != 'none'
@@ -377,18 +378,20 @@
     ids: >-
       {% set ids = state_attr('binary_sensor.motion_device_gas','ids') %}
       {{ ids }}
+    dids: >-
+      {% set dids = state_attr('binary_sensor.motion_device_gas','dids') %}
+      {{ dids }}
     status: >-
-      {%- set s = ids -%}
-      {%- if s|lower != 'none' and s|lower != 'unknown' and s is iterable -%}
+      {%- set s = dids %}
+      {%- if not s is string and s is iterable and s|count > 0 -%}
         [{%- for i in s -%}
+          {%- set did = i -%}
+          {%- set id = all|selectattr('did','==',did)|map(attribute='id')|first -%}
           {%- set o = loop -%}
-          {%- for state in (states.sensor|list + states.binary_sensor|list)
-            if device_attr(state.entity_id, 'name') == i
-              and (state.attributes.device_class|default('null')|string == class)  -%}
-            {%- if not o.first or not loop.first -%},{%- endif -%}
-            {"id":"{{- i -}}","name":"{{- state_attr(state.entity_id,'friendly_name') -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
-
-          {%- else -%}{% if o.first %}None{% endif %}{%- endfor -%}
+          {%- for state in (states.sensor|list + states.binary_sensor|list) if device_id(state.entity_id) == did and (state.attributes.device_class|default('null')|string == class)  -%}
+            {"did":"{{- did -}}","id":"{{- id -}}","name":"{{- state_attr(state.entity_id,'friendly_name') -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
+            {%- if not loop.last or not o.last -%},{%- endif -%}
+          {%- endfor -%}
         {%- endfor -%}]
       {%- else -%}none{%- endif %}
     statistics: >-
@@ -2590,7 +2593,7 @@
 
 - id: motion_device_gas_devices
   alias: motion_device_gas_devices
-  mode: queued 
+  mode: queued
   initial_state: 'on'
   trigger:
     - platform: state
@@ -2708,7 +2711,7 @@
               name: 'All devices'
               add_entities: >-
                 {{ sensor }}
- 
+
 ## notifications
 
 - id: motion_device_gas_found_notify
@@ -3808,7 +3811,7 @@
     - platform: event
       event_type: mobile_app_notification_action
       event_data:
-        action: 
+        action:
           - "device-gas-bad-wait"
           - "device-gas-bad-help"
           - "device-gas-bad-deny"
