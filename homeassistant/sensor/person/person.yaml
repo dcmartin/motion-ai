@@ -24,9 +24,13 @@
           {{ states('sensor.motion_person_bedtime') }}
         sensor: >-
           {% set sensor = 'none' %}
-          {%- set s = states('sensor.motion_person_calculator') -%}
-          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 -%}
-            {%- set sensor = 'person.' + s|string -%}
+          {%- set s = states('sensor.motion_person') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {%- set a = states.person|selectattr('attributes.id','search',s)|first -%}
+            {%- set s = states.person[a.attributes.id] -%}
+            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+              {%- set sensor = a.entity_id -%}
+            {%- endif -%}
           {%- endif -%}
           {{- sensor }}
         name: >-
@@ -70,10 +74,40 @@
             {{ state_attr(s,'vertical_accuracy') }}
           {%- else -%}null{%- endif -%}
       value_template: >-
-        {%- set s = states('sensor.motion_person_calculator') -%}
-        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 -%}
-          {{- s -}}
-        {%- else -%}none{%- endif -%}
+        {{- states('sensor.motion_person_calculator') -}}
+
+- platform: template
+  sensors:
+    motion_person_calculator:
+      value_template: >-
+        {# input_text #}
+        {%- set s = states('input_text.motion_person') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+          {%- set a = states.person|selectattr('attributes.id','search',s)|first -%}
+          {%- set s = states.person[a.attributes.id] -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {%- set p = a.entity_id -%}
+          {%- endif -%}
+        {%- endif -%}
+        {%- if not p is defined %}
+          {# input_select #}
+          {%- set s = states('input_select.motion_person') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {%- set a = states.person|selectattr('attributes.id','search',s)|first -%}
+            {%- set s = states.person[a.attributes.id] -%}
+            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+              {%- set p = a.entity_id -%}
+            {%- endif -%}
+          {%- endif -%}
+        {%- endif -%}
+        {%- if p is defined %}
+          {{- p|replace('person.','') -}}
+        {%- else -%}
+          {% set s = state_attr('sensor.motion_domain_person_status','ids') %}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s is iterable and s|length > 0 -%}
+            {{- s|first -}}
+          {%- else -%}none{%- endif -%}
+        {%- endif -%}
 
 # person
 
@@ -88,27 +122,6 @@
           {%- set s = states.sensor.motion_person_selected.state -%}
           {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
             {{- s -}}
-          {%- else -%}none{%- endif -%}
-        {%- endif -%}
-
-- platform: template
-  sensors:
-    motion_person_calculator:
-      value_template: >-
-        {%- set s = states('input_text.motion_person') -%}
-        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-          {%- set a = states.person|selectattr('attributes.id','search',s)|first -%}
-          {%- set s = states.person[a.attributes.id] -%}
-          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-            {%- set p = a.entity_id|replace('person.','') -%}
-          {%- endif -%}
-        {%- endif -%}
-        {%- if p is defined %}
-          {{- p -}}
-        {%- else -%}
-         {% set s = state_attr('sensor.motion_domain_person_status','ids') %}
-          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s is iterable and s|length > 0 -%}
-            {{- s|first -}}
           {%- else -%}none{%- endif -%}
         {%- endif -%}
 
