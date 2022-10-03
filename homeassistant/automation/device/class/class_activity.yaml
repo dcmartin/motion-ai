@@ -23,47 +23,48 @@
       {%- set s = state_attr('binary_sensor.motion_device_class','sensor_list')|list + state_attr('binary_sensor.motion_device_class','binary_sensor_list')|list -%}
       [{%- for i in s|sort|unique if is_state('binary_sensor.motion_device_' + i + '_activity','on') -%}
         {%- if not loop.first -%},{%- endif -%}
-        {%- set e = 'binary_sensor.motion_device_' + i|string -%}
-        {%- set devices = state_attr(e, 'devices') -%}
-        {%- for j in state_attr(e + '_activity','dids') -%}
-          {%- if not loop.first -%},{%- endif -%}
-          {"did":"{{- j -}}","class":"{{- i -}}","updated":{{- (states.binary_sensor['motion_device_' + i + '_activity'].last_updated)|as_timestamp(0) -}},"when":"{{- (states.binary_sensor['motion_device_' + i + '_activity'].last_updated)|as_timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}"}
-        {% else %}{{ none }}{%- endfor -%}
+        {%- for j in state_attr('binary_sensor.motion_device_' + i + '_activity','ids') -%}
+          {%- if not loop .first -%},{%- endif -%}
+          {"id":"{{- j -}}","class":"{{- i -}}","updated":{{- (states.binary_sensor['motion_device_' + i + '_activity'].last_updated)|as_timestamp(0) -}},"when":"{{- (states.binary_sensor['motion_device_' + i + '_activity'].last_updated)|as_timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}"}
+        {%- endfor -%}
       {%- endfor -%}]
     ids: >-
-      {% set ids = details|map(attribute='class')|sort|unique|list %}
+      {% set ids = details|map(attribute='id')|sort|unique|list %}
       {{ ids }}
-    dids: >-
-      {% set dids = details|map(attribute='did')|sort|unique|list %}
-      {{ dids }}
     markdown: >-
+      {%- if occupancy -%}
+        {{- '<h2>Occupancy</h2>' -}}
+      {%- else -%}
+        {{- '<h2>Activity</h2>' -}}
+      {%- endif -%}
       {%- set devices = state_attr('binary_sensor.motion_device_class','devices') -%}
-      {%- if not devices is string and devices is iterable and devices|count > 0 -%}
-        {%- if occupancy -%} {{- '<h2>Occupancy</h2>' -}} {%- else -%} {{- '<h2>Activity</h2>' -}} {%- endif -%}
-        {%- for i in dids if i|lower != 'none' -%}
+      {%- if ids|lower != 'none' and  devices|lower != 'none' and not devices is string and devices is iterable -%}
+        {%- for i in ids if i|lower != 'none' -%}
           {%- if loop.first -%}{{- '<ul>' -}}{%- endif -%}
-          {%- set s = devices|selectattr('did','==',i)|list -%}
+          {%- set s = devices|selectattr('name','==',i)|list -%}
           {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
             {%- set s = s|first -%}
             <li><a href="/config/devices/device/{{- s.did -}}">{{- s.friendly_name -}}</a> in <a href="/config/areas/area/{{- s.area -}}">{{- s.area -}}</a></li>
           {%- endif -%}
           {%- if loop.last -%}{{- '</ul>' -}}{%- endif -%}
         {%- endfor -%}
-        {%- for i in dids -%}
+        {#- from unavailable -#}
+        {%- for i in ids -%}
           {%- if loop.first -%}<ul>{%- endif -%}
           {{- '<li>' -}}
-          {%- set s = devices|selectattr('did','==',i)|list -%}
-          {%- if not s is string and s is iterable and s|count > 0 -%}
-            <a href="/config/devices/device/{{- i -}}">{{- s.friendly_name -}}</a>
-          {%- else -%}
-            <a href="/config/devices/device/{{- i -}}">{{- i -}}</a>
-          {%- endif -%}
+          {%- set d = state_attr('binary_sensor.motion_device_class','devices') -%}
+          {%- if d|lower != 'none' and not d is string and d is iterable and d|count > 0 -%}
+            {%- set d = d|selectattr('name','==',i)|default(['none'])|first -%}
+            {%- if d|lower != 'none' and 'did' in d -%}
+              <a href="/config/devices/device/{{- d.did -}}">{{- d.friendly_name -}}</a>
+            {%- else -%}{{- i -}}{%- endif -%}
+          {%- else -%}{{- i -}}{%- endif -%}
           {%- for j in details|map(attribute='class')|sort|unique|list
               if state_attr('binary_sensor.motion_device_' + j|string ,'activity')|lower != 'none'
-                and state_attr('binary_sensor.motion_device_' + j|string ,'activity')|selectattr('did','==',i)|lower != 'none'
-                and state_attr('binary_sensor.motion_device_' + j|string ,'activity')|selectattr('did','==',i)|list|count > 0 -%}
+                and state_attr('binary_sensor.motion_device_' + j|string ,'activity')|selectattr('id','==',i)|lower != 'none'
+                and state_attr('binary_sensor.motion_device_' + j|string ,'activity')|selectattr('id','==',i)|list|count > 0 -%}
             {%- if loop.first -%}<ul>{%- endif -%}
-            {%- set u = state_attr('binary_sensor.motion_device_' + j|string ,'activity')|selectattr('did','==',i)|list -%}
+            {%- set u = state_attr('binary_sensor.motion_device_' + j|string ,'activity')|selectattr('id','==',i)|list -%}
             {%- set c = u|count -%}
             {%- set o = u|map(attribute='updated')|min|as_datetime|relative_time -%}
             {{- '<li><i>' -}}
@@ -73,7 +74,7 @@
           {%- endfor -%}
           {%- if loop.last -%}</ul>{%- endif -%}
         {%- endfor -%}
-      {%- else -%}<b>No devices</b>{%- endif %}
+      {%- else -%}<b>No device activity</b>{%- endif %}
       <br><b>Alarms enabled</b>: <code>{{- state_attr('binary_sensor.motion_device_class_activity_exist','alarm')|lower == 'on' }}</code>
       <br><b>Outstanding alarms</b>: <code>{{- state_attr('binary_sensor.motion_device_class_activity','count')|int(0) > 0 }}</code>
       <br><i>Last updated</i>: {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
@@ -92,8 +93,6 @@
           {{ occupancy }}
         ids: >-
           {{ ids }}
-        dids: >-
-          {{ dids }}
         markdown: >-
           {{ markdown }}
         details: >-
@@ -108,9 +107,9 @@
   initial_state: 'on'
   trigger:
   variables:
-    ids: >-
-      {% set ids = state_attr('binary_sensor.motion_device_class_activity','ids') %}
-      {{ ids }}
+    activity: >-
+      {% set activity = state_attr('binary_sensor.motion_device_class_activity','ids') %}
+      {{ activity }}
   action:
     - service: automation.trigger
       data_template:
@@ -118,18 +117,18 @@
           {{ 'automation.motion_device_class_activity_dismiss_all' }}
     - condition: template
       value_template: >
-        {{ not ids is string and ids is iterable and ids|count > 0 }}
+        {{ activity|lower != 'none' and not activity is string and activity is iterable and activity|count > 0 }}
     - alias: 'required_off activity device class(s)'
       repeat:
         while:
           - condition: template
             value_template: >-
-              {% set s = ids[repeat.index-1]|default('') %}
+              {% set s = activity[repeat.index-1]|default('') %}
               {{ s|string != '' }}
         sequence:
           - variables:
               which: >-
-                {% set which = ids[repeat.index-1] %}
+                {% set which = activity[repeat.index-1] %}
                 {{ which }}
               automation: >-
                 {% set automation = 'automation.motion_device_' + which|string + '_required_off' %}
@@ -148,12 +147,12 @@
           - service: persistent_notification.create
             data_template:
               title: >-
-                {% set s = ids[repeat.index-1] %}
+                {% set s = activity[repeat.index-1] %}
                 DEBUG: Require OFF: {{ s }}
               notification_id: >
                 {{- 'debug-device-class-activity-actions' -}}
               message: >-
-                {% set s = ids[repeat.index-1] %}
+                {% set s = activity[repeat.index-1] %}
                 Class {{ s }} is no longer required; automation: {{ automation }}
     - alias: 'update binary_sensor.motion_device_class_activity_exist'
       service: homeassistant.update_entity
@@ -171,9 +170,9 @@
   initial_state: 'on'
   trigger:
   variables:
-    ids: >-
-      {% set ids = state_attr('binary_sensor.motion_device_class_activity','ids') %}
-      {{ ids }}
+    activity: >-
+      {% set activity = state_attr('binary_sensor.motion_device_class_activity','ids') %}
+      {{ activity }}
   action:
     - service: automation.trigger
       data_template:
@@ -181,18 +180,18 @@
           {{ 'automation.motion_device_class_activity_dismiss' }}
     - condition: template
       value_template: >
-        {{ not ids is string and ids is iterable and ids|count > 0 }}
+        {{ activity|lower != 'none' and not activity is string and activity is iterable and activity|count > 0 }}
     - alias: 'dismiss all activity device class(s)'
       repeat:
         while:
           - condition: template
             value_template: >-
-              {% set s = ids[repeat.index-1]|default('') %}
+              {% set s = activity[repeat.index-1]|default('') %}
               {{ s|string != '' }}
         sequence:
           - variables:
               which: >-
-                {% set which = ids[repeat.index-1] %}
+                {% set which = activity[repeat.index-1] %}
                 {{ which }}
               automation: >-
                 {% set automation = 'automation.motion_device_' + which|string + '_activity_dismiss' %}
