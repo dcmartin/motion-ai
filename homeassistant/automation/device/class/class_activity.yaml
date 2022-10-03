@@ -22,24 +22,24 @@
     details: >-
       {%- set s = state_attr('binary_sensor.motion_device_class','sensor_list')|list + state_attr('binary_sensor.motion_device_class','binary_sensor_list')|list -%}
       [{%- for i in s|sort|unique if is_state('binary_sensor.motion_device_' + i + '_activity','on') -%}
-        {%- if not loop.first -%},{%- endif -%}
+        {%- set l = loop %}
         {%- for j in state_attr('binary_sensor.motion_device_' + i + '_activity','ids') -%}
-          {%- if not loop .first -%},{%- endif -%}
           {"id":"{{- j -}}","class":"{{- i -}}","updated":{{- (states.binary_sensor['motion_device_' + i + '_activity'].last_updated)|as_timestamp(0) -}},"when":"{{- (states.binary_sensor['motion_device_' + i + '_activity'].last_updated)|as_timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}"}
+          {%- if not (l.last and loop.last) -%},{%- endif -%}
         {%- endfor -%}
       {%- endfor -%}]
     ids: >-
       {% set ids = details|map(attribute='id')|sort|unique|list %}
       {{ ids }}
     markdown: >-
-      {%- if occupancy -%}
-        {{- '<h2>Occupancy</h2>' -}}
-      {%- else -%}
-        {{- '<h2>Activity</h2>' -}}
-      {%- endif -%}
       {%- set devices = state_attr('binary_sensor.motion_device_class','devices') -%}
       {%- if ids|lower != 'none' and  devices|lower != 'none' and not devices is string and devices is iterable -%}
-        {%- for i in ids if i|lower != 'none' -%}
+        {%- if occupancy -%}
+          {{- '<h2>Occupancy</h2>' -}}
+        {%- else -%}
+          {{- '<h2>Activity</h2>' -}}
+        {%- endif -%}
+        {%- for i in ids -%}
           {%- if loop.first -%}{{- '<ul>' -}}{%- endif -%}
           {%- set s = devices|selectattr('name','==',i)|list -%}
           {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
@@ -74,7 +74,7 @@
           {%- endfor -%}
           {%- if loop.last -%}</ul>{%- endif -%}
         {%- endfor -%}
-      {%- else -%}<b>No device activity</b>{%- endif %}
+      {%- else -%}<b>No devices</b>{%- endif %}
       <br><b>Alarms enabled</b>: <code>{{- state_attr('binary_sensor.motion_device_class_activity_exist','alarm')|lower == 'on' }}</code>
       <br><b>Outstanding alarms</b>: <code>{{- state_attr('binary_sensor.motion_device_class_activity','count')|int(0) > 0 }}</code>
       <br><i>Last updated</i>: {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
