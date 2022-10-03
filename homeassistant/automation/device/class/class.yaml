@@ -85,7 +85,6 @@
       minutes: '/15'
   variables:
     dids: >-
-      {% set device_trackers = states.device_tracker|map(attribute='entity_id')|map('device_id')|list %}
       {%- set s = state_attr('binary_sensor.motion_device_class','sensor_list')|list + state_attr('binary_sensor.motion_device_class','binary_sensor_list')|list -%}
       [{%- for i in s|sort|unique if not is_state_attr('binary_sensor.motion_device_' + i|string,'devices','none') -%}
         {%- if not loop.first -%},{%- endif -%}
@@ -423,13 +422,11 @@
         {%- endfor -%} }
       {%- else -%}none{%- endif -%}
     dids: >-
-      {% set device_trackers = states.device_tracker|map(attribute='entity_id')|map('device_id')|list %}
       {%- set s = state_attr('binary_sensor.motion_device_class','sensor_list')|list + state_attr('binary_sensor.motion_device_class','binary_sensor_list')|list -%}
       [{%- for i in s|sort|unique if not is_state_attr('binary_sensor.motion_device_' + i|string,'devices','none') -%}
         {%- if not loop.first -%},{%- endif -%}
         {%- set e = 'binary_sensor.motion_device_' + i|string -%}
         {%- set devices = state_attr(e, 'devices') -%}
-        {#- for j in devices|map(attribute='did')|list if not j in device_trackers -#}
         {%- for j in devices|map(attribute='did')|list -%}
           {%- if not loop.first -%},{%- endif -%}
           {"class":"{{- i -}}","did":"{{- j -}}","area":"{{ devices|selectattr('did','==',j)|map(attribute='area')|list|first }}"}
@@ -554,6 +551,12 @@
               {"did":"{{- device_id(j.entity_id) -}}","entity_id":"{{- j.entity_id -}}","id":"{{- j.id -}}","class":"{{- i -}}"}
             {%- endfor -%}
           {%- endfor -%}]
+        ids: >-
+          {% set ids = none %}
+          {% if not unavailable is string and unavailable is iterable and unavailable|count > 0 %}
+            {% set ids = unavailable|map(attribute='id')|sort|unique|list %}
+          {% endif %}
+          {{ ids }}
         dids: >-
           {% set dids = none %}
           {% if unavailable|lower != 'none' and not unavailable is string and unavailable is iterable and unavailable|count > 0 %}
@@ -604,6 +607,8 @@
         entity_id: binary_sensor.motion_device_class_unavailable
         last: >-
           {{ last }}
+        dids: >-
+          {{ dids }}
         ids: >-
           {{ ids }}
         count: >-
