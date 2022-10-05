@@ -141,24 +141,30 @@
   initial_state: 'on'
   trigger:
     - platform: homeassistant
-      event: start
+      event: 'start'
     - platform: time_pattern
       minutes: '/15'
   action:
-    - alias: 'wait for three (3) minutes OR binary_sensor.motion_device_class changes from unknown'
-      wait_for_trigger:
-        - platform: state
-          entity_id: 'binary_sensor.motion_device_class'
-          from: 'unknown'
-      timeout:
-        seconds: >-
-          {{ 180 }}
-    - alias: 'test if motion_device_problem_rescan automation NOT running'
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ trigger.platform == 'event' }}
+          sequence:
+            - alias: 'start: problem; wait for three (3) minutes OR binary_sensor.motion_device_class from unknown'
+              wait_for_trigger:
+                - platform: state
+                  entity_id: 'binary_sensor.motion_device_class'
+                  from: 'unknown'
+              timeout:
+                seconds: >-
+                  {{ 180 }}
+    - alias: 'test motion_device_problem_rescan NOT running'
       condition: template
       value_template: >-
         {% set s = 'automation.motion_device_problem_rescan' %}
         {{ states(s)|lower == 'on' and not state_attr(s,'current')|int(0) > 0 }}
-    - alias: 'trigger initial motion_device_problem_rescan'
+    - alias: 'trigger motion_device_problem_rescan'
       service: automation.trigger
       data_template:
         entity_id: automation.motion_device_problem_rescan
