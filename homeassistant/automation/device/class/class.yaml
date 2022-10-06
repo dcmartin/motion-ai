@@ -34,6 +34,12 @@
             data_template:
               entity_id: >-
                 {{ automation }}
+    - alias: 'indicate complete'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        automations: >-
+          {{ 'on' }}
 
 - id: motion_device_class_automation_disable
   alias: motion_device_class_automation_disable
@@ -66,6 +72,12 @@
             data_template:
               entity_id: >-
                 {{ automation }}
+    - alias: 'indicate complete'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        automations: >-
+          {{ 'off' }}
 
 - id: motion_device_class_rescan_all
   alias: motion_device_class_rescan_all
@@ -73,16 +85,12 @@
   max_exceeded: 'warn'
   initial_state: 'on'
   trigger:
-    - platform: homeassistant
-      event: start
     - platform: state
       entity_id: 'binary_sensor.motion_device_class'
-      attribute: 'sensor_list'
+      attribute: 'sensors'
     - platform: state
       entity_id: 'binary_sensor.motion_device_class'
-      attribute: 'binary_sensor_list'
-    - platform: time_pattern
-      minutes: '/15'
+      attribute: 'binary_sensors'
   variables:
     dids: >-
       {%- set s = state_attr('binary_sensor.motion_device_class','sensor_list')|list + state_attr('binary_sensor.motion_device_class','binary_sensor_list')|list -%}
@@ -111,6 +119,24 @@
       {%- else -%}none{%- endif -%}
     areas: >-
   action:
+    - choose:
+        - conditions:
+            - alias: 'test if class_rescan_all trigger is time_platform'
+              condition: template
+              value_template: >
+                {{ trigger.platform == 'time_pattern' }}
+            - condition: template
+              value_template: >
+                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: class rescan
+                notification_id: >
+                  {{- 'debug-class-rescan' -}}
+                message: >-
+                  Trigger platform: {{ trigger.platform }}
     - repeat:
         while:
           - condition: template
@@ -122,9 +148,10 @@
               automation: >-
                 {% set s = classes[repeat.index-1] %}
                 {{ 'automation.motion_device_' + s|string + '_rescan' }}
-          - condition: template
+          - alias: 'test if class rescan automation is ON and NOT running'
+            condition: template
             value_template: >-
-              {{ states(automation)|lower == 'on' }}
+              {{ is_state(automation,'on') and is_state_attr(automation,'current',0) }}
           - alias: 'trigger automation motion_device_<class>_rescan'
             service: automation.trigger
             data_template:
@@ -195,6 +222,8 @@
   max_exceeded: 'warn'
   initial_state: 'on'
   trigger:
+    - platform: time_pattern
+      minutes: '/5'
   variables:
     sensor_ids: >-
       {% set s = state_attr('binary_sensor.motion_device_class','sensor_list') %}
@@ -494,6 +523,8 @@
       service: python_script.set_state
       data_template:
         entity_id: binary_sensor.motion_device_class
+        scan: >-
+          {{ utcnow().timestamp() }}
         ids: >-
           {{ ids }}
         dids: >-
