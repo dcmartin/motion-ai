@@ -71,7 +71,6 @@
             {%- set id = state_attr('binary_sensor.motion_addon_update','id') -%}
             {%- set version = state_attr('binary_sensor.motion_addon_update','version') -%}
             {%- set latest = state_attr('binary_sensor.motion_addon_update','latest') -%}
-            {%- set relative = state_attr('binary_sensor.motion_addon_config','relative') -%}
             {%- if is_state('binary_sensor.motion_addon_update','on') -%}
               {% set icon = 'notification-addon-update' -%}
               {%- set image = '/local/images/icons/' + icon + '.png' -%}
@@ -80,19 +79,29 @@
               {% set icon = 'warning-icon' -%}
               {%- set image = '/local/images/icons/' + icon + '.png' -%}
               <h2>{{- title }} pending</h2><img src="{{- image -}}?v1"><hr>
-            {%- elif is_state('binary_sensor.motion_addon_status','on') and is_state('binary_sensor.motion_addon_config','on') -%}
+            {%- elif state_attr('binary_sensor.motion_addon_status','valid')|lower == 'true'
+                  and is_state('binary_sensor.motion_addon_status','on')
+                  and is_state('binary_sensor.motion_addon_config','on')
+                  and state_attr('binary_sensor.motion_addon_status','timestamp')|float(0)
+                    > state_attr('binary_sensor.motion_addon_config','timestamp')|float(utcnow().timestamp()) -%}
               {% set icon = 'notification-addon-latest' -%}
               {%- set image = '/local/images/icons/' + icon + '.png' -%}
               <h2>{{- title }} up-to-date</h2><img src="{{- image -}}?v1"><hr>
-              <i>Version</i>: <b>{{- latest -}}</b>
-              <i>Started</i>: <b>{{- relative -}}</b> ago
+            {%- elif is_state('binary_sensor.motion_addon_status','on')
+                  and is_state('binary_sensor.motion_addon_config','on')
+                  and state_attr('binary_sensor.motion_addon_status','timestamp')|float(0)
+                    > state_attr('binary_sensor.motion_addon_config','timestamp')|float(utcnow().timestamp()) -%}
+              {% set icon = 'notification-addon-refreshing' -%}
+              {%- set image = '/local/images/icons/' + icon + '.png' -%}
+              <h2>{{- title }} refreshing</h2><img src="{{- image -}}?v1"><hr>
             {%- else -%}
               {% set icon = 'notification-addon-updating' -%}
               {%- set image = '/local/images/icons/' + icon + '.png' -%}
               <h2>{{- title }} updating</h2><img src="{{- image -}}?v1"><hr>
-              <i>Version</i>: <b>{{- latest -}}</b>
-              <i>Started</i>: <b>{{- relative -}}</b> ago
             {%- endif -%}
+            <i>Version</i>: <b>{{- latest -}}</b>
+            <i>Validated</i>: <b>{{- state_attr('binary_sensor.motion_addon_status','valid') and state_attr('binary_sensor.motion_addon_status','timestamp')|float(0) > state_attr('binary_sensor.motion_addon_config','timestamp')|float(utcnow().timestamp()) -}}</b>
+            <i>Restart required</i>: <b>{{- is_state('binary_sensor.motion_restart_required','on') -}}</b>
             {{- '<ul>' -}}
             <li>{%- set s = 'binary_sensor.motion_refreshing' -%}{{- state_attr(s,'friendly_name') -}}: {{ states(s) -}}</li>
             <li>{%- set s = 'input_boolean.motion_refresh' -%}{{- state_attr(s,'friendly_name') -}}: {{ states(s) -}}</li>
@@ -109,7 +118,7 @@
             <p>Click <a href="/hassio/addon/{{- id -}}/info">here</a> to view the add-on
           {%- else -%}
             {% set icon = 'unavailable-icon' -%}
-            <h2>Add-on unavailable</h2><img src="/local/images/icons/{{- icon -}}.png?v1"><hr>
+            <h2>Add-on pending</h2><img src="/local/images/icons/{{- icon -}}.png?v1"><hr>
             <ul>
             <li>Status: <b>{{ states('binary_sensor.motion_addon_status') }}</b>: <i>{{- state_attr('binary_sensor.motion_addon_status','timestamp')|float(0)|as_datetime|relative_time -}}</i> ago</li>
             <li>Configuration: <b>{{ states('binary_sensor.motion_addon_config') }}</b>: <i>{{- state_attr('binary_sensor.motion_addon_config','timestamp')|float(0)|as_datetime|relative_time -}}</i> ago</li>
