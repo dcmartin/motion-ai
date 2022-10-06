@@ -1,0 +1,83 @@
+###
+## automation/notification/dismiss.yaml
+###
+
+- id: motion_notification_dismiss
+  alias: motion_notification_dismiss
+  initial_state: 'on'
+  mode: restart
+  trigger:
+  variables:
+    log_level: >-
+      {% set log_level = none %}
+      {% set s = states('sensor.motion_log_level') %}
+      {% if s|lower != 'none' %}
+        {% set log_level = s|string %}
+      {% endif %}
+      {{ log_level }}
+    levels: >-
+      {% set levels = [] %}
+      {% set s = state_attr('sensor.motion_log_level',log_level) %}
+      {% if s|lower != 'none' %}
+        {% set levels = s|string %}
+      {% endif %}
+      {{ levels }}
+    notifications: >-
+      [{%- for state in states.persistent_notification|sort(reverse=true,attribute='last_updated')
+        if state.state|lower == 'notifying' -%}
+        {% set l = loop %}
+        {% for i in levels if i|upper in state.attributes.title %}
+          {%- set id = state.entity_id -%}
+          "{{- id -}}"
+          {%- if not (l.last and loop.last) -%},{%- endif -%}
+        {%- endfor -%}
+      {%- endfor -%}]
+  action:
+    - alias: 'dismiss persistent_notifications for debug messages'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = notifications[repeat.index-1]|default('') %}
+              {{ s|string != '' }}
+        sequence:
+          - variables:
+              notification: >-
+                {% set s = notifications[repeat.index-1] %}
+                {{ s|string }}
+          - service: persistent_notification.dismiss
+            data_template:
+              notification_id: >-
+                {{ notification }}
+
+- id: motion_notification_dismiss_all
+  alias: motion_notification_dismiss_ll
+  initial_state: 'on'
+  mode: restart
+  trigger:
+  variables:
+    notifications: >-
+      {%- for state in states.persistent_notification|sort(reverse=true,attribute='last_updated')
+        if state.state|lower == 'notifying' -%}
+        {%- if not loop.first -%},{%- else -%}[{%- endif -%}
+        {%- set i = state.entity_id -%}
+        "{{- i -}}"
+        {%- if loop.last -%}]{%- endif -%}
+      {%- endfor -%}
+  action:
+    - alias: 'dismiss persistent_notifications for debug messages'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = notifications[repeat.index-1]|default('') %}
+              {{ s|string != '' }}
+        sequence:
+          - variables:
+              notification: >-
+                {% set s = notifications[repeat.index-1] %}
+                {{ s|string }}
+          - service: persistent_notification.dismiss
+            data_template:
+              notification_id: >-
+                {{ notification }}
