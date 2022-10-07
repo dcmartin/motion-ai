@@ -17,6 +17,8 @@
           {{- '👱 device (pending)' -}}
         {%- endif %}
       attribute_templates:
+        last_updated: >-
+          {{ states.sensor[states('sensor.motion_person_device') + '_activity'].last_updated|default(none) }}
         entity_picture: >-
           {% set s = state_attr('sensor.motion_person','device') -%}
           {%- if s|lower != 'none' -%}
@@ -441,20 +443,16 @@
         online: >-
           {{ states('sensor.motion_person_device_history_1w') }}
         relative: >-
-          {% set s = states('sensor.motion_person_device_ago') -%}
-          {%- if s|float(0) > 0 -%}
-            {{ (utcnow().timestamp() - s|float(0))|as_datetime|relative_time }}
+          {% set s = state_attr('sensor.motion_person_device','last_updated') -%}
+          {%- if s|lower != 'none' and s|as_timestamp(0) > 0 -%}
+            {{ s|as_timestamp|as_datetime|relative_time }}
           {% else -%}Pending{% endif %}
         markdown: >-
           {%- set coverage = state_attr('sensor.motion_person_device_ago','coverage') -%}
           {%- set oldest = state_attr('sensor.motion_person_device_ago','oldest') -%}
           {%- set age = state_attr('sensor.motion_person_device_ago','age') -%}
           {%- set online = state_attr('sensor.motion_person_device_ago','online') -%}
-          {%- set current = 'unknown' -%}
-          {%- set s = states('sensor.motion_person_device_ago') -%}
-          {%- if s|float(0) > 0 -%}
-            {%- set current = (utcnow().timestamp() - s|float(0))|as_datetime|relative_time -%}
-          {%- endif -%}
+          {%- set current = state_attr('sensor.motion_person_device_ago','relative') -%}
           {%- if coverage|lower != 'none' and age|lower != 'none' and oldest|lower != 'none' -%}
             {%- set age = age|as_datetime -%}
             {%- set oldest = oldest|as_datetime -%}
@@ -478,15 +476,9 @@
             <h2>No device ago statistics.</h2>
           {%- endif -%}
       value_template: >-
-        {% set s = states('sensor.motion_person') -%}
-        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 -%}
-          {%- set s = state_attr('sensor.motion_person','device') -%}
-          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 -%}
-            {%- set s = states[s] -%}
-            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 -%}
-               {{ utcnow().timestamp() - s.last_updated|as_timestamp(none) }}
-            {%- else -%}null{%- endif -%}
-          {%- else -%}null{%- endif -%}
+        {%- set s = state_attr('sensor.motion_primary_device','last_updated') -%}
+        {%- if s|lower != 'none' and s|as_timestamp(0) > 0 -%}
+          {{ utcnow().timestamp() - s|as_timestamp(0) }}
         {%- else -%}null{%- endif -%}
  
 # history
@@ -502,8 +494,16 @@
 # statistics
 
 - platform: statistics
-  name: motion_person_device_oldest
+  name: motion_person_device_online_ratio
   entity_id: sensor.motion_person_device_history_1w
+  state_characteristic: mean
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_person_device_oldest
+  entity_id: sensor.motion_person_device_online_ratio
   state_characteristic: datetime_oldest
   sampling_size: 1000
   max_age:
