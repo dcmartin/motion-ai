@@ -14,6 +14,9 @@
           {%- set s = states('sensor.motion_person_activity_count_history_stats_1d')|int(0) +  states('sensor.motion_person_smartphone_activity_unknown_count_history_stats_1d')|int(0) -%}
           "total":{{- s|int(none) -}}
           {{- ',' -}}
+          {%- set s = states('sensor.motion_person_activity_time_history_stats_1w')|int(0) +  states('sensor.motion_person_smartphone_activity_unknown_time_history_stats_1w')|int(0) -%}
+          "time":{{- s|float(none) -}}
+          {{- ',' -}}
           {%- set s = states('sensor.motion_person_smartphone_activity_unknown_ratio_history_stats_1d') -%}
           "unknown":{{- s|float(none) -}}
           {{- ',' -}}
@@ -36,6 +39,9 @@
           {{- '{' -}}
           {%- set s = states('sensor.motion_person_activity_count_history_stats_1w')|int(0) +  states('sensor.motion_person_smartphone_activity_unknown_count_history_stats_1w')|int(0) -%}
           "total":{{- s|int(none) -}}
+          {{- ',' -}}
+          {%- set s = states('sensor.motion_person_activity_time_history_stats_1w')|int(0) +  states('sensor.motion_person_smartphone_activity_unknown_time_history_stats_1w')|int(0) -%}
+          "time":{{- s|float(none) -}}
           {{- ',' -}}
           {%- set s = states('sensor.motion_person_smartphone_activity_unknown_ratio_history_stats_1w') -%}
           "unknown":{{- s|float(none) -}}
@@ -70,17 +76,31 @@
         unknown: >-
           {{ states('sensor.motion_person_smartphone_activity_unknown_count_history_stats_1w' ) }}
         count: >-
-          {{ states('sensor.motion_person_smartphone_activity_count_history_stats_1w') }}
+          {{ states('sensor.motion_person_smartphone_activity_count_1w') }}
+        oldest: >-
+         {{ states('sensor.motion_person_smartphone_activity_oldest_1w') }}
         duration: >-
-          {% set s = states('sensor.motion_person_smartphone_activity_oldest_1w') %}
+          {% set s = states('sensor.motion_person_smartphone_activity','oldest') %}
           {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 %}
             {{ utcnow().timestamp() - s|as_timestamp }}
           {%- else -%}null{%- endif -%}
         relative: >-
-          {% set s = states('sensor.motion_person_smartphone_activity_oldest_1w') %}
+          {% set s = states('sensor.motion_person_smartphone_activity','oldest') %}
           {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 %}
             {{ s|as_datetime|relative_time }}
           {%- else -%}null{%- endif -%}
+        ratio: >-
+          {% set ratio = none %}
+          {% set s = states('sensor.motion_person_smartphone_activity_unknown_time_history_stats_1w') %}
+          {% if s|float(0) > 0 %}
+            {% set unknown = s|float %}
+            {% set s = states('sensor.motion_person_smartphone_activity_time_history_stats_1w') %}
+            {% if s|float(0) >= 0 %}
+              {% set known = s|float %}
+              {% set ratio = '%0.2f'|format(known / unknown * 100) %}
+            {% endif %}
+          {% endif %}
+          {{ ratio }}
         markdown: >-
           {%- set person = state_attr('sensor.motion_person','name') -%}
           {%- set phone = state_attr('sensor.motion_person','device') -%}
@@ -101,135 +121,29 @@
           </ul>
           {%- else -%}
             <h2>No person smartphone information</h2>
-          <ul>
+            <ul>
             <li>Person: {{ person -}}</li>
             <li>Phone: {{ phone -}}</li>
             <li>Count: {{ count -}}</li>
             <li>Week:<ol>
-            <li>Stationary: {{ week.stationary|default('unknown') -}}%</li>
-            <li>Walking: {{ week.walking|default('unknown') -}}%</li>
-            <li>Running: {{ week.running|default('unknown') -}}%</li>
-            <li>Cycling: {{ week.cycling|default('unknown') -}}%</li>
-            <li>Automotive: {{ week.automotive|default('unknown') -}}%</li>
-            <li><i>Unknown</i>: {{ week.unknown|default('unknown') -}}%</li>
-          </ol></li>
-          </ul>
+              <li>Stationary: {{ week.stationary|default('unknown') -}}%</li>
+              <li>Walking: {{ week.walking|default('unknown') -}}%</li>
+              <li>Running: {{ week.running|default('unknown') -}}%</li>
+              <li>Cycling: {{ week.cycling|default('unknown') -}}%</li>
+              <li>Automotive: {{ week.automotive|default('unknown') -}}%</li>
+              <li><i>Unknown</i>: {{ week.unknown|default('unknown') -}}%</li>
+            </ol></li>
+            </ul>
           {%- endif -%}
           <i>Last updated</i>: {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
       value_template: >-
         {{ states('sensor.motion_person_device_activity')|lower }}
 
-## history_stats
-
-# unknown
-
-- platform: history_stats
-  name: motion_person_smartphone_activity_unknown_ratio_history_stats_1d
-  entity_id: sensor.motion_person_smartphone_activity
-  state: 'unknown'
-  type: ratio
-  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
-  end: '{{ now() }}'
-
-- platform: history_stats
-  name: motion_person_smartphone_activity_unknown_ratio_history_stats_1w
-  entity_id: sensor.motion_person_smartphone_activity
-  state: 'unknown'
-  type: ratio
-  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7) }}'
-  end: '{{ now() }}'
-
-- platform: history_stats
-  name: motion_person_smartphone_activity_unknown_count_history_stats_1d
-  entity_id: sensor.motion_person_smartphone_activity
-  state: 'unknown'
-  type: count
-  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
-  end: '{{ now() }}'
-
-- platform: history_stats
-  name: motion_person_smartphone_activity_unknown_count_history_stats_1w
-  entity_id: sensor.motion_person_smartphone_activity
-  state: 'unknown'
-  type: count
-  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7) }}'
-  end: '{{ now() }}'
-
-- platform: history_stats
-  name: motion_person_smartphone_activity_unknown_time_history_stats_1d
-  entity_id: sensor.motion_person_smartphone_activity
-  state: 'unknown'
-  type: time
-  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
-  end: '{{ now() }}'
-
-- platform: history_stats
-  name: motion_person_smartphone_activity_unknown_time_history_stats_1w
-  entity_id: sensor.motion_person_smartphone_activity
-  state: 'unknown'
-  type: time
-  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7) }}'
-  end: '{{ now() }}'
-
-# activity: ('stationary','walking','running','cycling','automotive')
-
-- platform: history_stats
-  name: motion_person_smartphone_activity_time_history_stats_1d
-  entity_id: sensor.motion_person_smartphone_activity
-  state:
-    - 'stationary'
-    - 'walking'
-    - 'running'
-    - 'cycling'
-    - 'automotive'
-  type: time
-  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
-  end: '{{ now() }}'
-
-- platform: history_stats
-  name: motion_person_smartphone_activity_time_history_stats_1w
-  entity_id: sensor.motion_person_smartphone_activity
-  state:
-    - 'stationary'
-    - 'walking'
-    - 'running'
-    - 'cycling'
-    - 'automotive'
-  type: time
-  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7) }}'
-  end: '{{ now() }}'
-
-- platform: history_stats
-  name: motion_person_smartphone_activity_count_history_stats_1d
-  entity_id: sensor.motion_person_smartphone_activity
-  state:
-    - 'stationary'
-    - 'walking'
-    - 'running'
-    - 'cycling'
-    - 'automotive'
-  type: count
-  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
-  end: '{{ now() }}'
-
-- platform: history_stats
-  name: motion_person_smartphone_activity_count_history_stats_1w
-  entity_id: sensor.motion_person_smartphone_activity
-  state:
-    - 'stationary'
-    - 'walking'
-    - 'running'
-    - 'cycling'
-    - 'automotive'
-  type: count
-  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7) }}'
-  end: '{{ now() }}'
-
 # statistics
 
 - platform: statistics
   name: motion_person_smartphone_activity_count_1w
-  entity_id: sensor.motion_person_smartphone_activity
+  entity_id: sensor.motion_person_device_activity
   state_characteristic: count
   sampling_size: 10000
   max_age:
@@ -274,3 +188,108 @@
   sampling_size: 10000
   max_age:
     days: 7
+
+# activity: ('stationary','walking','running','cycling','automotive')
+
+- platform: history_stats
+  name: motion_person_smartphone_activity_time_history_stats_1d
+  entity_id: sensor.motion_person_device_activity
+  state:
+    - 'stationary'
+    - 'walking'
+    - 'running'
+    - 'cycling'
+    - 'automotive'
+  type: time
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_person_smartphone_activity_time_history_stats_1w
+  entity_id: sensor.motion_person_device_activity
+  state:
+    - 'stationary'
+    - 'walking'
+    - 'running'
+    - 'cycling'
+    - 'automotive'
+  type: time
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_person_smartphone_activity_count_history_stats_1d
+  entity_id: sensor.motion_person_device_activity
+  state:
+    - 'stationary'
+    - 'walking'
+    - 'running'
+    - 'cycling'
+    - 'automotive'
+  type: count
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_person_smartphone_activity_count_history_stats_1w
+  entity_id: sensor.motion_person_device_activity
+  state:
+    - 'stationary'
+    - 'walking'
+    - 'running'
+    - 'cycling'
+    - 'automotive'
+  type: count
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7) }}'
+  end: '{{ now() }}'
+
+# unknown
+
+- platform: history_stats
+  name: motion_person_smartphone_activity_unknown_ratio_history_stats_1d
+  entity_id: sensor.motion_person_device_activity
+  state: 'unknown'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_person_smartphone_activity_unknown_ratio_history_stats_1w
+  entity_id: sensor.motion_person_device_activity
+  state: 'unknown'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_person_smartphone_activity_unknown_count_history_stats_1d
+  entity_id: sensor.motion_person_device_activity
+  state: 'unknown'
+  type: count
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_person_smartphone_activity_unknown_count_history_stats_1w
+  entity_id: sensor.motion_person_device_activity
+  state: 'unknown'
+  type: count
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_person_smartphone_activity_unknown_time_history_stats_1d
+  entity_id: sensor.motion_person_device_activity
+  state: 'unknown'
+  type: time
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_person_smartphone_activity_unknown_time_history_stats_1w
+  entity_id: sensor.motion_person_device_activity
+  state: 'unknown'
+  type: time
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7) }}'
+  end: '{{ now() }}'
+
