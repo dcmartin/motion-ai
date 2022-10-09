@@ -196,44 +196,6 @@
   max_age:
     days: 7
 
-## ago
-
-- platform: template
-  sensors:
-    motion_person_active_ago:
-      friendly_name: 'Active ago'
-      icon_template: 'mdi:av-timer'
-      unit_of_measurement: 's'
-      attribute_templates:
-        count: >-
-          {{ states('sensor.motion_person_active_ago_count') }}
-        min: >-
-          {{ states('sensor.motion_person_active_ago_min') }}
-        max: >-
-          {{ states('sensor.motion_person_active_ago_max') }}
-        mean: >-
-          {{ states('sensor.motion_person_active_ago_mean') }}
-        stdev: >-
-          {{ states('sensor.motion_person_active_ago_stdev') }}
-        oldest: >-
-          {{ states('sensor.motion_person_active_ago_oldest') }}
-        quartiles: >-
-          {{ states('sensor.motion_person_active_ago_quartiles_1w') }}
-        coverage: >-
-         {{ state_attr('sensor.motion_person_active_ago_oldest','age_coverage_ratio')|float(0) * 100 }}
-        usage: >-
-         {{ state_attr('sensor.motion_person_active_ago_oldest','buffer_usage_ratio')|float(0) * 100 }}
-        relative: >-
-          {% set s = states('sensor.motion_person_active_ago_oldest') %}
-          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != null %}
-            {{ s|relative_time }}
-          {%- else -%}null{%- endif -%}
-      value_template: >-
-        {% set s = states('sensor.motion_person_active_ago_measurement') %}
-        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'unavailable' -%}
-          {{ '%0.1f'|format(s|float(0.0)) }}
-        {%- else -%}{{ 'null' }}{%- endif -%}
-
 - platform: statistics
   name: motion_person_active_ago_quartiles_1w
   entity_id: sensor.motion_person_active_ago
@@ -254,6 +216,78 @@
   start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7) }}'
   end: '{{ now() }}'
 
+## ago
+
+- platform: template
+  sensors:
+    motion_person_active_ago:
+      unique_id: motion_person_active_ago
+      friendly_name: '👱 active ago'
+      icon_template: 'mdi:av-timer'
+      unit_of_measurement: 's'
+      attribute_templates:
+        age: >-
+          {%- set age = timedelta(days=30) -%}
+          {{- age -}}
+        min: >-
+          {{ states('sensor.motion_person_active_ago_min') }}
+        max: >-
+          {{ states('sensor.motion_person_active_ago_max') }}
+        mean: >-
+          {{ states('sensor.motion_person_active_ago_mean') }}
+        stdev: >-
+          {{ states('sensor.motion_person_active_ago_stdev') }}
+        quartiles: >-
+          {{ states('sensor.motion_person_active_ago_quartiles_1w') }}
+        oldest: >-
+          {{ states('sensor.motion_person_active_ago_oldest') }}
+        count: >-
+          {{ states('sensor.motion_person_active_ago_count') }}
+        coverage: >-
+         {{ state_attr('sensor.motion_person_active_ago_oldest','age_coverage_ratio')|float(0) * 100 }}
+        usage: >-
+         {{ state_attr('sensor.motion_person_active_ago_oldest','buffer_usage_ratio')|float(0) * 100 }}
+        online: >-
+          {{ states('sensor.motion_person_active_history_1w') }}
+        relative: >-
+          {% set s = states('sensor.motion_person_active_ago_measurement') %}
+          {%- if s|lower != 'none' and s|int(0) > 0 -%}
+            {{ (utcnow().timestamp() - s|int(0))|as_timestamp|as_datetime|relative_time }}
+          {% else -%}Pending{% endif %}
+        markdown: >-
+          {%- set coverage = state_attr('sensor.motion_person_active_ago','coverage') -%}
+          {%- set oldest = state_attr('sensor.motion_person_active_ago','oldest') -%}
+          {%- set age = state_attr('sensor.motion_person_active_ago','age') -%}
+          {%- set online = state_attr('sensor.motion_person_active_ago','online') -%}
+          {%- set current = state_attr('sensor.motion_person_active_ago','relative') -%}
+          {%- if coverage|lower != 'none' and age|lower != 'none' and oldest|lower != 'none' -%}
+            {%- set age = age|as_datetime -%}
+            {%- set oldest = oldest|as_datetime -%}
+            {%- set relative = oldest|relative_time -%}
+            {%- set coverage = state_attr('sensor.motion_person_active_ago','coverage') -%}
+            {%- set complete = age|lower != 'none' and oldest|lower != 'none' and oldest <= utcnow() - age %}
+            Activity last updated {{ current }} ago; on-line {{ online -}}% over the past {{ relative -}}
+            {%- if not complete -%}
+              {{- ' (<i>statistics at ' + '%0.1f'|format(coverage) + '% of target</i>)' -}}
+            {%- else -%}
+              <ul>
+              <li>Mean: {{ state_attr('sensor.motion_person_active_ago','mean') -}}</li>
+              <li>Maximum: {{ state_attr('sensor.motion_person_active_ago','max') -}}</li>
+              <li>Minimum: {{ state_attr('sensor.motion_person_active_ago','min') -}}</li>
+              <li>Stdev: {{ state_attr('sensor.motion_person_active_ago','stdev') -}}</li>
+              </ul>
+            {%- endif -%}
+          {%- elif current|lower != 'none' -%}
+            Activity last updated {{ current -}} ago (warning: no statistics)
+          {%- else -%}
+            <h2>No activity statistics.</h2>
+          {%- endif -%}
+      value_template: >-
+        {% set s = states('sensor.motion_person_active_ago_measurement') %}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'unavailable' -%}
+          {{ '%0.1f'|format(s|float(0.0)) }}
+        {%- else -%}{{ 'null' }}{%- endif -%}
+
 # statistics
 
 - platform: statistics
@@ -273,10 +307,18 @@
     days: 30
 
 - platform: statistics
+  name: motion_person_active_ago_mean
+  entity_id: sensor.motion_person_active_ago
+  state_characteristic: mean
+  sampling_size: 5000
+  max_age:
+    days: 30
+
+- platform: statistics
   name: motion_person_active_ago_min
   entity_id: sensor.motion_person_active_ago
   state_characteristic: value_min
-  sampling_size: 10000
+  sampling_size: 5000
   max_age:
     days: 30
 
@@ -284,15 +326,7 @@
   name: motion_person_active_ago_max
   entity_id: sensor.motion_person_active_ago
   state_characteristic: value_max
-  sampling_size: 10000
-  max_age:
-    days: 30
-
-- platform: statistics
-  name: motion_person_active_ago_mean
-  entity_id: sensor.motion_person_active_ago
-  state_characteristic: mean
-  sampling_size: 10000
+  sampling_size: 5000
   max_age:
     days: 30
 
@@ -300,7 +334,7 @@
   name: motion_person_active_ago_stdev
   entity_id: sensor.motion_person_active_ago
   state_characteristic: standard_deviation
-  sampling_size: 10000
+  sampling_size: 5000
   max_age:
     days: 30
 
