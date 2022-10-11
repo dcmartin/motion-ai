@@ -3,10 +3,20 @@
 ###
 
 - platform: command_line
-  name: motion_database_size
-  scan_interval: 120
+  name: motion_database_clean
+  scan_interval: 86400
   command_timeout: 10
-  command: "eval {{- state_attr('sensor.motion_hub','command') -}}"
+  command: "eval {{- state_attr('sensor.motion_hub','rmdb') -}}"
+  json_attributes:
+    - exit
+  value_template: >
+    {{- value_json is defined and value_json is iterable and 'exit' in value_json -}}
+
+- platform: command_line
+  name: motion_database_size
+  scan_interval: 1800
+  command_timeout: 10
+  command: "eval {{- state_attr('sensor.motion_hub','dudb') -}}"
   json_attributes:
     - kbytes
     - file
@@ -19,6 +29,54 @@
       friendly_name: Device
       icon_template: 'mdi:raspberry-pi'
       attribute_templates:
+        host: >-
+          {% set host = none %}
+          {% set s = states('sensor.motion_addon_config') %}
+          {% if s|lower == 'true' %}
+            {% set s = state_attr('sensor.motion_addon_config','config') %}
+            {% if s is iterable and 'supervisor' in s %}
+              {% set s = s.supervisor %}
+              {% if s is iterable and 'host' in s %}
+                {% set s = s.host %}
+                {% if s is iterable and s.result|default('')|lower == 'ok' %}
+                  {% set host = s.data %}
+                {% endif %}
+              {% endif %}
+            {% endif %}
+          {% endif %}
+          {{ host }}
+        info: >-
+          {% set info = none %}
+          {% set s = states('sensor.motion_addon_config') %}
+          {% if s|lower == 'true' %}
+            {% set s = state_attr('sensor.motion_addon_config','config') %}
+            {% if s is iterable and 'supervisor' in s %}
+              {% set s = s.supervisor %}
+              {% if s is iterable and 'info' in s %}
+                {% set s = s.info %}
+                {% if s is iterable and s.result|default('')|lower == 'ok' %}
+                  {% set info = s.data %}
+                {% endif %}
+              {% endif %}
+            {% endif %}
+          {% endif %}
+          {{ info }}
+        services: >-
+          {% set services = none %}
+          {% set s = states('sensor.motion_addon_config') %}
+          {% if s|lower == 'true' %}
+            {% set s = state_attr('sensor.motion_addon_config','config') %}
+            {% if s is iterable and 'supervisor' in s %}
+              {% set s = s.supervisor %}
+              {% if s is iterable and 'services' in s %}
+                {% set s = s.services %}
+                {% if s is iterable and s.result|default('')|lower == 'ok' %}
+                  {% set services = s.data %}
+                {% endif %}
+              {% endif %}
+            {% endif %}
+          {% endif %}
+          {{ services }}
         lan: >-
           {{ states('sensor.host_lan_ipv4') }}
         wan: >-
@@ -38,9 +96,14 @@
             {% endif %}
               {"gib":{{ '%0.2f'|format(gib) }},"usage":{{ '%0.2f'|format(usage) }}}
           {% else %}none{% endif %}
+        cleaned: >-
+          {% set s = state_attr('sensor.motion_database_clean','exit') %}
+          {{ s|lower == 'on' }}
         file: >-
           {{ state_attr('sensor.motion_database_size','file') }}
-        command: >-
+        rmdb: >-
+          rm -f /config/home-assistant*corrupt* && echo '{"exit":"on"}' || echo '{"exit":"off"}'
+        dudb: >-
           du -k /config/home-assistant_v2.db | awk '{ printf("{\"kbytes\":%d,\"file\":\"%s\"}",$1,$2) }'
       value_template: >-
         {% if states.input_text.motion_hub is defined %}
