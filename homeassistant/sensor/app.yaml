@@ -3,10 +3,20 @@
 ###
 
 - platform: command_line
-  name: motion_database_size
-  scan_interval: 120
+  name: motion_database_clean
+  scan_interval: 86400
   command_timeout: 10
-  command: "eval {{- state_attr('sensor.motion_hub','command') -}}"
+  command: "eval {{- state_attr('sensor.motion_hub','rmdb') -}}"
+  json_attributes:
+    - exit
+  value_template: >
+    {{- value_json is defined and value_json is iterable and 'exit' in value_json -}}
+
+- platform: command_line
+  name: motion_database_size
+  scan_interval: 1800
+  command_timeout: 10
+  command: "eval {{- state_attr('sensor.motion_hub','dudb') -}}"
   json_attributes:
     - kbytes
     - file
@@ -40,7 +50,9 @@
           {% else %}none{% endif %}
         file: >-
           {{ state_attr('sensor.motion_database_size','file') }}
-        command: >-
+        rmdb: >-
+          rm -f /config/home-assistant*corrupt* && echo '{"exit":"good"}' || echo '{"exit":"error"}'
+        dudb: >-
           du -k /config/home-assistant_v2.db | awk '{ printf("{\"kbytes\":%d,\"file\":\"%s\"}",$1,$2) }'
       value_template: >-
         {% if states.input_text.motion_hub is defined %}
