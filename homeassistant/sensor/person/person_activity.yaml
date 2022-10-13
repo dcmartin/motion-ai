@@ -4,6 +4,25 @@
 
 - platform: template
   sensors:
+    motion_person_activity_expired:
+      friendly_name: 'Occupancy expired'
+      icon_template: >-
+        {% if is_state('binary_sensor.motion_person_activity_expired','on') %}
+          {{ 'mdi:check-circle' }}
+        {% else %}{{ 'mdi:check-circle-outline' }}{% endif %}
+      value_template: >-
+        {% set s = states('input_number.motion_person_activity_expired') %}
+        {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unavailable' and s|lower != 'unknown' %}
+          {% set timeout = s|float(0.0) * 60 %}
+          {% set s = states.sensor.motion_person_activity.last_updated|default('unknown') %}
+          {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unavailable' and s|lower != 'unknown' %}
+            {% set updated = as_timestamp(s,0) %}
+            {{ is_state('binary_sensor.motion_person_activity','on') and utcnow().timestamp() - updated > timeout }}
+          {% else %}on{% endif %}
+        {% else %}on{% endif %}
+
+- platform: template
+  sensors:
     motion_person_active:
       friendly_name: 'Person active'
       icon_template: >-
@@ -47,22 +66,25 @@
       value_template: >-
         {# set through automation #}
         {{ 'unknown' }}
-    motion_person_active_status:
-      friendly_name: 'Person active status'
+
+- platform: template
+  sensors:
+    motion_person_activity_status:
+      friendly_name: 'Person activity status'
       icon_template: >-
-        {% if is_state('sensor.motion_person_active_status','unknown') -%}{{- 'mdi:account-question-outline' -}}
+        {% if is_state('sensor.motion_person_activity_status','unknown') -%}{{- 'mdi:account-question-outline' -}}
         {%- elif is_state('sensor.motion_person_active','unknown') -%}{{- 'mdi:account-question' -}}
-        {%- elif is_state('binary_sensor.motion_person_active','off') -%}{{- 'mdi:account-remove' -}}
-        {%- elif is_state('binary_sensor.motion_person_active_expired','on') -%}{{- 'mdi:account-arrow-down' -}}
-        {%- elif is_state('binary_sensor.motion_person_active','on') -%}{{- 'mdi:account-plus' -}}{%- else -%}{{- 'mdi:account-remove-outline' -}}{%- endif %}
+        {%- elif is_state('binary_sensor.motion_person_activity','off') -%}{{- 'mdi:account-remove' -}}
+        {%- elif is_state('binary_sensor.motion_person_activity_expired','on') -%}{{- 'mdi:account-arrow-down' -}}
+        {%- elif is_state('binary_sensor.motion_person_activity','on') -%}{{- 'mdi:account-plus' -}}{%- else -%}{{- 'mdi:account-remove-outline' -}}{%- endif %}
       attribute_templates:
         evidence: >-
           {{ state_attr('sensor.motion_person_active','evidence') }}
       value_template: >-
         {% if is_state('sensor.motion_person_active','unknown') %}unknown
-        {% elif is_state('binary_sensor.motion_person_active','off') %}off
-        {% elif is_state('binary_sensor.motion_person_active_expired','on') %}expired
-        {% elif is_state('binary_sensor.motion_person_active','on') %}on{% else %}off{% endif %}
+        {% elif is_state('binary_sensor.motion_person_activity','off') %}off
+        {% elif is_state('binary_sensor.motion_person_activity_expired','on') %}expired
+        {% elif is_state('binary_sensor.motion_person_activity','on') %}on{% else %}off{% endif %}
     motion_person_active_where:
       friendly_name: 'Person active where'
       icon_template: 'mdi:map-marker'
@@ -146,7 +168,7 @@
 
 - platform: statistics
   name: motion_person_active_average_5m
-  entity_id: binary_sensor.motion_person_active
+  entity_id: binary_sensor.motion_person_activity
   state_characteristic: average_step
   sampling_size: 60
   max_age:
@@ -154,7 +176,7 @@
 
 - platform: statistics
   name: motion_person_active_average_15m
-  entity_id: binary_sensor.motion_person_active
+  entity_id: binary_sensor.motion_person_activity
   state_characteristic: average_step
   sampling_size: 180
   max_age:
@@ -162,7 +184,7 @@
 
 - platform: statistics
   name: motion_person_active_average_1h
-  entity_id: binary_sensor.motion_person_active
+  entity_id: binary_sensor.motion_person_activity
   state_characteristic: average_step
   sampling_size: 720
   max_age:
@@ -170,7 +192,7 @@
 
 - platform: statistics
   name: motion_person_active_average_1d
-  entity_id: binary_sensor.motion_person_active
+  entity_id: binary_sensor.motion_person_activity
   state_characteristic: average_step
   sampling_size: 2880
   max_age:
@@ -178,7 +200,7 @@
 
 - platform: statistics
   name: motion_person_active_average_1w
-  entity_id: binary_sensor.motion_person_active
+  entity_id: binary_sensor.motion_person_activity
   state_characteristic: average_step
   sampling_size: 20160
   max_age:
@@ -210,7 +232,7 @@
 
 - platform: history_stats
   name: motion_person_active_history_1w
-  entity_id: binary_sensor.motion_person_active
+  entity_id: binary_sensor.motion_person_activity
   state: 'on'
   type: ratio
   start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7) }}'
@@ -374,7 +396,7 @@
       icon_template: 'mdi:av-timer'
       unit_of_measurement: 's'
       value_template: >
-        {% if is_state('binary_sensor.motion_person_active','on') %}
+        {% if is_state('binary_sensor.motion_person_activity','on') %}
           {{ states('sensor.motion_person_active_duration')|float(none) }}
         {%- else -%}null{%- endif -%}
     motion_person_active_duration_off:
@@ -382,7 +404,7 @@
       icon_template: 'mdi:av-timer'
       unit_of_measurement: 's'
       value_template: >
-        {% if is_state('binary_sensor.motion_person_active','off') %}
+        {% if is_state('binary_sensor.motion_person_activity','off') %}
           {{ states('sensor.motion_person_active_duration')|float(none) }}
         {%- else -%}null{%- endif -%}
 
@@ -490,7 +512,7 @@
 
 - platform: history_stats
   name: motion_person_active_count_history_stats_1d
-  entity_id: binary_sensor.motion_person_active
+  entity_id: binary_sensor.motion_person_activity
   state: 'on'
   type: count
   start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
@@ -498,7 +520,7 @@
 
 - platform: history_stats
   name: motion_person_notactive_count_history_stats_1d
-  entity_id: binary_sensor.motion_person_active
+  entity_id: binary_sensor.motion_person_activity
   state: 'off'
   type: count
   start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
@@ -772,7 +794,7 @@
 
 - platform: history_stats
   name: motion_person_active_time_history_stats_1d
-  entity_id: binary_sensor.motion_person_active
+  entity_id: binary_sensor.motion_person_activity
   state: 'on'
   type: time
   start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
@@ -780,7 +802,7 @@
 
 - platform: history_stats
   name: motion_person_notactive_time_history_stats_1d
-  entity_id: binary_sensor.motion_person_active
+  entity_id: binary_sensor.motion_person_activity
   state: 'off'
   type: time
   start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
