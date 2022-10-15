@@ -539,57 +539,71 @@
       topic: '+/+/+/event/end/+'
   variables:
     topic: >-
-      {{ trigger.topic }}
+      {% set topic = none %}
+      {% if trigger is iterable and 'topic' in trigger %}
+        {% set topic = trigger.topic %}
+      {% endif %}
+      {{ topic }}
+    payload: >-
+      {% set payload = none %}
+      {% if trigger is iterable and 'payload_json' in trigger %}
+        {% set payload = trigger.payload_json %}
+      {% endif %}
+      {{ payload }}
     device: >-
-      {{ topic|regex_replace('/event/end/[^/]*','')|regex_replace('[^/]*/','') }}
+      {% set device = none %}
+      {% if topic|lower != 'none' and topic is string and topic|length > 0 %}
+        {% set device = topic|regex_replace('/event/end/[^/]*','')|regex_replace('[^/]*/','') %}
+      {% endif %}
+      {{ device }}
     event: >-
-      {% if 'event' in trigger.payload_json %}
-        {{ trigger.payload_json.event|default('null') }}
+      {% if payload is iterable and 'event' in payload %}
+        {{ payload.event }}
       {% else %}null{% endif %}
     detected: >-
-      {% if 'detected' in trigger.payload_json and trigger.payload_json is iterable and trigger.payload_json.detected|count > 0 %}
-        {{ trigger.payload_json.detected|default('null') }}
+      {% if payload is iterable and 'detected' in payload and payload.detected|count > 0 %}
+        {{ payload.detected }}
       {% else %}null{% endif %}
     count: >-
-      {% if 'count' in trigger.payload_json %}
-        {{ trigger.payload_json.count|int(0) }}
+      {% if payload is iterable and 'count' in payload %}
+        {{ payload.count|int(0) }}
       {% else %}null{% endif %}
     results: >-
-      {% if 'results' in trigger.payload_json %}
-        {{ trigger.payload_json.results|default('null') }}
+      {% if payload is iterable and 'results' in payload %}
+        {{ payload.results|default('null') }}
       {% else %}null{% endif %}
     date: >-
-      {% if 'date' in trigger.payload_json %}
-        {{ trigger.payload_json.date|default(utcnow().timestamp()) }}
+      {% if payload is iterable and 'date' in payload %}
+        {{ payload.date|default(utcnow().timestamp()) }}
       {% else %}utcnow().timestamp(){% endif %}
     group: >-
-      {% if event|lower != 'null' %}
+      {% if event is iterable and 'group' in event %}
         {{ event.group|default('null') }}
       {% else %}null{% endif %}
     client: >-
-      {% if event|lower != 'null' %}
+      {% if event is iterable and 'device' in event %}
         {{ event.device|default('null') }}
       {% else %}null{% endif %}
     id: >-
-      {% if event|lower != 'null' %}
+      {% if event is iterable and 'camera' in event %}
         {{ event.camera|default('null') }}
       {% else %}null{% endif %}
     timestamp: >-
-      {% if 'timestamp' in event %}
+      {% if event is iterable and 'timestamp' in event %}
         {{ event.timestamp|default('null') }}
       {% else %}null{% endif %}
     delay: >-
-      {% if timestamp|lower != 'null' and 'publish' in timestamp %}
-        {{ (utcnow().timestamp() - timestamp.publish|as_timestamp)|int(0) }}
+      {% if timestamp is iterable and 'publish' in timestamp %}
+        {{ (utcnow().timestamp() - timestamp.publish|as_timestamp(0))|int(0) }}
       {% else %}null{% endif %}
     sensor: >-
       {% if id|lower != 'null' and id|lower != 'none' and id|lower|length > 0 %}
-        {%- set id = id|replace('.','_')|replace('-','_')|replace(' ','_')|replace('$','_') -%}
+        {%- set id = id|replace('.','_')|replace('-','_')|replace(' ','_')|replace('$','_')|replace('\'','') -%}
         {{ 'binary_sensor.motion_camera_' + id|lower + '_detected' }}
       {% else %}null{% endif %}
     config: >-
       {% set s = state_attr('binary_sensor.motion_cameras','cameras') %}
-      {% if s|lower != 'none' and s is iterable and s|count > 0 %}
+      {% if s is iterable and s|count > 0 %}
         {% set s = s|selectattr("name","==",id)|list %}
         {% if s|lower != 'none' and s is iterable and s|count > 0 %}
           {{ s|first }}
