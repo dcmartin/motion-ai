@@ -19,14 +19,27 @@
         current: >-
           {% set current = state_attr('automation.motion_devices_config','current') %}
           {{ current }}
+        pending: >-
+          {% set s = state_attr('group.motion_devices','entity_id') -%}
+          [{%- for i in s|reject('none')|list if not is_state(i,'on') -%}
+            {%- if not loop.first -%},{%- endif -%}
+            "{{- i -}}"
+          {%- endfor -%}]
         markdown: >-
           <a href="/notify-devices/all">Devices</a> ({{- entitys|count -}}) were last updated {{ group|relative_time }} ago.
-          Configuration {% if current|int(0) > 0 -%}in process{%- else -%}attempted {{ automation|relative_time }} ago{%- endif -%}.
-          {% for i in entitys if states(i)|lower == 'on' -%}
-            {%- if not loop.first -%}, {% else -%}Complete: {% endif -%}<a href="/config/devices/device/{{- state_attr(i,'did') -}}">{{- state_attr(i,'name') -}}</a>
-          {%- endfor -%}.
-          {% for i in entitys if states(i)|lower != 'on' -%}
-            {%- if not loop.first -%}, {% else -%}Pending: {% endif -%}<a href="/config/devices/device/{{- state_attr(i,'did') -}}">{{- state_attr(i,'name') -}}</a>: <b>{{- states(i) -}}</b>
-          {%- endfor -%}.
+          Configuration {% if current|int(0) > 0 -%}in process{%- else -%}performed {{ automation|relative_time }} ago{%- endif -%}.
+          {% for i in entitys if is_state(i,'on') -%}
+            {%- if loop.first -%}Complete: <ul>{% endif -%}
+            <li><a href="/config/devices/device/{{- state_attr(i,'did') -}}">{{- state_attr(i,'name') -}}</a></li>
+            {%- if loop.last -%}</ul>{%- endif -%}
+          {%- endfor -%}
+          {% for i in entitys if not is_state(i,'on') -%}
+            {%- if loop.first -%}Pending: <ul>{% endif -%}
+            <li><a href="/config/devices/device/{{- state_attr(i,'did') -}}">{{- state_attr(i,'name') -}}</a>: <b>{{- states(i) -}}</b></li>
+            {%- if loop.last -%}</ul>{%- endif -%}
+          {%- endfor -%}
       value_template: >-
-        {{ 'unknown' }}
+        {% set s = state_attr('binary_sensor.motion_devices_config','pending') %}
+        {% if s is iterable %}
+          {{ s|count > 0 }}
+        {% else %}unknown{% endif %}
