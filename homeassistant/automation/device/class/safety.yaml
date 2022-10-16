@@ -136,8 +136,8 @@
         message: >-
           All safety automations disabled: {{ automations|count }}
 
-- id: motion_device_safety_watchdog
-  alias: motion_device_safety_watchdog
+- id: motion_device_safety_rescan_watchdog
+  alias: motion_device_safety_rescan_watchdog
   mode: 'restart'
   max_exceeded: 'warn'
   initial_state: 'on'
@@ -145,7 +145,7 @@
     - platform: homeassistant
       event: 'start'
     - platform: time_pattern
-      minutes: '/5'
+      minutes: '/1'
   action:
     - choose:
         - conditions:
@@ -153,12 +153,12 @@
               value_template: >
                 {{ trigger.platform == 'homeassistant' }}
           sequence:
-            - alias: 'initialize safety after homeassistant start'
+            - alias: 'safety rescan after homeassistant start'
               service: automation.trigger
               data_template:
                 entity_id: automation.motion_device_safety_rescan
         - conditions:
-            - alias: 'test if time_pattern and NOT running'
+            - alias: 'rescan iff time_pattern and NOT running'
               condition: template
               value_template: >
                 {{ trigger.platform == 'time_pattern' and is_state_attr('automation.motion_device_safety_rescan','current',0) }}
@@ -406,8 +406,12 @@
   mode: 'restart'
   initial_state: 'off'
   trigger:
+    - platform: state
+      entity_id: 'group.motion_device_safety'
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_safety_exist'
     - platform: time_pattern
-      minutes: '/5'
+      seconds: '/30'
   condition:
     condition: and
     conditions:
@@ -417,45 +421,32 @@
           {{ is_state('automation.motion_device_safety_status','on')
              and is_state_attr('automation.motion_device_safety_status','current',0) }}
   action:
-    - alias: 'trigger temperatus status update'
-      service: automation.trigger
-      data_template:
-        entity_id: automation.motion_device_safety_status
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ trigger.platform != 'time_pattern' }}
+          sequence:
+            - alias: 'not time based trigger'
+              service: automation.trigger
+              data_template:
+                entity_id: automation.motion_device_safety_status
+        - conditions:
+            - alias: 'test if time_pattern and NOT running'
+              condition: template
+              value_template: >
+                {{ trigger.platform == 'time_pattern' and is_state_attr('automation.motion_device_safety_status','current',0) }}
+          sequence:
+            - alias: 'trigger motion_device_safety_status'
+              service: automation.trigger
+              data_template:
+                entity_id: automation.motion_device_safety_status
 
 - id: motion_device_safety_status
   alias: motion_device_safety_status
   mode: 'restart'
   initial_state: 'off'
   trigger:
-    - platform: state
-      entity_id: 'group.motion_device_safety'
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_safety_exist'
-      to: 'on'
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_safety_exist'
-      attribute: 'alarm'
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_safety_exist'
-      attribute: 'high'
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_safety_exist'
-      attribute: 'low'
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_safety_exist'
-      attribute: 'good'
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_safety_exist'
-      attribute: 'bad'
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_safety_exist'
-      attribute: 'activity'
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_safety_exist'
-      attribute: 'low_spike'
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_safety_exist'
-      attribute: 'high_spike'
   variables:
     class: >-
       {% set class = 'safety' %}
@@ -3030,6 +3021,8 @@
   trigger:
     - platform: time_pattern
       minutes: '/5'
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_safety_exist'
   condition:
     condition: and
     conditions:
@@ -3039,6 +3032,26 @@
           {{ is_state('automation.motion_device_safety_unavailable','on')
              and is_state_attr('automation.motion_device_safety_unavailable','current',0) }}
   action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ trigger.platform != 'time_pattern' }}
+          sequence:
+            - alias: 'not time based trigger'
+              service: automation.trigger
+              data_template:
+                entity_id: automation.motion_device_safety_unavailable
+        - conditions:
+            - alias: 'test if time_pattern and NOT running'
+              condition: template
+              value_template: >
+                {{ trigger.platform == 'time_pattern' and is_state_attr('automation.motion_device_safety_unavailable','current',0) }}
+          sequence:
+            - alias: 'trigger motion_device_safety_unavailable'
+              service: automation.trigger
+              data_template:
+                entity_id: automation.motion_device_safety_unavailable
     - alias: 'trigger temperatus unavailable update'
       service: automation.trigger
       data_template:
@@ -3049,12 +3062,6 @@
   mode: restart
   initial_state: 'off'
   trigger:
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_safety_exist'
-      to: 'on'
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_safety_exist'
-      attribute: 'required'
   variables:
     dids: >-
       {% set s = state_attr('binary_sensor.motion_device_safety','unavailable') %}
