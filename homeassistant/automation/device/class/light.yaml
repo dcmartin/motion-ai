@@ -2742,6 +2742,15 @@
         {%- endif -%}
       {%- endif -%}
       {{ shellys }}
+    unicast: >-
+      {% set unicast = [] -%}
+      {%- if devices|lower != 'none' and devices|count > 0 -%}
+        {%- set s = devices|selectattr('manufacturer','==','Shelly')|selectattr('model','search','Motion')|map(attribute='did')|list -%}
+        {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+          {%- set unicast = s|sort|unique|list -%}
+        {%- endif -%}
+      {%- endif -%}
+      {{ unicast }}
     old: >-
       {% set old = [] %}
       {% set s = trigger.to_state.state %}
@@ -2791,14 +2800,17 @@
               config: >-
                 {% set config = [] %}
                 {% if did in shellys %}
-                  {% set cloud= url|string + '/settings/cloud?enabled=false' %}
-                  {% set coiot = url|string + '/settings?coiot_enable=true&coiot_peer=' + states('sensor.host_lan_ipv4') %}
-                  {% set config = [cloud,coiot] %}
+                  {% set config = config + [url|string + '/settings/cloud?enabled=false'] %}
+                {% endif %}
+                {% if did in unicast %}
+                  {% set config = config + [url|string + '/settings?coiot_enable=true&coiot_peer=' + states('sensor.host_lan_ipv4')] %}
+                {% else %}
+                  {% set config = config + [url|string + '/settings?coiot_enable=true&coiot_peer='] %}
                 {% endif %}
                 {{ config }}
               state: >-
                 {% if not did in shellys %}on{% else %}unknown{% endif %}
-          - alias: 'test if device sensor already in light group'
+          - alias: 'test if device sensor already in ALL devices group'
             condition: template
             value_template: >-
               {% set s = state_attr('group.motion_devices','entity_id') %}
@@ -2821,7 +2833,7 @@
                 {{- config -}}
               state: >-
                 {{- state -}}
-          - alias: 'add to group'
+          - alias: 'add to ALL devices group'
             service: group.set
             data_template:
               object_id: motion_devices

@@ -238,3 +238,122 @@
         object_id: motion_map_entity_list
         entities: >-
           {{ entities }}
+
+### DEVICES CONFIGURATION
+
+- id: motion_devices_config
+  alias: motion_devices_config
+  mode: 'restart'
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: group.motion_devices
+      for:
+        minutes: 1
+    - platform: time_pattern
+      minutes: /15
+  variables:
+    entitys: >-
+      {{ state_attr('group.motion_devices','entity_id') }}
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test if entitys are iterable and > 0'
+        condition: template
+        value_template: >
+          {{ entitys is iterable and entitys|count > 0 }}
+  action:
+    - alias: 'process all devices'
+      repeat:
+        while:
+          - alias: 'more entitys?'
+            condition: template
+            value_template: >-
+              {%- set s = entitys[repeat.index - 1]|default('none') %}
+              {{ s|lower != 'none' }}
+        sequence:
+          - variables:
+              entity: >-
+                {{ entitys[repeat.index-1] }}
+              configs: >-
+                {{ state_attr(entity,'config') }}
+          - alias: 'test if device has configs and URL'
+            condition: template
+            value_template: >
+              {{ not is_state(entity,'on') and configs is iterable and configs|count > 0 }}
+          - alias: 'perform configuration command(s)'
+            repeat:
+              while:
+                - alias: 'more configs?'
+                  condition: template
+                  value_template: >-
+                    {%- set s = configs[repeat.index - 1]|default('none') %}
+                    {{ s|lower != 'none' }}
+              sequence:
+                - variables:
+                    command: >-
+                      curl -skSL "{{- configs[repeat.index-1]|string -}}" | jq -Sc '{"timestamp":'$(date -u +%s)',"config":.}'
+                - alias: 'set input_text.motion_devices_config with command string'
+                  service: input_text.set_value
+                  target:
+                    entity_id: input_text.motion_devices_config
+                  data:
+                    value: >-
+                      {{ command }}
+                - alias: 'logging notification'
+                  choose:
+                    - conditions:
+                        - alias: 'test if log level'
+                          condition: template
+                          value_template: >
+                            {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+                      sequence:
+                        - alias: 'logging notification'
+                          service: persistent_notification.create
+                          data_template:
+                            title: >-
+                              DEBUG: Device configure
+                            notification_id: >
+                              {{- 'debug-devices-config-' + did|string -}}
+                            message: >-
+                              {{ state_attr(entity,'name') }}<p><code>{{- command -}}</code>
+                - alias: 'update sensor.motion_devices_config'
+                  service: homeassistant.update_entity
+                  entity_id: sensor.motion_devices_config
+                - alias: 'wait for sensor.motion_devices_config; limit 10 seconds'
+                  wait_for_trigger:
+                    - platform: state
+                      entity_id: sensor.motion_devices_config
+                  continue_on_timeout: true
+                  timeout:
+                    seconds: 10
+                - variables:
+                    input: >-
+                      {{ states('input_text.motion_devices_config') }}
+                    state: >-
+                      {% set s = states('sensor.motion_devices_config') %}
+                      {% if s|lower == 'true' %}on{% elif s|lower == 'false' %}off{% else %}unknown{% endif %}
+                - alias: 'update binary_sensor.motion_devices_<did>'
+                  service: python_script.set_state
+                  data_template:
+                    entity_id: >-
+                      {{ entity }}
+                    state: >-
+                      {{ state }}
+                - alias: 'logging notification'
+                  choose:
+                    - alias: 'test if log level'
+                      conditions:
+                        - condition: template
+                          value_template: >
+                            {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+                      sequence:
+                        - alias: 'logging notification'
+                          service: persistent_notification.create
+                          data_template:
+                            title: >-
+                              DEBUG: Device result
+                            notification_id: >
+                              {{- 'debug-devices-config-' + did|string -}}
+                            message: >-
+                              {{ state_attr(entity,'name') -}}: <b>{{ state }}</b><p><code>{{- input -}}</code>
