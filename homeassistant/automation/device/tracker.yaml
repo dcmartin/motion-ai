@@ -238,3 +238,81 @@
         object_id: motion_map_entity_list
         entities: >-
           {{ entities }}
+
+### DEVICES CONFIGURATION
+
+- id: motion_devices_config
+  alias: motion_devices_config
+  mode: 'restart'
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: group.motion_devices
+      for:
+        minutes: 1
+  variables:
+    entitys: >-
+      {{ state_attr('group.motion_devices','entity_id' }}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ entitys is iterable and entitys|count > 0 }}
+  action:
+    - alias: 'process all devices'
+      repeat:
+        while:
+          - alias: 'more entitys?'
+            condition: template
+            value_template: >-
+              {%- set s = entitys[repeat.index - 1]|default('none') %}
+              {{ s|lower != 'none' and states(s)|lower == 'unknown' }}
+        sequence:
+          - variables:
+              entity: >-
+                {{ entitys[repeat.index-1] }}
+              url: >-
+                {{ state_attr(entity,'url'} }}
+              configs: >-
+                {{ state_attr(entity,'config'} }}
+          - alias: 'test if device has configs and URL'
+            condition: template
+            value_template: >
+              {{ configs is iterable and configs|count > 0 and url is string and url|lower != 'none' and url|length > 0 }}
+          - alias: 'execute configuration'
+            repeat:
+              while:
+                - alias: 'more configuration?'
+                  condition: template
+                  value_template: >-
+                    {%- set s = configs[repeat.index - 1]|default('none') %}
+                    {{ s|lower != 'none' }}
+              sequence:
+                - variables:
+                    command: >-
+                      curl -skSL "{{- url + configs[repeat.index-1]|string -}}" | jq -Sc '{"timestamp":'$(date -u +%s)',"config":.}'
+                - service: input_text.set_value
+                  target:
+                    entity_id: input_text.motion_devices_config
+                  data_template:
+                      {{ command }}
+                - alias: 'update sensor.motion_devices_config'
+                  service: homeassistant.update_entity
+                  entity_id: sensor.motion_devices_config
+                - alias: 'wait for device configuration'
+                  wait_for_trigger:
+                    - platform: state
+                      entity_id: sensor.motion_devices_config
+                  continue_on_timeout: true
+                  timeout:
+                    seconds: 5
+                - alias: 'update device sensor'
+                  service: python_script.set_state
+                  data_template:
+                    allow_create: true
+                    entity_id: >-
+                      {{  entity }}
+                    state: >-
+                      {% set s = states('sensor.motion_devices_config') %}
+                      {% if s|lower == 'true' %}on{% elif s|lower == 'false' %}off{% else %}unknown{% endif %}
