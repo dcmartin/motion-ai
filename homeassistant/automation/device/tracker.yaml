@@ -256,7 +256,8 @@
   condition:
     condition: and
     conditions:
-      - condition: template
+      - alias: 'test if entitys are iterable and > 0'
+        condition: template
         value_template: >
           {{ entitys is iterable and entitys|count > 0 }}
   action:
@@ -267,7 +268,7 @@
             condition: template
             value_template: >-
               {%- set s = entitys[repeat.index - 1]|default('none') %}
-              {{ s|lower != 'none' and states(s)|lower == 'unknown' }}
+              {{ s|lower != 'none' }}
         sequence:
           - variables:
               entity: >-
@@ -279,11 +280,11 @@
           - alias: 'test if device has configs and URL'
             condition: template
             value_template: >
-              {{ configs is iterable and configs|count > 0 and url is string and url|lower != 'none' and url|length > 0 }}
-          - alias: 'execute configuration'
+              {{ is_state(entity,'unknown') and configs is iterable and configs|count > 0 and url is string and url|lower != 'none' and url|length > 0 }}
+          - alias: 'perform configuration command(s)'
             repeat:
               while:
-                - alias: 'more configuration?'
+                - alias: 'more configs?'
                   condition: template
                   value_template: >-
                     {%- set s = configs[repeat.index - 1]|default('none') %}
@@ -292,7 +293,8 @@
                 - variables:
                     command: >-
                       curl -skSL "{{- url + configs[repeat.index-1]|string -}}" | jq -Sc '{"timestamp":'$(date -u +%s)',"config":.}'
-                - service: input_text.set_value
+                - alias: 'set input_text.motion_devices_config with command string'
+                  service: input_text.set_value
                   target:
                     entity_id: input_text.motion_devices_config
                   data:
@@ -301,14 +303,14 @@
                 - alias: 'update sensor.motion_devices_config'
                   service: homeassistant.update_entity
                   entity_id: sensor.motion_devices_config
-                - alias: 'wait for device configuration'
+                - alias: 'wait for sensor.motion_devices_config; limit 5 seconds'
                   wait_for_trigger:
                     - platform: state
                       entity_id: sensor.motion_devices_config
                   continue_on_timeout: true
                   timeout:
                     seconds: 5
-                - alias: 'update device sensor'
+                - alias: 'update binary_sensor.motion_devices_<did>'
                   service: python_script.set_state
                   data_template:
                     allow_create: true
