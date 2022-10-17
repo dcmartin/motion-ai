@@ -2,6 +2,8 @@
 
 if [ -e /usr/local/opt/gnu-sed/libexec/gnubin/sed ]; then
   gnused=/usr/local/opt/gnu-sed/libexec/gnubin/sed
+elif [ -e /usr/local/bin/gsed ]; then
+  gnused=/usr/local/bin/gsed
 elif [ $(sed --version | head -1 | egrep GNU | wc -c) -gt 0 ]; then
   gnused=sed
 else

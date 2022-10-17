@@ -2,6 +2,8 @@
 
 if [ -e /usr/local/opt/gnu-sed/libexec/gnubin/sed ]; then
   gnused=/usr/local/opt/gnu-sed/libexec/gnubin/sed
+elif [ -e /usr/local/bin/gsed ]; then
+  gnused=/usr/local/bin/gsed
 elif [ $(sed --version | head -1 | egrep GNU | wc -c) -gt 0 ]; then
   gnused=sed
 else
@@ -28,7 +30,7 @@ function copyit()
       echo "ERROR: no such element: ${t}"
       exit 1
     fi
-    g=$(echo "${e}" | sed "s/${p}/${t}/g")
+    g=$(echo "${e}" | ${gnused} "s/${p}/${t}/g")
     ${gnused} \
       -e "s/[\' ]*mdi:${ICON}[^ \']*[\']*/ \'mdi:${icon}\'/g" \
       -e "s/${p}/${t}/g" \
