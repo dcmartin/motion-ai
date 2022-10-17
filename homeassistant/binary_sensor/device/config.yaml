@@ -1,0 +1,66 @@
+###
+# homeassistant/binary_sensor/device/config.yaml
+###
+
+- platform: template
+  sensors:
+    motion_devices_configuring:
+      value_template: >-
+        {{ state_attr('automation.motion_devices_config','current')|int(0) > 0 }}
+    motion_devices_config:
+      friendly_name: 'Device configuration'
+      device_class: problem
+      icon_template: >-
+        {%- if is_state('binary_sensor.motion_devices_config','on') -%}
+          {{ 'mdi:thumb-down' }}
+        {%- else -%}
+          {{ 'mdi:thumb-up' }}
+        {%- endif -%}
+      attribute_templates:
+        entitys: >-
+          {% set entitys = [] %}
+          {% set s = state_attr('group.motion_devices','entity_id') %}
+          {% if s is iterable and s|count > 0 %}
+            {% set entitys = s %}
+          {% endif %}
+          {{ entitys }}
+        group: >-
+          {% set group = states.group.motion_devices.last_updated %}
+          {{ group }}
+        automation: >-
+          {% set automation = state_attr('automation.motion_devices_config','last_triggered') %}
+          {{ automation }}
+        current: >-
+          {% set current = state_attr('automation.motion_devices_config','current') %}
+          {{ current }}
+        pending: >-
+          {% set s = state_attr('group.motion_devices','entity_id') -%}
+          [{%- for i in s|reject('none')|list if not is_state(i,'on') -%}
+            {%- if not loop.first -%},{%- endif -%}
+            "{{- i -}}"
+          {%- endfor -%}]
+        markdown: >-
+          {%- set entitys = state_attr('binary_sensor.motion_devices_config','entitys') %}
+          {%- if entitys|lower != 'none' -%}
+            {%- set group = state_attr('binary_sensor.motion_devices_config','group')|as_datetime %}
+            {%- set automation = state_attr('binary_sensor.motion_devices_config','automation')|as_datetime %}
+            {%- set current = state_attr('binary_sensor.motion_devices_config','current') %}
+            Total of <b>{{- entitys|count -}}</b> <a href="/notify-devices/all">devices</a> discovered {{ group|relative_time }} ago.
+            Automatic configuration {% if current|int(0) > 0 -%}started{%- else -%}last performed{%- endif %} {{ automation|relative_time }} ago.<p>
+            {% for i in entitys if is_state(i,'on') -%}
+              {%- if loop.first -%}Complete: <ul>{% endif -%}
+              <li><a href="/config/devices/device/{{- state_attr(i,'did') -}}">{{- state_attr(i,'name') -}}</a></li>
+              {%- if loop.last -%}</ul>{%- endif -%}
+            {%- endfor -%}
+            {% for i in entitys if not is_state(i,'on') -%}
+              {%- if loop.first -%}Pending: <ul>{% endif -%}
+              <li><a href="/config/devices/device/{{- state_attr(i,'did') -}}">{{- state_attr(i,'name') -}}</a>: <b>{{- states(i) -}}</b></li>
+              {%- if loop.last -%}</ul>{%- endif -%}
+            {%- endfor -%}
+          {%- else -%}<b>No devices (yet)</b>{%- endif -%}
+          <br><i>Last updated</i>: {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+      value_template: >-
+        {% set s = state_attr('binary_sensor.motion_devices_config','pending') %}
+        {% if s is iterable %}
+          {{ s|count > 0 }}
+        {% else %}unknown{% endif %}

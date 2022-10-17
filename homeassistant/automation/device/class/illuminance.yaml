@@ -42,13 +42,13 @@
                 {{ automation }}
           - condition: template
             value_template: >
-              {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+              {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','trace') }}
           - service: persistent_notification.create
             data_template:
               title: >-
-                DEBUG: illuminance automation
+                TRACE: illuminance automation
               notification_id: >
-                {{- 'debug-automation-illuminance' -}}
+                {{- 'log-automation-illuminance' -}}
               message: >-
                 Enable automation: {{ automation }}
     - alias: 'indicate complete'
@@ -61,14 +61,14 @@
         - conditions:
             - condition: template
               value_template: >
-                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','trace') }}
           sequence:
             - service: persistent_notification.create
               data_template:
                 title: >-
-                  DEBUG: illuminance enabled
+                  TRACE: illuminance enabled
                 notification_id: >
-                  {{- 'debug-automation-illuminance' -}}
+                  {{- 'log-automation-illuminance' -}}
                 message: >-
                   All illuminance automations enabled: {{ automations|count }}
 
@@ -111,14 +111,14 @@
                 {{ automation }}
           - condition: template
             value_template: >
-              {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+              {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','trace') }}
           - service: persistent_notification.create
             data_template:
               title: >-
                 {% set s = automations[repeat.index-1] %}
-                DEBUG: illuminance automation
+                TRACE: illuminance automation
               notification_id: >
-                {{- 'debug-automation-illuminance' -}}
+                {{- 'log-automation-illuminance' -}}
               message: >-
                 Disable automation: {{ automation }}
     - alias: 'indicate complete'
@@ -127,17 +127,23 @@
         entity_id: binary_sensor.motion_device_illuminance
         automations: >-
           {{ 'off' }}
-    - service: persistent_notification.create
-      data_template:
-        title: >-
-          DEBUG: illuminance disabled
-        notification_id: >
-          {{- 'debug-automation-illuminance' -}}
-        message: >-
-          All illuminance automations disabled: {{ automations|count }}
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','trace') }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  TRACE: illuminance disabled
+                notification_id: >
+                  {{- 'log-automation-illuminance' -}}
+                message: >-
+                  All illuminance automations disabled: {{ automations|count }}
 
-- id: motion_device_illuminance_watchdog
-  alias: motion_device_illuminance_watchdog
+- id: motion_device_illuminance_rescan_watchdog
+  alias: motion_device_illuminance_rescan_watchdog
   mode: 'restart'
   max_exceeded: 'warn'
   initial_state: 'on'
@@ -145,7 +151,7 @@
     - platform: homeassistant
       event: 'start'
     - platform: time_pattern
-      minutes: '/5'
+      minutes: '/1'
   action:
     - choose:
         - conditions:
@@ -153,12 +159,12 @@
               value_template: >
                 {{ trigger.platform == 'homeassistant' }}
           sequence:
-            - alias: 'initialize illuminance after homeassistant start'
+            - alias: 'illuminance rescan after homeassistant start'
               service: automation.trigger
               data_template:
                 entity_id: automation.motion_device_illuminance_rescan
         - conditions:
-            - alias: 'test if time_pattern and NOT running'
+            - alias: 'rescan iff time_pattern and NOT running'
               condition: template
               value_template: >
                 {{ trigger.platform == 'time_pattern' and is_state_attr('automation.motion_device_illuminance_rescan','current',0) }}
@@ -314,14 +320,14 @@
         - conditions:
             - condition: template
               value_template: >
-                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','trace') }}
           sequence:
             - service: persistent_notification.create
               data_template:
                 title: >-
-                  DEBUG: illuminance rescan
+                  TRACE: illuminance rescan
                 notification_id: >
-                  {{- 'debug-illuminance-rescan' -}}
+                  {{- 'log-illuminance-rescan' -}}
                 message: >-
                   Trigger: {{ trigger }}
     - alias: 'update binary_sensor.motion_device_illuminance ids, etc..'
@@ -406,8 +412,16 @@
   mode: 'restart'
   initial_state: 'off'
   trigger:
+    - platform: state
+      entity_id: 'group.motion_device_illuminance'
+      for:
+        seconds: 15
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_illuminance_exist'
+      for:
+        seconds: 15
     - platform: time_pattern
-      minutes: '/5'
+      seconds: '/30'
   condition:
     condition: and
     conditions:
@@ -417,45 +431,32 @@
           {{ is_state('automation.motion_device_illuminance_status','on')
              and is_state_attr('automation.motion_device_illuminance_status','current',0) }}
   action:
-    - alias: 'trigger temperatus status update'
-      service: automation.trigger
-      data_template:
-        entity_id: automation.motion_device_illuminance_status
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ trigger.platform != 'time_pattern' }}
+          sequence:
+            - alias: 'not time based trigger'
+              service: automation.trigger
+              data_template:
+                entity_id: automation.motion_device_illuminance_status
+        - conditions:
+            - alias: 'test if time_pattern and NOT running'
+              condition: template
+              value_template: >
+                {{ trigger.platform == 'time_pattern' and is_state_attr('automation.motion_device_illuminance_status','current',0) }}
+          sequence:
+            - alias: 'trigger motion_device_illuminance_status'
+              service: automation.trigger
+              data_template:
+                entity_id: automation.motion_device_illuminance_status
 
 - id: motion_device_illuminance_status
   alias: motion_device_illuminance_status
   mode: 'restart'
   initial_state: 'off'
   trigger:
-    - platform: state
-      entity_id: 'group.motion_device_illuminance'
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_illuminance_exist'
-      to: 'on'
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_illuminance_exist'
-      attribute: 'alarm'
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_illuminance_exist'
-      attribute: 'high'
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_illuminance_exist'
-      attribute: 'low'
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_illuminance_exist'
-      attribute: 'good'
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_illuminance_exist'
-      attribute: 'bad'
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_illuminance_exist'
-      attribute: 'activity'
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_illuminance_exist'
-      attribute: 'low_spike'
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_illuminance_exist'
-      attribute: 'high_spike'
   variables:
     class: >-
       {% set class = 'illuminance' %}
@@ -1994,7 +1995,7 @@
     dids: >-
       {% set s = state_attr('binary_sensor.motion_device_illuminance','activity') %}
       {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
-        {{ s|map(attribute='did')|sort|unique|list }}
+        {{ s|map(attribute='entity_id')|map('device_id')|sort|unique|list }}
       {%- else -%}none{%- endif %}
     details: >-
       {% set s = state_attr('binary_sensor.motion_device_illuminance','activity') %}
@@ -2194,15 +2195,15 @@
               {%- if loop.first -%}{{- '<ul>' -}}{%- endif -%}
               {%- set d = state_attr('binary_sensor.motion_device_class','devices') -%}
               {%- if d|lower != 'none' and d|lower != 'unknown' and not d is string and d is iterable and d|count > 0 -%}
-                {%- set d = d|selectattr('name','==',i.name)|list -%}
+                {%- set d = d|selectattr('did','==',device_id(i.entity_id))|list -%}
                 {%- if d|lower != 'none' and d|lower != 'unknown' and not d is string and d is iterable and d|count > 0 -%}
                   {%- set d = d|first -%}
                   <li><a href="/config/devices/device/{{- d.did -}}">{{- d.friendly_name|replace("'","") -}}</a> in <a href="/config/areas/area/{{- area_id(activity[loop.index-1].entity_id) -}})">{{- area_id(activity[loop.index-1].entity_id) -}}</a></li>
                 {%- else -%}
-                  <li>{{- i.id -}} is {{ states(i.entity_id) -}}</li>
+                  <li>{{- i.id }} is {{ states(i.entity_id) -}}</li>
                 {%- endif -%}
               {%- else -%}
-                <li>{{- i.id -}} is {{ states(i.entity_id) -}}</li>
+                <li>{{- i.id }} is {{ states(i.entity_id) -}}</li>
               {%- endif -%}
               {%- if loop.last -%}{{- '</ul>' -}}{%- endif -%}
             {%- endfor -%}
@@ -2256,7 +2257,7 @@
          <br><a href="/config/devices/device/{{- did -}}"><img src="https://img.shields.io/badge/{{- class -}}-config-blue.svg"></a>
       {%- endif -%}
     body: >-
-      {{ state_attr('binary_sensor.motion_device_class_illuminance_activity','markdown') }}
+      {{ state_attr('binary_sensor.motion_device_illuminance_activity','markdown') }}
       <p>We have notified <b>{{- state_attr('sensor.motion_role_primary','friendly_name')|replace("'","") -}}</b> about your illuminance alarm.
       To inspect and change the alarm click the <b>{{- action -}}</b> button below.
       {{- '<p>' -}}
@@ -2821,6 +2822,8 @@
               allow_create: true
               entity_id: >-
                 {{  sensor }}
+              did: >-
+                {{  did }}
               manufacturer: >-
                 {{- manufacturer -}}
               model: >-
@@ -3028,8 +3031,12 @@
   mode: 'restart'
   initial_state: 'off'
   trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_illuminance_exist'
+      for:
+        seconds: 30
     - platform: time_pattern
-      minutes: '/5'
+      minutes: '/1'
   condition:
     condition: and
     conditions:
@@ -3039,6 +3046,26 @@
           {{ is_state('automation.motion_device_illuminance_unavailable','on')
              and is_state_attr('automation.motion_device_illuminance_unavailable','current',0) }}
   action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ trigger.platform != 'time_pattern' }}
+          sequence:
+            - alias: 'not time based trigger'
+              service: automation.trigger
+              data_template:
+                entity_id: automation.motion_device_illuminance_unavailable
+        - conditions:
+            - alias: 'test if time_pattern and NOT running'
+              condition: template
+              value_template: >
+                {{ trigger.platform == 'time_pattern' and is_state_attr('automation.motion_device_illuminance_unavailable','current',0) }}
+          sequence:
+            - alias: 'trigger motion_device_illuminance_unavailable'
+              service: automation.trigger
+              data_template:
+                entity_id: automation.motion_device_illuminance_unavailable
     - alias: 'trigger temperatus unavailable update'
       service: automation.trigger
       data_template:
@@ -3049,12 +3076,6 @@
   mode: restart
   initial_state: 'off'
   trigger:
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_illuminance_exist'
-      to: 'on'
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_illuminance_exist'
-      attribute: 'required'
   variables:
     dids: >-
       {% set s = state_attr('binary_sensor.motion_device_illuminance','unavailable') %}
@@ -3191,20 +3212,43 @@
 - id: motion_device_illuminance_missing_watchdog
   alias: motion_device_illuminance_missing_watchdog
   mode: 'restart'
-  initial_state: 'on'
+  initial_state: 'off'
   trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_illuminance_exist'
+      for:
+        seconds: 30
     - platform: time_pattern
-      minutes: '/5'
+      minutes: '/1'
   condition:
     condition: and
     conditions:
-      - alias: 'illuminance unavailable watchdog'
+      - alias: 'illuminance missing watchdog'
         condition: template
         value_template: >-
           {{ is_state('automation.motion_device_illuminance_missing','on')
-             and is_state_attr('automation.motion_device_illuminance_rescan','current',0)
              and is_state_attr('automation.motion_device_illuminance_missing','current',0) }}
   action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ trigger.platform != 'time_pattern' }}
+          sequence:
+            - alias: 'not time based trigger'
+              service: automation.trigger
+              data_template:
+                entity_id: automation.motion_device_illuminance_missing
+        - conditions:
+            - alias: 'test if time_pattern and NOT running'
+              condition: template
+              value_template: >
+                {{ trigger.platform == 'time_pattern' and is_state_attr('automation.motion_device_illuminance_missing','current',0) }}
+          sequence:
+            - alias: 'trigger motion_device_illuminance_missing'
+              service: automation.trigger
+              data_template:
+                entity_id: automation.motion_device_illuminance_missing
     - alias: 'trigger temperatus missing update'
       service: automation.trigger
       data_template:
@@ -3216,8 +3260,6 @@
   max_exceeded: 'warn'
   initial_state: 'on'
   trigger:
-    - platform: state
-      entity_id: binary_sensor.motion_device_illuminance_exist
   variables:
     state: >-
       {% set state = 'off' %}
@@ -4057,12 +4099,12 @@
         - conditions:
             - condition: template
               value_template: >
-                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','trace') }}
           sequence:
             - service: persistent_notification.create
               data_template:
                 title: >-
-                  DEBUG: Device illuminance response
+                  TRACE: Device illuminance response
                 notification_id: >-
                   {{ 'device-illuminance-response' }}
                 message: >-

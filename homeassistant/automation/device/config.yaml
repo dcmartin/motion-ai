@@ -52,8 +52,10 @@
                     {{ s|lower != 'none' }}
               sequence:
                 - variables:
+                    url: >-
+                      {{- configs[repeat.index-1]|string -}}
                     command: >-
-                      curl -skSL "{{- configs[repeat.index-1]|string -}}" | jq -Sc '{"timestamp":'$(date -u +%s)',"config":.}'
+                      curl -skSL "{{- url -}}" | jq -Sc '{"timestamp":'$(date -u +%s)',"config":.}'
                 - alias: 'set input_text.motion_devices_config with command string'
                   service: input_text.set_value
                   target:
@@ -73,11 +75,12 @@
                           service: persistent_notification.create
                           data_template:
                             title: >-
-                              DEBUG: Device configure
+                              DEBUG: Device configuration
                             notification_id: >
-                              {{- 'debug-devices-config-' + did|string -}}
+                              {{- 'log-devices-config-' + did|string -}}
                             message: >-
-                              {{ state_attr(entity,'name') }}<p><code>{{- command -}}</code>
+                              Configuring <a href="/config/devices/device/{{- did -}}">{{- state_attr(entity,'name') -}}</a>: <b>{{ states(entity) }}</b>
+                              <hr><code><a href="{{- url -}}">{{- url -}}</a></code>
                 - alias: 'update sensor.motion_devices_config'
                   service: homeassistant.update_entity
                   entity_id: sensor.motion_devices_config
@@ -107,14 +110,14 @@
                       conditions:
                         - condition: template
                           value_template: >
-                            {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+                            {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','info') }}
                       sequence:
                         - alias: 'logging notification'
                           service: persistent_notification.create
                           data_template:
                             title: >-
-                              DEBUG: Device result
+                              INFO: Device configuration
                             notification_id: >
-                              {{- 'debug-devices-config-' + did|string -}}
+                              {{- 'log-devices-config-' + did|string -}}
                             message: >-
-                              {{ state_attr(entity,'name') -}}: <b>{{ state }}</b><p><code>{{- input -}}</code>
+                              Configured <a href="/config/devices/device/{{- did -}}">{{- state_attr(entity,'name') -}}</a>: <b>{{ state }}</b>
