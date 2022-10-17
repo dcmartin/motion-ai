@@ -78,25 +78,8 @@
             {'id':'help','action': id|string + '-help','icon': help.icon|default('mdi:cancel')|string,'symbol': help.symbol|default('')|string,'title': help.title|default('')|string,'destructive':false,'trigger': help.trigger|default('none')}
             ] -%}
           {"id":"{{- id -}}","group":"{{- group -}}","interval":{{- interval -}},"responses":{{- responses -}},"primary":"{{- p -}}","actions":{{ a }}}
-        good: >-
-          {% set g = state_attr('binary_sensor.motion_device_class','good') -%}
-          {%- set b = state_attr('binary_sensor.motion_device_class','bad') -%}
-          {%- if g|lower != 'none' and b|lower != 'none' -%}
-            {%- if 'activity' in g -%}on{%- elif 'activity' in b -%}off{%- else -%}none{%- endif -%}
-          {%- else -%}none{%- endif %}
-        bad: >-
-          {% set g = state_attr('binary_sensor.motion_device_class','good') -%}
-          {%- set b = state_attr('binary_sensor.motion_device_class','bad') -%}
-          {%- if g|lower != 'none' and b|lower != 'none' -%}
-            {%- if 'activity' in b -%}on{%- elif 'activity' in g -%}off{%- else -%}none{%- endif -%}
-          {%- else -%}none{%- endif %}
         alarm: >-
           {% set s = state_attr('binary_sensor.motion_device_class','alarm') -%}
-          {%- if s|lower != 'none' -%}
-            {%- if 'activity' in s -%}on{%- else -%}none{%- endif -%}
-          {%- else -%}none{%- endif %}
-        activity: >-
-          {% set s = state_attr('binary_sensor.motion_device_class','activity') -%}
           {%- if s|lower != 'none' -%}
             {%- if 'activity' in s -%}on{%- else -%}none{%- endif -%}
           {%- else -%}none{%- endif %}
@@ -121,20 +104,6 @@
               {{ states('input_number.motion_device_class_activity_high') }}
             {%- else -%}none{%- endif -%}
           {%- else -%}none{%- endif %}
-        low_spike: >-
-          {% set s = state_attr('binary_sensor.motion_device_class','low_spike') -%}
-          {%- if s|lower != 'none' -%}
-            {%- if 'activity' in s -%}
-              {{ states('input_number.motion_device_class_activity_low_spike') }}
-            {%- else -%}none{%- endif -%}
-          {%- else -%}none{%- endif %}
-        high_spike: >-
-          {% set s = state_attr('binary_sensor.motion_device_class','high_spike') -%}
-          {%- if s|lower != 'none' -%}
-            {%- if 'activity' in s -%}
-              {{ states('input_number.motion_device_class_activity_high_spike') }}
-            {%- else -%}none{%- endif -%}
-          {%- else -%}none{%- endif %}
         measurement: >-
           {% set s = state_attr('binary_sensor.motion_device_class','sensor_list') -%}
           {%- if s|lower != 'none' -%}
@@ -145,5 +114,104 @@
           {%- if s|lower != 'none' -%}
             {%- if 'activity' in s -%}on{%- else -%}none{%- endif -%}
           {%- else -%}none{%- endif %}
+        markdown: >-
+          <h2>Activity</h2>
+          {%- set s = state_attr('group.motion_device_class_activity','entity_id') -%}
+          {%- if s is iterable and s|count > 0 -%}
+            {%- for i in s -%} 
+               {%- if loop.first -%}<ol>{%- endif -%}
+               <li><b>{{- state_attr(i,'friendly_name') -}}:</b> {{ state_attr(i,'markdown') -}}</li>
+               {%- if loop.last -%}</ol>{%- endif -%}
+            {%- endfor -%}
+          {%- else -%}
+            <h3>No activity sensors</h3>
+          {%- endif -%}
+          <i>Last updated</i>: {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
       value_template: >-
-        {{ is_state('binary_sensor.motion_device_class_activity','on') }}
+        {{ is_state('group.motion_device_class_activity','on') }}
+
+- platform: template
+  sensors:
+    motion_device_class_activity_alarm_exist:
+      friendly_name: 'Alarm exists: activity'
+      attribute_templates:
+        actions: >-
+          {%- set group = 'device-activity' -%}
+          {%- set interval = 300 -%}
+          {%- set all = [] -%}
+          {#- high -#}
+          {%- set id = group|string + '-high' -%}
+          {%- set responses = state_attr('binary_sensor.motion_device_class_activity_high','responses') -%}
+          {%- set actions = state_attr('binary_sensor.motion_device_class_activity_high','actions') -%}
+          {%- set all = all + [{'id': id,'group': group,'interval': interval,'responses': responses,'actions': actions}] -%}
+          {#- low -#}
+          {%- set id = group|string + '-low' -%}
+          {%- set responses = state_attr('binary_sensor.motion_device_class_activity_low','responses') -%}
+          {%- set actions = state_attr('binary_sensor.motion_device_class_activity_low','actions') -%}
+          {%- set all = all + [{'id': id,'group': group,'interval': interval,'responses': responses,'actions': actions}] -%}
+          {{- all -}}
+        low: >-
+          {{ not is_state_attr('binary_sensor.motion_device_class_activity_exist','low','none') and is_state('binary_sensor.motion_device_class_activity_low','on') }}
+        high: >-
+          {{ not is_state_attr('binary_sensor.motion_device_class_activity_exist','high','none') and is_state('binary_sensor.motion_device_class_activity_high','on') }}
+        active: >-
+          {%- set s = state_attr('binary_sensor.motion_device_class_activity_alarm','status') -%}
+          {% if s|lower != 'none' and not s is string and s is iterable and s|count > 0 %}
+            {%- if s.values()|reject('==','off')|list|count > 0 -%}on{%- else -%}off{%- endif -%}
+          {% else %}unknown{% endif %}
+        markdown: >-
+          {%- set s = states('binary_sensor.motion_device_class_activity_alarm') -%}
+          <h2>The <a href="/notify-devices/activity">activity</a> alarm is: <i>{{- s|upper -}}</i></h2>
+          {%- if s|lower == 'on' -%}
+            {{- state_attr('binary_sensor.motion_device_class_activity_alarm','markdown') -}}
+          {%- endif -%}
+      value_template: >-
+        {{ is_state_attr('binary_sensor.motion_device_class_activity_exist','alarm','on') and is_state('binary_sensor.motion_device_class_activity_alarm','on') }}
+
+- platform: template
+  sensors:
+    motion_device_class_activity_low:
+      friendly_name: Low activity
+      attribute_templates:
+        last: >-
+          {{ 'unknown' }}
+        details: >-
+          {{ 'unknown' }}
+        responses: >-
+          {%- set responses = ['approve','deny','wait','help'] -%}
+          {{- responses -}}
+        actions: >-
+          {%- set id = 'device-activity-low' -%}
+          {%- set group = 'device-activity' -%}
+          {%- set interval = 300 -%}
+          {%- set primary = state_attr('sensor.motion_role_primary','friendly_name') -%}
+          {%- set approve = {'id':'approve','action':id|string + '-approve','title':'I\'m okay','icon':'mdi:thumb-up','symbol':'sfsymbols:thumsup','destructive':false,'trigger':'automation.motion_device_class_activity_low_okay'} -%}
+          {%- set deny = {'id':'deny','action':id|string + '-deny','title':'Low alarm off','icon':'mdi:bell-cancel','symbol':'sfsymbols:hand.thumbsdown.fill','destructive':true,'trigger':'automation.motion_device_class_activity_low_off'} -%}
+          {%- set wait = {'id':'wait','action':id|string + '-wait','title':'Decrease limit','icon':'mdi:arrow-expand-down','symbol':'sfsymbols:arrowtriangle.down.circle','destructive':false,'trigger':'automation.motion_device_class_activity_low_limit'} -%}
+          {%- set help = {'id':'help','action':id|string + '-help','title':'Notify ' + primary|string,'icon':'mdi:message-alert','symbol':'sfsymbols:message','destructive':false,'trigger':'automation.motion_notification_activity_low'} -%}
+          [{{ approve }},{{ deny }},{{ wait }},{{ help }}]
+      value_template: >-
+        {{ 'unknown' }}
+    motion_device_class_activity_high:
+      friendly_name: High activity
+      attribute_templates:
+        last: >-
+          {{ 'unknown' }}
+        details: >-
+          {{ 'unknown' }}
+        responses: >-
+          {%- set responses = ['approve','deny','wait','help'] -%}
+          {{- responses -}}
+        actions: >-
+          {%- set id = 'device-activity-high' -%}
+          {%- set group = 'device-activity' -%}
+          {%- set interval = 300 -%}
+          {%- set primary = state_attr('sensor.motion_role_primary','friendly_name') -%}
+          {%- set approve = {'id':'approve','action':id|string + '-approve','title':'I\'m okay','icon':'mdi:thumb-up','symbol':'sfsymbols:thumsup','destructive':false,'trigger':'automation.motion_notification_activity_high_okay'} -%}
+          {%- set deny = {'id':'deny','action':id|string + '-deny','title':'High alarm off','icon':'mdi:bell-cancel','symbol':'sfsymbols:hand.thumbsdown.fill','destructive':true,'trigger':'automation.motion_device_class_activity_high_off'} -%}
+          {%- set wait = {'id':'wait','action':id|string + '-wait','title':'Increase limit','icon':'mdi:arrow-expand-up','symbol':'sfsymbols:arrowtriangle.up.circle','destructive':false,'trigger':'automation.motion_device_class_activity_high_limit'} -%}
+          {%- set help = {'id':'help','action':id|string + '-help','title':'Notify ' + primary|string,'icon':'mdi:message-alert','symbol':'sfsymbols:message','destructive':false,'trigger':'automation.motion_notification_activity_high'} -%}
+          [{{ approve }},{{ deny }},{{ wait }},{{ help }}]
+      value_template: >-
+        {{ 'unknown' }}
+
