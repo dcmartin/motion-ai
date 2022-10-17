@@ -54,3 +54,35 @@
           {{ timestamp }}
       state: >-
         {{- 'off' -}}
+
+- unique_id: motion_device_class_activity_alarm
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_class_activity_alarm_exist
+  binary_sensor:
+    - name: 'motion_device_class_activity_alarm'
+      device_class: problem
+      attributes:
+        status: >-
+          {{ '{' -}}
+          {%- for i in state_attr('binary_sensor.motion_device_class','activity') -%}
+            {%- if not loop.first -%},{%- endif -%}
+            {{- '"' + i|string + '":"' ~ states('binary_sensor.motion_device_' + i + '_activity') ~ '"' -}}
+          {%- endfor -%}
+          {{- '}' }}
+        markdown: >-
+          {%- for i in state_attr('binary_sensor.motion_device_class','activity') if is_state('binary_sensor.motion_device_' + i + '_activity','on') -%}
+            {%- if loop.first -%}<ul>{%- endif -%}
+            {%- if states('binary_sensor.motion_device_' + i + '_activity') -%}
+              {%- set s = state_attr('binary_sensor.motion_device_' + i + 'activity','markdown') -%}
+               <li>The activity alarm is: <b>{{- i|upper -}}</b>{%- if s|lower != 'none' -%}<br>{{- s -}}</br>{%- endif -%}</li>
+            {%- endif -%}
+            {%- if loop.last -%}</ul>{%- endif -%}
+          {%- endfor -%}
+      state: >-
+        {%- set s = state_attr('binary_sensor.motion_device_class','activity') -%}
+        {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+          {%- for i in s if states('binary_sensor.motion_device_' + i + '_activity')|lower == 'on' -%}
+            {%- if loop.first -%}on{%- endif -%}
+          {% else %}off{%- endfor -%}
+        {%- else -%}unknown{%- endif -%}

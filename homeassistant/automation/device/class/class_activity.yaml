@@ -910,3 +910,95 @@
       data_template:
         entity_id: >-
           {{ 'automation.motion_device_class_rescan' }}
+
+## alarm on/off
+
+- id: motion_device_class_activity_alarm_off
+  alias: motion_device_class_activity_alarm_off
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test setup complete'
+        condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_class','on') }}
+      - alias: 'activity alarm not off'
+        condition: template
+        value_template: >-
+          {{ 'activity' in state_attr('binary_sensor.motion_device_class','alarm') }}
+  variables:
+    alarm: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','alarm') -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set s = s|reject('==','activity')|list -%}
+        {%- if not s is string and s is iterable and s|count > 0 -%}
+          {% set alarm = s -%}
+        {%- else -%}
+          {% set alarm = [] -%}
+        {%- endif %}
+      {%- endif %}
+      {%- if alarm is defined -%}
+        {{ alarm }}
+      {%- else -%}none{%- endif %}
+  action:
+    - alias: 'test if alarm list of device classes is valid'
+      condition: template
+      value_template: >-
+        {{ alarm|lower != 'none' }}
+    - alias: 'update binary_sensor.motion_device_class alarm attribute; remove: activity'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        alarm: >-
+          {{ alarm }}
+    - alias: 'update binary_sensor.motion_device_class_activity_exist'
+      service: homeassistant.update_entity
+      entity_id: binary_sensor.motion_device_class_activity_exist
+
+- id: motion_device_class_activity_alarm_on
+  alias: motion_device_class_activity_alarm_on
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test setup complete'
+        condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_class','on') }}
+      - alias: 'activity alarm not on'
+        condition: template
+        value_template: >-
+          {{ not 'activity' in state_attr('binary_sensor.motion_device_class','alarm') }}
+  variables:
+    alarm: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','alarm') -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set alarm = (s|list + ['activity'])|sort|unique|list -%}
+      {%- else -%}
+        {%- set alarm = ['activity'] -%}
+      {%- endif %}
+      {%- if alarm is defined -%}
+        {{ alarm }}
+      {%- else -%}none{%- endif %}
+  action:
+    - alias: 'test if alarm list of device classes is valid'
+      condition: template
+      value_template: >-
+        {{ alarm|lower != 'none' }}
+    - alias: 'update binary_sensor.motion_device_class alarm attribute; add: activity'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        alarm: >-
+          {{ alarm }}
+    - alias: 'update binary_sensor.motion_device_class_activity_exist'
+      service: homeassistant.update_entity
+      entity_id: binary_sensor.motion_device_class_activity_exist
+
