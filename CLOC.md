@@ -1,6 +1,3 @@
-cloc|github.com/AlDanial/cloc v 1.94  T=6.18 s (155.5 files/s, 56160.2 lines/s)
---- | ---
-
 Language|files|blank|comment|code
 :-------|-------:|-------:|-------:|-------:
 YAML|797|7712|6503|212269
