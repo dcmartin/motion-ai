@@ -8,6 +8,8 @@
   trigger:
     - platform: time_pattern
       minutes: /15
+    - platform: state
+      entity_id: 'sensor.motion_sysmon_disk_blocks'
   sensor:
     - name: 'motion_sysmon_disk'
       unique_id: 'motion_sysmon_disk'
@@ -23,14 +25,18 @@
           {{ states('sensor.motion_sysmon_disk_change_second') }}
         time: >-
           {% set s = states('sensor.motion_sysmon_disk_change_second') %}
-          {% if s|float(0) != 0 %}
-            {% set change = s|float(0) %}
-            {%- set s = states('sensor.disk_free') -%}
-            {%- if s|float(-1) != -1 -%}
-              {% set free = s|float(0) %}
-              {% set s = free / change %}
-              {{ (utcnow().timestamp() - s)|as_datetime|relative_time }}
-            {% else %}Unknown{% endif %}
+          {% if s|float(0) > 0 %}
+            {% set change = s|float %}
+            {%- set s = states('sensor.motion_sysmon_disk_blocks') -%}
+            {%- if s|float(0) > 0 %}
+              {% set used = s|float %}
+              {% set s = state_attr('sensor.motion_sysmon_disk_blocks','total') %}
+              {%- if s|float(0) > 0 %}
+                {% set total = s|float %}
+                {% set s = (total - used) / change %}
+                {{ (utcnow().timestamp() - s)|as_datetime|relative_time }}
+              {% else %}Unknown{% endif %}
+            {% else %}Unavailable{% endif %}
           {% else %}Pending{% endif %}
         used: >-
           {%- set s = states('sensor.disk_use') -%}
