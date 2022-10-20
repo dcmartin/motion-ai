@@ -414,12 +414,13 @@
   trigger:
     - platform: state
       entity_id: 'group.motion_device_battery'
+      to:
       for:
         seconds: 5
     - platform: state
       entity_id: 'binary_sensor.motion_device_battery_exist'
       for:
-        seconds: 10
+        seconds: 15
     - platform: time_pattern
       minutes: '/5'
   condition:
@@ -432,22 +433,43 @@
              and is_state_attr('automation.motion_device_battery_status','current',0) }}
   action:
     - choose:
-        - conditions:
+        - alias: 'state based trigger?'
+          conditions:
             - condition: template
               value_template: >
-                {{ trigger.platform != 'time_pattern' }}
+                {{ trigger.platform == 'state' }}
           sequence:
-            - alias: 'not time based trigger'
-              service: automation.trigger
-              data_template:
-                entity_id: automation.motion_device_battery_status
+            - choose:
+                - conditions:
+                    - alias: 'battery status current running?'
+                      condition: template
+                      value_template: >
+                        {{ is_state_attr('automation.motion_device_battery_status','current',0) }}
+                  sequence:
+                    - alias: 'temperate status trigger'
+                      service: automation.trigger
+                      data_template:
+                        entity_id: automation.motion_device_battery_status
+                - conditions:
+                    - alias: 'NOT temperate status current running'
+                      condition: template
+                      value_template: >
+                        {{ not is_state_attr('automation.motion_device_battery_status','current',0) }}
+                  sequence:
+                    - alias: 'battery status wait'
+                      wait_template: >-
+                        {{ is_state_attr('automation.motion_device_battery_status', 0) }}
+                    - alias: 'battery status wait: complete; trigger'
+                      service: automation.trigger
+                      data_template:
+                        entity_id: automation.motion_device_battery_status
         - conditions:
-            - alias: 'test if time_pattern and NOT running'
+            - alias: 'time_pattern and NOT running?'
               condition: template
               value_template: >
                 {{ trigger.platform == 'time_pattern' and is_state_attr('automation.motion_device_battery_status','current',0) }}
           sequence:
-            - alias: 'trigger motion_device_battery_status'
+            - alias: 'battery status: time_pattern; trigger'
               service: automation.trigger
               data_template:
                 entity_id: automation.motion_device_battery_status
@@ -3033,10 +3055,12 @@
   trigger:
     - platform: state
       entity_id: 'binary_sensor.motion_device_battery_exist'
-      for:
-        seconds: 30
+      attribute: 'required'
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_battery_exist'
+      attribute: 'alarm'
     - platform: time_pattern
-      minutes: '/1'
+      minutes: '/5'
   condition:
     condition: and
     conditions:
@@ -3216,10 +3240,17 @@
   trigger:
     - platform: state
       entity_id: 'binary_sensor.motion_device_battery_exist'
+      attribute: 'required'
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_battery_exist'
+      attribute: 'alarm'
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_battery_exist'
+      to:
       for:
-        seconds: 30
+        seconds: 15
     - platform: time_pattern
-      minutes: '/1'
+      minutes: '/5'
   condition:
     condition: and
     conditions:
