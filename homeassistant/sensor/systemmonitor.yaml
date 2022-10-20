@@ -17,11 +17,39 @@
     - type: disk_use
     - type: disk_free
 
+## blocks
+
+- platform: template
+  sensors:
+    motion_sysmon_disk_blocks:
+      attribute_templates:
+        total: >-
+          {{ state_attr('sensor.motion_sysmon_disk_command','blocks') }}
+        available: >-
+          {{ state_attr('sensor.motion_sysmon_disk_command','available') }}
+        command: >-
+          t=($(df -k /config | tail -1)) && echo '{"device":"'${t[0]}'","available":'${t[3]}',"used":'${t[2]}',"blocks":'${t[1]}'}'
+      value_template: >-
+        {{ state_attr('sensor.motion_sysmon_disk_command','used') }}
+
+- platform: command_line
+  name: motion_sysmon_disk_command
+  scan_interval: 60
+  command_timeout: 10
+  command: "eval {{- state_attr('sensor.motion_sysmon_disk_blocks','command') -}}"
+  json_attributes:
+    - device
+    - used
+    - available
+    - blocks
+  value_template: >
+    {{- value_json is defined and 'device' in value_json and 'blocks' in value_json and 'used' in value_json -}}
+
 ## storage
 
 - platform: statistics
   name: motion_sysmon_disk_change_second
-  entity_id: sensor.motion_sysmon_disk_use_percent
+  entity_id: sensor.motion_sysmon_disk_blocks
   state_characteristic: change_second
   sampling_size: 1000
   max_age:

@@ -6,8 +6,8 @@
 
 - unique_id: motion_sysmon_disk
   trigger:
-    - platform: time_pattern
-      minutes: /30
+    - platform: state
+      entity_id: 'sensor.motion_sysmon_disk_blocks'
   sensor:
     - name: 'motion_sysmon_disk'
       unique_id: 'motion_sysmon_disk'
@@ -17,19 +17,21 @@
       attributes:
         friendly_name: 'System Disk Monitor'
         icon: 'mdi:harddisk'
+        blocks: >-
+          {{ state('sensor.motion_sysmon_disk_blocks') }}
         change: >-
           {{ states('sensor.motion_sysmon_disk_change_second') }}
         time: >-
           {% set s = states('sensor.motion_sysmon_disk_change_second') %}
-          {% if s|float(0) != 0 %}
-            {% set change = s|float(0) %}
-            {%- set s = states('sensor.disk_free') -%}
-            {%- if s|float(-1) != -1 -%}
-              {% set free = s|float(0) %}
-              {% set s = free / change %}
+          {% if s|float(0) > 0 %}
+            {% set change = s|float %}
+            {%- set s = state_attr('sensor.motion_sysmon_disk_blocks','available') -%}
+            {%- if s|float(0) > 0 %}
+              {% set available = s|float %}
+              {% set s = available / change %}
               {{ (utcnow().timestamp() - s)|as_datetime|relative_time }}
-            {% else %}Unknown{% endif %}
-          {% else %}Pending{% endif %}
+            {% else %}Unavailable{% endif %}
+          {% else %}Unknown{% endif %}
         used: >-
           {%- set s = states('sensor.disk_use') -%}
           {%- if s|lower != 'none' and s|float(-1) > 0 -%}
@@ -71,8 +73,8 @@
 
 - unique_id: motion_sysmon_load
   trigger:
-    - platform: time_pattern
-      seconds: /30
+    - platform: state
+      entity_id: sensor.processor_use
   sensor:
     - name: 'motion_sysmon_load'
       unique_id: 'motion_sysmon_load'
