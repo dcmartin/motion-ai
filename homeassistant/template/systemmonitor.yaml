@@ -6,16 +6,30 @@
 
 - unique_id: motion_sysmon_disk
   trigger:
-    - platform: state
-      entity_id: 'sensor.disk_use_percent'
+    - platform: time_pattern
+      minutes: /30
   sensor:
     - name: 'motion_sysmon_disk'
+      unique_id: 'motion_sysmon_disk'
       state_class: 'measurement'
       device_class: 'power_factor'
       unit_of_measurement: '%'
       attributes:
         friendly_name: 'System Disk Monitor'
         icon: 'mdi:harddisk'
+        change: >-
+          {{ states('sensor.motion_sysmon_disk_change_second')|default('null') }}
+        time: >-
+          {% set s = states('sensor.motion_sysmon_disk_change_second') %}
+          {% if s|float(0) != 0 %}
+            {% set change = s|float(0) %}
+            {%- set s = states('sensor.disk_free') -%}
+            {%- if s|float(-1) != -1 -%}
+              {% set free = s|float(0) %}
+              {% set s = free / change %}
+              {{ (utcnow().timestamp() - s)|as_datetime|relative_time }}
+            {% else %}Unknown{% endif %}
+          {% else %}Pending{% endif %}
         used: >-
           {%- set s = states('sensor.disk_use') -%}
           {%- if s|lower != 'none' and s|float(-1) > 0 -%}
@@ -57,10 +71,11 @@
 
 - unique_id: motion_sysmon_load
   trigger:
-    - platform: state
-      entity_id: 'sensor.processor_use'
+    - platform: time_pattern
+      seconds: /30
   sensor:
     - name: 'motion_sysmon_load'
+      unique_id: 'motion_sysmon_load'
       state_class: 'measurement'
       device_class: 'power_factor'
       unit_of_measurement: '%'

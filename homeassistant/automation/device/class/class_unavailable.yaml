@@ -7,8 +7,16 @@
   mode: 'restart'
   initial_state: 'on'
   trigger:
+    - platform: state
+      entity_id: 'group.motion_devices'
+      for:
+        minutes: 1
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_class_exist'
+      for:
+        minutes: 1
     - platform: time_pattern
-      minutes: '/2'
+      minutes: '/5'
   condition:
     condition: and
     conditions:
@@ -18,7 +26,7 @@
           {{ is_state('automation.motion_device_class_unavailable_rescan','on')
              and is_state_attr('automation.motion_device_class_unavailable_rescan','current',0) }}
   action:
-    - alias: 'trigger temperatus status update'
+    - alias: 'trigger temperatus unavailable rescan'
       service: automation.trigger
       data_template:
         entity_id: automation.motion_device_class_unavailable_rescan
@@ -38,10 +46,10 @@
     unavailable: >-
       {%- set s = state_attr('binary_sensor.motion_device_class','sensor_list')|list + state_attr('binary_sensor.motion_device_class','binary_sensor_list')|list -%}
       [{%- for i in s|sort|unique if is_state('binary_sensor.motion_device_' + i + '_unavailable','on') -%}
-        {%- if not loop.first -%},{%- endif -%}
+        {%- set l = loop -%}
         {%- for j in state_attr('binary_sensor.motion_device_' + i,'unavailable') -%}
-          {%- if not loop.first -%},{%- endif -%}
           {"did":"{{- device_id(j.entity_id) -}}","entity_id":"{{- j.entity_id -}}","id":"{{- j.id -}}","class":"{{- i -}}"}
+          {%- if not (l.last and loop.last) -%},{%- endif -%}
         {%- endfor -%}
       {%- endfor -%}]
   action:
