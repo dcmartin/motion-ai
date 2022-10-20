@@ -3,6 +3,17 @@
 ###
 
 - platform: command_line
+  name: motion_config_disk
+  scan_interval: 86400
+  command_timeout: 20
+  command: "eval {{- state_attr('sensor.motion_hub','df') -}}"
+  json_attributes:
+    - disk
+    - blocks
+  value_template: >
+    {{- value_json is defined and 'disk' in value_json and 'blocks' in value_json -}}
+
+- platform: command_line
   name: motion_devices_config
   scan_interval: 86400
   command_timeout: 20
@@ -40,6 +51,8 @@
       friendly_name: Device
       icon_template: 'mdi:raspberry-pi'
       attribute_templates:
+        blocks: >-
+          {{ state_attr('sensor.motion_config_disk','blocks') }}
         host: >-
           {% set host = none %}
           {% set s = states('sensor.motion_addon_config') %}
@@ -114,6 +127,8 @@
           {{ state_attr('sensor.motion_database_size','file') }}
         rmdb: >-
           rm -f /config/home-assistant*corrupt* && echo '{"exit":"on"}' || echo '{"exit":"off"}'
+        df: >-
+          echo '{"device":"'$(df -P /config | tail -1 | awk '{ print $1 }')'","blocks":'$(df -P /config | tail -1 | awk '{ print $3 }')'}'
         dudb: >-
           du -k /config/home-assistant_v2.db | awk '{ printf("{\"kbytes\":%d,\"file\":\"%s\"}",$1,$2) }'
       value_template: >-
