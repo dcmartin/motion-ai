@@ -91,26 +91,44 @@
   mode: 'restart'
   initial_state: 'on'
   trigger:
-    - platform: time_pattern
-      minutes: '/5'
     - platform: state
       entity_id: 'group.motion_devices'
     - platform: state
       entity_id: 'binary_sensor.motion_device_class_status'
       to: 'on'
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_class'
+      attribute: 'automations'
+    - platform: time_pattern
+      minutes: '/5'
   condition:
     condition: and
     conditions:
-      - alias: 'class rescan watchdog'
+      - alias: 'temperature missing watchdog'
         condition: template
         value_template: >-
-          {{ is_state('automation.motion_device_class_rescan','on')
-             and is_state_attr('automation.motion_device_class_rescan','current',0) }}
+          {{ is_state('automation.motion_device_class_rescan','on') }}
   action:
-    - alias: 'trigger temperatus status update'
-      service: automation.trigger
-      data_template:
-        entity_id: automation.motion_device_class_rescan
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ trigger.platform != 'time_pattern' }}
+          sequence:
+            - alias: 'not time based trigger'
+              service: automation.trigger
+              data_template:
+                entity_id: automation.motion_device_class_rescan
+        - conditions:
+            - alias: 'test if time_pattern and NOT running'
+              condition: template
+              value_template: >
+                {{ trigger.platform == 'time_pattern' and is_state_attr('automation.motion_device_class_rescan','current',0) }}
+          sequence:
+            - alias: 'trigger motion_device_class_rescan'
+              service: automation.trigger
+              data_template:
+                entity_id: automation.motion_device_class_rescan
 
 - id: motion_device_class_rescan
   alias: motion_device_class_rescan
