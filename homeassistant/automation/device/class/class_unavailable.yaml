@@ -16,20 +16,35 @@
       for:
         minutes: 1
     - platform: time_pattern
-      minutes: '/5'
+      minutes: '/1'
   condition:
     condition: and
     conditions:
-      - alias: 'class rescan watchdog'
+      - alias: 'class unavailable watchdog test if on'
         condition: template
         value_template: >-
-          {{ is_state('automation.motion_device_class_unavailable_rescan','on')
-             and is_state_attr('automation.motion_device_class_unavailable_rescan','current',0) }}
+          {{ is_state('automation.motion_device_class_unavailable_rescan_','on') }}
   action:
-    - alias: 'trigger temperatus unavailable rescan'
-      service: automation.trigger
-      data_template:
-        entity_id: automation.motion_device_class_unavailable_rescan
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ trigger.platform != 'time_pattern' }}
+          sequence:
+            - alias: 'state changed''
+              service: automation.trigger
+              data_template:
+                entity_id: automation.motion_device_class_unavailable_rescan
+        - conditions:
+            - alias: 'test if time_pattern and NOT running'
+              condition: template
+              value_template: >
+                {{ trigger.platform == 'time_pattern' and is_state_attr('automation.motion_device_class_unavailable_rescan','current',0) }}
+          sequence:
+            - alias: 'trigger motion_device_class_unavailable'
+              service: automation.trigger
+              data_template:
+                entity_id: automation.motion_device_class_unavailable_rescan
 
 - id: motion_device_class_unavailable_rescan
   alias: motion_device_class_unavailable_rescan
