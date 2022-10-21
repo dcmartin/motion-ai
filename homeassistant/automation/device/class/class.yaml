@@ -476,10 +476,19 @@
           {{ markdown }}
         state: >-
           {% if total|int(0) > 0 %}on{% else %}off{% endif %}
-    - alias: 'update binary_sensor.motion_device_class_missing'
-      service: homeassistant.update_entity
+    - variables:
+        entities: >-
+          {%- set s = state_attr('binary_sensor.motion_device_class','sensor_list')|list + state_attr('binary_sensor.motion_device_class','binary_sensor_list')|list -%}
+          [{%- for i in s|sort|unique if is_state_attr('binary_sensor.motion_device_' + i + '_exist','required','on') -%}
+            {%- if not loop.first -%},{%- endif -%}
+            "{{- 'binary_sensor.motion_device_' + i|string + '_missing' -}}"
+          {%- endfor -%}]
+    - alias: 'set group.motion_device_class_missing sensors'
+      service: group.set
       data_template:
-        entity_id: binary_sensor.motion_device_class_missing
+        object_id: motion_device_class_missing
+        entities: >-
+          {{ entities }}
     - variables:
         entities: >-
           {%- set s = state_attr('binary_sensor.motion_device_class','sensor_list')|list + state_attr('binary_sensor.motion_device_class','binary_sensor_list')|list -%}
