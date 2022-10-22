@@ -362,23 +362,20 @@
           {{ devices }}
         state: >-
           {{ states('binary_sensor.motion_device_' + class) }}
-    - choose:
-        - conditions:
-            - alias: 'test if problem already in UNAVAILABLE group'
-              condition: template
-              value_template: >-
-                {% set sensor = 'binary_sensor.motion_device_problem_unavailable' %}
-                {% set s = state_attr('group.motion_device_class_unavailable','entity_id') %}
-                {{ s|lower == 'none' or ( not s is string and s is iterable and not sensor in s ) }}
-          sequence:
-            - alias: 'add problem to UNAVAILABLE group'
-              service: group.set
-              data_template:
-                object_id: motion_device_class_unavailable
-                name: 'Unavailable problem device category'
-                add_entities: >-
-                  {{ 'binary_sensor.motion_device_problem_unavailable' }}
+
+- id: motion_device_problem_group_set
+  alias: motion_device_problem_group_set
+  mode: 'restart'
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+    platform: 'state'
+    entity_id: 'binary_sensor.motion_device_problem'
+    attribute: 'dids'
+  action:
     - variables:
+        dids: >-
+          {{ state_attr('binary_sensor.motion_device_problem','dids') }}
         entities: >-
           {%- set s = dids %}
           {%- if not s is string and s is iterable and s|count > 0 -%}
@@ -387,39 +384,123 @@
               {%- set o = loop -%}
               {%- for state in (states.sensor|list + states.binary_sensor|list) if device_id(state.entity_id) == did and (state.attributes.device_class|default('null')|string == class)  -%}
                 "{{- state.entity_id -}}"
-                {%- if not loop.last or not o.last -%},{%- endif -%}
+                {%- if not (loop.last and o.last) -%},{%- endif -%}
               {%- endfor -%}
             {%- endfor -%}]
-          {%- else -%}none{%- endif %}
+          {%- else -%}[]{%- endif %}
     - alias: 'test if entities exist for problem' 
       condition: template
       value_template: >
-        {{ not entities is string and entities is iterable and entities|count > 0 }}
+        {{ entities is iterable }}
     - alias: 'set group.motion_device_problem sensors'
       service: group.set
       data_template:
         object_id: motion_device_problem
         entities: >-
           {{ entities }}
+
+- id: motion_device_problem_statistics_group_set
+  alias: motion_device_problem_statitics_group_set
+  mode: 'restart'
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+    platform: 'state'
+    entity_id: 'binary_sensor.motion_device_problem'
+    attribute: 'dids'
+  action:
     - variables:
-        statistics: >-
+        dids: >-
+          {{ state_attr('binary_sensor.motion_device_problem','dids') }}
+        entities: >-
           {%- set s = dids -%}
           {%- if not s is string and s is iterable and s|count > 0 -%}
             [{%- for i in s -%}
               {%- set o = loop -%}
               {%- set did = i -%}
               {%- for state in (states.sensor|list + states.binary_sensor|list) if device_id(state.entity_id) == did and state.attributes.device_class|default('null')|lower == 'null' and state.attributes.state_class|default('null')|string == 'measurement' -%}
-                {%- if not o.first or not loop.first -%},{%- endif -%}
                 {"entity_id":"{{- state.entity_id -}}"}
-              {%- else -%}{% if o.first %}None{% endif %}{%- endfor -%}
+                {%- if not (o.last and loop.last -%},{%- endif -%}
+              {%- endfor -%}
             {%- endfor -%}]
           {%- else -%}[]{%- endif %}
+    - alias: 'test if entities exist for problem' 
+      condition: template
+      value_template: >
+        {{ entities is iterable }}
     - alias: 'set group.motion_device_problem statistics'
       service: group.set
       data_template:
         object_id: motion_device_problem_statistics
         entities: >-
-          {{ statistics|reject('none')|map(attribute='entity_id')|list }}
+          {{ entities }}
+
+- id: motion_device_problem_unavailable_on
+  alias: motion_device_problem_unavailable_on
+  mode: 'restart'
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_devices_problem_exist
+      to: 'on'
+  variables:
+    sensor: >-
+      {% set sensor = 'binary_sensor.motion_device_problem_unavailable' %]
+      {{ sensor }}
+    entitys: >-
+      {% set entitys = state_attr('group.motion_device_class_unavailable','entity_id') %}
+      {{ entitys }}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ entitys|lower == 'none' or ( entitys is iterable and not sensor in entitys ) }}
+  action:
+    - alias: 'add problem to UNAVAILABLE group'
+      service: group.set
+      data_template:
+        object_id: motion_device_class_unavailable
+        add_entities: >-
+          {{ sensor }}
+
+- id: motion_device_problem_unavailable_off
+  alias: motion_device_problem_unavailable_off
+  mode: 'restart'
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_devices_problem_exist
+      to: 'off'
+  variables:
+    sensor: >-
+      {% set sensor = 'binary_sensor.motion_device_problem_unavailable' %]
+      {{ sensor }}
+    entitys: >-
+      {% set entitys = [] %}
+      {% set s = state_attr('group.motion_device_class_unavailable','entity_id') %}
+      {% if s is iterable %}
+        {% set entitys = s %}
+      {% endif %}
+      {{ entitys }}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ entitys is iterable and sensor in entitys ) }}
+  action:
+    - variables:
+        entities: >-
+          {{ entitys - [ sensor ] }}
+    - alias: 'remove problem from UNAVAILABLE group'
+      service: group.set
+      data_template:
+        object_id: motion_device_class_unavailable
+        entities: >-
+          {{ entities }}
 
 ## update status
 
@@ -430,13 +511,6 @@
   trigger:
     - platform: state
       entity_id: 'group.motion_device_problem'
-      to:
-      for:
-        seconds: 5
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_problem_exist'
-      for:
-        seconds: 15
     - platform: time_pattern
       minutes: '/5'
   condition:
@@ -456,7 +530,7 @@
           sequence:
             - choose:
                 - conditions:
-                    - alias: 'problem status current running?'
+                    - alias: 'problem status running?'
                       condition: template
                       value_template: >
                         {{ is_state_attr('automation.motion_device_problem_status','current',0) }}
@@ -466,7 +540,7 @@
                       data_template:
                         entity_id: automation.motion_device_problem_status
                 - conditions:
-                    - alias: 'NOT temperate status current running'
+                    - alias: 'NOT temperate status running?'
                       condition: template
                       value_template: >
                         {{ not is_state_attr('automation.motion_device_problem_status','current',0) }}
@@ -517,7 +591,7 @@
           {%- set o = loop -%}
           {%- for state in (states.sensor|list + states.binary_sensor|list) if device_id(state.entity_id) == did and (state.attributes.device_class|default('null')|string == class)  -%}
             {"did":"{{- did -}}","id":"{{- id -}}","name":"{{- state_attr(state.entity_id,'friendly_name') -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
-            {%- if not loop.last or not o.last -%},{%- endif -%}
+            {%- if not (loop.last and o.last) -%},{%- endif -%}
           {%- endfor -%}
         {%- endfor -%}]
       {%- else -%}none{%- endif %}
@@ -530,9 +604,9 @@
             if device_attr(state.entity_id, 'name') == i
               and state.attributes.device_class|default('null')|lower == 'null'
               and state.attributes.state_class|default('null')|string == 'measurement' -%}
-            {%- if not o.first or not loop.first -%},{%- endif -%}
             {"id":"{{- i -}}","name":"{{- state_attr(state.entity_id,'friendly_name') -}}","state":"{{- state.state }} {{ state.attributes.unit_of_measurement-}}","entity_id":"{{- state.entity_id -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
-          {%- else -%}{% if o.first %}None{% endif %}{%- endfor -%}
+            {%- if not (loop.last and o.last) -%},{%- endif -%}
+          {%- endfor -%}
         {%- endfor -%}]
       {%- else -%}none{%- endif %}
     high: >-
@@ -590,26 +664,10 @@
           {%- endfor -%}]
         {%- else -%}none{%- endif -%}
       {%- else -%}none{%- endif %}
-    unavailable: >-
-      {%- set s = status -%}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
-        [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,'unavailable') or is_state(i.entity_id,'unknown') -%}
-          {%- if not loop.first -%},{%- endif -%}
-            {"id":"{{- i.id -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- states[i.entity_id].last_updated|as_timestamp(None) -}}}
-        {%- endfor -%}]
-      {%- else -%}none{%- endif %}
     found: >-
       {%- set s = status -%}
       {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
         [{% for i in s if 'entity_id' in i and not i.entity_id is none and not is_state(i.entity_id,'unavailable') and not is_state(i.entity_id,'unknown') -%}
-          {%- if not loop.first -%},{%- endif -%}
-            {"id":"{{- i.id -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- states[i.entity_id].last_updated|as_timestamp(None) -}}}
-        {%- endfor -%}]
-      {%- else -%}none{%- endif %}
-    missing: >-
-      {%- set s = status -%}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
-        [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,'none') -%}
           {%- if not loop.first -%},{%- endif -%}
             {"id":"{{- i.id -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- states[i.entity_id].last_updated|as_timestamp(None) -}}}
         {%- endfor -%}]
@@ -705,12 +763,8 @@
           {{ low_spike }}
         found: >-
           {{ found }}
-        missing: >-
-          {{ missing }}
         activity: >-
           {{ activity }}
-        unavailable: >-
-          {{ unavailable }}
         values: >-
           {{ values }}
         state: >-
@@ -3063,58 +3117,41 @@
 
 # activity,unavailable
 
-- id: motion_device_problem_unavailable_watchdog
-  alias: motion_device_problem_unavailable_watchdog
-  mode: 'restart'
-  initial_state: 'off'
+- id: motion_device_problem_unavailable_monitor
+  alias: motion_device_problem_unavailable_monitor
+  mode: restart
+  initial_state: 'on'
   trigger:
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_problem_exist'
-      attribute: 'required'
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_problem_exist'
-      attribute: 'alarm'
-    - platform: time_pattern
-      minutes: '/5'
-  condition:
-    condition: and
-    conditions:
-      - alias: 'problem unavailable watchdog'
-        condition: template
-        value_template: >-
-          {{ is_state('automation.motion_device_problem_unavailable','on')
-             and is_state_attr('automation.motion_device_problem_unavailable','current',0) }}
+    - platform: 'state'
+      entity_id: 'binary_sensor.motion_device_problem'
+      attribute: 'status'
+  variables:
+    status: >-
+      {{ state_attr('binary_sensor.motion_device_problem','status') %}
+    unavailable: >-
+      {%- set s = status -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+        [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,'unavailable') or is_state(i.entity_id,'unknown') -%}
+          {%- if not loop.first -%},{%- endif -%}
+            {"id":"{{- i.id -}}","did":"{{- device_id(i.entity_id) -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- states[i.entity_id].last_updated|as_timestamp(None) -}}}
+        {%- endfor -%}]
+      {%- else -%}[]{%- endif %}
   action:
-    - choose:
-        - conditions:
-            - condition: template
-              value_template: >
-                {{ trigger.platform != 'time_pattern' }}
-          sequence:
-            - alias: 'not time based trigger'
-              service: automation.trigger
-              data_template:
-                entity_id: automation.motion_device_problem_unavailable
-        - conditions:
-            - alias: 'test if time_pattern and NOT running'
-              condition: template
-              value_template: >
-                {{ trigger.platform == 'time_pattern' and is_state_attr('automation.motion_device_problem_unavailable','current',0) }}
-          sequence:
-            - alias: 'trigger motion_device_problem_unavailable'
-              service: automation.trigger
-              data_template:
-                entity_id: automation.motion_device_problem_unavailable
-    - alias: 'trigger temperatus unavailable update'
-      service: automation.trigger
+    - alias: 'update binary_sensor.motion_device_problem: unavailable'
+      service: python_script.set_state
       data_template:
-        entity_id: automation.motion_device_problem_unavailable
+        entity_id: binary_sensor.motion_device_problem
+        unavailable: >-
+          {{ unavailable }}
 
 - id: motion_device_problem_unavailable
   alias: motion_device_problem_unavailable
   mode: restart
   initial_state: 'off'
   trigger:
+    - platform: 'state'
+      entity_id: 'binary_sensor.motion_device_problem'
+      attribute: 'unavailable'
   variables:
     dids: >-
       {% set s = state_attr('binary_sensor.motion_device_problem','unavailable') %}
@@ -3248,55 +3285,32 @@
 
 # missing
 
-- id: motion_device_problem_missing_watchdog
-  alias: motion_device_problem_missing_watchdog
-  mode: 'restart'
+- id: motion_device_problem_missing_monitor
+  alias: motion_device_problem_missing_monitor
+  mode: restart
   initial_state: 'on'
   trigger:
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_class'
-      attribute: 'sensors'
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_class'
-      attribute: 'binary_sensors'
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_problem_exist'
-      attribute: 'required'
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_problem_exist'
-      to:
-      for:
-        seconds: 15
-    - platform: time_pattern
-      minutes: '/5'
-  condition:
-    condition: and
-    conditions:
-      - alias: 'problem missing watchdog'
-        condition: template
-        value_template: >-
-          {{ is_state('automation.motion_device_problem_missing','on') }}
+    platform: 'state'
+    entity_id: 'binary_sensor.motion_device_problem'
+    attribute: 'status'
+  variables:
+    status: >-
+      {{ state_attr('binary_sensor.motion_device_problem','status') %}
+    missing: >-
+      {%- set s = status -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+        [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,'none') -%}
+          {%- if not loop.first -%},{%- endif -%}
+            {"id":"{{- i.id -}}","did":"{{- device_id(i.entity_id) -}}",,"entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- states[i.entity_id].last_updated|as_timestamp(None) -}}}
+        {%- endfor -%}]
+      {%- else -%}[]{%- endif %}
   action:
-    - choose:
-        - conditions:
-            - condition: template
-              value_template: >
-                {{ trigger.platform != 'time_pattern' }}
-          sequence:
-            - alias: 'not time based trigger'
-              service: automation.trigger
-              data_template:
-                entity_id: automation.motion_device_problem_missing
-        - conditions:
-            - alias: 'test if time_pattern and NOT running'
-              condition: template
-              value_template: >
-                {{ trigger.platform == 'time_pattern' and is_state_attr('automation.motion_device_problem_missing','current',0) }}
-          sequence:
-            - alias: 'trigger motion_device_problem_missing'
-              service: automation.trigger
-              data_template:
-                entity_id: automation.motion_device_problem_missing
+    - alias: 'update binary_sensor.motion_device_problem: missing'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_problem
+        missing: >-
+          {{ missing }}
 
 - id: motion_device_problem_missing
   alias: motion_device_problem_missing
@@ -3304,6 +3318,9 @@
   max_exceeded: 'warn'
   initial_state: 'on'
   trigger:
+    - platform: 'state'
+      entity_id: 'binary_sensor.motion_device_problem'
+      attribute: 'missing'
   variables:
     state: >-
       {% set state = 'off' %}
