@@ -3322,23 +3322,28 @@
     entity_id: 'binary_sensor.motion_device_battery'
     attribute: 'status'
   variables:
-    status: >-
-      {{ state_attr('binary_sensor.motion_device_battery','status') }}
-    missing: >-
-      {%- set s = status -%}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
-        [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,'none') -%}
-          {%- if not loop.first -%},{%- endif -%}
-            {"id":"{{- i.id -}}","did":"{{- device_id(i.entity_id) -}}",,"entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- states[i.entity_id].last_updated|as_timestamp(None) -}}}
-        {%- endfor -%}]
-      {%- else -%}[]{%- endif %}
+    state: >-
+      {% set state = 'off' %}
+      {% set s = state_attr('binary_sensor.motion_device_battery','status') %}
+      {% if s|lower == 'none' or (not s is iterable or status|count < 1) %}
+        {% if is_state_attr('binary_sensor.motion_device_battery_exist','required','on') %}
+          {% set state = 'on' %}
+        {% endif %}
+      {% endif %}
+      {{ state }}
+    current: >-
+      {{ state_attr('binary_sensor.motion_device_battery','missing') }}
+  condition:
+    - condition: template
+      value_template: >
+        {{ state != current }}
   action:
     - alias: 'update binary_sensor.motion_device_battery: missing'
       service: python_script.set_state
       data_template:
         entity_id: binary_sensor.motion_device_battery
         missing: >-
-          {{ missing }}
+          {{ state }}
 
 - id: motion_device_battery_missing
   alias: motion_device_battery_missing
@@ -3349,11 +3354,11 @@
     - platform: 'state'
       entity_id: 'binary_sensor.motion_device_battery'
       attribute: 'missing'
+      to: 'on'
   variables:
     state: >-
       {% set state = 'off' %}
       {% if is_state('binary_sensor.motion_device_battery_exist','off')
-       and is_state_attr('automation.motion_device_battery_rescan','current',0)
        and is_state_attr('binary_sensor.motion_device_battery_exist','required','on') %}
         {% set state = 'on' %}
       {% endif %}
