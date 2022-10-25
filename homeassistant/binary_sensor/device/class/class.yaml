@@ -79,23 +79,12 @@
     motion_device_class_status:
       attribute_templates:
         automations: >-
-          {% set l = [] -%}
-          {%- set s = state_attr('binary_sensor.motion_device_class','binary_sensor_list') -%}
-          {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
-            {%- set l = (l + s)|sort|unique|list -%}
-          {%- endif -%}
-          {%- set s = state_attr('binary_sensor.motion_device_class','sensor_list') -%}
-          {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
-            {%- set l = (l + s)|sort|unique|list -%}
-          {%- endif -%}
-          {% if l|count > 0 -%}
-            {{- '[' -}}
-            {%- for i in l if state_attr('binary_sensor.motion_device_' + i|string,'automations')|lower == 'on' -%}
-              {%- if not loop.first -%},{%- endif -%}
-              '{{- i -}}'
-            {%- endfor -%}
-            {{- ']' -}}
-          {%- else -%}none{%- endif %}
+          {%- set s = state_attr('binary_sensor.motion_device_class','sensor_list')|list + state_attr('binary_sensor.motion_device_class','binary_sensor_list')|list -%}
+          {%- for i in s|sort|unique if is_state_attr('binary_sensor.motion_device_' + i|string,'automations','on') -%}
+            {%- if not loop.first -%},{%- else -%}[{%- endif -%}
+            "{{- i -}}"
+            {%- if loop.last -%}]{%- endif -%}
+          {%- endfor -%}
         status: >-
           {%- set s = state_attr('binary_sensor.motion_device_class','binary_sensor_list') -%}
           {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
@@ -113,50 +102,61 @@
             {%- endfor -%} }
           {%- else -%}none{%- endif -%}
         markdown: >-
-          {%- if is_state('binary_sensor.motion_device_class_status','on') -%}
+          {%- if is_state('binary_sensor.motion_device_class_status','unknown') -%}
+            <h2>Setup initializing</h2>
+          {%- elif is_state('binary_sensor.motion_device_class_status','on') -%}
             <h2>Setup complete</h2>
             {%- set s = state_attr('binary_sensor.motion_device_class_status','automations') -%}
             {%- if not s is string and s is iterable and s|count > 0 -%}
               <ol>{%- for i in s -%}<li><a href="/notify-devices/{{- i -}}">{{- i -}}</a></li>{%- endfor -%}</ol>
             {%- endif -%}
-            <br><a href="/config/integrations">All integrations</a>
           {%- elif is_state('binary_sensor.motion_device_class_status','off') -%}
-            {%- if is_state_attr('binary_sensor.motion_device_class_status','automations','none') -%}
-              <h2>Enabling automations</h2>
-            {%- elif is_state_attr('binary_sensor.motion_device_class_missing','ids','none') -%}
-              <h2>Finding devices</h2>
-            {%- elif is_state_attr('binary_sensor.motion_device_class_status','status','none') -%}
-              <h2>Discovering sensors</h2>
+            {%- set missing = state_attr('binary_sensor.motion_device_class_missing_exit','ids') -%}
+            {%- set automations = state_attr('binary_sensor.motion_device_class_status','automations') -%}
+            {%- set required = state_attr('binary_sensor.motion_device_class','sensors')|list + state_attr('binary_sensor.motion_device_class','binary_sensors')|list -%}
+            {%- if required is iterable and required|count > 0 -%}
+              <h2>Setup in-complete</h2>
+              {%- if not missing is iterable -%}
+                <h3>Missing pending</h3>
+              {%- elif missing is iterable and missing|count > 0 -%}
+                <h3>Missing devices</h3>
+                <ul>
+                <li><a href="/notify-missing/">Missing</a>:
+                <ol>{%- for i in missing -%}<li><a href="/lovelace-primary/{{- i -}}">{{- i|upper -}}</a></li>{%- endfor -%}</ol>
+                </li>
+                </ul>
+              {%- endif -%}
+              {%- if not automations is iterable -%}
+                <h3>Automations pending</h3>
+              {%- elif automations|count < required|count -%}
+                <h3>Enabling automations</h3>
+              {%- else -%}
+                <h3>Automations enabled</h3>
+              {%- endif -%}
+                <ul>
+                <li><a href="/config/integrations">Integrations</a>:
+                <ol>{%- for i in automations -%}<li><a href="/notify-devices/{{- i -}}">{{- i -}}</a></li>{%- endfor -%}</ol>
+                </li>
+                </ul>
             {%- else -%}
-              <h2>Setup in-complete</h2><ul>
-              {%- set s = state_attr('binary_sensor.motion_device_class_missing','ids') -%}
-              {%- if not s is string and s is iterable and s|count > 0 -%}
-                <li><a href="/notify-missing/">Missing</a>:<ol>{%- for i in s -%}<li><a href="/lovelace-primary/{{- i -}}">{{- i|upper -}}</a></li>{%- endfor -%}</ol></li>
-              {%- elif s|int(-1) == 0 -%}
-                <li><a href="/notify-missing/">No missing devices</a></li>
-              {%- else -%}
-                <li>Missing devices <i>pending</i></li>
-              {%- endif -%}
-              {%- set s = state_attr('binary_sensor.motion_device_class_status','automations') -%}
-              {%- if not s is string and s is iterable and s|count > 0 -%}
-                <li><a href="/config/integrations">Integrations</a>:<ol>{%- for i in s -%}<li><a href="/notify-devices/{{- i -}}">{{- i -}}</a></li>{%- endfor -%}</ol></li>
-              {%- elif s|int(-1) == 0 -%}
-                <li><a href="/config/integrations"><b>No integrations</b></a></li>
-              {%- else -%}
-                <li>Device integrations <i>pending</i></li>
-              {%- endif -%}
-              </ul>
+              <h2>No required devices</h2>
             {%- endif -%}
-          {%- elif is_state('binary_sensor.motion_device_class_status','unknown') -%}
-            <h2>Initializing</h2>
           {%- else -%}
-            <h2>Pending</h2>
+            <h2>Device status pending</h2>
           {%- endif -%}
+          <br><a href="/config/integrations">All integrations</a>
+          <br><i>Last updated</i>: {{ utcnow().timestamp()|timestamp_custom("%a -%b -%d -%I:%M -%p -%Z",true,'unknown') }}
       value_template: >-
-        {% set missing = state_attr('binary_sensor.motion_device_class_missing','ids') %}
-        {{- missing is iterable and missing|count == 0
-            and not is_state_attr('binary_sensor.motion_device_class_status','automations','none') 
-            and not is_state_attr('binary_sensor.motion_device_class_status','status','none') }}
+        {% set missing = state_attr('binary_sensor.motion_device_class_missing_exit','ids') %}
+        {% set automations = state_attr('binary_sensor.motion_device_class_status','automations') %}
+        {% set required = state_attr('binary_sensor.motion_device_class','sensors')|list + state_attr('binary_sensor.motion_device_class','binary_sensors')|list -%}
+        {% if required is iterable and required|count > 0 %}
+          {% if not missing is iterable %}unknown
+          {% elif missing is iterable and missing|count > 0 %}off
+          {% elif not automations is iterable %}off
+          {% elif automations|count < required|count %}off
+          {% else %}unknown{% endif %}
+        {% else %}unknown{% endif %}
 
 - platform: template
   sensors:

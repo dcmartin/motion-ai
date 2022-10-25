@@ -52,6 +52,13 @@
             {'id':'help','action': id|string + '-help','icon': help.icon|default('mdi:cancel')|string,'symbol': help.symbol|default('')|string,'title': help.title|default('')|string,'destructive':false,'trigger': help.trigger|default('none')}
             ] -%}
           {"id":"{{- id -}}","group":"{{- group -}}","interval":{{- interval -}},"responses":{{- responses -}},"primary":"{{- p -}}","actions":{{ a }}}
+        ids: >-
+          {%- set s = state_attr('binary_sensor.motion_device_class','sensor_list')|list + state_attr('binary_sensor.motion_device_class','binary_sensor_list')|list -%}
+          {%- for i in s|sort|unique if not is_state('binary_sensor.motion_device_' + i + '_exist','on') and is_state_attr('binary_sensor.motion_device_' + i + '_exist','required','on') -%}
+            {%- if not loop.first -%},{%- else -%}[{%- endif -%}
+            "{{- i -}}"
+            {%- if loop.last -%}]{%- endif -%}
+          {%- endfor -%}
       value_template: >-
         {{ is_state('binary_sensor.motion_device_class_missing','on') }}
 
@@ -62,20 +69,13 @@
       device_class: 'problem'
       icon_template: 'mdi:cancel'
       attribute_templates:
-        ids: >-
-          {%- set s = state_attr('binary_sensor.motion_device_class','sensor_list')|list + state_attr('binary_sensor.motion_device_class','binary_sensor_list')|list -%}
-          {%- for i in s|sort|unique if not is_state('binary_sensor.motion_device_' + i + '_exist','on') and is_state_attr('binary_sensor.motion_device_' + i + '_exist','required','on') -%}
-            {%- if not loop.first -%},{%- else -%}[{%- endif -%}
-            "{{- i -}}"
-            {%- if loop.last -%}]{%- endif -%}
-          {%- endfor -%}
         count: >-
-          {% set s = state_attr('binary_sensor.motion_device_class_missing','ids') %}
+          {% set s = state_attr('binary_sensor.motion_device_class_missing_exist','ids') %}
           {% if s|lower != 'none' and not s is string and s is iterable %}
             {{ s|count }}
           {% else %}none{% endif %}
         markdown: >-
-          {% set s = state_attr('binary_sensor.motion_device_class_missing','ids') %}
+          {% set s = state_attr('binary_sensor.motion_device_class_missing_exist','ids') %}
           {% if s|lower != 'none' and not s is string and s is iterable and s|count > 0 %}
             <h2><a href="/notify-missing/">Missing</a> devices</h2>
             {%- for i in s %}
@@ -90,7 +90,7 @@
           <br><b>Outstanding alarms</b>: <code>{{- state_attr('binary_sensor.motion_device_class_missing','count')|int(0) > 0 }}</code>
           <br><i>Last updated</i>: {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
       value_template: >-
-        {% set s = state_attr('binary_sensor.motion_device_class_missing','ids') %}
+        {% set s = state_attr('binary_sensor.motion_device_class_missing_exist','ids') %}
         {% if not s is string and s iterable %}
           {{ s|count > 0 }}
         {% else %}unknown{% endif %}
