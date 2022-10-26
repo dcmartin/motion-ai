@@ -115,37 +115,36 @@
         - conditions:
             - condition: template
               value_template: >
-                {{ trigger.platform != 'time_pattern' }}
+                {{ trigger.entity_id == 'binary_sensor.motion_device_class_status' }}
           sequence:
-            - alias: 'not time based trigger'
+            - condition: template
+              value_template: >
+                {{ is_state_attr('automation.motion_device_class_rescan','current',0) }}
+            - alias: 'trigger on binary_sensor.motion_device_class_status'
               service: automation.trigger
               data_template:
                 entity_id: automation.motion_device_class_rescan
         - conditions:
-            - alias: 'test if time_pattern and NOT running'
-              condition: template
+            - condition: template
               value_template: >
-                {{ trigger.platform == 'time_pattern' and is_state_attr('automation.motion_device_class_rescan','current',0) }}
+                {{ trigger.entity_id == 'group.motion_devices' }}
           sequence:
-            - alias: 'trigger motion_device_class_rescan'
+            - condition: template
+              value_template: >
+                {{ is_state_attr('automation.motion_device_class_rescan','current',0) }}
+            - alias: 'trigger on group.motion_devices'
               service: automation.trigger
               data_template:
                 entity_id: automation.motion_device_class_rescan
-    - alias: 'trigger automation class_missing_group_set'
-      service: automation.trigger
-      data_template:
-        entity_id: >-
-          {{ 'automation.motion_device_class_missing_group_set' }}
-    - alias: 'trigger automation class_activity_group_set'
-      service: automation.trigger
-      data_template:
-        entity_id: >-
-          {{ 'automation.motion_device_class_activity_group_set' }}
-    - alias: 'trigger automation class_rescan_unavailable'
-      service: automation.trigger
-      data_template:
-        entity_id: >-
-          {{ 'automation.motion_device_class_rescan_unavailable' }}
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ trigger.platform == 'time_pattern' and is_state_attr('automation.motion_device_class_rescan','current',0) }}
+          sequence:
+            - alias: 'time_pattern and NOT executing''
+              service: automation.trigger
+              data_template:
+                entity_id: automation.motion_device_class_rescan
 
 - id: motion_device_class_rescan
   alias: motion_device_class_rescan
@@ -488,6 +487,47 @@
           {{ markdown }}
         state: >-
           {% if total|int(0) > 0 %}on{% else %}off{% endif %}
+    - alias: 'trigger automation class_unavailable_group_set'
+      service: automation.trigger
+      data_template:
+        entity_id: >-
+          {{ 'automation.motion_device_class_unavailable_group_set' }}
+    - alias: 'trigger automation class_missing_group_set'
+      service: automation.trigger
+      data_template:
+        entity_id: >-
+          {{ 'automation.motion_device_class_missing_group_set' }}
+    - alias: 'trigger automation class_activity_group_set'
+      service: automation.trigger
+      data_template:
+        entity_id: >-
+          {{ 'automation.motion_device_class_activity_group_set' }}
+    - alias: 'trigger automation class_rescan_unavailable'
+      service: automation.trigger
+      data_template:
+        entity_id: >-
+          {{ 'automation.motion_device_class_rescan_unavailable' }}
+
+- id: motion_device_class_unavailable_group_set
+  alias: motion_device_class_unavailable_group_set
+  mode: 'restart'
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+  variables:
+    entities: >-
+      {%- set s = state_attr('binary_sensor.motion_device_class','sensor_list')|list + state_attr('binary_sensor.motion_device_class','binary_sensor_list')|list -%}
+      [{%- for i in s|sort|unique if is_state_attr('binary_sensor.motion_device_' + i + '_exist','required','on') -%}
+        {%- if not loop.first -%},{%- endif -%}
+        "{{- 'binary_sensor.motion_device_' + i|string + '_unavailable' -}}"
+      {%- endfor -%}]
+  action:
+    - alias: 'set group.motion_device_class_unavailable sensors'
+      service: group.set
+      data_template:
+        object_id: motion_device_class_unavailable
+        entities: >-
+          {{ entities }}
 
 - id: motion_device_class_missing_group_set
   alias: motion_device_class_missing_group_set
