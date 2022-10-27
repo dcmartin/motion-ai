@@ -95,56 +95,14 @@
   mode: 'restart'
   initial_state: 'on'
   trigger:
-    - platform: state
-      entity_id: 'group.motion_devices'
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_class_status'
-      for:
-        minutes: 1
     - platform: time_pattern
-      minutes: '/1'
-  condition:
-    condition: and
-    conditions:
-      - alias: 'test if class_rescan_all is NOT running'
-        condition: template
-        value_template: >-
-          {{ state_attr('automation.motion_device_class_rescan_all','current')|int(-1) == 0  }}
+      minutes: '/5'
   action:
-    - choose:
-        - conditions:
-            - condition: template
-              value_template: >
-                {{ trigger.entity_id == 'binary_sensor.motion_device_class_status' }}
-          sequence:
-            - condition: template
-              value_template: >
-                {{ is_state_attr('automation.motion_device_class_rescan','current',0) }}
-            - alias: 'trigger on binary_sensor.motion_device_class_status'
-              service: automation.trigger
-              data_template:
-                entity_id: automation.motion_device_class_rescan
-        - conditions:
-            - condition: template
-              value_template: >
-                {{ trigger.entity_id == 'group.motion_devices' }}
-          sequence:
-            - condition: template
-              value_template: >
-                {{ is_state_attr('automation.motion_device_class_rescan','current',0) }}
-            - alias: 'trigger on group.motion_devices'
-              service: automation.trigger
-              data_template:
-                entity_id: automation.motion_device_class_rescan
-        - conditions:
-            - condition: template
-              value_template: >
-                {{ trigger.platform == 'time_pattern' and is_state_attr('automation.motion_device_class_rescan','current',0) }}
-          sequence:
-            - alias: 'time_pattern and NOT executing'
-              service: automation.trigger
-              data_template:
-                entity_id: automation.motion_device_class_rescan
+    - wait_template: >-
+        {{ is_state_attr('automation.motion_device_class_rescan', 0) }}
+    - service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_class_rescan
 
 - id: motion_device_class_rescan
   alias: motion_device_class_rescan
@@ -152,6 +110,8 @@
   max_exceeded: 'warn'
   initial_state: 'on'
   trigger:
+    - platform: state
+      entity_id: 'group.motion_devices'
   variables:
     sensor_ids: >-
       {% set s = state_attr('binary_sensor.motion_device_class','sensor_list') %}
