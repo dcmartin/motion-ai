@@ -521,90 +521,39 @@
     - platform: 'state'
       entity_id: 'binary_sensor.motion_device_door_exist'
     - platform: state
-      entity_id: 'group.motion_device_door'
-    - platform: state
       entity_id: 'binary_sensor.motion_device_door'
       attribute: 'automations'
       to: 'on'
     - platform: time_pattern
-      minutes: '/1'
+      minutes: '/5'
   condition:
     condition: and
     conditions:
-      - alias: 'door status watchdog test if on and NOT running'
-        condition: template
+      - condition: template
         value_template: >-
           {{ is_state('automation.motion_device_door_status','on') }}
   action:
-    - choose:
-        - conditions:
-            - condition: template
-              value_template: >
-                {{ trigger.platform == 'state' }}
-          sequence:
-            - choose:
-                - conditions:
-                    - condition: template
-                      value_template: >
-                        {{ 'group.motion_device_door' == trigger.entity_id }}
-                  sequence:
-                    - alias: 'group changed; status not running; trigger door status'
-                      service: automation.trigger
-                      data_template:
-                        entity_id: automation.motion_device_door_status
-                - conditions:
-                    - condition: template
-                      value_template: >
-                        {{ 'binary_sensor.motion_device_door_exist' == trigger.entity_id }}
-                  sequence:
-                    - alias: 'state changed; binary_sensor.motion_device_door_exist'
-                      service: automation.trigger
-                      data_template:
-                        entity_id: automation.motion_device_door_rescan
-                - conditions:
-                    - condition: template
-                      value_template: >
-                        {{ 'binary_sensor.motion_device_door' == trigger.entity_id }}
-                  sequence:
-                    - alias: 'state changed; binary_sensor.motion_device_door: automations'
-                      service: automation.trigger
-                      data_template:
-                        entity_id: automation.motion_device_door_status
-                - conditions:
-                    - condition: template
-                      value_template: >
-                        {{ is_state_attr('automation.motion_device_door_status','current',0) }}
-                  sequence:
-                    - alias: 'state changed; NOT binary_sensor; status not running; trigger door status'
-                      service: automation.trigger
-                      data_template:
-                        entity_id: automation.motion_device_door_status
-                - conditions:
-                    - condition: template
-                      value_template: >
-                        {{ not is_state_attr('automation.motion_device_door_status','current',0) }}
-                  sequence:
-                    - wait_template: >-
-                        {{ is_state_attr('automation.motion_device_door_status', 0) }}
-                    - alias: 'state changed; automation was running; waited until complete; trigger door status'
-                      service: automation.trigger
-                      data_template:
-                        entity_id: automation.motion_device_door_status
-        - conditions:
-            - condition: template
-              value_template: >
-                {{ trigger.platform == 'time_pattern' and is_state_attr('automation.motion_device_door_status','current',0) }}
-          sequence:
-            - alias: 'time_pattern; status not running; trigger door status'
-              service: automation.trigger
-              data_template:
-                entity_id: automation.motion_device_door_status
+    - alias: 'wait until automation is NOT running'
+      wait_template: >-
+        {{ is_state_attr('automation.motion_device_door_status', 0) }}
+    - alias: 'trigger door status'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_door_status
 
 - id: motion_device_door_status
   alias: motion_device_door_status
   mode: 'restart'
   initial_state: 'off'
   trigger:
+    - platform: 'state'
+      entity_id: 'binary_sensor.motion_device_door_expired'
+      to: 'on'
+    - platform: state
+      entity_id: 'group.motion_device_door'
+      to:
+        - 'on'
+        - 'off'
   variables:
     class: >-
       {% set class = 'door' %}

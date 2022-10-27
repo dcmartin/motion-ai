@@ -521,90 +521,39 @@
     - platform: 'state'
       entity_id: 'binary_sensor.motion_device_plug_exist'
     - platform: state
-      entity_id: 'group.motion_device_plug'
-    - platform: state
       entity_id: 'binary_sensor.motion_device_plug'
       attribute: 'automations'
       to: 'on'
     - platform: time_pattern
-      minutes: '/1'
+      minutes: '/5'
   condition:
     condition: and
     conditions:
-      - alias: 'plug status watchdog test if on and NOT running'
-        condition: template
+      - condition: template
         value_template: >-
           {{ is_state('automation.motion_device_plug_status','on') }}
   action:
-    - choose:
-        - conditions:
-            - condition: template
-              value_template: >
-                {{ trigger.platform == 'state' }}
-          sequence:
-            - choose:
-                - conditions:
-                    - condition: template
-                      value_template: >
-                        {{ 'group.motion_device_plug' == trigger.entity_id }}
-                  sequence:
-                    - alias: 'group changed; status not running; trigger plug status'
-                      service: automation.trigger
-                      data_template:
-                        entity_id: automation.motion_device_plug_status
-                - conditions:
-                    - condition: template
-                      value_template: >
-                        {{ 'binary_sensor.motion_device_plug_exist' == trigger.entity_id }}
-                  sequence:
-                    - alias: 'state changed; binary_sensor.motion_device_plug_exist'
-                      service: automation.trigger
-                      data_template:
-                        entity_id: automation.motion_device_plug_rescan
-                - conditions:
-                    - condition: template
-                      value_template: >
-                        {{ 'binary_sensor.motion_device_plug' == trigger.entity_id }}
-                  sequence:
-                    - alias: 'state changed; binary_sensor.motion_device_plug: automations'
-                      service: automation.trigger
-                      data_template:
-                        entity_id: automation.motion_device_plug_status
-                - conditions:
-                    - condition: template
-                      value_template: >
-                        {{ is_state_attr('automation.motion_device_plug_status','current',0) }}
-                  sequence:
-                    - alias: 'state changed; NOT binary_sensor; status not running; trigger plug status'
-                      service: automation.trigger
-                      data_template:
-                        entity_id: automation.motion_device_plug_status
-                - conditions:
-                    - condition: template
-                      value_template: >
-                        {{ not is_state_attr('automation.motion_device_plug_status','current',0) }}
-                  sequence:
-                    - wait_template: >-
-                        {{ is_state_attr('automation.motion_device_plug_status', 0) }}
-                    - alias: 'state changed; automation was running; waited until complete; trigger plug status'
-                      service: automation.trigger
-                      data_template:
-                        entity_id: automation.motion_device_plug_status
-        - conditions:
-            - condition: template
-              value_template: >
-                {{ trigger.platform == 'time_pattern' and is_state_attr('automation.motion_device_plug_status','current',0) }}
-          sequence:
-            - alias: 'time_pattern; status not running; trigger plug status'
-              service: automation.trigger
-              data_template:
-                entity_id: automation.motion_device_plug_status
+    - alias: 'wait until automation is NOT running'
+      wait_template: >-
+        {{ is_state_attr('automation.motion_device_plug_status', 0) }}
+    - alias: 'trigger plug status'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_plug_status
 
 - id: motion_device_plug_status
   alias: motion_device_plug_status
   mode: 'restart'
   initial_state: 'off'
   trigger:
+    - platform: 'state'
+      entity_id: 'binary_sensor.motion_device_plug_expired'
+      to: 'on'
+    - platform: state
+      entity_id: 'group.motion_device_plug'
+      to:
+        - 'on'
+        - 'off'
   variables:
     class: >-
       {% set class = 'plug' %}

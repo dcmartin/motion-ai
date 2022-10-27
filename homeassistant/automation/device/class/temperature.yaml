@@ -521,90 +521,39 @@
     - platform: 'state'
       entity_id: 'binary_sensor.motion_device_temperature_exist'
     - platform: state
-      entity_id: 'group.motion_device_temperature'
-    - platform: state
       entity_id: 'binary_sensor.motion_device_temperature'
       attribute: 'automations'
       to: 'on'
     - platform: time_pattern
-      minutes: '/1'
+      minutes: '/5'
   condition:
     condition: and
     conditions:
-      - alias: 'temperature status watchdog test if on and NOT running'
-        condition: template
+      - condition: template
         value_template: >-
           {{ is_state('automation.motion_device_temperature_status','on') }}
   action:
-    - choose:
-        - conditions:
-            - condition: template
-              value_template: >
-                {{ trigger.platform == 'state' }}
-          sequence:
-            - choose:
-                - conditions:
-                    - condition: template
-                      value_template: >
-                        {{ 'group.motion_device_temperature' == trigger.entity_id }}
-                  sequence:
-                    - alias: 'group changed; status not running; trigger temperature status'
-                      service: automation.trigger
-                      data_template:
-                        entity_id: automation.motion_device_temperature_status
-                - conditions:
-                    - condition: template
-                      value_template: >
-                        {{ 'binary_sensor.motion_device_temperature_exist' == trigger.entity_id }}
-                  sequence:
-                    - alias: 'state changed; binary_sensor.motion_device_temperature_exist'
-                      service: automation.trigger
-                      data_template:
-                        entity_id: automation.motion_device_temperature_rescan
-                - conditions:
-                    - condition: template
-                      value_template: >
-                        {{ 'binary_sensor.motion_device_temperature' == trigger.entity_id }}
-                  sequence:
-                    - alias: 'state changed; binary_sensor.motion_device_temperature: automations'
-                      service: automation.trigger
-                      data_template:
-                        entity_id: automation.motion_device_temperature_status
-                - conditions:
-                    - condition: template
-                      value_template: >
-                        {{ is_state_attr('automation.motion_device_temperature_status','current',0) }}
-                  sequence:
-                    - alias: 'state changed; NOT binary_sensor; status not running; trigger temperature status'
-                      service: automation.trigger
-                      data_template:
-                        entity_id: automation.motion_device_temperature_status
-                - conditions:
-                    - condition: template
-                      value_template: >
-                        {{ not is_state_attr('automation.motion_device_temperature_status','current',0) }}
-                  sequence:
-                    - wait_template: >-
-                        {{ is_state_attr('automation.motion_device_temperature_status', 0) }}
-                    - alias: 'state changed; automation was running; waited until complete; trigger temperature status'
-                      service: automation.trigger
-                      data_template:
-                        entity_id: automation.motion_device_temperature_status
-        - conditions:
-            - condition: template
-              value_template: >
-                {{ trigger.platform == 'time_pattern' and is_state_attr('automation.motion_device_temperature_status','current',0) }}
-          sequence:
-            - alias: 'time_pattern; status not running; trigger temperature status'
-              service: automation.trigger
-              data_template:
-                entity_id: automation.motion_device_temperature_status
+    - alias: 'wait until automation is NOT running'
+      wait_template: >-
+        {{ is_state_attr('automation.motion_device_temperature_status', 0) }}
+    - alias: 'trigger temperature status'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_temperature_status
 
 - id: motion_device_temperature_status
   alias: motion_device_temperature_status
   mode: 'restart'
   initial_state: 'off'
   trigger:
+    - platform: 'state'
+      entity_id: 'binary_sensor.motion_device_temperature_expired'
+      to: 'on'
+    - platform: state
+      entity_id: 'group.motion_device_temperature'
+      to:
+        - 'on'
+        - 'off'
   variables:
     class: >-
       {% set class = 'temperature' %}

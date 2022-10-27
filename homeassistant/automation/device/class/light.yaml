@@ -521,90 +521,39 @@
     - platform: 'state'
       entity_id: 'binary_sensor.motion_device_light_exist'
     - platform: state
-      entity_id: 'group.motion_device_light'
-    - platform: state
       entity_id: 'binary_sensor.motion_device_light'
       attribute: 'automations'
       to: 'on'
     - platform: time_pattern
-      minutes: '/1'
+      minutes: '/5'
   condition:
     condition: and
     conditions:
-      - alias: 'light status watchdog test if on and NOT running'
-        condition: template
+      - condition: template
         value_template: >-
           {{ is_state('automation.motion_device_light_status','on') }}
   action:
-    - choose:
-        - conditions:
-            - condition: template
-              value_template: >
-                {{ trigger.platform == 'state' }}
-          sequence:
-            - choose:
-                - conditions:
-                    - condition: template
-                      value_template: >
-                        {{ 'group.motion_device_light' == trigger.entity_id }}
-                  sequence:
-                    - alias: 'group changed; status not running; trigger light status'
-                      service: automation.trigger
-                      data_template:
-                        entity_id: automation.motion_device_light_status
-                - conditions:
-                    - condition: template
-                      value_template: >
-                        {{ 'binary_sensor.motion_device_light_exist' == trigger.entity_id }}
-                  sequence:
-                    - alias: 'state changed; binary_sensor.motion_device_light_exist'
-                      service: automation.trigger
-                      data_template:
-                        entity_id: automation.motion_device_light_rescan
-                - conditions:
-                    - condition: template
-                      value_template: >
-                        {{ 'binary_sensor.motion_device_light' == trigger.entity_id }}
-                  sequence:
-                    - alias: 'state changed; binary_sensor.motion_device_light: automations'
-                      service: automation.trigger
-                      data_template:
-                        entity_id: automation.motion_device_light_status
-                - conditions:
-                    - condition: template
-                      value_template: >
-                        {{ is_state_attr('automation.motion_device_light_status','current',0) }}
-                  sequence:
-                    - alias: 'state changed; NOT binary_sensor; status not running; trigger light status'
-                      service: automation.trigger
-                      data_template:
-                        entity_id: automation.motion_device_light_status
-                - conditions:
-                    - condition: template
-                      value_template: >
-                        {{ not is_state_attr('automation.motion_device_light_status','current',0) }}
-                  sequence:
-                    - wait_template: >-
-                        {{ is_state_attr('automation.motion_device_light_status', 0) }}
-                    - alias: 'state changed; automation was running; waited until complete; trigger light status'
-                      service: automation.trigger
-                      data_template:
-                        entity_id: automation.motion_device_light_status
-        - conditions:
-            - condition: template
-              value_template: >
-                {{ trigger.platform == 'time_pattern' and is_state_attr('automation.motion_device_light_status','current',0) }}
-          sequence:
-            - alias: 'time_pattern; status not running; trigger light status'
-              service: automation.trigger
-              data_template:
-                entity_id: automation.motion_device_light_status
+    - alias: 'wait until automation is NOT running'
+      wait_template: >-
+        {{ is_state_attr('automation.motion_device_light_status', 0) }}
+    - alias: 'trigger light status'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_light_status
 
 - id: motion_device_light_status
   alias: motion_device_light_status
   mode: 'restart'
   initial_state: 'off'
   trigger:
+    - platform: 'state'
+      entity_id: 'binary_sensor.motion_device_light_expired'
+      to: 'on'
+    - platform: state
+      entity_id: 'group.motion_device_light'
+      to:
+        - 'on'
+        - 'off'
   variables:
     class: >-
       {% set class = 'light' %}
