@@ -152,6 +152,11 @@
       event: 'start'
     - platform: time_pattern
       minutes: '/5'
+    - platform: 'state'
+      entity_id: 'sensor.motion_device_energy_count'
+      not_to:
+        - 'unknown'
+        - 'none'
   action:
     - choose:
         - conditions:
@@ -173,6 +178,19 @@
               service: automation.trigger
               data_template:
                 entity_id: automation.motion_device_energy_rescan
+        - conditions:
+            - alias: 'rescan iff time_pattern and NOT running'
+              condition: template
+              value_template: >
+                {{ not is_state_attr('automation.motion_device_energy_rescan','current',0) }}
+          sequence:
+            - alias: 'wait until automation is NOT running'
+              wait_template: >-
+                {{ is_state_attr('automation.motion_device_energy_status', 'current', 0) }}
+            - alias: 'trigger motion_device_energy_rescan'
+              service: automation.trigger
+              data_template:
+                entity_id: automation.motion_device_energy_rescan
 
 - id: motion_device_energy_rescan
   alias: motion_device_energy_rescan
@@ -180,9 +198,6 @@
   max_exceeded: 'warn'
   initial_state: 'on'
   trigger:
-    - platform: 'state'
-      entity_id: 'binary_sensor.motion_device_energy_exist'
-      attribute: 'count'
   condition:
     condition: and
     conditions:
