@@ -97,18 +97,24 @@
     - platform: 'state'
       entity_id: 'binary_sensor.motion_device_class_missing'
       attribute: 'ids'
+      not_to:
+        - 'none'
+        - 'unknown'
+      for:
+        seconds: 30
   binary_sensor:
     - name: 'motion_device_update_missing'
       device_class: 'problem'
       attributes:
         last: >-
-          {% set last = state_attr('binary_sensor.motion_device_update_missing','last') %}
           {% if is_state('binary_sensor.motion_device_update_exist','off') and is_state_attr('binary_sensor.motion_device_update_exist','required','on') %}
-            {% set last = utcnow().timestamp() %}
-          {% elif not last is defined or last|lower == 'unknown' or last|lower == 'unavailable' or last|lower == 'none' %}
-            {%- set last = 'null' -%}
+            {{ utcnow().timestamp() }}
+          {% else %}
+            {% set s = states['binary_sensor.motion_device_update_missing'] %}
+            {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable and s.attributes.last|default(none) != none %}
+              {{ s.attributes.last|float(0) }}
+            {% else %}null{% endif %}
           {% endif %}
-          {{ last }}
         responses: >-
           {%- set responses = none -%}
           {%- set s = state_attr('binary_sensor.motion_device_update_missing','actions') -%}
