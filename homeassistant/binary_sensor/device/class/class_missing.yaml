@@ -54,11 +54,10 @@
           {"id":"{{- id -}}","group":"{{- group -}}","interval":{{- interval -}},"responses":{{- responses -}},"primary":"{{- p -}}","actions":{{ a }}}
         ids: >-
           {%- set s = state_attr('binary_sensor.motion_device_class','sensor_list')|list + state_attr('binary_sensor.motion_device_class','binary_sensor_list')|list -%}
-          {%- for i in s|sort|unique if not is_state('binary_sensor.motion_device_' + i + '_exist','on') and is_state_attr('binary_sensor.motion_device_' + i + '_exist','required','on') -%}
-            {%- if not loop.first -%},{%- else -%}[{%- endif -%}
+          [{%- for i in s|sort|unique if not is_state('binary_sensor.motion_device_' + i + '_exist','on') and is_state_attr('binary_sensor.motion_device_' + i + '_exist','required','on') -%}
+            {%- if not loop.first -%},{%- endif -%}
             '{{- i -}}'
-            {%- if loop.last -%}]{%- endif -%}
-          {%- else -%}none{%- endfor -%}
+          {%- endfor -%}]
       value_template: >-
         {{ is_state('binary_sensor.motion_device_class_missing','on') }}
 
@@ -71,18 +70,21 @@
       attribute_templates:
         ids: >-
           {%- set s = state_attr('binary_sensor.motion_device_class_missing_exist','ids') -%}
-          {%- if s|lower != 'none' and s is iterable -%}
-            {{ s }}
-          {%- else -%}null{%- endif -%}
+          {%- if not s is string and s is iterable -%}
+            [{%- for i in s -%}
+              {%- if not loop.first -%},{%- endif -%}
+              '{{- i -}}'
+            {%- endfor -%}]
+          {%- else -%}none{%- endif -%}
         count: >-
           {% set s = state_attr('binary_sensor.motion_device_class_missing_exist','ids') %}
-          {% if s|lower != 'none' and not s is string and s is iterable %}
+          {% if not s is string and s is iterable %}
             {{ s|count }}
           {% else %}null{% endif %}
         markdown: >-
           {%- set count = none -%}
           {%- set s = state_attr('binary_sensor.motion_device_class_missing_exist','ids') -%}
-          {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+          {%- if not s is string and s is iterable and s|count > 0 -%}
             {%- set count = s|count -%}
             <h2><a href="/notify-missing/">Missing</a> devices</h2>
             {%- for i in s %}
