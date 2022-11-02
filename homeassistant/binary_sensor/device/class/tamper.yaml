@@ -139,7 +139,7 @@
         high_spike: >-
           {{ not is_state_attr('binary_sensor.motion_device_tamper_exist','high_spike','none') and is_state('binary_sensor.motion_device_tamper_high_spike','on') }}
         missing: >-
-          {{ not is_state_attr('binary_sensor.motion_device_tamper_exist','required','none') and is_state('binary_sensor.motion_device_tamper_missing','on') }}
+          {{ not is_state_attr('binary_sensor.motion_device_tamper_exist','required','none') and not is_state('binary_sensor.motion_device_tamper_missing','off') }}
         unavailable: >-
           {{ is_state('binary_sensor.motion_device_tamper_unavailable','on') }}
         found: >-
@@ -543,6 +543,35 @@
         {% if s|lower != 'none' and  s|lower != 'unknown' and not s is string and s is iterable and s|count > 0 %}
           {{- s|sum|int(0) > 0 -}}
         {% else %}unknown{% endif %}
+
+### missing
+
+- platform: template
+  sensors:
+    motion_device_tamper_missing:
+      friendly_name: Missing tamper
+      device_class: 'problem'
+      attribute_templates:
+        last: >-
+          {{ 'unknown' }}
+        details: >-
+          {{ 'unknown' }}
+        responses: >-
+          {%- set responses = ['deny','wait','help'] -%}
+          {{- responses -}}
+        actions: >-
+          {%- set id = 'device-tamper-missing' -%}
+          {%- set group = 'device-tamper' -%}
+          {%- set interval = 300 -%}
+          {%- set primary = state_attr('sensor.motion_role_primary','friendly_name') -%}
+          {%- set approve = {'id':'approve','action':id|string + '-approve','title':'I\'m Okay','icon':'mdi:thumb-up','symbol':'sfsymbols:hand.thumbsup','destructive':false,'trigger':'automation.motion_device_tamper_missing_okay'} -%}
+          {%- set deny = {'id':'deny','action':id|string + '-deny','title':'Bad alarm off','icon':'mdi:bell-cancel','symbol':'sfsymbols:hand.thumbsdown.fill','destructive':true,'trigger':'automation.motion_device_tamper_missing_off'} -%}
+          {%- set wait = {'id':'wait','action':id|string + '-wait','title':'Ignore','icon':'mdi:bell-sleep','symbol':'sfsymbols:timer','destructive':false,'trigger':'automation.motion_device_tamper_bad_dismiss'} -%}
+          {%- set help = {'id':'help','action':id|string + '-help','title':'Notify ' + primary|string,'icon':'mdi:message-alert','symbol':'sfsymbols:message','destructive':false,'trigger':'automation.motion_notification_tamper_missing'} -%}
+          [{{ approve }},{{ deny }},{{ wait }},{{ help }}]
+      value_template: >-
+        {% set s = state_attr('binary_sensor.motion_device_class_missing','ids') %}
+        {{ s|lower != 'none' and s is iterable and 'tamper' in s }}
 
 ### bad,good
 
