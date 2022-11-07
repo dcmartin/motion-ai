@@ -18,14 +18,16 @@
         last: >-
           {{ utcnow().timestamp() }}
         state: >-
-          {%- set s = states['binary_sensor.motion_device_door']|default(none) -%}
-          {%- if s|lower != 'none' -%}
-            {%- set lu = s.last_updated %}
-            {%- set s = state_attr('group.motion_device_door','entity_id') %}
-            {%- if s is iterable and s|count > 0 -%}
-              {%- for i in s if states[i].last_updated > lu -%}
-                {%- if loop.first -%}on{%- endif -%}
-              {%- else -%}off{%- endfor -%}
+          {%- if states is iterable and 'binary_sensor.motion_device_door' in states -%}
+            {%- set s = states['binary_sensor.motion_device_door'] -%}
+            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable and 'last_updated' in s and s.last_updated|lower != 'none' -%}
+              {%- set lu = s.last_updated %}
+              {%- set s = state_attr('group.motion_device_door','entity_id') -%}
+              {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
+                {%- for i in s if 'last_updated' in states[i] and states[i].last_updated > lu -%}
+                  {%- if loop.first -%}on{%- endif -%}
+                {%- else -%}off{%- endfor -%}
+              {%- else -%}off{%- endif -%}
             {%- else -%}off{%- endif -%}
           {%- else -%}off{%- endif -%}
 
@@ -2817,9 +2819,12 @@
       entity_id: binary_sensor.motion_device_door
       attribute: 'devices'
   variables:
+    class: >-
+      {%- set class = 'door' -%}
+      {{ class }}
     devices: >-
       {% set devices = [] -%}
-      {%- set s = state_attr('binary_sensor.motion_device_door','devices') -%}
+      {%- set s = state_attr('binary_sensor.motion_device_' + class,'devices') -%}
       {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
         {%- set devices = s -%}
       {%- endif -%}
@@ -2870,7 +2875,7 @@
         value_template: >-
           {{ dids|lower != 'none' and not dids is string and dids is iterable and dids|count > 0 }}
   action:
-    - alias: 'process all door devices by device id'
+    - alias: 'process (door) devices by device id'
       repeat:
         while:
           - alias: 'test if not done'
@@ -2901,6 +2906,10 @@
                 {% set config = [] %}
                 {% if did in shellys %}
                   {% set config = config + [url|string + '/settings/cloud?enabled=false'] %}
+                  {% if class|upper in ['TEMPERATURE'] %}
+                    {% set config = config + [url|string + '/settings?door_units=C'] %}
+                    {% set config = config + [url|string + '/settings?door_offset=0'] %}
+                  {% endif %}
                 {% endif %}
                 {% if did in unicast %}
                   {% set config = config + [url|string + '/settings?coiot_enable=true&coiot_peer=' + states('sensor.host_lan_ipv4')] %}
