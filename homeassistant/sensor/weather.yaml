@@ -39,8 +39,18 @@
             {%- set d = state_attr('binary_sensor.weather_forecasted','days') -%}
             {%- set n = state_attr('binary_sensor.weather_forecasted','lows')|min -%}
             {%- set m = state_attr('binary_sensor.weather_forecasted','temperatures')|max -%}
-            Outside is {{ c -}}; {{ t  }} degrees with {{ h -}}% humidity.  Wind is {{ w }} from {{ b -}}. Over the next {{ d }} days the temperature will range from {{ n  }} to {{ m -}}. 
-            {%- if s|int > 0 and d|int > 0 %} Rain expected {{ r }} days{%- else %} No rain forecasted{%- endif -%}.
+            {%- set us = state_attr('sensor.motion_hub','unit_system') -%}
+            {%- set ap = 'total' -%}
+            {%- set tp = 'degrees' -%}
+            {%- set ws = 'pH' -%}
+            {%- if us|lower != 'none' and us is iterable and 'accumulated_precipitation' in us -%}
+              {%- set ap = us.accumulated_precipitation -%}
+              {%- set tp = us.temperature -%}
+              {%- set ws = us.wind_speed -%}
+            {%- endif -%}
+            Outside is {{ c -}}; {{ t  }}{{ tp }} with {{ h -}}% humidity. Wind is {{ w }}{{ ws }} from {{ b -}}.
+            Over the next {{ d }} days the temperature will range from {{ n  }} to {{ m }}{{ tp -}}.
+            {%- if s|int > 0 and d|int > 0 %} Rain expected ({{- s }}{{ ap -}}) over {{ r }} days{%- else %} No rain forecasted{%- endif -%}.
           {%- endif -%}
       value_template: >-
         {%- set s = states('sensor.motion_name') -%}
@@ -132,7 +142,7 @@
   name: weather_temperature_history_1w
   entity_id: binary_sensor.weather_forecasted
   state: 'on'
-  type: ratio 
+  type: ratio
   start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7) }}'
   end: '{{ now() }}'
 
