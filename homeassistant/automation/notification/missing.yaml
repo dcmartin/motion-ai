@@ -1,0 +1,402 @@
+###
+# homeassistant/automation/notification/missing.yaml
+###
+
+- id: motion_notification_device_missing
+  alias: motion_notification_device_missing
+  initial_state: 'on'
+  mode: missing
+  trigger:
+    - platform: state
+      entity_id: input_boolean.motion_notification_missing_requested
+      to: 'on'
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ is_state('input_boolean.motion_notification_missing_requested','on') }}
+  variables:
+    service: >-
+      {% set s = state_attr('sensor.motion_notification_missing','device') %}
+      {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unavailable' and s|lower != 'unknown' %}
+        {{ 'notify.mobile_app_' + s|replace('device_tracker.','') }}
+      {% else %}none{% endif %}
+    channel: >-
+      {{ states('sensor.motion_name') }}
+    icon_url: >-
+      {% set s = state_attr('sensor.motion_name','entity_picture') %}
+      {% if is_state_attr('binary_sensor.motion_addon_update','addon','age_home') -%}
+        {{- 'http://raw.githubusercontent.com/ageathome/addons/master/ageathome/icon.png?v=1' -}}
+      {%- elif is_state_attr('binary_sensor.motion_addon_update','addon','motion_classic') -%}
+        {{- 'http://raw.githubusercontent.com/dcmartin/hassio-addons/master/motion-video0/logo.png?v=1' -}}
+      {% elif s|lower != 'none' %}
+        {{ s }}
+      {%- else -%}
+        { '/local/images/icon.png' }}
+      {%- endif %}
+    id: >-
+      {% set id = state_attr('sensor.motion_notification_missing','id') %}
+      {{ id }}
+    group: >-
+      {% set group = state_attr('sensor.motion_notification_missing','group') %}
+      {{ group }}
+    interval: >-
+      {% set interval = state_attr('sensor.motion_notification_missing','interval') %}
+      {{ interval }}
+    notification_icon: >-
+      {% set notification_icon = state_attr('sensor.motion_notification_missing','notification_icon') %}
+      {{ notification_icon }}
+    image: >-
+      {% set image = state_attr('sensor.motion_notification_missing','image') %}
+      {{ image }}
+    data_url: >-
+      {% set data_url = state_attr('sensor.motion_notification_missing','url') %}
+      {{ data_url }}
+    title: >-
+      {% set title = state_attr('sensor.motion_notification_missing','title') %}
+      {{ title }}
+    subtitle: >-
+      {% set subtitle = state_attr('sensor.motion_notification_missing','subtitle') %}
+      {{ subtitle }}
+    message: >-
+      {% set message = state_attr('sensor.motion_notification_missing','message') %}
+      {{ message }}
+    actions: >-
+      {% set actions = state_attr('sensor.motion_notification_missing','actions') %}
+      {{ actions }}
+    sound: >-
+      {% set sound = state_attr('sensor.motion_notification_missing','sound') %}
+      {% if sound|lower == 'none' %}
+        {% set sound = 'default' %}
+      {% endif %}
+      {{ sound }}
+    persistent: >-
+      {% set persistent = state_attr('sensor.motion_notification_missing','persistent') %}
+      {% if persistent|lower == 'on' or persistent|lower == 'true' %}{% set persistent = true %}{% else %}{% set persistent = false %}{% endif %}
+      {{ persistent }}
+    tag: >-
+      {% if persistent %}
+        {% set tag = 'persistent' %}
+      {% else %}
+        {% set tag = state_attr('sensor.motion_notification_missing','tag') %}
+        {% if tag|lower == 'none' %}
+          {% set tag = id %}
+        {% endif %}
+      {% endif %}
+      {{ tag }}
+    critical: >-
+      {% set critical = state_attr('sensor.motion_notification_missing','critical') %}
+      {% if critical|lower == 'true' or critical|lower == 'on' %}{% set critical = 1 %}{% else %}{% set critical = 0 %}{% endif %}
+      {{ critical }}
+    volume: >-
+      {{ 1.0 }}
+    interruption_level: >-
+      {% set levels = ['passive','active','time-sensitive','critical'] -%}
+      {%- set critical = state_attr('sensor.motion_notification_missing','critical') -%}
+      {%- if critical|lower == 'true' or critical|lower == 'on' -%}
+        {%- set interruption_level = 'critical' -%}
+      {%- else -%}
+        {%- set interruption_level = state_attr('sensor.motion_notification_missing','interruption_level') -%}
+        {% if not interruption_level|lower in levels -%}
+          {% set interruption_level = 'active' %}
+        {% endif %}
+      {% endif %}
+      {{ interruption_level }}
+    badge: >-
+      {{ 1 }}
+    timeout: >-
+      {{ interval|int(1) * 60 }}
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+          sequence:
+            - service: persistent_notification.create
+              data:
+                title: >-
+                  DEBUG: Reload notification
+                notification_id: >-
+                  {{ 'log-notification-missing-start' }}
+                message: >-
+                  <b>Start</b> at <i>{{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}</i>
+                  <ul>
+                  <li>id: "{{ id }}"</li>
+                  <li>service: "{{ service }}"</li>
+                  <li>channel: "{{ channel }}"</li>
+                  <li>group: "{{ group }}"</li>
+                  <li>tag: "{{ tag }}"</li>
+                  <li>image: "{{ image }}"</li>
+                  <li>data_url: "{{ data_url }}"</li>
+                  <li>icon_url: "{{ icon_url }}"</li>
+                  <li>notification_icon: "{{ notification_icon }}"</li>
+                  <li>badge: "{{ badge }}"</li>
+                  <li>title: "{{ title }}"</li>
+                  <li>message: "{{ message }}"</li>
+                  <li>interval: "{{ interval }}"</li>
+                  <li>interruption_level: "{{ interruption_level }}"</li>
+                  <li>persistent: "{{ persistent }}"</li>
+                  <li>critical: "{{ critical }}"</li>
+                  <li>volume: "{{ volume }}"</li>
+                  <li>sound: "{{ sound }}"</li>
+                  <li>timeout: "{{ timeout }}"</li>
+                  <li>actions: "{{ actions|string }}"</li>
+                  </ul>
+    - alias: 'test if notification service is defined'
+      condition:
+        - condition: template
+          value_template: >-
+            {{ service|lower != 'none' and service is string and service|length > 0 }}
+    - repeat:
+        sequence:
+          - alias: 'send notification_missing to motion_person.device'
+            service: >-
+              {{ service }}
+            data:
+              title: >-
+                {{ title }}
+              message: >-
+               {{ message }}
+              data:
+                url: >-
+                  {{ data_url }}
+                icon_url: >-
+                  {{ icon_url }}
+                actions: >-
+                  {{ actions }}
+                channel: >-
+                  {{ channel }}
+                group: >-
+                  {{ group }}
+                tag: >-
+                  {{ tag }}
+                notification_icon: >-
+                  {{ notification_icon }}
+                image: >-
+                  {{ image }}
+                push:
+                  sound:
+                    name: >-
+                      {{ sound }}
+                    critical: >-
+                      {{ critical|int }}
+                    volume: >-
+                      {{ volume|float }}
+                  interruption_level: >-
+                    {{ interruption_level }}
+                  badge: >-
+                    {{ badge }}
+                  persistent: >-
+                    {{ persistent }}
+          - alias: 'wait for response or timeout'
+            wait_for_trigger:
+              - platform: event
+                event_type: mobile_app_notification_action
+                event_data:
+                  action: >-
+                   {# first action - approve #}
+                   {{ actions[0].action }}
+              - platform: event
+                event_type: mobile_app_notification_action
+                event_data:
+                  action: >-
+                   {# third action - deny #}
+                   {{ actions[2].action }}
+            timeout:
+              seconds: >-
+                {{ timeout }}
+            continue_on_timeout: true
+          - alias: 'debug notification'
+            choose:
+              - conditions:
+                  - condition: template
+                    value_template: >
+                      {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+                sequence:
+                  - service: persistent_notification.create
+                    data_template:
+                      title: >-
+                        DEBUG: Waiting complete
+                      notification_id: >-
+                        {{ 'log-notification-missing-wait' }}
+                      message: >-
+                        {%- if wait.remaining <= 0 -%}
+                          Timeout <b>expired</b> after {{ timeout }} seconds at <i>{{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}</i>
+                        {%- else -%}
+                          Timeout <b>remaining</b> {{ wait.remaining|default(0) -}}s at <i>{{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}</i><br><code>{{- wait -}}</code>
+                        {%- endif -%}
+        until:
+          - alias: 'until requested is off'
+            condition: template
+            value_template: >-
+              {{ is_state('input_boolean.motion_missing_requested','off') }}
+    - alias: 'debug notification'
+      choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  INFO: Restart request complete
+                notification_id: >-
+                  {{ 'log-notification-missing-complete' }}
+                message: >-
+                  {%- set s = states.binary_sensor.motion_missing_requested.last_updated|default('unknown') -%}
+                  {%- if s|lower != 'unknown' -%}{%- set s = s|relative_time -%}{%- endif -%}
+                  Restart <b>request notification</b> completed at <i>{{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}</i>.  Time since request: {{ s -}}.
+
+- id: motion_notification_missing_response
+  alias: motion_notification_missing_response
+  mode: queued
+  initial_state: 'on'
+  trigger:
+    - platform: event
+      event_type: mobile_app_notification_action
+      event_data:
+        action: "notification-missing-deny"
+    - platform: event
+      event_type: mobile_app_notification_action
+      event_data:
+        action: "notification-missing-approve"
+  variables:
+    origin: >-
+      {% if trigger|lower != 'none' %}
+        {{ trigger.event.origin|default(none) }}
+      {% else %}none{% endif %}
+    time_fired: >-
+      {% if trigger|lower != 'none' %}
+        {{ trigger.event.time_fired|default(none) }}
+      {% else %}none{% endif %}
+    context: >-
+      {% if trigger|lower != 'none' %}
+        {{ trigger.event.context }}
+      {% else %}none{% endif %}
+    response: >-
+      {% if trigger|lower != 'none' %}
+        {{ trigger.event.data.action|default(none)|string|replace('notification-missing-','') }}
+      {% else %}none{% endif %}
+    responses: >-
+      {{ state_attr('sensor.motion_notification_missing','responses') }}
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','info') }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  INFO: Reload notification response
+                notification_id: >-
+                  {{ 'log-notification-missing-response' }}
+                message: >-
+                  <b>Response</b> received: "{{ response -}}"; context: {{ context|string -}}; at: {{ time_fired }}
+    - alias: 'turn off missing_requested'
+      service: input_boolean.turn_off
+      entity_id: input_boolean.motion_notification_missing_requested
+    - choose:
+        - alias: 'test if response in responses'
+          conditions:
+            - condition: template
+              value_template: >
+                {{ response|lower in responses }}
+          sequence:
+            - variables:
+                timestamp: >-
+                  {% set delay = state_attr('binary_sensor.motion_missinging','delay')|int(60) %}
+                  {{ (utcnow() + timedelta(seconds=delay))|as_timestamp }}
+                when: >-
+                  {{ timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+                state: >-
+                  {{ response }}
+            - choose:
+                - conditions:
+                    - condition: template
+                      value_template: >
+                        {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','info') }}
+                  sequence:
+                    - service: persistent_notification.create
+                      data_template:
+                        title: >-
+                          INFO: Restart response
+                        notification_id: >-
+                          {{ 'log-notification-missing-response' }}
+                        message: >-
+                          Response received: Updated to <b><code>{{- state -}}</code></b> at <i>{{- when -}}</i>
+            - alias: 'set sensor.motion_notification_missing to new state w/ timestamp, when'
+              service: python_script.set_state
+              data_template:
+                entity_id: sensor.motion_notification_missing
+                timestamp: >-
+                  {{ timestamp }}
+                when: >-
+                  {{ when }}
+                state: >-
+                  {{ state }}
+
+- id: motion_notification_missing_approve
+  alias: motion_notification_missing_approve
+  mode: restart
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_notification_missing
+      to: 'approve'
+  action:
+    - variables:
+        when: >-
+          {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','info') }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  INFO: Device missing approve
+                notification_id: >-
+                  {{ 'log-notification-missing-response' }}
+                message: >-
+                  Device missing approve at {{ when }}
+    - alias: 'missing notification: approve - dismiss all'
+      service: automation.trigger
+      entity_id: automation.motion_device_class_missing_dismiss_all
+
+- id: motion_notification_missing_deny
+  alias: motion_notification_missing_deny
+  mode: restart
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_notification_missing
+      to: 'deny'
+  action:
+    - variables:
+        when: >-
+          {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','info') }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  INFO: Device missing deny
+                notification_id: >-
+                  {{ 'log-notification-missing-response' }}
+                message: >-
+                  Device missing deny at {{ when }}
+    - alias: 'missing notification: deny - unrequire all'
+      service: automation.trigger
+      entity_id: automation.motion_device_class_missing_required_off
+
