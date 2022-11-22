@@ -2,14 +2,14 @@
 # homeassistant/automation/motion/device/connectivity.yaml
 ###
 
-- id: motion_device_connectivity_expired
-  alias: motion_device_connectivity_expired
+- id: motion_device_connectivity_expired_watchdog
+  alias: motion_device_connectivity_expired_watchdog
   mode: 'single'
   max_exceeded: 'warn'
   initial_state: 'off'
   trigger:
     - platform: time_pattern
-      minutes: '/1'
+      minutes: '/5'
   action:
     - alias: 'set expired'
       service: python_script.set_state
@@ -177,13 +177,6 @@
   max_exceeded: 'warn'
   initial_state: 'on'
   trigger:
-    - platform: homeassistant
-      event: 'start'
-    - platform: 'state'
-      entity_id: 'sensor.motion_device_connectivity_count'
-      not_to:
-        - 'unknown'
-        - 'none'
     - platform: time_pattern
       minutes: '/5'
   action:
@@ -201,6 +194,13 @@
   max_exceeded: 'warn'
   initial_state: 'on'
   trigger:
+    - platform: homeassistant
+      event: 'start'
+    - platform: 'state'
+      entity_id: 'sensor.motion_device_connectivity_count'
+      not_to:
+        - 'unknown'
+        - 'none'
   condition:
     condition: and
     conditions:
@@ -542,14 +542,22 @@
   mode: 'restart'
   initial_state: 'off'
   trigger:
+    - platform: time_pattern
+      minutes: '/5'
+    - platform: 'state'
+      entity_id: 'binary_sensor.motion_device_connectivity_expired'
+      to: 'on'
     - platform: 'state'
       entity_id: 'binary_sensor.motion_device_connectivity_exist'
     - platform: state
       entity_id: 'binary_sensor.motion_device_connectivity'
       attribute: 'automations'
       to: 'on'
-    - platform: time_pattern
-      minutes: '/5'
+    - platform: state
+      entity_id: 'group.motion_device_connectivity'
+      to:
+        - 'on'
+        - 'off'
   condition:
     condition: and
     conditions:
@@ -557,8 +565,10 @@
         value_template: >-
           {{ is_state('automation.motion_device_connectivity_status','on') }}
   action:
-    - alias: 'wait until automation is NOT running'
-      wait_template: >-
+#    - alias: 'wait until automation is NOT running'
+#      wait_template: >-
+    - condition: template
+      value_template: >-
         {{ is_state_attr('automation.motion_device_connectivity_status', 'current', 0) }}
     - alias: 'trigger connectivity status'
       service: automation.trigger
@@ -570,14 +580,6 @@
   mode: 'restart'
   initial_state: 'off'
   trigger:
-    - platform: 'state'
-      entity_id: 'binary_sensor.motion_device_connectivity_expired'
-      to: 'on'
-    - platform: state
-      entity_id: 'group.motion_device_connectivity'
-      to:
-        - 'on'
-        - 'off'
   variables:
     class: >-
       {% set class = 'connectivity' %}
@@ -3341,7 +3343,7 @@
       entity_id: binary_sensor.motion_device_connectivity_missing
       to: 'on'
     - platform: time_pattern
-      minutes: '/2'
+      minutes: '/5'
   condition:
     - alias: 'test if connectivity devices are missing'
       condition: template
