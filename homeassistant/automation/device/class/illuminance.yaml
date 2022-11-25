@@ -112,7 +112,7 @@
     - alias: 'test if illuminance existence changed'
       condition: template
       value_template: >-
-        {{ trigger.to_state.state != trigger.from_state.state }}
+        {{ trigger.from_state.state == 'on' }}
   variables:
     automations: >-
       {% set automations = ['motion_device_illuminance_activity_dismiss','motion_device_illuminance_activity','motion_device_illuminance_activity_notify','motion_device_illuminance_activity_off','motion_device_illuminance_activity_on','motion_device_illuminance_alarm_activity','motion_device_illuminance_alarm_bad_on','motion_device_illuminance_alarm_good_on','motion_device_illuminance_alarm_high_off','motion_device_illuminance_alarm_high_on','motion_device_illuminance_alarm_high_spike_off','motion_device_illuminance_alarm_high_spike_on','motion_device_illuminance_alarm_low_off','motion_device_illuminance_alarm_low_on','motion_device_illuminance_alarm_low_spike_off','motion_device_illuminance_alarm_low_spike_on','motion_device_illuminance_bad','motion_device_illuminance_bad_notify','motion_device_illuminance_bad_off','motion_device_illuminance_bad_on','motion_device_illuminance_cleared_dismiss','motion_device_illuminance_cleared_notify','motion_device_illuminance_good','motion_device_illuminance_good_notify','motion_device_illuminance_good_off','motion_device_illuminance_good_on','motion_device_illuminance_high','motion_device_illuminance_high_dismiss','motion_device_illuminance_high_notify','motion_device_illuminance_high_off','motion_device_illuminance_high_on','motion_device_illuminance_high_spike_on','motion_device_illuminance_high_spike_off','motion_device_illuminance_high_spike','motion_device_illuminance_high_spike_dismiss','motion_device_illuminance_high_spike_notify','motion_device_illuminance_low','motion_device_illuminance_low_dismiss','motion_device_illuminance_low_notify','motion_device_illuminance_low_off','motion_device_illuminance_low_on','motion_device_illuminance_low_spike','motion_device_illuminance_low_spike_on','motion_device_illuminance_low_spike_off','motion_device_illuminance_low_spike_dismiss','motion_device_illuminance_low_spike_notify','motion_device_illuminance_mute','motion_device_illuminance_restart','motion_device_illuminance_self_test','motion_device_illuminance_toggle','motion_device_illuminance_turn_off','motion_device_illuminance_turn_on','motion_device_illuminance_unavailable','motion_device_illuminance_unmute','motion_device_illuminance_status','motion_device_illuminance_status_watchdog','motion_device_illuminance_update','motion_device_illuminance_unavailable_watchdog','motion_device_illuminance_expired'] %}
@@ -179,10 +179,28 @@
   trigger:
     - platform: time_pattern
       minutes: '/5'
-  action:
+  condition:
     - condition: template
       value_template: >-
         {{ is_state_attr('automation.motion_device_illuminance_rescan', 'current', 0) }}
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+            - condition: template
+              value_template: >
+                {{ trigger.platform == 'time_pattern' }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: illuminance rescan watchdog
+                notification_id: >
+                  {{- 'debug-illuminance-rescan' -}}
+                message: >-
+                  Trigger platform: {{ trigger.platform }}
     - alias: 'trigger motion_device_illuminance_rescan'
       service: automation.trigger
       data_template:
@@ -201,6 +219,8 @@
       not_to:
         - 'unknown'
         - 'none'
+      for:
+        minutes: 1
   condition:
     condition: and
     conditions:
@@ -396,9 +416,11 @@
   max_exceeded: 'warn'
   initial_state: 'on'
   trigger:
-    platform: 'state'
-    entity_id: 'binary_sensor.motion_device_illuminance_exist'
-    to: 'on'
+    - platform: 'state'
+      entity_id: 'binary_sensor.motion_device_illuminance_exist'
+      to: 'on'
+      for:
+        minutes: 1
   variables:
     dids: >-
       {{ state_attr('binary_sensor.motion_device_illuminance','dids') }}
@@ -435,9 +457,11 @@
   max_exceeded: 'warn'
   initial_state: 'on'
   trigger:
-    platform: 'state'
-    entity_id: 'binary_sensor.motion_device_illuminance_exist'
-    to: 'on'
+    - platform: 'state'
+      entity_id: 'binary_sensor.motion_device_illuminance_exist'
+      to: 'on'
+      for:
+        minutes: 1
   variables:
     dids: >-
       {{ state_attr('binary_sensor.motion_device_illuminance','dids') }}
@@ -476,6 +500,8 @@
     - platform: state
       entity_id: binary_sensor.motion_device_illuminance_exist
       to: 'on'
+      for:
+        minutes: 1
   variables:
     sensor: >-
       {% set sensor = 'binary_sensor.motion_device_illuminance_unavailable' %}
@@ -507,6 +533,8 @@
     - platform: state
       entity_id: binary_sensor.motion_device_illuminance_exist
       to: 'off'
+      for:
+        minutes: 1
   variables:
     sensor: >-
       {% set sensor = 'binary_sensor.motion_device_illuminance_unavailable' %}
@@ -514,7 +542,7 @@
     entitys: >-
       {% set entitys = [] %}
       {% set s = state_attr('group.motion_device_class_unavailable','entity_id') %}
-      {% if s is iterable %}
+      {% if s|lower != 'none' and s is iterable %}
         {% set entitys = s|list %}
       {% endif %}
       {{ entitys }}
@@ -523,7 +551,7 @@
     conditions:
       - condition: template
         value_template: >-
-          {{ entitys is iterable and sensor in entitys }}
+          {{ sensor|lower != 'none' and entitys is iterable and sensor in entitys }}
   action:
     - variables:
         entities: >-
@@ -544,6 +572,41 @@
   trigger:
     - platform: time_pattern
       minutes: '/5'
+  condition:
+    - condition: template
+      value_template: >-
+        {{ is_state('automation.motion_device_illuminance_status','on') }}
+    - condition: template
+      value_template: >-
+        {{ is_state_attr('automation.motion_device_illuminance_status', 'current', 0) }}
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+            - condition: template
+              value_template: >
+                {{ trigger.platform == 'time_pattern' }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: illuminance status watchdog
+                notification_id: >
+                  {{- 'debug-illuminance-status' -}}
+                message: >-
+                  Trigger platform: {{ trigger.platform }}
+    - alias: 'trigger illuminance status'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_illuminance_status
+
+- id: motion_device_illuminance_status
+  alias: motion_device_illuminance_status
+  mode: 'restart'
+  initial_state: 'off'
+  trigger:
     - platform: 'state'
       entity_id: 'binary_sensor.motion_device_illuminance_expired'
       to: 'on'
@@ -558,26 +621,8 @@
       to:
         - 'on'
         - 'off'
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >-
-          {{ is_state('automation.motion_device_illuminance_status','on') }}
-  action:
-    - condition: template
-      value_template: >-
-        {{ is_state_attr('automation.motion_device_illuminance_status', 'current', 0) }}
-    - alias: 'trigger illuminance status'
-      service: automation.trigger
-      data_template:
-        entity_id: automation.motion_device_illuminance_status
-
-- id: motion_device_illuminance_status
-  alias: motion_device_illuminance_status
-  mode: 'restart'
-  initial_state: 'off'
-  trigger:
+      for:
+        minutes: 1
   variables:
     class: >-
       {% set class = 'illuminance' %}
@@ -3331,6 +3376,43 @@
         condition: >-
           {{ 'missing' }}
 
+- id: motion_device_illuminance_missing_notify_watchdog
+  alias: motion_device_illuminance_missing_notify_watchdog
+  mode: 'restart'
+  initial_state: 'off'
+  trigger:
+    - platform: time_pattern
+      minutes: '/5'
+  condition:
+    - condition: template
+      value_template: >-
+        {{ is_state('automation.motion_device_illuminance_missing_notify','on') }}
+    - condition: template
+      value_template: >-
+        {{ is_state_attr('automation.motion_device_illuminance_missing_notify', 'current', 0) }}
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+            - condition: template
+              value_template: >
+                {{ trigger.platform == 'time_pattern' }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: illuminance missing notify watchdog
+                notification_id: >
+                  {{- 'debug-illuminance-missing-notify' -}}
+                message: >-
+                  Trigger platform: {{ trigger.platform }}
+    - alias: 'trigger illuminance status'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_illuminance_missing_notify
+
 - id: motion_device_illuminance_missing_notify
   alias: motion_device_illuminance_missing_notify
   mode: single
@@ -3340,8 +3422,6 @@
     - platform: state
       entity_id: binary_sensor.motion_device_illuminance_missing
       to: 'on'
-    - platform: time_pattern
-      minutes: '/5'
   condition:
     - alias: 'test if illuminance devices are missing'
       condition: template

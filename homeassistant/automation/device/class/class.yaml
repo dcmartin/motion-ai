@@ -44,24 +44,6 @@
       {%- else -%}none{%- endif -%}
     areas: >-
   action:
-    - choose:
-        - conditions:
-            - alias: 'test if class_rescan_all trigger is time_platform'
-              condition: template
-              value_template: >
-                {{ trigger.platform == 'time_pattern' }}
-            - condition: template
-              value_template: >
-                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
-          sequence:
-            - service: persistent_notification.create
-              data_template:
-                title: >-
-                  DEBUG: class rescan
-                notification_id: >
-                  {{- 'debug-class-rescan' -}}
-                message: >-
-                  Trigger platform: {{ trigger.platform }}
     - repeat:
         while:
           - condition: template
@@ -95,11 +77,31 @@
   mode: 'restart'
   initial_state: 'on'
   trigger:
+    - platform: state
+      entity_id: 'group.motion_devices'
     - platform: time_pattern
-      minutes: '/1'
+      minutes: '/5'
   action:
-    - wait_template: >-
-        {{ is_state_attr('automation.motion_device_class_rescan', 'current', 0) }}
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+            - condition: template
+              value_template: >
+                {{ trigger.platform == 'time_pattern' }}
+            - condition: template
+              value_template: >-
+                {{ is_state_attr('automation.motion_device_class_rescan', 'current', 0) }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: class rescan watchdog
+                notification_id: >
+                  {{- 'debug-class-rescan' -}}
+                message: >-
+                  Trigger platform: {{ trigger.platform }}
     - service: automation.trigger
       data_template:
         entity_id: automation.motion_device_class_rescan
@@ -110,8 +112,6 @@
   max_exceeded: 'warn'
   initial_state: 'on'
   trigger:
-    - platform: state
-      entity_id: 'group.motion_devices'
   variables:
     sensor_ids: >-
       {% set s = state_attr('binary_sensor.motion_device_class','sensor_list') %}
