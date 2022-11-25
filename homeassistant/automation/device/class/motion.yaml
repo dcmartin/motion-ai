@@ -179,10 +179,28 @@
   trigger:
     - platform: time_pattern
       minutes: '/5'
-  action:
+  condition:
     - condition: template
       value_template: >-
         {{ is_state_attr('automation.motion_device_motion_rescan', 'current', 0) }}
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+            - condition: template
+              value_template: >
+                {{ trigger.platform == 'time_pattern' }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: motion rescan watchdog
+                notification_id: >
+                  {{- 'debug-motion-rescan' -}}
+                message: >-
+                  Trigger platform: {{ trigger.platform }}
     - alias: 'trigger motion_device_motion_rescan'
       service: automation.trigger
       data_template:
@@ -544,6 +562,41 @@
   trigger:
     - platform: time_pattern
       minutes: '/5'
+  condition:
+    - condition: template
+      value_template: >-
+        {{ is_state('automation.motion_device_motion_status','on') }}
+    - condition: template
+      value_template: >-
+        {{ is_state_attr('automation.motion_device_motion_status', 'current', 0) }}
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+            - condition: template
+              value_template: >
+                {{ trigger.platform == 'time_pattern' }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: motion status watchdog
+                notification_id: >
+                  {{- 'debug-motion-status' -}}
+                message: >-
+                  Trigger platform: {{ trigger.platform }}
+    - alias: 'trigger motion status'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_motion_status
+
+- id: motion_device_motion_status
+  alias: motion_device_motion_status
+  mode: 'restart'
+  initial_state: 'off'
+  trigger:
     - platform: 'state'
       entity_id: 'binary_sensor.motion_device_motion_expired'
       to: 'on'
@@ -558,26 +611,6 @@
       to:
         - 'on'
         - 'off'
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >-
-          {{ is_state('automation.motion_device_motion_status','on') }}
-  action:
-    - condition: template
-      value_template: >-
-        {{ is_state_attr('automation.motion_device_motion_status', 'current', 0) }}
-    - alias: 'trigger motion status'
-      service: automation.trigger
-      data_template:
-        entity_id: automation.motion_device_motion_status
-
-- id: motion_device_motion_status
-  alias: motion_device_motion_status
-  mode: 'restart'
-  initial_state: 'off'
-  trigger:
   variables:
     class: >-
       {% set class = 'motion' %}
@@ -3331,6 +3364,43 @@
         condition: >-
           {{ 'missing' }}
 
+- id: motion_device_motion_missing_notify_watchdog
+  alias: motion_device_motion_missing_notify_watchdog
+  mode: 'restart'
+  initial_state: 'off'
+  trigger:
+    - platform: time_pattern
+      minutes: '/5'
+  condition:
+    - condition: template
+      value_template: >-
+        {{ is_state('automation.motion_device_motion_missing_notify','on') }}
+    - condition: template
+      value_template: >-
+        {{ is_state_attr('automation.motion_device_motion_missing_notify', 'current', 0) }}
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+            - condition: template
+              value_template: >
+                {{ trigger.platform == 'time_pattern' }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: motion missing notify watchdog
+                notification_id: >
+                  {{- 'debug-motion-missing-notify' -}}
+                message: >-
+                  Trigger platform: {{ trigger.platform }}
+    - alias: 'trigger motion status'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_motion_missing_notify
+
 - id: motion_device_motion_missing_notify
   alias: motion_device_motion_missing_notify
   mode: single
@@ -3340,8 +3410,6 @@
     - platform: state
       entity_id: binary_sensor.motion_device_motion_missing
       to: 'on'
-    - platform: time_pattern
-      minutes: '/5'
   condition:
     - alias: 'test if motion devices are missing'
       condition: template
