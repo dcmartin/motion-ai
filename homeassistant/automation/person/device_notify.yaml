@@ -20,13 +20,10 @@
   trigger:
     - platform: state
       entity_id: sensor.motion_person_device_status
-      to: 'Pending'
-    - platform: homeassistant
-      event: start
+      not_to:
+        - 'home'
+        - 'not_home'
   condition:
-    - condition: template
-      value_template: >
-        {{ is_state('sensor.motion_person_device_status','Pending') }}
     - condition: template
       value_template: >
         {{ is_state('binary_sensor.motion_person_configure','on') }}
@@ -49,7 +46,7 @@
         notification_id: >-
           {{ 'motion_person_device_configuration' }}
         message: >-
-          {{ name -}}'s smartphone device is unknown;
+          {{ name -}}'s smartphone device is (<b>{{- trigger.to_state.state -}}</b>); should be <i>home</i> or <i>not_home</i>;
           at {{ utcnow().timestamp()|int|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}
 
 - id: motion_person_device_missing_dismiss
@@ -59,7 +56,9 @@
   trigger:
     - platform: state
       entity_id: sensor.motion_person_device_status
-      not_to: 'Pending'
+      to:
+        - 'home'
+        - 'not_home'
   variables:
     notification_id: >-
       {{ 'smartphone-missing-notify' }}
@@ -91,12 +90,13 @@
       {% set title = states('sensor.motion_app') + ': person device missing' %}
       {{ title }}
     url: >-
-      {{ '/notify-system/settings' }}
+      {{ '/lovelace-owner/setup' }}
     body: >-
       {%- if name|lower == 'none' or name|lower == 'unknown' or name|lower == 'unavailable' or name|lower == 'null' or name|lower|length == 0 -%}
-        Person is unspecified or invalid. To configure the person click the **{{- action -}}** button below.
+        Person is unspecified or invalid. To configure the person click the <b>{{- action -}}</b> button below.
       {%- else -%}
-        The person device is missing. To configure the device for: "<b>{{- name -}}</b>" click the **{{- action -}}** button below.
+        {{ name -}}'s smartphone device is <b>{{- states('sensor.motion_person_device_status') -}}</b>; should be <i>home</i> or <i>not_home</i>;
+        To configure the device for: "<b>{{- name -}}</b>" click the <b>{{- action -}}</b> button below.
       {%- endif -%}
     footer: >-
       <a href="{{- url -}}"><img src="https://img.shields.io/badge/{{- action -}}-orange.svg"></a>
