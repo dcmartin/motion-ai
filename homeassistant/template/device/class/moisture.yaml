@@ -113,6 +113,32 @@
       state_class: 'measurement'
       device_class: 'power_factor'
       unit_of_measurement: '%'
+      attributes:
+        all: >-
+          {%- set class = 'moisture' -%}
+          [{%- for state in (states.sensor|list + states.binary_sensor|list)
+           if 'device_class' in state.attributes and device_id(state.entity_id)|lower != 'none'
+            and state.attributes.device_class==class and not '.motion_' in state.entity_id -%}
+            {%- if not loop.first -%},{% endif -%}
+            {%- set did = device_id(state.entity_id) -%}
+            {%- set n = device_attr(did,'name_by_user') -%}
+            {%- if n|lower == 'none' -%}{%- set n = device_attr(did,'name') -%}{%- endif -%}
+            {% set n = n|replace('&','_')|replace(' ','_')|replace('\'','')|replace('-','_')|lower -%}
+            {"id":"{{- n -}}","did":"{{- did  -}}"}
+          {%- endfor -%}]
+        mobile: >-
+          {%- set class = 'moisture' -%}
+          {%- set device_trackers = states.device_tracker|map(attribute='entity_id')|map('device_id')|list -%}
+          [{%- for state in (states.sensor|list + states.binary_sensor|list)
+           if 'device_class' in state.attributes and device_id(state.entity_id)|lower != 'none'
+            and state.attributes.device_class==class and not '.motion_' in state.entity_id
+            and device_id(state.entity_id) in device_trackers -%}
+            {%- if not loop.first -%},{% endif -%}
+            {%- set n = device_attr(device_id(state.entity_id),'name_by_user') -%}
+            {%- if n|lower == 'none' -%}{%- set n = device_attr(device_id(state.entity_id),'name') -%}{%- endif -%}
+            {% set n = n|replace('&','_')|replace(' ','_')|replace('\'','')|replace('-','_')|lower -%}
+            "{{- n -}}"
+          {%- endfor -%}]
       state: >-
         {{ (states.sensor|list + states.binary_sensor|list)|rejectattr('entity_id','search','.motion_')|map(attribute='attributes.device_class')|select('defined')|select('==','moisture')|list|count }}
 

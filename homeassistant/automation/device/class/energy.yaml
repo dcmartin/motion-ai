@@ -184,7 +184,7 @@
   initial_state: 'on'
   trigger:
     - platform: time_pattern
-      minutes: '/5'
+      minutes: '/15'
   condition:
     - condition: template
       value_template: >-
@@ -218,157 +218,121 @@
   max_exceeded: 'warn'
   initial_state: 'on'
   trigger:
-    - platform: homeassistant
-      event: 'start'
     - platform: 'state'
       entity_id: 'sensor.motion_device_energy_count'
-      not_to:
-        - 'unknown'
-        - 'none'
       for:
         minutes: 1
   condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >-
-          {{ is_state_attr('automation.motion_device_energy_enable','current',0) }} 
-  variables:
-    class: >-
-      {%- set class = 'energy' -%}
-      {{- class -}}
-    all: >-
-      [{%- for state in (states.sensor|list + states.binary_sensor|list)
-       if 'device_class' in state.attributes and device_id(state.entity_id)|lower != 'none'
-        and state.attributes.device_class==class and not '.motion_' in state.entity_id -%}
-        {%- if not loop.first -%},{% endif -%}
-        {%- set did = device_id(state.entity_id) -%}
-        {%- set n = device_attr(did,'name_by_user') -%}
-        {%- if n|lower == 'none' -%}{%- set n = device_attr(did,'name') -%}{%- endif -%}
-        {% set n = n|replace('&','_')|replace(' ','_')|replace('\'','')|replace('-','_')|lower -%}
-        {"id":"{{- n -}}","did":"{{- did  -}}"}
-      {%- endfor -%}]
-    local: >-
-      {% set device_trackers = states.device_tracker|map(attribute='entity_id')|map('device_id')|list %}
-      [{%- for state in (states.sensor|list + states.binary_sensor|list)
-       if 'device_class' in state.attributes and device_id(state.entity_id)|lower != 'none'
-        and state.attributes.device_class==class and not '.motion_' in state.entity_id
-        and device_id(state.entity_id) not in device_trackers -%}
-        {%- if not loop.first -%},{% endif -%}
-        {%- set n = device_attr(device_id(state.entity_id),'name_by_user') -%}
-        {%- if n|lower == 'none' -%}{%- set n = device_attr(device_id(state.entity_id),'name') -%}{%- endif -%}
-        {% set n = n|replace('&','_')|replace(' ','_')|replace('\'','')|replace('-','_')|lower -%}
-        "{{- n -}}"
-      {%- endfor -%}]
-    mobile: >-
-      {% set device_trackers = states.device_tracker|map(attribute='entity_id')|map('device_id')|list %}
-      [{%- for state in (states.sensor|list + states.binary_sensor|list)
-       if 'device_class' in state.attributes and device_id(state.entity_id)|lower != 'none'
-        and state.attributes.device_class==class and not '.motion_' in state.entity_id
-        and device_id(state.entity_id) in device_trackers -%}
-        {%- if not loop.first -%},{% endif -%}
-        {%- set n = device_attr(device_id(state.entity_id),'name_by_user') -%}
-        {%- if n|lower == 'none' -%}{%- set n = device_attr(device_id(state.entity_id),'name') -%}{%- endif -%}
-        {% set n = n|replace('&','_')|replace(' ','_')|replace('\'','')|replace('-','_')|lower -%}
-        "{{- n -}}"
-      {%- endfor -%}]
-    ids: >-
-      {% set ids = none %}
-      {%- if all != [] and all is iterable and all|count > 0 -%}
-        {%- set ids = all|map(attribute='id')|sort|unique|list -%}
-      {%- endif -%}
-      {{ ids }}
-    dids: >-
-      {% set dids = none %}
-      {%- if all != [] and all is iterable and all|count > 0 -%}
-        {%- set dids = all|map(attribute='did')|list -%}
-      {%- endif -%}
-      {{ dids }}
-    mobiles: >-
-      {%- if mobile != [] and mobile is iterable and mobile|count > 0 -%}
-        {{- mobile -}}
-      {% else %}none{% endif %}
-    total: >-
-      {% set s = dids %}
-      {% if not s is string and s is iterable %}
-        {{ s|count }}
-      {%- else -%}null{%- endif %}
-    update: >-
-      {%- set s = dids %}
-      {%- if not s is string and s is iterable and s|count > 0 -%}
-        [{%- for i in s -%}
-          {%- set did = i -%}
-          {%- set id = all|selectattr('did','==',did)|map(attribute='id')|first -%}
-          {%- set o = loop -%}
-          {%- for state in (states.button|list + states.switch|list) if device_id(state.entity_id) == did and state.attributes.device_class|default('null')|string == 'update' -%}
-            {%- set v = state.state -%}
-            {"did":"{{- did -}}","id":"{{- id -}}","entity_id":"{{- state.entity_id -}}"}
-            {%- if not (loop.last and o.last) -%},{%- endif -%}
-          {%- endfor -%}
-        {%- endfor -%}]
-      {%- else -%}none{%- endif %}
-    restart: >-
-      {%- set s = ids %}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
-        [{%- for i in s -%}
-          {%- set o = loop -%}
-          {%- for state in (states.button|list + states.switch|list) if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'restart' -%}
-            {%- set v = state.state -%}
-            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}"}
-            {%- if not (loop.last and o.last) -%},{%- endif -%}
-          {%- endfor -%}
-        {%- endfor -%}]
-      {%- else -%}none{%- endif %}
-    controls: >-
-      {%- set s = ids -%}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
-        [{%- for i in s -%}
-          {%- set o = loop -%}
-          {%- for state in (states.button|list + states.switch|list) if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'null' -%}
-            {%- set ctl = state_attr(state.entity_id,'friendly_name') -%}
-            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","name":"{{- ctl -}}"}
-            {%- if not (loop.last and o.last) -%},{%- endif -%}
-          {%- endfor -%}
-        {%- endfor -%}]
-      {%- else -%}none{%- endif %}
-    test: >-
-      {%- set s = ids -%}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
-        [{%- for i in s -%}
-          {%- set o = loop -%}
-          {%- for state in states.sensor if device_attr(state.entity_id, 'name') == i and state.attributes.self_test|default('none')|string != 'none' -%}
-            {%- if not loop.first or not o.first -%},{%- endif -%}
-            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
-          {%- endfor -%}
-        {%- endfor -%}]
-      {%- else -%}null{%- endif %}
-    areas: >-
-      {%- set s = dids %}
-      {%- if not s is string and s is iterable and s|count > 0 -%}
-        [{%- for i in s -%}
-          {%- set did = i -%}
-          {%- set id = all|selectattr('did','==',did)|map(attribute='id')|first -%}
-          {%- set o = loop -%}
-          {%- for state in (states.sensor|list + states.binary_sensor|list) if device_id(state.entity_id) == did and (state.attributes.device_class|default('null')|string == class)  -%}
-            {"did":"{{- did -}}","id":"{{- id -}}","area":"{{- area_id(state.entity_id) -}}","state":"{{- state.state -}}"}
-            {%- if not (loop.last and o.last) -%},{%- endif -%}
-          {%- endfor -%}
-        {%- endfor -%}]
-      {%- else -%}none{%- endif %}
-    devices: >-
-      {%- set s = dids %}
-      {%- if not s is string and s is iterable and s|count > 0 -%}
-        [{% for i in s -%}
-          {%- set did = i -%}
-          {%- set id = all|selectattr('did','==',did)|map(attribute='id')|first -%}
-          {%- set k = areas|selectattr('did','==',did)|map(attribute='area')|first -%}
-          {%- set n = device_attr(did,'name_by_user') -%}
-          {%- if n|lower == 'none' -%}{%- set n = device_attr(did,'name') -%}{%- endif -%}
-          {%- if not loop.first -%},{%- endif -%}
-          {"id":"{{- id -}}", "did":"{{- did -}}", "friendly_name":"{{- n -}}", "manufacturer":"{{- device_attr(did,'manufacturer') -}}", "model":"{{- device_attr(did,'model') -}}", "sw_version":"{{- device_attr(did,'sw_version') -}}", "area":"{{- k -}}"}
-        {%- endfor -%}]
-      {%- else -%}none{%- endif %}
+    - condition: template
+      value_template: >-
+        {{ trigger.to_state.state != trigger.from_state.state }}
   action:
+    - wait_template: >-
+        {{ is_state_attr('automation.motion_device_energy_enable','current',0) and is_state_attr('automation.motion_device_energy_disable','current',0) }} 
+    - variables:
+        class: >-
+          {%- set class = 'energy' -%}
+          {{- class -}}
+        all: >-
+          {{- state_attr('sensor.motion_device_energy_count','all') -}}
+        mobile: >-
+          {{- state_attr('sensor.motion_device_energy_count','mobile') -}}
+        ids: >-
+          {% set ids = none %}
+          {%- if all|lower != 'none' and all is iterable and all|count > 0 -%}
+            {%- set ids = all|map(attribute='id')|sort|unique|list -%}
+          {%- endif -%}
+          {{ ids }}
+        dids: >-
+          {% set dids = none %}
+          {%- if all|lower != 'none' and all is iterable and all|count > 0 -%}
+            {%- set dids = all|map(attribute='did')|list -%}
+          {%- endif -%}
+          {{ dids }}
+        mobiles: >-
+          {%- if mobile|lower != 'none' and mobile is iterable and mobile|count > 0 -%}
+            {{- mobile -}}
+          {% else %}none{% endif %}
+        total: >-
+          {% set s = dids %}
+          {% if not s is string and s is iterable %}
+            {{ s|count }}
+          {%- else -%}null{%- endif %}
+        update: >-
+          {%- set s = dids %}
+          {%- if not s is string and s is iterable and s|count > 0 -%}
+            [{%- for i in s -%}
+              {%- set did = i -%}
+              {%- set id = all|selectattr('did','==',did)|map(attribute='id')|first -%}
+              {%- set o = loop -%}
+              {%- for state in (states.button|list + states.switch|list) if device_id(state.entity_id) == did and state.attributes.device_class|default('null')|string == 'update' -%}
+                {%- set v = state.state -%}
+                {"did":"{{- did -}}","id":"{{- id -}}","entity_id":"{{- state.entity_id -}}"}
+                {%- if not (loop.last and o.last) -%},{%- endif -%}
+              {%- endfor -%}
+            {%- endfor -%}]
+          {%- else -%}none{%- endif %}
+        restart: >-
+          {%- set s = ids %}
+          {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
+            [{%- for i in s -%}
+              {%- set o = loop -%}
+              {%- for state in (states.button|list + states.switch|list) if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'restart' -%}
+                {%- set v = state.state -%}
+                {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}"}
+                {%- if not (loop.last and o.last) -%},{%- endif -%}
+              {%- endfor -%}
+            {%- endfor -%}]
+          {%- else -%}none{%- endif %}
+        controls: >-
+          {%- set s = ids -%}
+          {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
+            [{%- for i in s -%}
+              {%- set o = loop -%}
+              {%- for state in (states.button|list + states.switch|list) if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'null' -%}
+                {%- set ctl = state_attr(state.entity_id,'friendly_name') -%}
+                {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","name":"{{- ctl -}}"}
+                {%- if not (loop.last and o.last) -%},{%- endif -%}
+              {%- endfor -%}
+            {%- endfor -%}]
+          {%- else -%}none{%- endif %}
+        test: >-
+          {%- set s = ids -%}
+          {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string -%}
+            [{%- for i in s -%}
+              {%- set o = loop -%}
+              {%- for state in states.sensor if device_attr(state.entity_id, 'name') == i and state.attributes.self_test|default('none')|string != 'none' -%}
+                {%- if not loop.first or not o.first -%},{%- endif -%}
+                {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
+              {%- endfor -%}
+            {%- endfor -%}]
+          {%- else -%}null{%- endif %}
+        areas: >-
+          {%- set s = dids %}
+          {%- if not s is string and s is iterable and s|count > 0 -%}
+            [{%- for i in s -%}
+              {%- set did = i -%}
+              {%- set id = all|selectattr('did','==',did)|map(attribute='id')|first -%}
+              {%- set o = loop -%}
+              {%- for state in (states.sensor|list + states.binary_sensor|list) if device_id(state.entity_id) == did and (state.attributes.device_class|default('null')|string == class)  -%}
+                {"did":"{{- did -}}","id":"{{- id -}}","area":"{{- area_id(state.entity_id) -}}","state":"{{- state.state -}}"}
+                {%- if not (loop.last and o.last) -%},{%- endif -%}
+              {%- endfor -%}
+            {%- endfor -%}]
+          {%- else -%}none{%- endif %}
+        devices: >-
+          {%- set s = dids %}
+          {%- if not s is string and s is iterable and s|count > 0 -%}
+            [{% for i in s -%}
+              {%- set did = i -%}
+              {%- set id = all|selectattr('did','==',did)|map(attribute='id')|first -%}
+              {%- set k = areas|selectattr('did','==',did)|map(attribute='area')|first -%}
+              {%- set n = device_attr(did,'name_by_user') -%}
+              {%- if n|lower == 'none' -%}{%- set n = device_attr(did,'name') -%}{%- endif -%}
+              {%- if not loop.first -%},{%- endif -%}
+              {"id":"{{- id -}}", "did":"{{- did -}}", "friendly_name":"{{- n -}}", "manufacturer":"{{- device_attr(did,'manufacturer') -}}", "model":"{{- device_attr(did,'model') -}}", "sw_version":"{{- device_attr(did,'sw_version') -}}", "area":"{{- k -}}"}
+            {%- endfor -%}]
+          {%- else -%}none{%- endif %}
     - choose:
         - conditions:
             - condition: template
