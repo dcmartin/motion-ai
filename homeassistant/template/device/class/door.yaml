@@ -92,29 +92,15 @@
           {% else %}off{%- endfor -%}
         {%- else -%}unknown{%- endif -%}
 
-- unique_id: motion_device_door_count
+- unique_id: motion_device_door_rescan
   trigger:
     - platform: state
       entity_id: sensor.motion_domain_sensor_count
-#      not_to:
-#        - 'none'
-#        - 'unknown'
-#      for:
-#        minutes: 1
     - platform: state
-      entity_id: sensor.motion_domain_binary_sensor_count
-#      not_to:
-#        - 'none'
-#        - 'unknown'
-#      for:
-#        minutes: 1
-#    - platform: time_pattern
-#      minutes: '/2'
-  sensor:
-    - name: 'motion_device_door_count'
-      state_class: 'measurement'
-      device_class: 'power_factor'
-      unit_of_measurement: '%'
+      entity_id: automation.motion_device_door_rescan
+      attribute: 'last_triggered'
+  binary_sensor:
+    - name: motion_device_door_rescan
       attributes:
         all: >-
           {%- set class = 'door' -%}
@@ -141,6 +127,25 @@
             {% set n = n|replace('&','_')|replace(' ','_')|replace('\'','')|replace('-','_')|lower -%}
             "{{- n -}}"
           {%- endfor -%}]
+      state: >-
+        {{ states.sensor.motion_device_door_count.last_updated|as_timestamp(0) >
+           states.automation.motion_device_door_rescan.attributes.last_triggered|as_timestamp(0) }}
+
+- unique_id: motion_device_door_count
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_domain_sensor_count
+      for:
+        minutes: 1
+    - platform: state
+      entity_id: sensor.motion_domain_binary_sensor_count
+      for:
+        minutes: 1
+  sensor:
+    - name: 'motion_device_door_count'
+      state_class: 'measurement'
+      device_class: 'power_factor'
+      unit_of_measurement: '%'
       state: >-
         {{ (states.sensor|list + states.binary_sensor|list)|rejectattr('entity_id','search','.motion_')|map(attribute='attributes.device_class')|select('defined')|select('==','door')|list|count }}
 
