@@ -1,0 +1,30 @@
+###
+# homeassistant/template/domain/device_tracker.yaml
+###
+
+- unique_id: motion_domain_device_tracker_count
+  trigger:
+    - platform: state
+      entity_id: states.device_tracker
+      for:
+        minutes: 1
+  sensor:
+    - name: motion_domain_device_tracker_count
+      state_class: 'measurement'
+      attributes:
+        friendly_name: Device tracker count
+        icon: 'mdi:counter'
+        online: >-
+          {{ states.device_tracker|selectattr('state','==','home')|default([])|list|count + states.device_tracker|selectattr('state','==','not_home')|default([])|list|count }}
+        offline: >-
+          {{ states.device_tracker|count - (states.device_tracker|selectattr('state','==','home')|default([])|list|count + states.device_tracker|selectattr('state','==','not_home')|default([])|list|count) }}
+        ids: >-
+          [{%- for i in states.device_tracker|map(attribute='entity_id')|default(none) if i|lower != 'none' -%}
+            {%- if not loop.first -%},{%- endif -%}
+            "{{- device_attr(i,'name') -}}"
+          {%- endfor %}]
+      state: >-
+        {% set s = states.device_tracker|default('none') %}
+        {% if s|lower != 'none' and not s is string and s|list is iterable %}
+          {{ s|list|count }}
+        {% else %}null{% endif %}
