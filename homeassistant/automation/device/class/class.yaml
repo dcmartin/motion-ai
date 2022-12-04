@@ -375,25 +375,25 @@
           {{ s|sort|unique|list }}
         {%- else -%}null{%- endif %}
       {%- else -%}null{%- endif %}
-    markdown: >-
-      {% set s = devices -%}
-      {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
-        {{- '<h2><a href="/notify-devices/">Devices</a></h2>' -}}
-        {%- for i in s|sort(attribute='manufacturer') -%}
-          {%- if loop.first -%}{{- '<ol>' -}}{%- endif -%}
-          {{- '<li>' -}}
-          <a href="/config/devices/device/{{- i.did -}}"><b>{{- i.friendly_name -}}</b></a>{{- ' (' + i.manufacturer|string + ': ' + i.model|string + '): ' -}}
-          {%- for j in i.class -%}
-            {{- '<i>' -}}
-            {%- if not loop.first -%},{%- endif -%}
-            {{- j -}}
-            {{- '</i>' -}}
-          {%- endfor -%}
-          {{- '</li>' -}}
-          {%- if loop.last -%}{{- '</ol>' -}}{%- endif -%}
-        {%- endfor -%}
-      {%- else -%}<h2>No devices</h2>{%- endif -%}
-      <br><i>Last updated</i>: {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+#    markdown: >-
+#      {% set s = devices -%}
+#      {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+#        {{- '<h2><a href="/notify-devices/">Devices</a></h2>' -}}
+#        {%- for i in s|sort(attribute='manufacturer') -%}
+#          {%- if loop.first -%}{{- '<ol>' -}}{%- endif -%}
+#          {{- '<li>' -}}
+#          <a href="/config/devices/device/{{- i.did -}}"><b>{{- i.friendly_name -}}</b></a>{{- ' (' + i.manufacturer|string + ': ' + i.model|string + '): ' -}}
+#          {%- for j in i.class -%}
+#            {{- '<i>' -}}
+#            {%- if not loop.first -%},{%- endif -%}
+#            {{- j -}}
+#            {{- '</i>' -}}
+#          {%- endfor -%}
+#          {{- '</li>' -}}
+#          {%- if loop.last -%}{{- '</ol>' -}}{%- endif -%}
+#        {%- endfor -%}
+#      {%- else -%}<h2>No devices</h2>{%- endif -%}
+#      <br><i>Last updated</i>: {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
     found: >-
       {%- set s = state_attr('binary_sensor.motion_device_class','sensor_list')|list + state_attr('binary_sensor.motion_device_class','binary_sensor_list')|list -%}
       {%- if s is iterable -%}
@@ -418,6 +418,73 @@
         "{{- i -}}"
       {%- endfor -%}]
       {%- else -%}[]{%- endif -%}
+    summary: >-
+      {% if is_state('binary_sensor.motion_device_class_status','on') -%}
+        {{- 'complete' -}}
+      {%- else -%}
+        {{- 'pending' -}}
+        {%- set s = state_attr('binary_sensor.motion_device_class','automations') -%}
+        {%- if s|lower != 'none' and s is iterable -%}
+          {{- '; complete: ' -}}{{ s|count }}
+        {%- endif -%}
+        {%- set s = state_attr('binary_sensor.motion_device_class_missing','ids') -%}
+        {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
+          {%- for i in s -%}
+            {%- if loop.first -%}{{- '; missing: ' -}} {%- endif -%}
+            {%- if not loop.first -%}{{- ', ' -}} {%- endif -%}
+            {{- i -}}
+          {%- endfor -%}
+        {%- endif -%}
+      {%- endif %}
+    markdown: >-
+      {%- if is_state('binary_sensor.motion_device_class_status','unknown') -%}
+        <h2>Setup initializing</h2>
+      {%- elif is_state('binary_sensor.motion_device_class_status','on') -%}
+        <h2>Setup complete</h2>
+        {%- set s = state_attr('binary_sensor.motion_device_class','automations') -%}
+        {%- if not s is string and s is iterable and s|count > 0 -%}
+          <ol>{%- for i in s -%}<li><a href="/notify-devices/{{- i -}}">{{- i -}}</a></li>{%- endfor -%}</ol>
+        {%- endif -%}
+      {%- elif is_state('binary_sensor.motion_device_class_status','off') -%}
+        {%- set missing = state_attr('binary_sensor.motion_device_class_missing','ids') -%}
+        {%- set automations = state_attr('binary_sensor.motion_device_class','automations') -%}
+        {%- set required = (state_attr('binary_sensor.motion_device_class','sensors')|list + state_attr('binary_sensor.motion_device_class','binary_sensors')|list)|sort|unique|list -%}
+        {%- if required|lower != 'none' and not required is string and required is iterable and required|count > 0 -%}
+          <h2>Setup in-complete</h2>
+          {%- if missing is string or not missing is iterable -%}
+            <h3>Missing pending</h3>
+          {%- elif missing|count > 0 -%}
+            <h3>Missing devices</h3>
+            {%- for i in missing -%}
+              {%- if loop.first -%}<ul><li><a href="/notify-missing/">Missing</a>:<ol>{%- endif -%}
+              <li><a href="/notify-devices/{{- i -}}">{{- i|upper -}}</a></li>
+              {%- if loop.last -%}</ol></li></ul>{%- endif -%}
+            {%- endfor -%}
+          {%- elif missing|count == 0 -%}
+            <h3>No missing devices</h3>
+          {%- endif -%}
+          {%- if automations is string or not automations is iterable -%}
+            <h3>Automations pending</h3>
+          {%- elif automations|count < required|count -%}
+            <h3>Enabling automations</h3>
+          {%- else -%}
+            <h3>Automations enabled</h3>
+          {%- endif -%}
+          {%- if automations is iterable and automations|count > 0 -%}
+            {%- for i in automations -%}
+              {%- if loop.first -%}<ul><li><a href="/notify-devices/all">Completed</a>:<ol>{%- endif -%}
+              <li><a href="/notify-devices/{{- i -}}">{{- i|upper -}}</a></li>
+              {%- if loop.last -%}</ol></li></ul>{%- endif -%}
+            {%- endfor -%}
+          {%- endif -%}
+        {%- else -%}
+          <h2>No required devices</h2>
+        {%- endif -%}
+      {%- else -%}
+        <h2>Device status pending</h2>
+      {%- endif -%}
+      <br><a href="/config/integrations">All integrations</a>
+      <br><i>Last updated</i>: {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
   action:
     - alias: 'update binary_sensor.motion_device_class: scan,ids,dids,devices,..'
       service: python_script.set_state
@@ -459,6 +526,8 @@
           {{ areas }}
         markdown: >-
           {{ markdown }}
+        summary: >-
+          {{ summary }}
         state: >-
           {% if total|int(0) > 0 %}on{% else %}off{% endif %}
     - alias: 'trigger automation class_unavailable_group_set'
