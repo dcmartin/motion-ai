@@ -96,6 +96,11 @@
   trigger:
     - platform: state
       entity_id: sensor.motion_device_occupancy_count
+      not_to:
+        - 'none'
+        - 'unknown'
+      for:
+        seconds: 5
   binary_sensor:
     - name: motion_device_occupancy_rescan
       attributes:
@@ -125,7 +130,7 @@
             "{{- n -}}"
           {%- endfor -%}]
       state: >-
-        {{ states.sensor.motion_device_occupancy_count.last_updated|as_timestamp(0) >
+        {{ (all is iterable and all|count > 0) or states.sensor.motion_device_occupancy_count.last_updated|as_timestamp(0) >
            states.automation.motion_device_occupancy_rescan.attributes.last_triggered|as_timestamp(-1) }}
 
 - unique_id: motion_device_occupancy_count
@@ -134,13 +139,12 @@
       minutes: /5
     - platform: state
       entity_id:
-        - sensor.motion_domain_sensor_count
-        - sensor.motion_domain_binary_sensor_count
+        - 'sensor.motion_domain_sensor_count'
+        - 'sensor.motion_domain_binary_sensor_count'
+      for:
+        seconds: 5
   sensor:
     - name: 'motion_device_occupancy_count'
-      state_class: 'measurement'
-      device_class: 'power_factor'
-      unit_of_measurement: '%'
       state: >-
         {{ (states.sensor|list + states.binary_sensor|list)|rejectattr('entity_id','search','sensor.motion_')|map(attribute='attributes.device_class')|select('defined')|select('==','occupancy')|list|count }}
 
