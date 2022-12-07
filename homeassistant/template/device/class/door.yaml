@@ -94,17 +94,24 @@
 
 - unique_id: motion_device_door_rescan
   trigger:
+    - platform: time_pattern
+      minutes: /15
     - platform: event
       event_type: homeassistant_start
     - platform: state
+      entity_id: automation.motion_device_door_required_on
+      attribute: 'last_triggered'
+    - platform: state
+      entity_id: automation.motion_device_door_required_off
+      attribute: 'last_triggered'
+    - platform: state
       entity_id: sensor.motion_device_door_count
-      not_to:
-        - 'none'
-        - 'unknown'
-      for:
-        seconds: 5
   binary_sensor:
     - name: motion_device_door_rescan
+      delay_on:
+        seconds: 5
+      auto_off:
+        minutes: 1
       attributes:
         all: >-
           {%- set class = 'door' -%}
@@ -132,13 +139,11 @@
             "{{- n -}}"
           {%- endfor -%}]
       state: >-
-        {{ states.sensor.motion_device_door_count.last_updated|as_timestamp(0) >
-           states.automation.motion_device_door_rescan.attributes.last_triggered|as_timestamp(-1) }}
+        {%- set now = utcnow().timestamp() -%}
+        {{- now|int > state_attr('automation.motion_device_door_rescan','last_triggered')|as_timestamp(now)|int -}}
 
 - unique_id: motion_device_door_count
   trigger:
-    - platform: time_pattern
-      minutes: /5
     - platform: state
       entity_id:
         - 'sensor.motion_domain_sensor_count'
