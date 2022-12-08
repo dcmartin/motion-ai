@@ -149,15 +149,20 @@
             {%- endfor -%} }
           {%- else -%}none{%- endif -%}
       state: >-
-        {%- set required = (state_attr('binary_sensor.motion_device_class','sensors')|list + state_attr('binary_sensor.motion_device_class','binary_sensors')|list)|sort|unique|list -%}
-        {%- set missing = state_attr('binary_sensor.motion_device_class','missing') -%}
-        {%- if required is iterable and required|count > 0 and missing is iterable and missing|count > 0 -%}
-          {%- for m in missing if m in required -%}
-            {%- if loop.first -%}off{%- endif -%}
-          {%- else -%}on{%- endfor -%}
-        {%- elif required is iterable and required|count > 0 and missing|lower == 'none' or (missing is iterable and missing|count == 0) -%}on
-        {%- elif required|lower == 'none' or (required is iterable and required|count == 0) -%}on
-        {%- else -%}unknown{%- endif -%}
+        {%- set s = state_attr('binary_sensor.motion_device_class','binary_sensor_list') -%}
+        {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+          { {%- for i in s if states('binary_sensor.motion_device_' + i|string)|lower != 'null'
+            and states('binary_sensor.motion_device_' + i|string)|lower != 'unknown'
+            and state_attr('binary_sensor.motion_device_' + i|string,'dids')|lower != 'none'
+            and state_attr('binary_sensor.motion_device_' + i|string,'dids')|lower != 'unknown'
+            and states('binary_sensor.motion_device_' + i|string)|lower != 'none' -%}
+            {%- set o = loop -%}
+            {%- set t = state_attr('binary_sensor.motion_device_' + i,'status') -%}
+            {%- for e in t if 'entity_id' in e and state_attr(e.entity_id,'unit_of_measurement')|lower == 'none' -%}
+              {%- if o.first and loop.first -%}on{%- endif -%}
+            {%- endfor -%}
+          {%- endfor -%} }
+        {%- else -%}off{%- endif -%}
 
 - unique_id: motion_device_class_statistics
   trigger:
