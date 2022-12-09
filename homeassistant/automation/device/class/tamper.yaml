@@ -541,19 +541,28 @@
 
 - id: motion_device_tamper_state_watchdog
   alias: motion_device_tamper_state_watchdog
-  mode: 'single'
+  mode: 'restart'
   initial_state: 'off'
   trigger:
     - platform: time_pattern
       minutes: '/5'
     - platform: 'state'
       entity_id: 'automation.motion_device_tamper_rescan'
-      attribute: 'last_triggered'
-      not_to:
-        - 'none'
-        - 'unknown'
+      attribute: 'current'
+      to: '0'
       for:
         seconds: 30
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_tamper'
+      for:
+        seconds: 30
+    - platform: state
+      entity_id: 'group.motion_device_tamper'
+      to:
+        - 'on'
+        - 'off'
+      for:
+        seconds: 5
   condition:
     - condition: template
       value_template: >-
@@ -567,9 +576,6 @@
             - condition: template
               value_template: >
                 {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
-            - condition: template
-              value_template: >
-                {{ trigger.platform == 'time_pattern' }}
           sequence:
             - service: persistent_notification.create
               data_template:
@@ -578,7 +584,12 @@
                 notification_id: >
                   {{- 'debug-tamper-state' -}}
                 message: >-
-                  Trigger platform: {{ trigger.platform }}
+                  Platform: {{ trigger.platform -}}.
+                  {%- if trigger.platform == 'state' -%}
+                    Entity ID: {{ trigger.entity_id }} from {{ trigger.from }} to {{ trigger.to }} for {{ trigger.for -}}.
+                  {%- elif trigger.platform == 'time_pattern' -%}
+                    at {{ trigger.now|as_timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}.
+                  {%- endif -%}
     - alias: 'trigger tamper status'
       service: automation.trigger
       data_template:
@@ -589,22 +600,6 @@
   mode: 'restart'
   initial_state: 'off'
   trigger:
-    - platform: 'state'
-      entity_id: 'binary_sensor.motion_device_tamper_expired'
-      to: 'on'
-    - platform: 'state'
-      entity_id: 'binary_sensor.motion_device_tamper_exist'
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_tamper'
-      attribute: 'automations'
-      to: 'on'
-    - platform: state
-      entity_id: 'group.motion_device_tamper'
-      to:
-        - 'on'
-        - 'off'
-      for:
-        minutes: 1
   variables:
     class: >-
       {% set class = 'tamper' %}
