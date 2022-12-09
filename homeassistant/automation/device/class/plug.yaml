@@ -539,11 +539,28 @@
 
 - id: motion_device_plug_state_watchdog
   alias: motion_device_plug_state_watchdog
-  mode: 'single'
+  mode: 'restart'
   initial_state: 'off'
   trigger:
     - platform: time_pattern
       minutes: '/5'
+    - platform: 'state'
+      entity_id: 'automation.motion_device_plug_rescan'
+      attribute: 'current'
+      to: '0'
+      for:
+        seconds: 30
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_plug'
+      for:
+        seconds: 30
+    - platform: state
+      entity_id: 'group.motion_device_plug'
+      to:
+        - 'on'
+        - 'off'
+      for:
+        seconds: 5
   condition:
     - condition: template
       value_template: >-
@@ -557,18 +574,20 @@
             - condition: template
               value_template: >
                 {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
-            - condition: template
-              value_template: >
-                {{ trigger.platform == 'time_pattern' }}
           sequence:
             - service: persistent_notification.create
               data_template:
                 title: >-
-                  DEBUG: plug status watchdog
+                  DEBUG: plug state watchdog
                 notification_id: >
-                  {{- 'debug-plug-status' -}}
+                  {{- 'debug-plug-state' -}}
                 message: >-
-                  Trigger platform: {{ trigger.platform }}
+                  Platform: {{ trigger.platform -}}.
+                  {%- if trigger.platform == 'state' -%}
+                    Entity ID: {{ trigger.entity_id }} from {{ trigger.from }} to {{ trigger.to }} for {{ trigger.for -}}.
+                  {%- elif trigger.platform == 'time_pattern' -%}
+                    at {{ trigger.now|as_timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}.
+                  {%- endif -%}
     - alias: 'trigger plug status'
       service: automation.trigger
       data_template:
@@ -579,22 +598,6 @@
   mode: 'restart'
   initial_state: 'off'
   trigger:
-    - platform: 'state'
-      entity_id: 'binary_sensor.motion_device_plug_expired'
-      to: 'on'
-    - platform: 'state'
-      entity_id: 'binary_sensor.motion_device_plug_exist'
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_plug'
-      attribute: 'automations'
-      to: 'on'
-    - platform: state
-      entity_id: 'group.motion_device_plug'
-      to:
-        - 'on'
-        - 'off'
-      for:
-        minutes: 1
   variables:
     class: >-
       {% set class = 'plug' %}
@@ -912,9 +915,6 @@
           {{ sensors }}
         binary_sensors: >-
           {{ binary_sensors }}
-    - alias: 'update binary_sensor.motion_device_plug_exist'
-      service: homeassistant.update_entity
-      entity_id: binary_sensor.motion_device_plug_exist
 
 ## bad
 
@@ -1012,9 +1012,6 @@
         entity_id: binary_sensor.motion_device_class
         bad: >-
           {{ bad }}
-    - alias: 'update binary_sensor.motion_device_plug_exist'
-      service: homeassistant.update_entity
-      entity_id: binary_sensor.motion_device_plug_exist
 
 - id: motion_device_plug_bad_on
   alias: motion_device_plug_bad_on
@@ -1055,9 +1052,6 @@
         entity_id: binary_sensor.motion_device_class
         bad: >-
           {{ bad }}
-    - alias: 'update binary_sensor.motion_device_plug_exist'
-      service: homeassistant.update_entity
-      entity_id: binary_sensor.motion_device_plug_exist
 
 - id: motion_device_plug_alarm_bad_on
   alias: motion_device_plug_alarm_bad_on
@@ -1300,9 +1294,6 @@
         entity_id: binary_sensor.motion_device_class
         low: >-
           {{ low }}
-    - alias: 'update binary_sensor.motion_device_plug_exist'
-      service: homeassistant.update_entity
-      entity_id: binary_sensor.motion_device_plug_exist
 
 - id: motion_device_plug_low_on
   alias: motion_device_plug_low_on
@@ -1343,9 +1334,6 @@
         entity_id: binary_sensor.motion_device_class
         low: >-
           {{ low }}
-    - alias: 'update binary_sensor.motion_device_plug_exist'
-      service: homeassistant.update_entity
-      entity_id: binary_sensor.motion_device_plug_exist
 
 - id: motion_device_plug_alarm_low_on
   alias: motion_device_plug_alarm_low_on
@@ -1616,9 +1604,6 @@
         entity_id: binary_sensor.motion_device_class
         high: >-
           {{ high }}
-    - alias: 'update binary_sensor.motion_device_plug_exist'
-      service: homeassistant.update_entity
-      entity_id: binary_sensor.motion_device_plug_exist
 
 - id: motion_device_plug_high_on
   alias: motion_device_plug_high_on
@@ -1659,9 +1644,6 @@
         entity_id: binary_sensor.motion_device_class
         high: >-
           {{ high }}
-    - alias: 'update binary_sensor.motion_device_plug_exist'
-      service: homeassistant.update_entity
-      entity_id: binary_sensor.motion_device_plug_exist
 
 - id: motion_device_plug_alarm_high_on
   alias: motion_device_plug_alarm_high_on
@@ -1900,9 +1882,6 @@
         entity_id: binary_sensor.motion_device_class
         good: >-
           {{ good }}
-    - alias: 'update binary_sensor.motion_device_plug_exist'
-      service: homeassistant.update_entity
-      entity_id: binary_sensor.motion_device_plug_exist
 
 - id: motion_device_plug_good_on
   alias: motion_device_plug_good_on
@@ -1943,9 +1922,6 @@
         entity_id: binary_sensor.motion_device_class
         good: >-
           {{ good }}
-    - alias: 'update binary_sensor.motion_device_plug_exist'
-      service: homeassistant.update_entity
-      entity_id: binary_sensor.motion_device_plug_exist
 
 - id: motion_device_plug_alarm_good_on
   alias: motion_device_plug_alarm_good_on
@@ -2237,9 +2213,6 @@
         entity_id: binary_sensor.motion_device_class
         activity: >-
           {{ activity }}
-    - alias: 'update binary_sensor.motion_device_plug_exist'
-      service: homeassistant.update_entity
-      entity_id: binary_sensor.motion_device_plug_exist
 
 - id: motion_device_plug_activity_on
   alias: motion_device_plug_activity_on
@@ -2280,9 +2253,6 @@
         entity_id: binary_sensor.motion_device_class
         activity: >-
           {{ activity }}
-    - alias: 'update binary_sensor.motion_device_plug_exist'
-      service: homeassistant.update_entity
-      entity_id: binary_sensor.motion_device_plug_exist
 
 - id: motion_device_plug_alarm_activity
   alias: motion_device_plug_alarm_activity
@@ -2435,9 +2405,6 @@
         entity_id: binary_sensor.motion_device_class
         alarm: >-
           {{ alarm }}
-    - alias: 'update binary_sensor.motion_device_plug_exist'
-      service: homeassistant.update_entity
-      entity_id: binary_sensor.motion_device_plug_exist
 
 - id: motion_device_plug_alarm_on
   alias: motion_device_plug_alarm_on
@@ -2478,9 +2445,6 @@
         entity_id: binary_sensor.motion_device_class
         alarm: >-
           {{ alarm }}
-    - alias: 'update binary_sensor.motion_device_plug_exist'
-      service: homeassistant.update_entity
-      entity_id: binary_sensor.motion_device_plug_exist
 
 ## toggle
 
@@ -3572,9 +3536,6 @@
         entity_id: binary_sensor.motion_device_class
         high_spike: >-
           {{ high_spike }}
-    - alias: 'update binary_sensor.motion_device_plug_exist'
-      service: homeassistant.update_entity
-      entity_id: binary_sensor.motion_device_plug_exist
 
 - id: motion_device_plug_high_spike_on
   alias: motion_device_plug_high_spike_on
@@ -3615,9 +3576,6 @@
         entity_id: binary_sensor.motion_device_class
         high_spike: >-
           {{ high_spike }}
-    - alias: 'update binary_sensor.motion_device_plug_exist'
-      service: homeassistant.update_entity
-      entity_id: binary_sensor.motion_device_plug_exist
 
 - id: motion_device_plug_alarm_high_spike_on
   alias: motion_device_plug_alarm_high_spike_on
@@ -3862,9 +3820,6 @@
         entity_id: binary_sensor.motion_device_class
         low_spike: >-
           {{ low_spike }}
-    - alias: 'update binary_sensor.motion_device_plug_exist'
-      service: homeassistant.update_entity
-      entity_id: binary_sensor.motion_device_plug_exist
 
 - id: motion_device_plug_low_spike_on
   alias: motion_device_plug_low_spike_on
@@ -3905,9 +3860,6 @@
         entity_id: binary_sensor.motion_device_class
         low_spike: >-
           {{ low_spike }}
-    - alias: 'update binary_sensor.motion_device_plug_exist'
-      service: homeassistant.update_entity
-      entity_id: binary_sensor.motion_device_plug_exist
 
 - id: motion_device_plug_alarm_low_spike_on
   alias: motion_device_plug_alarm_low_spike_on
