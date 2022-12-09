@@ -194,31 +194,29 @@
   trigger:
     - platform: 'state'
       entity_id: 'binary_sensor.motion_device_occupancy_rescan'
-      to: 'on'
+      for:
+        seconds: 5
   condition:
+  action:
+    - wait_template: >-
+        {{ is_state_attr('automation.motion_device_occupancy_automation_enable','current',0) and is_state_attr('automation.motion_device_occupancy_automation_disable','current',0) }} 
     - condition: template
       value_template: >-
         {{ is_state_attr('automation.motion_device_occupancy_rescan', 'current', 0) }}
-  action:
     - choose:
         - conditions:
             - condition: template
               value_template: >
-                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
-            - condition: template
-              value_template: >
-                {{ trigger.platform == 'time_pattern' }}
+                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','info') }}
           sequence:
             - service: persistent_notification.create
               data_template:
                 title: >-
-                  DEBUG: occupancy rescan watchdog
+                  INFO: occupancy rescan watchdog
                 notification_id: >
                   {{- 'debug-occupancy-rescan' -}}
                 message: >-
-                  Trigger platform: {{ trigger.platform }}
-    - wait_template: >-
-        {{ is_state_attr('automation.motion_device_occupancy_automation_enable','current',0) and is_state_attr('automation.motion_device_occupancy_automation_disable','current',0) }} 
+                  Temperature rescan: {{ states('binary_sensor.motion_device_occupancy_rescan') -}}; ago: {{ state_attr('automation.motion_device_occupancy_rescan','last_triggered')|relative_time -}}; all:  {{ state_attr('binary_sensor.motion_device_occupancy_rescan','all') -}}.
     - alias: 'trigger motion_device_occupancy_rescan'
       service: automation.trigger
       data_template:
