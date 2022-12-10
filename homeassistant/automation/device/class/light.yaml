@@ -335,12 +335,12 @@
         - conditions:
             - condition: template
               value_template: >
-                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','trace') }}
+                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
           sequence:
             - service: persistent_notification.create
               data_template:
                 title: >-
-                  TRACE: light rescan
+                  DEBUG: light rescan
                 notification_id: >
                   {{- 'log-light-rescan' -}}
                 message: >-
@@ -376,48 +376,34 @@
         devices: >-
           {{ devices }}
         state: >-
-          {{ states('binary_sensor.motion_device_' + class) }}
-
-- id: motion_device_light_group_set
-  alias: motion_device_light_group_set
-  mode: 'restart'
-  max_exceeded: 'warn'
-  initial_state: 'on'
-  trigger:
-    - platform: 'state'
-      entity_id: 'binary_sensor.motion_device_light_exist'
-      to: 'on'
-      for:
-        minutes: 1
-  variables:
-    dids: >-
-      {{ state_attr('binary_sensor.motion_device_light','dids') }}
-    entities: >-
-      {%- set s = dids %}
-      {%- if not s is string and s is iterable and s|count > 0 -%}
-        [{%- for i in s -%}
-          {%- set did = i -%}
-          {%- set o = loop -%}
-          {%- for state in (states.sensor|list + states.binary_sensor|list) if device_id(state.entity_id) == did and (state.attributes.device_class|default('null')|string == 'light')  -%}
-            "{{- state.entity_id -}}"
-            {%- if not (loop.last and o.last) -%},{%- endif -%}
-          {%- endfor -%}
-        {%- endfor -%}]
-      {%- else -%}[]{%- endif %}
-  condition:
-    condition: and
-    conditions:
-      - alias: 'test if entities is iterable'
-        condition: template
-        value_template: >-
-          {{ entities is iterable }}
-  action:
-    - alias: 'set group.motion_device_light sensors'
-      service: group.set
-      data_template:
-        object_id: motion_device_light
-        entities: >-
-          {{ entities }}
+          {{ dids|count > 0 }}
+  - variables:
+      entities: >-
+        {%- set s = dids %}
+        {%- if not s is string and s is iterable and s|count > 0 -%}
+          [{%- for i in s -%}
+            {%- set did = i -%}
+            {%- set o = loop -%}
+            {%- for state in (states.sensor|list + states.binary_sensor|list) if device_id(state.entity_id) == did and (state.attributes.device_class|default('null')|string == 'light')  -%}
+              "{{- state.entity_id -}}"
+              {%- if not (loop.last and o.last) -%},{%- endif -%}
+            {%- endfor -%}
+          {%- endfor -%}]
+        {%- else -%}[]{%- endif %}
+  - condition:
+      condition: and
+      conditions:
+        - alias: 'test if entities is iterable'
+          condition: template
+          value_template: >-
+            {{ entities is iterable }}
+  - action:
+      - alias: 'set group.motion_device_light sensors'
+        service: group.set
+        data_template:
+          object_id: motion_device_light
+          entities: >-
+            {{ entities }}
 
 - id: motion_device_light_statistics_group_set
   alias: motion_device_light_statitics_group_set
