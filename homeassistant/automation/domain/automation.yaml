@@ -1,0 +1,37 @@
+###
+# homeassistant/automation/domain/automation.yaml
+###
+
+- id: motion_domain_automation_count
+  alias: motion_domain_automation_count
+  mode: 'restart'
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+    - platform: time_pattern
+      minutes: /5
+    - platform: homeassistant
+      event: start
+    - platform: state
+      entity_id: binary_sensor.motion_devices_config_entity_registry
+      for:
+        seconds: 15
+  action:
+    - alias: 'set motion_domain_automation_count'
+      service: python_script.set_state
+      allow_create: true
+      data_template:
+        entity_id: sensor.motion_domain_automation_count
+        enabled: >-
+          {{ states.automation|selectattr('state','==','on')|list|count }}
+        disabled: >-
+          {{ states.automation|selectattr('state','==','off')|list|count }}
+        online: >-
+          {{ states.automation|selectattr('state','==','on')|list|count + states.automation|selectattr('state','==','off')|list|count }}
+        offline: >-
+          {{ states.automation|count - (states.automation|selectattr('state','==','on')|list|count + states.automation|selectattr('state','==','off')|list|count) }}
+        state: >-
+          {% set s = states.automation|default('none') %}
+          {% if s|lower != 'none' and not s is string and s|list is iterable %}
+            {{ s|list|count }}
+          {% else %}null{% endif %}
