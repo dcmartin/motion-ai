@@ -189,6 +189,47 @@
                 message: >-
                   All motion automations disabled: {{ automations|count }}
 
+- id: motion_device_motion_count
+  alias: motion_device_motion_count
+  mode: 'single'
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id:
+        - 'sensor.motion_domain_sensor_count'
+        - 'sensor.motion_domain_binary_sensor_count'
+      for:
+        seconds: 5
+  condition:
+    - alias: 'test if sensor and binary_sensor defined'
+      condition: template
+      value_template: >-
+        {{ states.sensor is iterable and states.binary_sensor is iterable }}
+  action:
+    - variables:
+        state: >-
+          {%- set class = 'motion' -%}
+          {%- set s = (states.sensor|list + states.binary_sensor|list)|selectattr('attributes.device_class','defined')|selectattr('attributes.device_class','==',class)|rejectattr('entity_id','search','sensor.motion_')|list -%}
+    - alias: 'update motion_device_motion_count
+      service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_device_motion_count
+        allow_create: true
+        state: >-
+          {{ state }}
+    - alias: 'test if motion devices found'
+      condition: template
+      value_template: >-
+        {{ not state|lower == 'none' and state|int > 0 }}
+    - alias: 'test if not running'
+      condition: template
+        value_template: >-
+          {{ is_state_attr('automation.motion_device_motion_rescan', 'current', 0) }}
+    - service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_motion_rescan
+
 - id: motion_device_motion_rescan_watchdog
   alias: motion_device_motion_rescan_watchdog
   mode: 'restart'
@@ -211,16 +252,10 @@
         seconds: 5
     - platform: state
       entity_id: 'sensor.motion_device_motion_count'
-      not_to:
-        - 'null'
-        - 'none'
-        - 'unknown'
+      not_to: 'none'
       for:
         seconds: 5
   action:
-    - alias: 'wait until neither enable or disable are running'
-      wait_template: >-
-        {{ is_state_attr('automation.motion_device_motion_automation_enable','current',0) and is_state_attr('automation.motion_device_motion_automation_disable','current',0) }}
     - choose:
         - conditions:
             - condition: template
@@ -235,9 +270,10 @@
                   {{- 'info-motion-rescan' -}}
                 message: >-
                   Temperature rescan: {{ states('binary_sensor.motion_device_motion_rescan') -}}; ago: {{ state_attr('automation.motion_device_motion_rescan','last_triggered')|relative_time -}}; all:  {{ state_attr('binary_sensor.motion_device_motion_rescan','all') -}}.
-#    - alias: 'wait until motion_rescan is not running'
-#      wait_template: >-
-#        {{ is_state_attr('automation.motion_device_motion_rescan', 'current', 0) }}
+    - alias: 'motion rescan not running'
+      condition: template
+      value_template: >-
+        {{ is_state_attr('automation.motion_device_motion_rescan','current',0) }}
     - alias: 'trigger motion_device_motion_rescan'
       service: automation.trigger
       data_template:
@@ -245,7 +281,7 @@
 
 - id: motion_device_motion_rescan
   alias: motion_device_motion_rescan
-  mode: 'single'
+  mode: 'restart'
   max_exceeded: 'warn'
   initial_state: 'on'
   trigger:
@@ -254,6 +290,10 @@
       condition: template
       value_template: >-
         {{ states.sensor is iterable and states.binary_sensor is iterable }}
+    - alias: 'neither enable or disable are running'
+      condition: template
+      value_template: >-
+        {{ is_state_attr('automation.motion_device_motion_automation_enable','current',0) and is_state_attr('automation.motion_device_motion_automation_disable','current',0) }}
   variables:
     class: >-
       {%- set class = 'motion' -%}
