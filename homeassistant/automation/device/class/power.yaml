@@ -236,8 +236,7 @@
     class: >-
       {%- set class = 'power' -%}
       {{- class -}}
-    any: >-
-      {%- set any = [] -%}
+    all: >-
       {%- set s = (states.sensor|list + states.binary_sensor|list) -%}
       {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
         {%- set s = s|selectattr('attributes.device_class','defined')|list -%}
@@ -248,37 +247,43 @@
             {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
               {%- set s = s|rejectattr('entity_id','search','sensor.motion_')|list %}
               {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
-                {%- set any = s -%}
+                [{%- for state in s if device_id(state.entity_id)|lower != 'none' -%}
+                  {%- if not loop.first -%},{% endif -%}
+                  {%- set did = device_id(state.entity_id) -%}
+                  {%- set n = device_attr(did,'name_by_user') -%}
+                  {%- if n|lower == 'none' -%}{%- set n = device_attr(did,'name') -%}{%- endif -%}
+                  {% set n = n|replace('&','_')|replace(' ','_')|replace('\'','')|replace('-','_')|lower -%}
+                  {"id":"{{- n -}}","did":"{{- did  -}}"}
+                {%- endfor -%}]
               {%- endif -%}
             {%- endif -%}
           {%- endif -%}
         {%- endif -%}
       {%- endif -%}
-      {{- any -}}
-    all: >-
-      {%- set s = any -%}
-      {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
-        [{%- for state in s if device_id(state.entity_id)|lower != 'none' -%}
-          {%- if not loop.first -%},{% endif -%}
-          {%- set did = device_id(state.entity_id) -%}
-          {%- set n = device_attr(did,'name_by_user') -%}
-          {%- if n|lower == 'none' -%}{%- set n = device_attr(did,'name') -%}{%- endif -%}
-          {% set n = n|replace('&','_')|replace(' ','_')|replace('\'','')|replace('-','_')|lower -%}
-          {"id":"{{- n -}}","did":"{{- did  -}}"}
-        {%- endfor -%}]
-      {%- else -%}none{%- endif -%}
     mobile: >-
-      {%- set s = any -%}
+      {%- set s = (states.sensor|list + states.binary_sensor|list) -%}
       {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
-        {%- set device_trackers = states.device_tracker|map(attribute='entity_id')|map('device_id')|list -%}
-        [{%- for state in s if device_id(state.entity_id)|lower != 'none' and device_id(state.entity_id) in device_trackers -%}
-          {%- if not loop.first -%},{% endif -%}
-          {%- set n = device_attr(device_id(state.entity_id),'name_by_user') -%}
-          {%- if n|lower == 'none' -%}{%- set n = device_attr(device_id(state.entity_id),'name') -%}{%- endif -%}
-          {% set n = n|replace('&','_')|replace(' ','_')|replace('\'','')|replace('-','_')|lower -%}
-          "{{- n -}}"
-        {%- endfor -%}]
-      {%- else -%}none{%- endif -%}
+        {%- set s = s|selectattr('attributes.device_class','defined')|list -%}
+        {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
+          {%- set s = s|selectattr('attributes.device_class','==',class)|list -%}
+          {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
+            {%- set s = s|selectattr('entity_id','defined')|list -%}
+            {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
+              {%- set s = s|rejectattr('entity_id','search','sensor.motion_')|list %}
+              {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
+                {%- set device_trackers = states.device_tracker|map(attribute='entity_id')|map('device_id')|list -%}
+                [{%- for state in s if device_id(state.entity_id)|lower != 'none' and device_id(state.entity_id) in device_trackers -%}
+                  {%- if not loop.first -%},{% endif -%}
+                  {%- set n = device_attr(device_id(state.entity_id),'name_by_user') -%}
+                  {%- if n|lower == 'none' -%}{%- set n = device_attr(device_id(state.entity_id),'name') -%}{%- endif -%}
+                  {% set n = n|replace('&','_')|replace(' ','_')|replace('\'','')|replace('-','_')|lower -%}
+                  "{{- n -}}"
+                {%- endfor -%}]
+              {%- endif -%}
+            {%- endif -%}
+          {%- endif -%}
+        {%- endif -%}
+      {%- endif -%}
     ids: >-
       {% set ids = none %}
       {%- if all|lower != 'none' and all is iterable and all|count > 0 -%}
