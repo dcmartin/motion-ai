@@ -285,7 +285,7 @@
     - alias: 'test if sensors and binary_sensors are defined'
       condition: template
       value_template: >-
-        {{ states.sensor is iterable and states.binary_sensor is iterable }}
+        {{ states.sensor|lower != 'none' and states.sensor is iterable and states.binary_sensor|lower != 'none' and states.binary_sensor is iterable }}
     - alias: 'neither enable or disable are running'
       condition: template
       value_template: >-
@@ -319,24 +319,31 @@
         {%- else -%}none{%- endif -%}
       {%- else -%}none{%- endif -%}
     mobile: >-
-      {%- set s = (states.sensor|list + states.binary_sensor|list) -%}
+      {%- set device_trackers = [] -%}
+      {%- set s = states.device_tracker|selectattr('entity_id','defined')|map(attribute='entity_id')|list -%}
       {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
-        {%- set s = s|selectattr('attributes.device_class','defined')|list -%}
+        {%- set s = s|map('device_id')|list -%}
         {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
-          {%- set s = s|selectattr('attributes.device_class','==',class)|list -%}
+          {%- set device_trackers = s -%}
+          {%- set s = (states.sensor|list + states.binary_sensor|list) -%}
           {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
-            {%- set s = s|selectattr('entity_id','defined')|list -%}
+            {%- set s = s|selectattr('attributes.device_class','defined')|list -%}
             {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
-              {%- set s = s|rejectattr('entity_id','search','sensor.motion_')|list %}
+              {%- set s = s|selectattr('attributes.device_class','==',class)|list -%}
               {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
-                {%- set device_trackers = states.device_tracker|map(attribute='entity_id')|map('device_id')|list -%}
-                [{%- for state in s if device_id(state.entity_id)|lower != 'none' and device_id(state.entity_id) in device_trackers -%}
-                  {%- if not loop.first -%},{% endif -%}
-                  {%- set n = device_attr(device_id(state.entity_id),'name_by_user') -%}
-                  {%- if n|lower == 'none' -%}{%- set n = device_attr(device_id(state.entity_id),'name') -%}{%- endif -%}
-                  {% set n = n|replace('&','_')|replace(' ','_')|replace('\'','')|replace('-','_')|lower -%}
-                  "{{- n -}}"
-                {%- endfor -%}]
+                {%- set s = s|selectattr('entity_id','defined')|list -%}
+                {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
+                  {%- set s = s|rejectattr('entity_id','search','sensor.motion_')|list %}
+                  {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
+                    [{%- for state in s if device_id(state.entity_id)|lower != 'none' and device_id(state.entity_id) in device_trackers -%}
+                      {%- if not loop.first -%},{% endif -%}
+                      {%- set n = device_attr(device_id(state.entity_id),'name_by_user') -%}
+                      {%- if n|lower == 'none' -%}{%- set n = device_attr(device_id(state.entity_id),'name') -%}{%- endif -%}
+                      {% set n = n|replace('&','_')|replace(' ','_')|replace('\'','')|replace('-','_')|lower -%}
+                      "{{- n -}}"
+                    {%- endfor -%}]
+                  {%- else -%}none{%- endif -%}
+                {%- else -%}none{%- endif -%}
               {%- else -%}none{%- endif -%}
             {%- else -%}none{%- endif -%}
           {%- else -%}none{%- endif -%}
