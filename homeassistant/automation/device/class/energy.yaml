@@ -445,19 +445,6 @@
           {"id":"{{- id -}}", "did":"{{- did -}}", "friendly_name":"{{- n -}}", "manufacturer":"{{- device_attr(did,'manufacturer') -}}", "model":"{{- device_attr(did,'model') -}}", "sw_version":"{{- device_attr(did,'sw_version') -}}", "area":"{{- k -}}"}
         {%- endfor -%}]
       {%- else -%}none{%- endif %}
-    status: >-
-      {%- set s = dids %}
-      {%- if not s is string and s is iterable and s|count > 0 -%}
-        [{%- for i in s -%}
-          {%- set did = i -%}
-          {%- set id = state_attr('binary_sensor.motion_device_' + class|string,'devices')|selectattr('did','==',did)|map(attribute='id')|first -%}
-          {%- set o = loop -%}
-          {%- for state in (states.sensor|list + states.binary_sensor|list) if device_id(state.entity_id) == did and (state.attributes.device_class|default('null')|string == class)  -%}
-            {"did":"{{- did -}}","id":"{{- id -}}","name":"{{- state_attr(state.entity_id,'friendly_name') -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
-            {%- if not (loop.last and o.last) -%},{%- endif -%}
-          {%- endfor -%}
-        {%- endfor -%}]
-      {%- else -%}none{%- endif %}
   action:
     - choose:
         - conditions:
@@ -479,8 +466,6 @@
         entity_id: binary_sensor.motion_device_energy
         scan: >-
           {{ utcnow().timestamp() }}
-        status: >-
-          {{ status }}
         ids: >-
           {{ ids }}
         dids: >-
@@ -541,7 +526,7 @@
       entity_id: 'binary_sensor.motion_device_energy_exist'
       to: 'on'
       for:
-        minutes: 1
+        seconds: 15
   variables:
     dids: >-
       {{ state_attr('binary_sensor.motion_device_energy','dids') }}
@@ -614,7 +599,7 @@
       entity_id: binary_sensor.motion_device_energy_exist
       to: 'off'
       for:
-        minutes: 1
+        seconds: 15
   variables:
     sensor: >-
       {% set sensor = 'binary_sensor.motion_device_energy_unavailable' %}
@@ -654,6 +639,12 @@
   trigger:
     - platform: time_pattern
       minutes: '/15'
+    - platform: state
+      entity_id: 'automation.motion_device_energy_rescan'
+      attribute: 'current'
+      to: '0'
+      for:
+        seconds: 5
     - platform: state
       entity_id: 'group.motion_device_energy'
       to:
@@ -706,11 +697,7 @@
       {% set ids = state_attr('binary_sensor.motion_device_energy','ids') %}
       {{ ids }}
     dids: >-
-      {% set dids = none %}
-      {% set s = state_attr('binary_sensor.motion_device_energy','devices') %}
-      {%- if not s is string and s is iterable and s|count > 0 -%}
-        {%- set dids = s|map(attribute='did')|sort|unique|list -%}
-      {%- endif -%}
+      {% set ids = state_attr('binary_sensor.motion_device_energy','dids') %}
       {{ dids }}
     status: >-
       {%- set s = dids %}
