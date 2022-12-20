@@ -270,6 +270,11 @@
       condition: template
       value_template: >-
         {{ is_state_attr('automation.motion_device_update_rescan','current',0) }}
+    - alias: 'update rescan older than 1 minute'
+      condition: template
+      value_template: >-
+        {%- set s = utcnow().timestamp() -%}
+        {{- s - state_attr('automation.motion_device_update_rescan','last_triggered')|as_timestamp(s) > 60 }}
     - alias: 'trigger motion_device_update_rescan'
       service: automation.trigger
       data_template:
@@ -680,9 +685,19 @@
     - condition: template
       value_template: >-
         {{ is_state('automation.motion_device_update_state','on') }}
-    - condition: template
+    - alias: 'update rescan not running'
+      condition: template
+      value_template: >-
+        {{ is_state_attr('automation.motion_device_update_rescan', 'current', 0) }}
+    - alias: 'update state older than 1 minute'
+      condition: template
       value_template: >-
         {{ is_state_attr('automation.motion_device_update_state', 'current', 0) }}
+    - alias: 'update state older than 1 minute'
+      condition: template
+      value_template: >-
+        {%- set s = utcnow().timestamp() -%}
+        {{- s - state_attr('automation.motion_device_update_state','last_triggered')|as_timestamp(s) > 60 }}
   action:
     - choose:
         - conditions:
@@ -710,7 +725,7 @@
 
 - id: motion_device_update_state
   alias: motion_device_update_state
-  mode: 'restart'
+  mode: 'single'
   initial_state: 'off'
   trigger:
   variables:
@@ -3267,21 +3282,21 @@
 
 - id: motion_device_update_unavailable_monitor
   alias: motion_device_update_unavailable_monitor
-  mode: restart
+  mode: single
   initial_state: 'off'
   trigger:
     - platform: 'state'
       entity_id: 'binary_sensor.motion_device_update'
       attribute: 'status'
       for:
-        minutes: 1
+        minutes: 2
   variables:
     status: >-
       {{ state_attr('binary_sensor.motion_device_update','status') }}
     unavailable: >-
       {%- set s = status -%}
       {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
-        [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,'unavailable') or is_state(i.entity_id,'unknown') -%}
+        [{% for i in s if 'entity_id' in i and not i.entity_id is none and (is_state(i.entity_id,'unavailable') or is_state(i.entity_id,'unknown')) -%}
           {%- if not loop.first -%},{%- endif -%}
             {"id":"{{- i.id -}}","did":"{{- device_id(i.entity_id) -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- states[i.entity_id].last_updated|as_timestamp(None) -}}}
         {%- endfor -%}]
@@ -3296,14 +3311,12 @@
 
 - id: motion_device_update_unavailable
   alias: motion_device_update_unavailable
-  mode: restart
+  mode: single
   initial_state: 'off'
   trigger:
     - platform: 'state'
       entity_id: 'binary_sensor.motion_device_update'
       attribute: 'unavailable'
-      for:
-        minutes: 1
   variables:
     dids: >-
       {% set s = state_attr('binary_sensor.motion_device_update','unavailable') %}
@@ -3439,16 +3452,15 @@
 
 - id: motion_device_update_missing_on
   alias: motion_device_update_missing_on
-  mode: 'restart'
+  mode: 'single'
   max_exceeded: 'warn'
   initial_state: 'off'
   trigger:
     - platform: 'state'
       entity_id: 'binary_sensor.motion_device_update_missing'
-  condition:
-    - condition: template
-      value_template: >
-        {{ is_state('binary_sensor.motion_device_update_missing','on') }}
+      to: 'on'
+      for:
+        minutes: 1
   action:
     - alias: 'set update condition: missing'
       service: python_script.set_state
