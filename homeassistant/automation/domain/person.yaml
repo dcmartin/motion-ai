@@ -1,5 +1,5 @@
 ###
-# homeassistant/template/domain/person.yaml
+# homeassistant/automation/domain/person.yaml
 ###
 
 - id: motion_domain_person_count
@@ -29,14 +29,58 @@
       data_template:
         entity_id: sensor.motion_domain_person_count
         allow_create: true
-        online: >-
-          {{ states.person|selectattr('state','defined')|rejectattr('state','in',['unavailable','unknown'])|list|count  }}
-        offline: >-
-          {{ states.person|selectattr('state','defined')|selectattr('state','in',['unavailable','unknown'])|list|count  }}
+        connected: >-
+          {{ states.person|selectattr('state','==','home')|list|count + states.person|selectattr('state','==','not_home')|list|count }}
+        disconnected: >-
+          {{ states.person|count - (states.person|selectattr('state','==','home')|list|count + states.person|selectattr('state','==','not_home')|list|count) }}
         home: >-
-          {{ states.person|selectattr('state','defined')|selectattr('state','in',['home'])|list|count  }}
+          {{ states.person|selectattr('state','defined')|selectattr('state','in',['home'])|list }}
         away: >-
-          {{ states.person|selectattr('state','defined')|selectattr('state','in',['not_home'])|list|count  }}
+          {{ states.person|selectattr('state','defined')|selectattr('state','in',['not_home'])|list }}
+        agos: >-
+          [{%- for state in states.person -%}
+            {%- if not loop.first -%},{%- endif -%}
+            {{- utcnow().timestamp() - state.last_updated|as_timestamp -}}
+          {%- endfor -%}]
+        online: >-
+          {% set s = states.person|selectattr('state','!=','unknown')|list -%}
+          {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+            {{- '{' -}}
+            {%- for i in s -%}
+              {%- if not loop.first -%},{%- endif -%}
+              {%- set t = i.attributes.friendly_name -%}
+              {%- set a = i.last_updated|relative_time -%}
+              "{{- t -}}":"{{- a -}}"
+            {%- endfor -%} 
+            {{- '}' -}}
+          {%- else -%}none{%- endif %}
+        offline: >-
+          {% set s = states.person|selectattr('state','==','unknown')|list -%}
+          {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+            {{- '{' -}}
+            {%- for i in s -%}
+              {%- if not loop.first -%},{%- endif -%}
+              {%- set t = i.attributes.friendly_name -%}
+              {%- set a = i.last_updated|relative_time -%}
+              "{{- t -}}":"{{- a -}}"
+            {%- endfor -%} 
+            {{- '}' -}}
+          {%- else -%}none{%- endif %}
+        active: >-
+          {% set s = states.person|default([])|list -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and not s is string and s is iterable and s|count > 0 -%}
+            {%- set u = state_attr('sensor.motion_uptime','ago')|int(0) -%}
+            {%- set w = state_attr('sensor.motion_uptime','wait')|int(0) -%}
+            {%- set t = utcnow().timestamp()|int -%}
+            {{- '{' -}}
+            {%- for i in s if (t - i.last_updated|as_timestamp(utcnow().timestamp())) < (u - w) -%}
+              {%- if not loop.first -%},{%- endif -%}
+              {%- set t = i.attributes.friendly_name -%}
+              {%- set a = i.last_updated|relative_time -%}
+              "{{- t -}}":"{{- a -}}"
+            {%- endfor -%}
+            {{- '}' -}}
+          {%- else -%}none{%- endif %}
         state: >-
           {% set s = states.person|list %}
           {% if s|lower != 'none' and not s is string and s|list is iterable %}
