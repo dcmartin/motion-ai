@@ -228,7 +228,7 @@ sensor/%.yaml : sensor.%.yaml.tmpl
 	  && cat $< | envsubst > $@
 
 mqtt/%.yaml : mqtt.%.yaml.tmpl
-	@echo "Making $@"
+	@echo "Making MQTT $@"
 	@export \
 	  MOTION_GROUP="$(MOTION_GROUP)" \
 	  MOTION_DEVICE="$(MOTION_DEVICE)" \
