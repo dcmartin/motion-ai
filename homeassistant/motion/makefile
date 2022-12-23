@@ -39,17 +39,19 @@ WEBCAM_IMAGE_PROCESSINGS := $(shell for C in $(WEBCAMS); do echo image_processin
 WEBCAM_INPUT_BOOLEANS := $(shell for C in $(WEBCAMS); do echo input_boolean/webcam-$${C}.yaml; done)
 WEBCAM_INPUT_SELECTS := $(shell for C in $(WEBCAMS); do echo input_select/webcam-$${C}.yaml; done)
 WEBCAM_SENSORS := $(shell for C in $(WEBCAMS); do echo sensor/webcam-$${C}.yaml; done)
+WEBCAM_MQTTS := $(shell for C in $(WEBCAMS); do echo mqtt/webcam-$${C}.yaml; done)
 WEBCAM_SHELL_COMMANDS := $(shell for C in $(WEBCAMS); do echo shell_command/webcam-$${C}.yaml; done)
 
 WEBCAM_YAML := \
-  $(WEBCAM_AUTOMATIONS)  \
-  $(WEBCAM_BINARY_SENSORS)  \
-  $(WEBCAM_COUNTERS)  \
-  $(WEBCAM_CAMERAS)  \
-  $(WEBCAM_IMAGE_PROCESSINGS)  \
-  $(WEBCAM_INPUT_BOOLEANS)  \
-  $(WEBCAM_INPUT_SELECTS)  \
-  $(WEBCAM_SENSORS)  \
+  $(WEBCAM_AUTOMATIONS) \
+  $(WEBCAM_BINARY_SENSORS) \
+  $(WEBCAM_COUNTERS) \
+  $(WEBCAM_CAMERAS) \
+  $(WEBCAM_IMAGE_PROCESSINGS) \
+  $(WEBCAM_INPUT_BOOLEANS) \
+  $(WEBCAM_INPUT_SELECTS) \
+  $(WEBCAM_SENSORS) \
+  $(WEBCAM_MQTTS) \
   $(WEBCAM_SHELL_COMMANDS)
 
 ##
@@ -95,13 +97,19 @@ WEBCAM_SENSOR_DETECTOR_TEMPLATES := \
 	sensor.alpr_detected.yaml.tmpl \
 	sensor.detected_animal.yaml.tmpl \
 	sensor.detected_entity.yaml.tmpl \
+	sensor.detected_person.yaml.tmpl \
+	sensor.detected_vehicle.yaml.tmpl \
 	sensor.face_detected.yaml.tmpl \
 	sensor.person_face.yaml.tmpl \
-	sensor.detected_person.yaml.tmpl \
 	sensor.pose_detected.yaml.tmpl \
-	sensor.webcam.yaml.tmpl \
 	sensor.vehicle_alpr.yaml.tmpl \
-	sensor.detected_vehicle.yaml.tmpl
+	sensor.webcam.yaml.tmpl
+
+WEBCAM_MQTT_DETECTOR_TEMPLATES := \
+	mqtt.alpr_detected.yaml.tmpl \
+	mqtt.face_detected.yaml.tmpl \
+	mqtt.pose_detected.yaml.tmpl \
+	mqtt.webcam.yaml.tmpl
 
 WEBCAM_TEMPLATE_DETECTOR_TEMPLATES := \
 	template.detected_person.yaml.tmpl \
@@ -129,22 +137,32 @@ MOTION_YAML := \
 	automation/camera_notify.yaml \
 	automation/device_start.yaml \
 	binary_sensor/device_start.yaml \
-	sensor/event_start.yaml \
-	sensor/event_image.yaml \
-	sensor/event_end.yaml \
-	sensor/event_face.yaml \
+	sensor/device_start.yaml \
 	sensor/event_alpr.yaml \
 	sensor/event_annotated.yaml \
-	sensor/device_start.yaml \
-	sensor/lost.yaml \
+	sensor/event_end.yaml \
+	sensor/event_face.yaml \
+	sensor/event_image.yaml \
+	sensor/event_start.yaml \
 	sensor/found.yaml \
+	sensor/lost.yaml \
 	sensor/router.yaml \
 	camera/event_image.yaml \
 	camera/event_end.yaml \
 	camera/event_animated.yaml \
 	camera/event_face.yaml \
 	camera/event_alpr.yaml \
-	camera/event_annotated.yaml
+	camera/event_annotated.yaml \
+	mqtt/device_start.yaml \
+	mqtt/event_alpr.yaml \
+	mqtt/event_annotated.yaml \
+	mqtt/event_end.yaml \
+	mqtt/event_face.yaml \
+	mqtt/event_image.yaml \
+	mqtt/event_pose.yaml \
+	mqtt/event_start.yaml \
+	mqtt/found.yaml \
+	mqtt/lost.yaml
 
 ###
 ### targets
@@ -163,6 +181,7 @@ webcams: \
 	WEBCAM_INPUT_BOOLEANS \
 	WEBCAM_INPUT_SELECTS \
 	WEBCAM_SENSORS \
+	WEBCAM_MQTTS \
 	WEBCAM_SHELL_COMMANDS \
 	WEBCAM_AUTOMATION_DETECTORS \
 	WEBCAM_SENSOR_DETECTORS \
@@ -199,6 +218,16 @@ camera/%.yaml : camera.%.yaml.tmpl
 	  && cat $< | envsubst > $@
 
 sensor/%.yaml : sensor.%.yaml.tmpl
+	@echo "Making $@"
+	@export \
+	  MOTION_GROUP="$(MOTION_GROUP)" \
+	  MOTION_DEVICE="$(MOTION_DEVICE)" \
+	  MOTION_CLIENT="${MOTION_CLIENT}" \
+	  MOTION_BASEURL="${MOTION_BASEURL}" \
+	  MOTION_ROUTER_NAME="${MOTION_ROUTER_NAME}" \
+	  && cat $< | envsubst > $@
+
+mqtt/%.yaml : mqtt.%.yaml.tmpl
 	@echo "Making $@"
 	@export \
 	  MOTION_GROUP="$(MOTION_GROUP)" \
@@ -260,6 +289,26 @@ WEBCAM_BINARY_SENSOR_DETECTORS: $(WEBCAM_BINARY_SENSOR_DETECTOR_TEMPLATES) ${WEB
 WEBCAM_SENSOR_DETECTORS: $(WEBCAM_SENSOR_DETECTOR_TEMPLATES) ${WEBCAMS_JSON}
 	@echo "Making $@"
 	@for tmpl in $(WEBCAM_SENSOR_DETECTOR_TEMPLATES); do \
+	  export t=$$(echo "$${tmpl##sensor.}"); \
+	  u=$$(echo "$${t%%.yaml*}") && \
+	  for i in $(WEBCAMS); do \
+	    v="sensor/$${u}-$${i}.yaml"; \
+	    export TARGET="$${i}"; \
+	    export MOTION_CAMERA=$${TARGET%%.*}; \
+	    export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
+	    export MOTION_GROUP="$(MOTION_GROUP)"; \
+	    export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	    export MOTION_CLIENT="$(MOTION_CLIENT)"; \
+	    export MOTION_CAMERA_ICON=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.icon?" $(WEBCAMS_JSON)); \
+	    export MOTION_CAMERA_LATITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.latitude?' $(WEBCAMS_JSON)); \
+	    export MOTION_CAMERA_LONGITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.longitude?' $(WEBCAMS_JSON)); \
+	    cat $${tmpl} | envsubst > $${v}; \
+	  done; \
+	done
+
+WEBCAM_MQTT_DETECTORS: $(WEBCAM_MQTT_DETECTOR_TEMPLATES) ${WEBCAMS_JSON}
+	@echo "Making $@"
+	@for tmpl in $(WEBCAM_MQTT_DETECTOR_TEMPLATES); do \
 	  export t=$$(echo "$${tmpl##sensor.}"); \
 	  u=$$(echo "$${t%%.yaml*}") && \
 	  for i in $(WEBCAMS); do \
@@ -391,6 +440,21 @@ WEBCAM_COUNTERS: $(WEBCAM_COUNTER_TEMPLATE) ${WEBCAMS_JSON}
 WEBCAM_SENSORS: $(WEBCAM_SENSOR_TEMPLATE) ${WEBCAMS_JSON}
 	@echo "Making $@"
 	@for i in $(WEBCAM_SENSORS); do \
+	  export TARGET="$${i}"; \
+	  export MOTION_CAMERA=$${TARGET%%.*}; \
+	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
+	  export MOTION_GROUP="$(MOTION_GROUP)"; \
+	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
+	  export MOTION_CAMERA_ICON=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.icon?" $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_LATITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.latitude?' $(WEBCAMS_JSON)); \
+	  export MOTION_CAMERA_LONGITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.longitude?' $(WEBCAMS_JSON)); \
+	  cat $(WEBCAM_SENSOR_TEMPLATE) | envsubst > $${i}; \
+	done
+
+WEBCAM_MQTTS: $(WEBCAM_MQTT_TEMPLATE) ${WEBCAMS_JSON}
+	@echo "Making $@"
+	@for i in $(WEBCAM_MQTTS); do \
 	  export TARGET="$${i}"; \
 	  export MOTION_CAMERA=$${TARGET%%.*}; \
 	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
