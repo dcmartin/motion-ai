@@ -85,6 +85,7 @@ WEBCAM_IMAGE_PROCESSING_TEMPLATE := image_processing.webcam.yaml.tmpl
 WEBCAM_INPUT_BOOLEAN_TEMPLATE := input_boolean.webcam.yaml.tmpl
 WEBCAM_INPUT_SELECT_TEMPLATE := input_select.webcam.yaml.tmpl
 WEBCAM_SENSOR_TEMPLATE := sensor.webcam.yaml.tmpl
+WEBCAM_MQTT_TEMPLATE := mqtt.webcam.yaml.tmpl
 WEBCAM_SHELL_COMMAND_TEMPLATE := shell_command.webcam.yaml.tmpl
 
 WEBCAM_BINARY_SENSOR_DETECTOR_TEMPLATES := \
@@ -185,6 +186,7 @@ webcams: \
 	WEBCAM_SHELL_COMMANDS \
 	WEBCAM_AUTOMATION_DETECTORS \
 	WEBCAM_SENSOR_DETECTORS \
+	WEBCAM_MQTT_DETECTORS \
 	WEBCAM_TEMPLATE_DETECTORS \
 	WEBCAM_BINARY_SENSOR_DETECTORS
 
@@ -464,7 +466,7 @@ WEBCAM_MQTTS: $(WEBCAM_MQTT_TEMPLATE) ${WEBCAMS_JSON}
 	  export MOTION_CAMERA_ICON=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.icon?" $(WEBCAMS_JSON)); \
 	  export MOTION_CAMERA_LATITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.latitude?' $(WEBCAMS_JSON)); \
 	  export MOTION_CAMERA_LONGITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.longitude?' $(WEBCAMS_JSON)); \
-	  cat $(WEBCAM_SENSOR_TEMPLATE) | envsubst > $${i}; \
+	  cat $(WEBCAM_MQTT_TEMPLATE) | envsubst > $${i}; \
 	done
 
 WEBCAM_INPUT_BOOLEANS: $(WEBCAM_INPUT_BOOLEAN_TEMPLATE) ${WEBCAMS_JSON}
