@@ -34,12 +34,13 @@ WEBCAMS := $(shell jq -r '.[].name' $(WEBCAMS_JSON) | sort | uniq)
 WEBCAM_AUTOMATIONS := $(shell for C in $(WEBCAMS); do echo automation/webcam-$${C}.yaml; done)
 WEBCAM_BINARY_SENSORS := $(shell for C in $(WEBCAMS); do echo binary_sensor/webcam-$${C}.yaml; done)
 WEBCAM_COUNTERS := $(shell for C in $(WEBCAMS); do echo counter/webcam-$${C}.yaml; done)
-WEBCAM_CAMERAS := $(shell for C in $(WEBCAMS); do echo camera/webcam-$${C}.yaml; done)
 WEBCAM_IMAGE_PROCESSINGS := $(shell for C in $(WEBCAMS); do echo image_processing/webcam-$${C}.yaml; done)
 WEBCAM_INPUT_BOOLEANS := $(shell for C in $(WEBCAMS); do echo input_boolean/webcam-$${C}.yaml; done)
 WEBCAM_INPUT_SELECTS := $(shell for C in $(WEBCAMS); do echo input_select/webcam-$${C}.yaml; done)
 WEBCAM_SENSORS := $(shell for C in $(WEBCAMS); do echo sensor/webcam-$${C}.yaml; done)
-WEBCAM_MQTTS := $(shell for C in $(WEBCAMS); do echo mqtt/webcam-$${C}.yaml; done)
+WEBCAM_MQTT_SENSORS := $(shell for C in $(WEBCAMS); do echo mqtt/sensor/webcam-$${C}.yaml; done)
+WEBCAM_CAMERAS := $(shell for C in $(WEBCAMS); do echo camera/webcam-$${C}.yaml; done)
+WEBCAM_MQTT_CAMERAS := $(shell for C in $(WEBCAMS); do echo mqtt/camera/webcam-$${C}.yaml; done)
 WEBCAM_SHELL_COMMANDS := $(shell for C in $(WEBCAMS); do echo shell_command/webcam-$${C}.yaml; done)
 
 WEBCAM_YAML := \
@@ -47,11 +48,12 @@ WEBCAM_YAML := \
   $(WEBCAM_BINARY_SENSORS) \
   $(WEBCAM_COUNTERS) \
   $(WEBCAM_CAMERAS) \
+  $(WEBCAM_MQTT_CAMERAS) \
   $(WEBCAM_IMAGE_PROCESSINGS) \
   $(WEBCAM_INPUT_BOOLEANS) \
   $(WEBCAM_INPUT_SELECTS) \
   $(WEBCAM_SENSORS) \
-  $(WEBCAM_MQTTS) \
+  $(WEBCAM_MQTT_SENSORS) \
   $(WEBCAM_SHELL_COMMANDS)
 
 ##
@@ -79,13 +81,14 @@ HIGHLOW_YAML := ${HIGHLOW_BINARY_SENSORS} # ${HIGHLOW_AUTOMATIONS}
 WEBCAM_AUTOMATION_TEMPLATE := automation.webcam.yaml.tmpl
 WEBCAM_BINARY_SENSOR_TEMPLATE := binary_sensor.webcam.yaml.tmpl
 WEBCAM_CAMERA_TEMPLATE := camera.webcam.yaml.tmpl
+WEBCAM_MQTT_CAMERA_TEMPLATE := mqtt.camera.yaml.tmpl
 WEBCAM_COUNTER_TEMPLATE := counter.webcam.yaml.tmpl
 WEBCAM_FACE_SENSOR_TEMPLATE := sensor.face_detected.yaml.tmpl
 WEBCAM_IMAGE_PROCESSING_TEMPLATE := image_processing.webcam.yaml.tmpl
 WEBCAM_INPUT_BOOLEAN_TEMPLATE := input_boolean.webcam.yaml.tmpl
 WEBCAM_INPUT_SELECT_TEMPLATE := input_select.webcam.yaml.tmpl
 WEBCAM_SENSOR_TEMPLATE := sensor.webcam.yaml.tmpl
-WEBCAM_MQTT_TEMPLATE := mqtt.webcam.yaml.tmpl
+WEBCAM_MQTT_SENSOR_TEMPLATE := mqtt.sensor.yaml.tmpl
 WEBCAM_SHELL_COMMAND_TEMPLATE := shell_command.webcam.yaml.tmpl
 
 WEBCAM_BINARY_SENSOR_DETECTOR_TEMPLATES := \
@@ -106,11 +109,11 @@ WEBCAM_SENSOR_DETECTOR_TEMPLATES := \
 	sensor.vehicle_alpr.yaml.tmpl \
 	sensor.webcam.yaml.tmpl
 
-WEBCAM_MQTT_DETECTOR_TEMPLATES := \
+WEBCAM_MQTT_SENSOR_DETECTOR_TEMPLATES := \
 	mqtt.alpr_detected.yaml.tmpl \
 	mqtt.face_detected.yaml.tmpl \
 	mqtt.pose_detected.yaml.tmpl \
-	mqtt.webcam.yaml.tmpl
+	mqtt.sensor.yaml.tmpl
 
 WEBCAM_TEMPLATE_DETECTOR_TEMPLATES := \
 	template.detected_person.yaml.tmpl \
@@ -148,22 +151,22 @@ MOTION_YAML := \
 	sensor/found.yaml \
 	sensor/lost.yaml \
 	sensor/router.yaml \
-	camera/event_image.yaml \
-	camera/event_end.yaml \
-	camera/event_animated.yaml \
-	camera/event_face.yaml \
-	camera/event_alpr.yaml \
-	camera/event_annotated.yaml \
-	mqtt/device_start.yaml \
-	mqtt/event_alpr.yaml \
-	mqtt/event_annotated.yaml \
-	mqtt/event_end.yaml \
-	mqtt/event_face.yaml \
-	mqtt/event_image.yaml \
-	mqtt/event_pose.yaml \
-	mqtt/event_start.yaml \
-	mqtt/found.yaml \
-	mqtt/lost.yaml
+	mqtt/camera/event_image.yaml \
+	mqtt/camera/event_end.yaml \
+	mqtt/camera/event_animated.yaml \
+	mqtt/camera/event_face.yaml \
+	mqtt/camera/event_alpr.yaml \
+	mqtt/camera/event_annotated.yaml \
+	mqtt/sensor/device_start.yaml \
+	mqtt/sensor/event_alpr.yaml \
+	mqtt/sensor/event_annotated.yaml \
+	mqtt/sensor/event_end.yaml \
+	mqtt/sensor/event_face.yaml \
+	mqtt/sensor/event_image.yaml \
+	mqtt/sensor/event_pose.yaml \
+	mqtt/sensor/event_start.yaml \
+	mqtt/sensor/found.yaml \
+	mqtt/sensor/lost.yaml
 
 ###
 ### targets
@@ -177,16 +180,17 @@ webcams: \
 	WEBCAM_AUTOMATIONS \
 	WEBCAM_BINARY_SENSORS \
 	WEBCAM_CAMERAS \
+	WEBCAM_MQTT_CAMERAS \
 	WEBCAM_COUNTERS \
 	WEBCAM_IMAGE_PROCESSINGS \
 	WEBCAM_INPUT_BOOLEANS \
 	WEBCAM_INPUT_SELECTS \
 	WEBCAM_SENSORS \
-	WEBCAM_MQTTS \
+	WEBCAM_MQTT_SENSORS \
 	WEBCAM_SHELL_COMMANDS \
 	WEBCAM_AUTOMATION_DETECTORS \
 	WEBCAM_SENSOR_DETECTORS \
-	WEBCAM_MQTT_DETECTORS \
+	WEBCAM_MQTT_SENSOR_DETECTORS \
 	WEBCAM_TEMPLATE_DETECTORS \
 	WEBCAM_BINARY_SENSOR_DETECTORS
 
@@ -210,15 +214,6 @@ automation/%.yaml : automation.%.yaml.tmpl
 	  MOTION_BASEURL="${MOTION_BASEURL}" \
 	  && cat $< | envsubst > $@
 
-camera/%.yaml : camera.%.yaml.tmpl
-	@echo "Making $@"
-	@export \
-	  MOTION_GROUP="$(MOTION_GROUP)" \
-	  MOTION_DEVICE="$(MOTION_DEVICE)" \
-	  MOTION_CLIENT="${MOTION_CLIENT}" \
-	  MOTION_BASEURL="${MOTION_BASEURL}" \
-	  && cat $< | envsubst > $@
-
 sensor/%.yaml : sensor.%.yaml.tmpl
 	@echo "Making $@"
 	@export \
@@ -229,8 +224,17 @@ sensor/%.yaml : sensor.%.yaml.tmpl
 	  MOTION_ROUTER_NAME="${MOTION_ROUTER_NAME}" \
 	  && cat $< | envsubst > $@
 
-mqtt/%.yaml : mqtt.%.yaml.tmpl
-	@echo "Making MQTT $@"
+mqtt/camera/%.yaml : camera.%.yaml.tmpl
+	@echo "Making $@"
+	@export \
+	  MOTION_GROUP="$(MOTION_GROUP)" \
+	  MOTION_DEVICE="$(MOTION_DEVICE)" \
+	  MOTION_CLIENT="${MOTION_CLIENT}" \
+	  MOTION_BASEURL="${MOTION_BASEURL}" \
+	  && cat $< | envsubst > $@
+
+mqtt/sensor/%.yaml : mqtt.%.yaml.tmpl
+	@echo "Making $@"
 	@export \
 	  MOTION_GROUP="$(MOTION_GROUP)" \
 	  MOTION_DEVICE="$(MOTION_DEVICE)" \
@@ -291,6 +295,7 @@ WEBCAM_BINARY_SENSOR_DETECTORS: $(WEBCAM_BINARY_SENSOR_DETECTOR_TEMPLATES) ${WEB
 WEBCAM_SENSOR_DETECTORS: $(WEBCAM_SENSOR_DETECTOR_TEMPLATES) ${WEBCAMS_JSON}
 	@echo "Making $@"
 	@for tmpl in $(WEBCAM_SENSOR_DETECTOR_TEMPLATES); do \
+          echo "$${tmpl}"; \
 	  export t=$$(echo "$${tmpl##sensor.}"); \
 	  u=$$(echo "$${t%%.yaml*}") && \
 	  for i in $(WEBCAMS); do \
@@ -308,13 +313,14 @@ WEBCAM_SENSOR_DETECTORS: $(WEBCAM_SENSOR_DETECTOR_TEMPLATES) ${WEBCAMS_JSON}
 	  done; \
 	done
 
-WEBCAM_MQTT_DETECTORS: $(WEBCAM_MQTT_DETECTOR_TEMPLATES) ${WEBCAMS_JSON}
+WEBCAM_MQTT_SENSOR_DETECTORS: $(WEBCAM_MQTT_SENSOR_DETECTOR_TEMPLATES) ${WEBCAMS_JSON}
 	@echo "Making $@"
-	@for tmpl in $(WEBCAM_MQTT_DETECTOR_TEMPLATES); do \
-	  export t=$$(echo "$${tmpl##sensor.}"); \
+	@for tmpl in $(WEBCAM_MQTT_SENSOR_DETECTOR_TEMPLATES); do \
+	  export t=$$(echo "$${tmpl##mqtt.}"); \
 	  u=$$(echo "$${t%%.yaml*}") && \
 	  for i in $(WEBCAMS); do \
-	    v="sensor/$${u}-$${i}.yaml"; \
+	    v="mqtt/sensor/$${u}-$${i}.yaml"; \
+            echo "MQTT sensor detector: $${v}"; \
 	    export TARGET="$${i}"; \
 	    export MOTION_CAMERA=$${TARGET%%.*}; \
 	    export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
@@ -366,6 +372,18 @@ WEBCAM_AUTOMATION_DETECTORS: $(WEBCAM_AUTOMATION_DETECTOR_TEMPLATES) ${WEBCAMS_J
 	    export MOTION_CAMERA_LONGITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.longitude?' $(WEBCAMS_JSON)); \
 	    cat $${tmpl} | envsubst > $${v}; \
 	  done; \
+	done
+
+WEBCAM_MQTT_CAMERAS: $(WEBCAM_MQTT_CAMERA_TEMPLATE) ${WEBCAMS_JSON}
+	@echo "Making $@"
+	@for i in $(WEBCAM_MQTT_CAMERAS); do \
+	  export TARGET="$${i}"; \
+	  export MOTION_CAMERA="$${TARGET%%.*}"; \
+	  export MOTION_CAMERA="$${MOTION_CAMERA##*-}"; \
+	  export MOTION_GROUP="$(MOTION_GROUP)"; \
+	  export MOTION_DEVICE="$(MOTION_DEVICE)"; \
+	  export MOTION_CLIENT="$(MOTION_CLIENT)"; \
+	  cat $(WEBCAM_MQTT_CAMERA_TEMPLATE) | envsubst > $${i}; \
 	done
 
 WEBCAM_CAMERAS: $(WEBCAM_CAMERA_TEMPLATE) ${WEBCAMS_JSON}
@@ -454,9 +472,9 @@ WEBCAM_SENSORS: $(WEBCAM_SENSOR_TEMPLATE) ${WEBCAMS_JSON}
 	  cat $(WEBCAM_SENSOR_TEMPLATE) | envsubst > $${i}; \
 	done
 
-WEBCAM_MQTTS: $(WEBCAM_MQTT_TEMPLATE) ${WEBCAMS_JSON}
+WEBCAM_MQTT_SENSORS: $(WEBCAM_MQTT_SENSOR_TEMPLATE) ${WEBCAMS_JSON}
 	@echo "Making $@"
-	@for i in $(WEBCAM_MQTTS); do \
+	@for i in $(WEBCAM_MQTT_SENSORS); do \
 	  export TARGET="$${i}"; \
 	  export MOTION_CAMERA=$${TARGET%%.*}; \
 	  export MOTION_CAMERA=$${MOTION_CAMERA##*-}; \
@@ -466,7 +484,7 @@ WEBCAM_MQTTS: $(WEBCAM_MQTT_TEMPLATE) ${WEBCAMS_JSON}
 	  export MOTION_CAMERA_ICON=$$(jq -r "[.[]|select(.name==\"$${MOTION_CAMERA}\")]|first|.icon?" $(WEBCAMS_JSON)); \
 	  export MOTION_CAMERA_LATITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.latitude?' $(WEBCAMS_JSON)); \
 	  export MOTION_CAMERA_LONGITUDE=$$(jq -r '[.[]|select(.name=="'$${MOTION_CAMERA}'")]|first|.longitude?' $(WEBCAMS_JSON)); \
-	  cat $(WEBCAM_MQTT_TEMPLATE) | envsubst > $${i}; \
+	  cat $(WEBCAM_MQTT_SENSOR_TEMPLATE) | envsubst > $${i}; \
 	done
 
 WEBCAM_INPUT_BOOLEANS: $(WEBCAM_INPUT_BOOLEAN_TEMPLATE) ${WEBCAMS_JSON}
