@@ -1,0 +1,399 @@
+###
+# sensor/motion/annotated.yaml
+###
+
+## status
+- platform: template
+  sensors:
+    motion_annotated_status:
+      friendly_name: '👁 (annotated)'
+      icon_template: 'mdi:eye'
+      value_template: >-
+        {% if is_state('binary_sensor.motion_annotated','on') %}
+          {% set e = state_attr('sensor.motion_event_annotated','event') %}
+          {% if e|lower != 'none' and e|lower != 'unknown' and e|lower != 'unavailable' and e|lower != 'null' and e is mapping %}
+            {% set n = utcnow().timestamp()|int(0) %}
+            {% set end = e.end|int(0) %}
+            {% set event = e.event %}
+            {% set device = e.device %}
+            {% set camera = e.camera %}
+            {% set elapsed = e.elapsed|int(0) %}
+            {% set what = state_attr('sensor.motion_event_annotated','detected')|map(attribute='entity')|list %}
+            {% set count = state_attr('sensor.motion_event_annotated','count') %}
+            {% set when = end|timestamp_custom("%a %b %d %I:%M:%S %p %Z",true,'unknown') %}
+            {% set delay = n - end %}
+            👁: {{ count }} {{ what }};
+            from {{ device -}}/{{- camera -}}/{{- event -}};
+            at {{ when }};
+            delay: {{ delay }};
+            duration: {{ elapsed }};
+            counter: {{ states('counter.motion_annotated_counter') -}}/{{- states('sensor.motion_annotated_counter') -}}
+          {% else %}Pending{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_annotated_status') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}Pending{% endif %}
+        {% endif %}
+
+- platform: template
+  sensors:
+    motion_camera_annotated_live:
+      friendly_name: '👁 camera live'
+      value_template: >-
+        {% set camera = states('sensor.motion_annotated_camera') %}
+        {% if camera|lower != 'none' and camera|lower != 'unavailable' and camera|lower != 'unknown' and camera != 'null' and camera|length > 0 %}
+          {% set ep = state_attr('camera.motion_' + camera + '_live','entity_picture') %}
+          {% if ep|lower != 'none' and ep|lower != 'unknown' and ep|lower != 'unavailable' and ep|length > 0 %}
+            {% set p = ep %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined and p|lower != 'none' and p|lower != 'unavailable' and p|lower != 'unknown' and p|length > 0 %}
+          {{ p }}
+        {% else %}
+          {{ states('sensor.motion_nosignal_animated') }}
+        {% endif %}
+
+## count
+- platform: template
+  sensors:
+    motion_annotated_count:
+      friendly_name: '👁 count'
+      unit_of_measurement: entities
+      icon_template: 'mdi:sigma'
+      value_template: >
+        {% if is_state('binary_sensor.motion_annotated','on') or is_state('binary_sensor.motion_annotated_expired','off') %}
+          {% set count = state_attr('sensor.motion_event_annotated','count') %}
+          {% if count|lower != 'none' and count|lower != 'unknown' and count != 'null' %}
+            {{ count|int(0) }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+
+## entity_count
+- platform: template
+  sensors:
+    motion_annotated_count_entity:
+      friendly_name: '👁 count entity'
+      unit_of_measurement: entities
+      icon_template: 'mdi:sigma'
+      value_template: >-
+        {% if is_state('binary_sensor.motion_annotated','on') %}
+          {% set detected = state_attr('sensor.motion_event_annotated','detected') %}
+          {% if detected|lower != 'none' and detected|lower != 'unknown' and detected != 'null' %}
+            {% set count = detected|selectattr('entity','==',states('sensor.motion_detect_entity'))|map(attribute='count')|sum %}
+            {% if count|lower != 'none' and count|lower != 'unknown' and count != 'null' %}
+              {{ count|int(0) }}
+            {% else %}null{% endif %}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+
+## counter
+- platform: template
+  sensors:
+    motion_annotated_counter:
+      friendly_name: '👁 counter'
+      icon_template: 'mdi:counter'
+      unit_of_measurement: '👁'
+      value_template: >
+        {{ states('counter.motion_annotated_counter')|int(0) }}
+
+## event
+- platform: template
+  sensors:
+    # event
+    motion_annotated_event:
+      value_template: >-
+        {% if is_state('binary_sensor.motion_annotated','on') %}
+          {% set e = state_attr('sensor.motion_event_annotated','event') %}
+          {% if e is mapping %}
+            {% set s = e.event %}
+            {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' and s|int(0) > 0 %}
+              {{ s|int(0) }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        {% else %}
+          {% set s = states('sensor.motion_annotated_event') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+## date
+- platform: template
+  sensors:
+    # date
+    motion_annotated_date:
+      unit_of_measurement: 's'
+      value_template: >-
+        {% if is_state('binary_sensor.motion_annotated','on') %}
+          {% set e = state_attr('sensor.motion_event_annotated','event') %}
+          {% if e is mapping %}
+            {% set s = e.end %}
+            {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' and s|int(0) > 0 %}
+              {{ s|int(0) }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        {% else %}
+          {% set s = states('sensor.motion_annotated_date') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+## elapsed
+- platform: template
+  sensors:
+    motion_annotated_elapsed:
+      friendly_name: '👁 elapsed'
+      unit_of_measurement: 's'
+      icon_template: 'mdi:camera-timer'
+      value_template: >
+        {% if is_state('binary_sensor.motion_annotated','on') %}
+          {% set e = state_attr('sensor.motion_event_annotated','event') %}
+          {% if e is mapping %}
+            {% set s = e.elapsed %}
+            {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' %}
+              {{ s|int(0) }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        {% else %}
+          {% set s = states('sensor.motion_annotated_elapsed') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+## device
+- platform: template
+  sensors:
+    motion_annotated_device:
+      friendly_name: '👁 device'
+      icon_template: 'mdi:raspberry-pi'
+      unit_of_measurement: 's'
+      value_template: >
+        {% if is_state('binary_sensor.motion_annotated','on') %}
+          {% set e = state_attr('sensor.motion_event_annotated','event') %}
+          {% if e is mapping %}
+            {% set s = e.device %}
+            {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' %}
+              {{ s }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        {% else %}
+          {% set s = states('sensor.motion_annotated_device') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+## camera
+- platform: template
+  sensors:
+    motion_annotated_camera:
+      friendly_name: '👁 camera'
+      icon_template: 'mdi:camera'
+      value_template: >
+        {% if is_state('binary_sensor.motion_annotated','on') %}
+          {% set e = state_attr('sensor.motion_event_annotated','event') %}
+          {% if e is mapping %}
+            {% set s = e.camera %}
+            {% if s|lower != 'none' and s|lower != 'unknown' and s != 'null' %}
+              {{ s }}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        {% else %}
+          {% set s = states('sensor.motion_annotated_camera') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+## when
+- platform: template
+  sensors:
+    motion_annotated_when:
+      friendly_name: '👁 at'
+      icon_template: 'mdi:calendar-clock'
+      value_template: >-
+        {% set s = states('sensor.motion_annotated_date')|int(0) %}
+        {% if s > 0 %}
+          {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z",true,'unknown') -}}
+        {% else %}Pending{% endif %}
+
+## ago
+
+- platform: template
+  sensors:
+    motion_annotated_ago_relative:
+      friendly_name: 'Annotated ago relative'
+      icon_template: 'mdi:av-timer'
+      value_template: >
+        {% set s = states('sensor.motion_annotated_ago')|int(0) %}
+        {% if s > 0 %}
+          {% set d = (s/86400)|int(0) %}
+          {% set h = (s/3600)|int(0) %}
+          {% if d < 1 %}
+            {% set m = ((s-(d*86400)-(h*3600))/60)|int(0) %}
+            {% set s = (s % 60)|int(0) %}
+            {% if h < 1 %}
+              {% if m < 1 %}
+                {{ s -}}s
+              {% else %}
+                {{ m -}}m; {{ s -}}s
+              {% endif %}
+            {% else %}
+              {{ h -}}h; {{ m -}}m
+            {% endif %}
+          {% else %}
+            {{ d -}}d; {{ h -}}h
+          {% endif %}
+        {%- else -%}Pending{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_annotated_ago:
+      friendly_name: '👁 ago'
+      icon_template: 'mdi:camera-timer'
+      unit_of_measurement: 's'
+      value_template: >
+        {% set t = states('sensor.time') %}
+        {% set s = states('sensor.motion_annotated_date')|int(0) %}
+        {% if s > 0 %}
+          {% set s = utcnow().timestamp()|int(0) - s %}
+          {% if s < 86400 %}{{ s }}{%- else -%}null{%- endif -%}
+        {%- else -%}null{%- endif -%}
+
+## percent
+
+- platform: template
+  sensors:
+    motion_annotated_percent:
+      icon_template: 'mdi:percent'
+      friendly_name: 👁 processed
+      unit_of_measurement: '%'
+      value_template: >-
+        {% if states('sensor.motion_annotated_counter')|int(0) > 0 and states('sensor.motion_end_counter')|int(0) > 0 %}
+          {% set value = states.sensor.motion_annotated_counter.state|int(0) / states.sensor.motion_end_counter.state|int(0) * 100.0 %}
+          {{ "%.2f"|format(value|float(0.0)) }}
+        {%- else -%}null{%- endif -%}
+
+- platform: statistics
+  name: motion_annotated_percent_min
+  entity_id: sensor.motion_annotated_percent
+  state_characteristic: value_min
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: statistics
+  name: motion_annotated_percent_mean
+  entity_id: sensor.motion_annotated_percent
+  state_characteristic: mean
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: statistics
+  name: motion_annotated_percent_max
+  entity_id: sensor.motion_annotated_percent
+  state_characteristic: value_max
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: statistics
+  name: motion_annotated_percent_stdev
+  entity_id: sensor.motion_annotated_percent
+  state_characteristic: standard_deviation
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+## detected
+
+- platform: template
+  sensors:
+    motion_annotated_counts:
+      friendly_name: '👁 counts'
+      value_template: >-
+        {% set detected = state_attr('sensor.motion_event_annotated','detected') %}
+        {% if detected|lower != 'none' and detected|lower != 'unknown' and detected|length > 0  %}
+          {{ detected|map(attribute='count')|list }}
+        {% else %}null{% endif %}
+
+## list
+
+- platform: template
+  sensors:
+    motion_annotated_list:
+      friendly_name: '👁 entity list'
+      icon_template: 'mdi:format-list-bulleted'
+      value_template: >-
+        {% set detected = state_attr('sensor.motion_event_annotated','detected') %}
+        {% if detected|lower != 'none' and detected|lower != 'unknown' and detected|length > 0 %}
+          {{ detected|map(attribute='entity')|list }}
+        {% else %}null{% endif %}
+
+## delay
+
+- platform: template
+  sensors:
+    motion_annotated_delay:
+      friendly_name: '👁 delay'
+      icon_template: 'mdi:timer'
+      unit_of_measurement: 's'
+      value_template: >
+        {% if is_state('binary_sensor.motion_annotated','on') %}
+          {% set e = state_attr('sensor.motion_event_annotated','event') %}
+          {% if e|lower != 'none' and e|lower != 'unavailable' and e|lower != 'unknown' and e|lower != 'none' %}
+            {%- set t = e.timestamp -%}
+            {%- if t|lower != 'unavailable' and t|lower != 'none' and t|lower != 'unknown' and t|lower != 'null' -%}
+              {%- set s = e.timestamp.start -%}
+              {%- set p = e.timestamp.publish -%}
+              {%- if p|lower != 'unavailable' and p|lower != 'none' and p|lower != 'unknown' and p != null and
+                     s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'unknown' and s != null %}
+                {% set p = as_timestamp(p)|int(0) %}
+                {% set s = as_timestamp(s)|int(0) %}
+                {% set n = utcnow().timestamp()|int(0) %}
+                {{ n - p }}
+              {% else %}null{% endif %}
+            {% else %}null{% endif %}
+          {% else %}null{% endif %}
+        {% elif is_state('binary_sensor.motion_annotated_expired','off') %}
+          {% set s = states('sensor.motion_annotated_delay') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+
+- platform: statistics
+  name: motion_annotated_delay_min
+  entity_id: sensor.motion_annotated_delay
+  state_characteristic: value_min
+  sampling_size: 100
+  max_age:
+    hours: 8
+
+- platform: statistics
+  name: motion_annotated_delay_mean
+  entity_id: sensor.motion_annotated_delay
+  state_characteristic: mean
+  sampling_size: 100
+  max_age:
+    hours: 8
+
+- platform: statistics
+  name: motion_annotated_delay_max
+  entity_id: sensor.motion_annotated_delay
+  state_characteristic: value_max
+  sampling_size: 100
+  max_age:
+    hours: 8
+
+- platform: statistics
+  name: motion_annotated_delay_stdev
+  entity_id: sensor.motion_annotated_delay
+  state_characteristic: standard_deviation
+  sampling_size: 100
+  max_age:
+    hours: 8

@@ -1,0 +1,414 @@
+###
+# homeassistant/sensor/motion/vehicle_alpr.yaml
+###
+
+- platform: template
+  sensors:
+    motion_vehicle_alpr:
+      friendly_name: '🚙 (vehicle+alpr)'
+      icon_template: 'mdi:car'
+      attribute_templates:
+        alprs: >-
+          {% set mc = '' %}
+          {% set pe = states('sensor.motion_' + mc + 'detected_vehicle_event') %}
+          {% set fe = states('sensor.motion_' + mc + 'alpr_detected_event') %}
+          {% if pe|lower != 'null' and pe|lower != 'unavailable' and pe|lower != 'none' and pe|lower != 'unknown'
+            and fe|lower != 'null' and fe|lower != 'unavailable' and fe|lower != 'none' and fe|lower != 'unknown'
+            and pe == fe %}
+            {% set entitys = state_attr('sensor.motion_' + mc + 'event_annotated','results') %}
+            {% set f = state_attr('sensor.motion_' + mc + 'event_alpr','results') %}
+            {% if entitys|lower != 'null' and entitys|lower != 'unavailable' and entitys|lower != 'none' and entitys|lower != 'unknown'
+              and f|lower != 'null' and f|lower != 'unavailable' and f|lower != 'none' and f|lower != 'unknown' and f is iterable %}
+              {% if f|count > 0 and entitys|count > 0 -%}
+                [{%- for alpr in f if alpr.confidence|float(0.0) >= states('sensor.motion_alpr_detected_threshold')|float(0.0) -%}
+                  {% if not loop.first %},{% endif %}
+                  {%- set fw = alpr.width|int(0) -%}
+                  {%- set fh = alpr.height|int(0) -%}
+                  {%- set fx = alpr.x + (fw/2)|int(0) -%}
+                  {%- set fy = alpr.y + (fh/2)|int(0) -%}
+                  {%- for vehicle in entitys if vehicle.entity == 'vehicle' and vehicle.confidence|float(0.0) >= states('sensor.motion_detected_vehicle_threshold')|float(0.0)
+                       and fx|int(0) >= vehicle.center.x - (vehicle.width/2)|int
+                       and fx|int(0) <= vehicle.center.x + (vehicle.height/2)|int
+                       and fy|int(0) >= vehicle.center.y|int(0) - (vehicle.height/2)|int
+                       and fy|int(0) <= vehicle.center.y|int(0) + (vehicle.height/2)|int(0) -%}
+                    {% if not loop.first %},{% endif %}
+                    {{- '1' -}}
+                  {%- endfor -%}
+                {%- else -%}{{- '0' -}}{%- endfor -%}]
+              {%- else -%}null{%- endif -%}
+            {%- else -%}null{%- endif -%}
+          {%- else -%}null{%- endif -%}
+        results: >-
+          {% set mc = '' %}
+          {% if is_state('binary_sensor.motion_' + mc + 'detected_vehicle','on') and is_state('binary_sensor.motion_' + mc + 'alpr_detected','on') %}
+            {% set entitys = state_attr('sensor.motion_' + mc + 'event_annotated','results') %}
+            {% set f = state_attr('sensor.motion_' + mc + 'event_alpr','results') %}
+            {% if f|lower != 'none' and f is iterable and f|count > 0 and entitys|lower != 'none' and entitys is iterable and entitys|count > 0 -%}
+              [{%- for alpr in f if alpr.confidence|float(0.0) >= states('sensor.motion_alpr_detected_threshold')|float(0.0) -%}
+                {% if not loop.first %},{% endif %}
+                {%- set fw = alpr.width|int(0) -%}
+                {%- set fh = alpr.height|int(0) -%}
+                {%- set fx = alpr.x + (fw/2)|int(0) -%}
+                {%- set fy = alpr.y + (fh/2)|int(0) -%}
+                {%- for vehicle in entitys if vehicle.entity == 'vehicle' and vehicle.confidence|float(0.0) >= states('sensor.motion_detected_vehicle_threshold')|float(0.0)
+                     and fx|int(0) >= vehicle.center.x - (vehicle.width/2)|int
+                     and fx|int(0) <= vehicle.center.x + (vehicle.height/2)|int
+                     and fy|int(0) >= vehicle.center.y|int(0) - (vehicle.height/2)|int
+                     and fy|int(0) <= vehicle.center.y|int(0) + (vehicle.height/2)|int(0) -%}
+                  {% if not loop.first %},{% endif %}
+                  {"p":{"c":{{- vehicle.confidence|int(0) -}},"x":{{- vehicle.center.x - (vehicle.width/2)|int(0) -}},"y":{{- vehicle.center.y - (vehicle.height/2)|int(0) -}},"w":{{- vehicle.width -}},"h":{{- vehicle.height -}}},"f":{"c":{{- alpr.confidence|int(0) -}},"x":{{- fx -}},"y":{{- fy -}},"w":{{- fw -}},"h":{{- fh -}} }}
+                {%- endfor -%}
+              {%- else -%}null{%- endfor -%}]
+            {%- else -%}null{%- endif -%}
+          {%- elif is_state('binary_sensor.motion_' + mc + 'vehicle_alpr_expired','off') -%}
+            {% set s = state_attr('sensor.motion_' + mc + 'vehicle_alpr','results') %}
+            {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+              {{ s }}
+            {% else %}null{% endif %}
+          {% else %}null{% endif %}
+      value_template: >-
+        {{ states('binary_sensor.motion_vehicle_alpr_detected') }}
+
+## status
+- platform: template
+  sensors:
+    motion_vehicle_alpr_status:
+      friendly_name: '🚙 (vehicle+alpr)'
+      icon_template: 'mdi:car'
+      value_template: >-
+        {% if is_state('binary_sensor.motion_vehicle_alpr','on') %}
+          {% set end = states('sensor.motion_vehicle_alpr_date') %}
+          {% set event = states('sensor.motion_vehicle_alpr_event') %}
+          {% set device = states('sensor.motion_vehicle_alpr_device') %}
+          {% set camera = states('sensor.motion_vehicle_alpr_camera') %}
+          {% set elapsed = states('sensor.motion_vehicle_alpr_elapsed') %}
+          {% set confidence = states('sensor.motion_vehicle_alpr_confidence')|int(0) %}
+          {% set n = utcnow().timestamp()|int(0) %}
+          {% if n|int(0) > 0 and end|int(0) > 0 %}
+            {% set when = end|int|timestamp_custom("%I:%M:%S %p on %m/%d",true,'unknown') -%}
+            {% set delay = n - end|int(0) %}
+          {% else %}
+            {% set when = 'null' %}
+            {% set delay = 'null' %}
+          {% endif %}
+          {{ device -}}/{{- camera -}}/{{- event }} at {{ when -}}; 
+          β: {{ confidence }} ;
+          Δ: {{ delay -}}s; 
+          δ: {{ elapsed -}}s
+        {% else %}
+          {% set s = states.sensor.motion_vehicle_alpr_status.state %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {{ s }}
+          {% else %}Pending{% endif %}
+        {% endif %}
+
+## attributes
+- platform: template
+  sensors:
+    motion_vehicle_alpr_event:
+      friendly_name: '🚙 event'
+      value_template: >
+        {% if is_state('binary_sensor.motion_vehicle_alpr','on') %}
+          {% set s = states('sensor.motion_detected_vehicle_event') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {% set p = s %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% else %}
+          {% set s = states.sensor.motion_vehicle_alpr_event.state %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+- platform: template
+  sensors:
+    motion_vehicle_alpr_date:
+      friendly_name: '🚙 date'
+      value_template: >
+        {% if is_state('binary_sensor.motion_vehicle_alpr','on') %}
+          {% set s = states('sensor.motion_detected_vehicle_date') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {% set p = s %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% elif is_state('binary_sensor.motion_vehicle_alpr_expired','off') %}
+          {% set s = states('sensor.motion_vehicle_alpr_date') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_vehicle_alpr_camera:
+      friendly_name: '🚙 camera'
+      icon_template: 'mdi:car'
+      value_template: >
+        {% if is_state('binary_sensor.motion_vehicle_alpr','on') %}
+          {% set s = states('sensor.motion_detected_vehicle_camera') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {% set p = s %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% elif is_state('binary_sensor.motion_vehicle_alpr_expired','off') %}
+          {% set s = states('sensor.motion_vehicle_alpr_camera') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_vehicle_alpr_device:
+      friendly_name: '🚙 device'
+      icon_template: 'mdi:raspberry-pi'
+      value_template: >
+        {% if is_state('binary_sensor.motion_vehicle_alpr','on') %}
+          {% set s = states('sensor.motion_detected_vehicle_device') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {% set p = s %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% else %}
+          {% set s = states.sensor.motion_vehicle_alpr_device.state %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+- platform: template
+  sensors:
+    motion_vehicle_alpr_elapsed:
+      friendly_name: '🚙 elapsed'
+      icon_template: 'mdi:timer'
+      value_template: >
+        {% if is_state('binary_sensor.motion_vehicle_alpr','on') %}
+          {% set s = states('sensor.motion_detected_vehicle_elapsed') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {% set p = s %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% else %}
+          {% set s = states.sensor.motion_vehicle_alpr_elapsed.state %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+ 
+- platform: template
+  sensors:
+    motion_vehicle_alpr_where:
+      friendly_name: '🚙 where'
+      icon_template: 'mdi:map-marker'
+      value_template: >
+        {% if is_state('binary_sensor.motion_vehicle_alpr','on') %}
+          {% set s = states('sensor.motion_vehicle_alpr_camera') %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+            {% set p = s %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% else %}
+          {% set s = states('sensor.motion_vehicle_alpr_where') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {{ s }}
+          {% else %}Pending{% endif %}
+        {% endif %}
+
+- platform: template
+  sensors:
+    motion_vehicle_alpr_when:
+      friendly_name: '🚙 when'
+      icon_template: 'mdi:calendar-clock'
+      value_template: >
+        {% if is_state('binary_sensor.motion_vehicle_alpr','on') %}
+          {% set s = states('sensor.motion_vehicle_alpr_date') %}
+          {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
+            {% set p = s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z",true,'unknown') %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% else %}
+          {% set s = states('sensor.motion_vehicle_alpr_when') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {{ s }}
+          {% else %}Pending{% endif %}
+        {% endif %}
+
+## live camera
+
+- platform: template
+  sensors:
+    motion_camera_vehicle_alpr_live:
+      friendly_name: '🚙 camera live'
+      value_template: >-
+        {% set camera = states('sensor.motion_vehicle_alpr_camera') %}
+        {% if camera|lower != 'none' and camera|lower != 'unavailable' and camera|lower != 'unknown' and camera|lower != 'null' and camera|length > 0 %}
+          {% set ep = state_attr('camera.motion_' + camera + '_live','entity_picture') %}
+          {% if ep|lower != 'none' and ep|lower != 'unknown' and ep|lower != 'unavailable' and ep|length > 0 %}
+            {% set p = ep %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined and p|lower != 'none' and p|lower != 'unavailable' and p|lower != 'unknown' and p|length > 0 %}
+          {{ p }}
+        {% else %}
+          {{ states('sensor.motion_nosignal_animated') }}
+        {% endif %}
+
+## confidence
+
+- platform: template
+  sensors:
+    motion_vehicle_alpr_confidence:
+      friendly_name: '🚙 confidence (β)'
+      icon_template: 'mdi:car'
+      unit_of_measurement: 'β'
+      value_template: >
+        {%- if is_state('binary_sensor.motion_vehicle_alpr','on') -%}
+          {%- set s = states('sensor.motion_detected_vehicle_confidence') -%}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' -%}
+            {% set p = s|int(0) %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {%- elif is_state('binary_sensor.motion_detected_vehicle_expired','off') -%}
+          {% set s = states.sensor.motion_detected_vehicle_confidence.state %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+    motion_vehicle_alpr_confidence_confirmed:
+      friendly_name: '🚙✅ (β)'
+      icon_template: 'mdi:car'
+      unit_of_measurement: 'β'
+      value_template: >
+        {% if is_state('binary_sensor.motion_vehicle_alpr','on') %}
+          {% set s = states('sensor.motion_vehicle_alpr_confidence') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {% set p = s|int(0) %}
+          {% endif %}
+        {% endif %}
+        {% if p is defined %}
+          {{ p }}
+        {% else %}
+          {% set s = states.sensor.motion_vehicle_alpr_confidence_confirmed.state %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+- platform: statistics
+  name: motion_vehicle_alpr_confidence_confirmed_mean
+  entity_id: sensor.motion_vehicle_alpr_confidence_confirmed
+  state_characteristic: mean
+  sampling_size: 1000
+  max_age:
+    hours: 72
+
+- platform: statistics
+  name: motion_vehicle_alpr_confidence_mean
+  entity_id: sensor.motion_vehicle_alpr_confidence
+  state_characteristic: mean
+  sampling_size: 1000
+  max_age:
+    hours: 72
+
+## ago
+
+- platform: template
+  sensors:
+    motion_vehicle_alpr_ago_relative:
+      friendly_name: '🚙 ago'
+      icon_template: 'mdi:car'
+      value_template: >
+        {% set s = states('sensor.motion_vehicle_alpr_ago')|int(0) %}
+        {% if s > 0 %}
+          {% set d = (s/86400)|int(0) %}
+          {% set h = (s/3600)|int(0) %}
+          {% if d < 1 %}
+            {% set m = ((s-(d*86400)-(h*3600))/60)|int(0) %}
+            {% set s = (s % 60)|int(0) %}
+            {% if h < 1 %}
+              {% if m < 1 %}
+                {{ s -}}s
+              {% else %}
+                {{ m -}}m; {{ s -}}s
+              {% endif %}
+            {% else %}
+              {{ h -}}h; {{ m -}}m
+            {% endif %}
+          {% else %}
+            {{ d -}}d; {{ h -}}h
+          {% endif %}
+        {%- else -%}Pending{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_vehicle_alpr_ago:
+      friendly_name: '🚙 ago (⧖)'
+      icon_template: 'mdi:camera-timer'
+      unit_of_measurement: 's'
+      value_template: >
+        {%- set s = states('sensor.motion_vehicle_alpr_date') -%}
+        {%- if s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' and s|lower != 'null' -%}
+          {%- set s = utcnow().timestamp()|int(0) - s|int(0) -%}
+          {{- s -}}
+        {%- else -%}null{%- endif -%}
+
+- platform: statistics
+  name: motion_vehicle_alpr_ago_mean
+  entity_id: sensor.motion_vehicle_alpr_ago
+  state_characteristic: mean
+  sampling_size: 100
+  max_age:
+    days: 1
+
+## 1m
+#- platform: statistics
+#  name: motion_vehicle_alpr_ago_1m_mean
+#  entity_id: sensor.motion_vehicle_alpr_ago
+#  state_characteristic: mean
+#  sampling_size: 20
+#  max_age:
+#    minutes: 1
+#
+## 5m
+#- platform: statistics
+#  name: motion_vehicle_alpr_ago_5m_mean
+#  entity_id: sensor.motion_vehicle_alpr_ago
+#  state_characteristic: mean
+#  sampling_size: 100
+#  max_age:
+#    minutes: 5
+#
+## 15m
+#- platform: statistics
+#  name: motion_vehicle_alpr_ago_15m_mean
+#  entity_id: sensor.motion_vehicle_alpr_ago
+#  state_characteristic: mean
+#  sampling_size: 300
+#  max_age:
+#    minutes: 15
+#
+## 30m
+#- platform: statistics
+#  name: motion_vehicle_alpr_ago_30m_mean
+#  entity_id: sensor.motion_vehicle_alpr_ago
+#  state_characteristic: mean
+#  sampling_size: 600
+#  max_age:
+#    minutes: 30

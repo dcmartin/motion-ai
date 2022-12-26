@@ -1,0 +1,188 @@
+###
+# homeassistant/sensor/motion/detected_vehicle_activity.yaml
+###
+
+# begin when
+- platform: template
+  sensors:
+    motion_detected_vehicle_activity_begin_when:
+      friendly_name: Activity begin
+      icon_template: 'mdi:calendar-clock'
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_vehicle_activity_begin','on') %}
+          {% set s = now().timestamp()|int(0) %}
+          {% if s|int(0) > 0 %}
+            {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z",true,'unknown') -}}
+          {% else %}Pending{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_detected_vehicle_activity_begin_when') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+# activity end when
+- platform: template
+  sensors:
+    motion_detected_vehicle_activity_end_when:
+      friendly_name: Activity end
+      icon_template: 'mdi:calendar-clock'
+      value_template: >
+        {% if is_state('binary_sensor.motion_detected_vehicle_activity_end','on') %}
+          {% set s = now().timestamp()|int(0) %}
+          {% if s|int(0) > 0 %}
+            {{ s|int|timestamp_custom("%a %b %d %I:%M:%S %p %Z",true,'unknown') -}}
+          {% else %}Pending{% endif %}
+        {% else %}
+          {% set s = states('sensor.motion_detected_vehicle_activity_end_when') %}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'none' %}
+            {{ s }}
+          {% else %}null{% endif %}
+        {% endif %}
+
+## today
+
+- platform: history_stats
+  name: motion_detected_vehicle_count_1d
+  entity_id: binary_sensor.motion_detected_vehicle
+  state: 'on'
+  type: count
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_detected_vehicle_time_1d
+  entity_id: binary_sensor.motion_detected_vehicle
+  state: 'on'
+  type: time
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_count_today:
+      friendly_name: Today vehicle counter
+      unit_of_measurement: '🚚'
+      icon_template: 'mdi:counter'
+      value_template: >-
+        {% set s = states('sensor.motion_detected_vehicle_count_1d') %}
+        {% if s|lower != 'uknown' and s|lower != 'none' and s|lower != 'null ' %}
+          {{ s|int(0) }}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_time_today:
+      friendly_name: Today vehicle time
+      unit_of_measurement: 'h'
+      icon_template: 'mdi:timer-outline'
+      value_template: >
+        {% set s = states('sensor.motion_detected_vehicle_time_1d') %}
+        {% if s|lower != 'uknown' and s|lower != 'none' and s|lower != 'null ' %}
+          {{ s|float(0.0) }}
+        {%- else -%}null{%- endif -%}
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_status:
+      friendly_name: Today vehicle
+      icon_template: 'mdi:truck'
+      value_template: >-
+        {% set c = states('sensor.motion_detected_vehicle_count_today') %}
+        {% set t = states('sensor.motion_detected_vehicle_time_today') %}
+        {% if c|lower != 'unknown' and t|lower != 'unknown' %}
+          {{ c -}}; {{ t }} hours
+        {% else %}No vehicles detected today{% endif %}
+
+## activity 
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_activity_metrics:
+      friendly_name: 'Vehicle activity metrics'
+      icon_template: 'mdi:truck'
+      value_template: >-
+        {%- if states.sensor.motion_detected_vehicle_date|lower != 'none'
+              and states('sensor.motion_detected_vehicle_date')|lower != 'unknown'
+              and states('sensor.motion_detected_vehicle_ago')|lower != 'unknown'
+              and states('sensor.motion_detected_vehicle_ago_mean')|lower != 'unknown'
+              and states('sensor.motion_detected_vehicle_ago_mean')|lower != 'null' -%}
+          {%- if states('sensor.motion_detected_vehicle_ago')|lower == 'null' -%}
+            NONE
+          {%- else -%}
+            {%- set a = states('sensor.motion_detected_vehicle_ago') -%}
+            {%- set am = states('sensor.motion_detected_vehicle_ago_mean')|float(0.0) -%}
+            {%- set ad = states('sensor.motion_detected_vehicle_ago_stdev')|float(0.0) -%}
+            {%- set as = states('input_number.motion_detected_vehicle_ago_deviation')|float(0.0) -%}
+            Σ: {{ states('sensor.motion_detected_vehicle_count_today')|int(0) -}};
+            {{ a -}}s Δ; {{ am|int(0) -}}s μ
+          {%- endif -%}
+        {%- else -%}
+          Σ: {{ states('sensor.motion_detected_vehicle_count_today')|int(0) -}};
+          Δ: {{ states('input_number.motion_yolo_scan_interval')|int(0) }} seconds
+        {%- endif -%}
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_activity_icon:
+      value_template: >-
+        {%- if states.sensor.motion_detected_vehicle_date|lower != 'none'
+               and states('sensor.motion_detected_vehicle_date')|lower != 'unknown'
+               and states('sensor.motion_detected_vehicle_date')|lower != 'null'
+               and states.sensor.motion_detected_vehicle_ago|lower != 'none'
+               and states('sensor.motion_detected_vehicle_ago')|lower != 'unknown'
+               and states('sensor.motion_detected_vehicle_ago')|lower != 'null' -%}
+          {%- if states('sensor.motion_detected_vehicle_count_today')|lower != 'unknown'
+                 and states('sensor.motion_detected_vehicle_count_today')|lower != 'null'
+                 and states('sensor.motion_detected_vehicle_count_today')|int(0) <= 0 -%}
+            {{ 'mdi:truck' }}
+          {%- elif (states('sensor.motion_detected_vehicle_ago')|int(0) / 3600)|int(0) > 0 -%}
+            {{ 'mdi:truck' }}
+          {%- elif is_state('binary_sensor.motion_detected_vehicle_ago_high_persistent','on') -%}
+            {{ 'mdi:truck' }}
+          {%- elif is_state('binary_sensor.motion_detected_vehicle_ago_high','on') -%}
+            {{ 'mdi:truck' }}
+          {%- elif is_state('binary_sensor.motion_detected_vehicle_ago_low_persistent','on') -%}
+            {{ 'mdi:truck' }}
+          {%- elif is_state('binary_sensor.motion_detected_vehicle_ago_low','on') -%}
+            {{ 'mdi:truck' }}
+          {%- else -%}
+            {{ 'mdi:truck' }}
+          {%- endif -%}
+        {%- else -%}
+          {{ 'mdi:truck' }}
+        {%- endif -%}
+ 
+## activity level enumerated (Pending,Nominal,Low,High,Decreasing,Increasing,Nothing today,None: #h
+
+- platform: template
+  sensors:
+    motion_detected_vehicle_activity_level:
+      friendly_name: 'Vehicle activity'
+      icon_template: >-
+        {{ states('sensor.motion_detected_vehicle_activity_icon') }}
+      value_template: >-
+        {%- if states.sensor.motion_detected_vehicle_date|lower != 'none'
+               and states('sensor.motion_detected_vehicle_date')|lower != 'unknown'
+               and states('sensor.motion_detected_vehicle_date')|lower != 'null'
+               and states.sensor.motion_detected_vehicle_ago|lower != 'none'
+               and states('sensor.motion_detected_vehicle_ago')|lower != 'unknown'
+               and states('sensor.motion_detected_vehicle_ago')|lower != 'null' -%}
+          {%- if states('sensor.motion_detected_vehicle_count_today')|lower != 'unknown'
+                 and states('sensor.motion_detected_vehicle_count_today')|lower != 'null'
+                 and states('sensor.motion_detected_vehicle_count_today')|int(0) <= 0 -%}
+            Nothing today
+          {%- elif is_state('binary_sensor.motion_detected_vehicle_ago_high_persistent','on') -%}
+            Low
+          {%- elif is_state('binary_sensor.motion_detected_vehicle_ago_high','on') -%}
+            Decreasing
+          {%- elif is_state('binary_sensor.motion_detected_vehicle_ago_low_persistent','on') -%}
+            High
+          {%- elif is_state('binary_sensor.motion_detected_vehicle_ago_low','on') -%}
+            Increasing
+          {%- else -%}
+            Nominal
+          {%- endif -%}
+        {%- else -%}
+          Pending
+        {%- endif -%}

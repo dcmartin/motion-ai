@@ -1,0 +1,272 @@
+###
+# sensor/motion/camera.yaml
+###
+
+# update
+
+- platform: template
+  sensors:
+    motion_camera_end_update:
+      value_template: >-
+        {% set s = states.camera.motion_event_end %}
+        {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+          {{ as_timestamp(s.last_updated) }}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_camera_annotated_update:
+      value_template: >-
+        {% set s = states.camera.motion_event_annotated %}
+        {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+          {{ as_timestamp(s.last_updated) }}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_camera_composite_update:
+      value_template: >-
+        {% set s = states.camera.motion_event_composite %}
+        {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+          {{ as_timestamp(s.last_updated) }}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_camera_animated_update:
+      value_template: >-
+        {% set s = states.camera.motion_event_animated %}
+        {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+          {{ as_timestamp(s.last_updated) }}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_camera_animated_mask_update:
+      value_template: >-
+        {% set s = states.camera.motion_event_animated_mask %}
+        {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+          {{ as_timestamp(s.last_updated) }}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_camera_face_update:
+      value_template: >-
+        {% set s = states.camera.motion_event_face %}
+        {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+          {{ as_timestamp(s.last_updated) }}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_camera_alpr_update:
+      value_template: >-
+        {% set s = states.camera.motion_event_alpr %}
+        {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+          {{ as_timestamp(s.last_updated) }}
+        {% else %}null{% endif %}
+
+# status
+
+- platform: template
+  sensors:
+    motion_camera_on:
+      icon_template: 'mdi:camera'
+      friendly_name: Discovered camera on-line
+      unit_of_measurement: '📷'
+      value_template: >-
+        {% set s = state_attr('binary_sensor.motion_cameras','status') %}
+        {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
+          {{ s|sum }}
+        {% else %}null{% endif %}
+    motion_camera_count:
+      icon_template: 'mdi:camera'
+      friendly_name: Discovered camera count
+      unit_of_measurement: '📷'
+      value_template: >-
+        {% set s = state_attr('binary_sensor.motion_cameras','status') %}
+        {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' %}
+          {{ s|length }}
+        {% else %}null{% endif %}
+    motion_camera_percent:
+      friendly_name: Discovered camera off-line
+      icon_template: 'mdi:camera'
+      unit_of_measurement: '%'
+      value_template: >-
+        {% if states('sensor.motion_camera_count')|int(0) > 0 %}
+          {{ '%0.1f' | format(states('sensor.motion_camera_on')|float(0.0) / states('sensor.motion_camera_count')|float(0.0) * 100.0) }}
+        {%- else -%}null{%- endif -%}
+    motion_camera_status:
+      friendly_name: Discovery camera status
+      icon_template: 'mdi:camera'
+      value_template: >-
+        {{ states('sensor.motion_camera_on') -}}/{{-  states('sensor.motion_camera_count') -}}; {{ states('sensor.motion_camera_percent') -}}%
+
+- platform: history_stats
+  name: motion_cameras_ratio
+  entity_id: binary_sensor.motion_cameras
+  state: 'on'
+  type: ratio 
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: template
+  sensors:
+    motion_cameras_ratio_duration:
+      value_template: >
+        {{ state_attr('binary_sensor.motion_cameras_ratio','value') }}
+
+## LOST & FOUND
+
+- platform: template
+  sensors:
+    motion_status_camera_lost_name:
+      friendly_name: Lost last
+      icon_template: 'mdi:camera'
+      value_template: >
+        {% set value = state_attr('sensor.motion_status_camera_lost','camera') %}
+        {% if value|lower != 'none' and value|lower != 'unavailable' and value|lower != 'none' and value|lower != 'unknown' and value|length > 0 %}
+          {{ value }}
+        {% else %}null{% endif %}
+
+- platform: template
+  sensors:
+    motion_status_camera_found_name:
+      friendly_name: Found last
+      icon_template: 'mdi:camera'
+      value_template: >
+        {% set value = state_attr('sensor.motion_status_camera_found','camera') %}
+        {% if value|lower != 'none' and value|lower != 'unavailable' and value|lower != 'none' and value|lower != 'unknown' and value|length > 0 %}
+          {{ value }}
+        {% else %}null{% endif %}
+ 
+# counter
+
+- platform: template
+  sensors:
+    motion_status_camera_counter:
+      friendly_name: Camera found-lost
+      icon_template: 'mdi:counter'
+      value_template: >-
+        {{ states('sensor.motion_status_camera_found_counter')|int(0) - states('sensor.motion_status_camera_lost_counter')|int(0) }}
+
+- platform: statistics
+  name: motion_status_camera_counter_min
+  entity_id: sensor.motion_status_camera_counter
+  state_characteristic: value_min
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: statistics
+  name: motion_status_camera_counter_mean
+  entity_id: sensor.motion_status_camera_counter
+  state_characteristic: mean
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: statistics
+  name: motion_status_camera_counter_max
+  entity_id: sensor.motion_status_camera_counter
+  state_characteristic: value_max
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: statistics
+  name: motion_status_camera_counter_stdev
+  entity_id: sensor.motion_status_camera_counter
+  state_characteristic: standard_deviation
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+# lost_counter
+
+- platform: template
+  sensors:
+    motion_status_camera_lost_counter:
+      friendly_name: Total lost counter
+      icon_template: 'mdi:counter'
+      value_template: >
+        {% if states('counter.motion_status_camera_lost_counter') != 'unknown' %}
+          {{ states('counter.motion_status_camera_lost_counter')|int(0) }}
+        {%- else -%}null{%- endif -%}
+
+- platform: statistics
+  name: motion_status_camera_lost_counter_min
+  entity_id: sensor.motion_status_camera_lost_counter
+  state_characteristic: value_min
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: statistics
+  name: motion_status_camera_lost_counter_mean
+  entity_id: sensor.motion_status_camera_lost_counter
+  state_characteristic: mean
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: statistics
+  name: motion_status_camera_lost_counter_max
+  entity_id: sensor.motion_status_camera_lost_counter
+  state_characteristic: value_max
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: statistics
+  name: motion_status_camera_lost_counter_stdev
+  entity_id: sensor.motion_status_camera_lost_counter
+  state_characteristic: standard_deviation
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+# found_counter
+
+- platform: template
+  sensors:
+    motion_status_camera_found_counter:
+      friendly_name: Total found counter
+      icon_template: 'mdi:counter'
+      value_template: >
+        {% if states('counter.motion_status_camera_found_counter') != 'unknown' %}
+          {{ states('counter.motion_status_camera_found_counter')|int(0) }}
+        {%- else -%}null{%- endif -%}
+
+- platform: statistics
+  name: motion_status_camera_found_counter_min
+  entity_id: sensor.motion_status_camera_found_counter
+  state_characteristic: value_min
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: statistics
+  name: motion_status_camera_found_counter_mean
+  entity_id: sensor.motion_status_camera_found_counter
+  state_characteristic: mean
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: statistics
+  name: motion_status_camera_found_counter_max
+  entity_id: sensor.motion_status_camera_found_counter
+  state_characteristic: value_max
+  sampling_size: 100
+  max_age:
+    hours: 72
+
+- platform: statistics
+  name: motion_status_camera_found_counter_stdev
+  entity_id: sensor.motion_status_camera_found_counter
+  state_characteristic: standard_deviation
+  sampling_size: 100
+  max_age:
+    hours: 72
