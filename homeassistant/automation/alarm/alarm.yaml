@@ -173,3 +173,358 @@
         timestamp_off: >-
           {{ utcnow().timestamp() }}
         state: 'off'
+
+- id: motion_alarm_set_state
+  alias: motion_alarm_set_state
+  initial_state: 'on'
+  mode: single
+  trigger:
+    - platform: time_pattern
+      minutes: /1
+  variables:
+      app: >-
+        {%- set app = states('sensor.motion_app') -%}
+        {{- app -}}
+      unread: >-
+        [{%- for state in states.persistent_notification if app in state.attributes.title -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {%- set s = state.state|lower -%}
+          {%- if s == 'unread' -%}1{%- else -%}0{%- endif -%}
+        {%- endfor -%}]
+      read: >-
+        [{%- for state in states.persistent_notification if app in state.attributes.title -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {%- set s = state.state|lower -%}
+          {%- if s == 'read' -%}1{%- else -%}0{%- endif -%}
+        {%- endfor -%}]
+      notifying: >-
+        [{%- for state in states.persistent_notification|sort(reverse=true,attribute='last_updated') if app in state.attributes.title -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {%- set s = state.state|lower -%}
+          {%- set t = state.attributes.title -%}
+          {%- if s == 'notifying'
+            and t != 'unknown'
+            and t|lower != 'none'
+            and t|lower != 'null'
+            and t|length > 0 -%}1{%- else -%}0{%- endif -%}
+        {%- endfor -%}]
+      total: >-
+        {{ states.persistent_notification|list|length|int(0) }}
+      all: >-
+        [{%- for state in states.persistent_notification|sort(reverse=true,attribute='last_updated')
+          if state.state|lower == 'notifying' and app in state.attributes.title -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {%- set i = state.entity_id|replace('persistent_notification.','') -%}
+          {%- set t = state.attributes.title -%}
+          {%- set m = state.attributes.message -%}
+          ['{{- i -}}',{{- utcnow().timestamp() - state.last_updated|as_timestamp -}}]
+        {%- endfor -%}]
+      good: >-
+        [{%- for state in states.persistent_notification|sort(reverse=true,attribute='last_updated')
+          if state.state|lower == 'notifying' and 'good' in state.attributes.title and states('sensor.motion_app') in state.attributes.title -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {%- set i = state.entity_id|replace('persistent_notification.','') -%}
+          {%- set t = state.attributes.title -%}
+          {%- set m = state.attributes.message -%}
+          ['{{- t -}}',{{- utcnow().timestamp() - state.last_updated|as_timestamp -}},'{{- i -}}','{{- m -}}']
+        {%- endfor -%}]
+      bad: >-
+        [{%- for state in states.persistent_notification|sort(reverse=true,attribute='last_updated')
+          if state.state|lower == 'notifying' and 'bad' in state.attributes.title and app in state.attributes.title -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {%- set i = state.entity_id|replace('persistent_notification.','') -%}
+          {%- set t = state.attributes.title -%}
+          {%- set m = state.attributes.message -%}
+          ['{{- t -}}',{{- utcnow().timestamp() - state.last_updated|as_timestamp -}},'{{- i -}}','{{- m -}}']
+        {%- endfor -%}]
+      high: >-
+        [{%- for state in states.persistent_notification|sort(reverse=true,attribute='last_updated')
+          if state.state|lower == 'notifying' and 'high' in state.attributes.title and app in state.attributes.title -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {%- set i = state.entity_id|replace('persistent_notification.','') -%}
+          {%- set t = state.attributes.title -%}
+          {%- set m = state.attributes.message -%}
+          ['{{- t -}}',{{- utcnow().timestamp() - state.last_updated|as_timestamp -}},'{{- i -}}','{{- m -}}']
+        {%- endfor -%}]
+      low: >-
+        [{%- for state in states.persistent_notification|sort(reverse=true,attribute='last_updated')
+          if state.state|lower == 'notifying' and 'low' in state.attributes.title and app in state.attributes.title -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {%- set i = state.entity_id|replace('persistent_notification.','') -%}
+          {%- set t = state.attributes.title -%}
+          {%- set m = state.attributes.message -%}
+          ['{{- t -}}',{{- utcnow().timestamp() - state.last_updated|as_timestamp -}},'{{- i -}}','{{- m -}}']
+        {%- endfor -%}]
+      high_spike: >-
+        [{%- for state in states.persistent_notification|sort(reverse=true,attribute='last_updated')
+          if state.state|lower == 'notifying' and 'high_spike' in state.attributes.title and app in state.attributes.title -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {%- set i = state.entity_id|replace('persistent_notification.','') -%}
+          {%- set t = state.attributes.title -%}
+          {%- set m = state.attributes.message -%}
+          ['{{- t -}}',{{- utcnow().timestamp() - state.last_updated|as_timestamp -}},'{{- i -}}','{{- m -}}']
+        {%- endfor -%}]
+      low_spike: >-
+        [{%- for state in states.persistent_notification|sort(reverse=true,attribute='last_updated')
+          if state.state|lower == 'notifying' and 'low_spike' in state.attributes.title and app in state.attributes.title -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {%- set i = state.entity_id|replace('persistent_notification.','') -%}
+          {%- set t = state.attributes.title -%}
+          {%- set m = state.attributes.message -%}
+          ['{{- t -}}',{{- utcnow().timestamp() - state.last_updated|as_timestamp -}},'{{- i -}}','{{- m -}}']
+        {%- endfor -%}]
+      missing: >-
+        [{%- for state in states.persistent_notification|sort(reverse=true,attribute='last_updated')
+          if state.state|lower == 'notifying' and 'missing' in state.attributes.title and app in state.attributes.title -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {%- set i = state.entity_id|replace('persistent_notification.','') -%}
+          {%- set t = state.attributes.title -%}
+          {%- set m = state.attributes.message -%}
+          ['{{- t -}}',{{- utcnow().timestamp() - state.last_updated|as_timestamp -}},'{{- i -}}','{{- m -}}']
+        {%- endfor -%}]
+      unavailable: >-
+        [{%- for state in states.persistent_notification|sort(reverse=true,attribute='last_updated')
+          if state.state|lower == 'notifying' and 'unavailable' in state.attributes.title and app in state.attributes.title -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {%- set i = state.entity_id|replace('persistent_notification.','') -%}
+          {%- set t = state.attributes.title -%}
+          {%- set m = state.attributes.message -%}
+          ['{{- t -}}',{{- utcnow().timestamp() - state.last_updated|as_timestamp -}},'{{- i -}}','{{- m -}}']
+        {%- endfor -%}]
+      found: >-
+        [{%- for state in states.persistent_notification|sort(reverse=true,attribute='last_updated')
+          if state.state|lower == 'notifying' and 'found' in state.attributes.title and app in state.attributes.title -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {%- set i = state.entity_id|replace('persistent_notification.','') -%}
+          {%- set t = state.attributes.title -%}
+          {%- set m = state.attributes.message -%}
+          ['{{- t -}}',{{- utcnow().timestamp() - state.last_updated|as_timestamp -}},'{{- i -}}','{{- m -}}']
+        {%- endfor -%}]
+      activity: >-
+        [{%- for state in states.persistent_notification|sort(reverse=true,attribute='last_updated')
+          if state.state|lower == 'notifying' and 'activity' in state.attributes.title and app in state.attributes.title -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {%- set i = state.entity_id|replace('persistent_notification.','') -%}
+          {%- set t = state.attributes.title -%}
+          {%- set m = state.attributes.message -%}
+          ['{{- t -}}',{{- utcnow().timestamp() - state.last_updated|as_timestamp -}},'{{- i -}}','{{- m -}}']
+        {%- endfor -%}]
+      count: >-
+        {{- bad|count|int(0) +
+           high|count|int(0) +
+           low|count|int(0) +
+           high_spike|count|int(0) +
+           low_spike|count|int(0) +
+           missing|count|int(0) +
+           unavailable|count|int(0) +
+           found|count|int(0) +
+           activity|count|int(0) -}}
+      notification_id: >-
+        {% if bad|lower != 'none'
+          and not bad is string
+          and bad|length > 0
+          and bad|reject('none')|list|length > 0 -%}
+          {{- (bad|first)[2] -}}
+        {%- elif high|lower != 'none'
+          and not high is string
+          and high|length > 0
+          and high|reject('none')|list|length > 0 -%}
+          {{- (high|first)[2] -}}
+        {%- elif low|lower != 'none'
+          and not low is string
+          and low|length > 0
+          and low|reject('none')|list|length > 0 -%}
+          {{- (low|first)[2] -}}
+        {%- elif high_spike|lower != 'none'
+          and not high_spike is string
+          and high_spike|length > 0
+          and high_spike|reject('none')|list|length > 0 -%}
+          {{- (high_spike|first)[2] -}}
+        {%- elif low_spike|lower != 'none'
+          and not low_spike is string
+          and low_spike|length > 0
+          and low_spike|reject('none')|list|length > 0 -%}
+          {{- (low_spike|first)[2] -}}
+        {%- elif missing|lower != 'none'
+          and not missing is string
+          and missing|length > 0
+          and missing|reject('none')|list|length > 0 -%}
+          {{- (missing|first)[2] -}}
+        {%- elif unavailable|lower != 'none'
+          and not unavailable is string
+          and unavailable|length > 0
+          and unavailable|reject('none')|list|length > 0 -%}
+          {{- (unavailable|first)[2] -}}
+        {%- elif found|lower != 'none'
+          and not found is string
+          and found|length > 0
+          and found|reject('none')|list|length > 0 -%}
+          {{- (found|first)[2] -}}
+        {%- elif activity|lower != 'none'
+          and not activity is string
+          and activity|length > 0
+          and activity|reject('none')|list|length > 0 -%}
+          {{- (activity|first)[2] -}}
+        {%- else -%}null{%- endif %}
+      title: >-
+        {% if bad|lower != 'none'
+          and not bad is string
+          and bad|length > 0
+          and bad|reject('none')|list|length > 0 -%}
+          {{- bad|first|first -}}
+        {%- elif high|lower != 'none'
+          and not high is string
+          and high|length > 0
+          and high|reject('none')|list|length > 0 -%}
+          {{- high|first|first -}}
+        {%- elif low|lower != 'none'
+          and not low is string
+          and low|length > 0
+          and low|reject('none')|list|length > 0 -%}
+          {{- low|first|first -}}
+        {%- elif high_spike|lower != 'none'
+          and not high_spike is string
+          and high_spike|length > 0
+          and high_spike|reject('none')|list|length > 0 -%}
+          {{- high_spike|first|first -}}
+        {%- elif low_spike|lower != 'none'
+          and not low_spike is string
+          and low_spike|length > 0
+          and low_spike|reject('none')|list|length > 0 -%}
+          {{- low_spike|first|first -}}
+        {%- elif missing|lower != 'none'
+          and not missing is string
+          and missing|length > 0
+          and missing|reject('none')|list|length > 0 -%}
+          {{- missing|first|first -}}
+        {%- elif unavailable|lower != 'none'
+          and not unavailable is string
+          and unavailable|length > 0
+          and unavailable|reject('none')|list|length > 0 -%}
+          {{- unavailable|first|first -}}
+        {%- elif found|lower != 'none'
+          and not found is string
+          and found|length > 0
+          and found|reject('none')|list|length > 0 -%}
+          {{- found|first|first -}}
+        {%- elif activity|lower != 'none'
+          and not activity is string
+          and activity|length > 0
+          and activity|reject('none')|list|length > 0 -%}
+          {{- activity|first|first -}}
+        {%- else -%}null{%- endif %}
+      message: >-
+        {% if bad|lower != 'none'
+          and not bad is string
+          and bad|length > 0
+          and bad|reject('none')|list|length > 0 -%}
+          {{- bad|first|last -}}
+        {%- elif high|lower != 'none'
+          and not high is string
+          and high|length > 0
+          and high|reject('none')|list|length > 0 -%}
+          {{- high|first|last -}}
+        {%- elif low|lower != 'none'
+          and not low is string
+          and low|length > 0
+          and low|reject('none')|list|length > 0 -%}
+          {{- low|first|last -}}
+        {%- elif high_spike|lower != 'none'
+          and not high_spike is string
+          and high_spike|length > 0
+          and high_spike|reject('none')|list|length > 0 -%}
+          {{- high_spike|first|last -}}
+        {%- elif low_spike|lower != 'none'
+          and not low_spike is string
+          and low_spike|length > 0
+          and low_spike|reject('none')|list|length > 0 -%}
+          {{- low_spike|first|last -}}
+        {%- elif missing|lower != 'none'
+          and not missing is string
+          and missing|length > 0
+          and missing|reject('none')|list|length > 0 -%}
+          {{- missing|first|last -}}
+        {%- elif unavailable|lower != 'none'
+          and not unavailable is string
+          and unavailable|length > 0
+          and unavailable|reject('none')|list|length > 0 -%}
+          {{- unavailable|first|last -}}
+        {%- elif found|lower != 'none'
+          and not found is string
+          and found|length > 0
+          and found|reject('none')|list|length > 0 -%}
+          {{- found|first|last -}}
+        {%- elif activity|lower != 'none'
+          and not activity is string
+          and activity|length > 0
+          and activity|reject('none')|list|length > 0 -%}
+          {{- activity|first|last -}}
+        {%- else -%}null{%- endif %}
+      icon: >-
+        {% if count|int(0) > 0 %}
+          {{ 'mdi:message' }}
+        {% elif total|int(0) > 0  %}
+          {{ 'mdi:bell' }}
+        {% elif total|lower == 'none' -%}
+          {{ 'mdi:alarm-off' }}
+        {% else %}
+          {{ 'mdi:check' }}
+        {% endif %}
+      state: >-
+        {%- set s = states.persistent_notification -%}
+        {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' and s|list|count > 0 %}
+          {% set s = title %}
+          {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
+            {% set s = message %}
+            {{ s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' }}
+          {% else %}null{% endif %}
+        {% else %}null{% endif %}
+  action:
+    - alias: 'set_state binary_sensor.motion_alarm'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_alarm
+        app: >-
+          {{ app }}
+        all: >-
+          {{ all }}
+        activity: >-
+          {{ activity }}
+        bad: >-
+          {{ bad }}
+        count: >-
+          {{ count }}
+        found: >-
+          {{ found }}
+        good: >-
+          {{ good }}
+        high: >-
+          {{ high }}
+        high_spike: >-
+          {{ high_spike }}
+        icon: >-
+          {{ icon }}
+        low: >-
+          {{ low }}
+        low_spike: >-
+          {{ low_spike }}
+        message: >-
+          {{ message }}
+        missing: >-
+          {{ missing }}
+        notification_id: >-
+          {{ notification_id }}
+        notifying: >-
+          {{ notifying }}
+        read: >-
+          {{ read }}
+        title: >-
+          {{ title }}
+        total: >-
+          {{ total }}
+        unavailable: >-
+          {{ unavailable }}
+        unread: >-
+          {{ unread }}
+        state: >-
+          {{  state }}
