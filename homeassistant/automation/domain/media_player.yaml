@@ -1,0 +1,39 @@
+###
+# homeassistant/automation/domain/media_player.yaml
+###
+
+- id: motion_domain_media_player_count
+  alias: motion_domain_media_player_count
+  mode: 'single'
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+    - platform: time_pattern
+      minutes: /5
+    - platform: homeassistant
+      event: start
+    - platform: state
+      entity_id: binary_sensor.motion_devices_config_entity_registry
+      for:
+        seconds: 15
+  action:
+    - alias: 'set motion_domain_media_player_count'
+      service: python_script.set_state
+      data_template:
+        entity_id: sensor.motion_domain_media_player_count
+        allow_create: true
+        online: >-
+          {{ states.media_player|selectattr('state','==','on')|list|count + states.media_player|selectattr('state','==','off')|list|count }}
+        offline: >-
+          {{ states.media_player|count - (states.media_player|selectattr('state','==','on')|list|count + states.media_player|selectattr('state','==','off')|list|count) }}
+        ids: >-
+          [{%- for i in states.media_player|map(attribute='entity_id')|default(none) if i|lower != 'none' -%}
+            {%- if not loop.first -%},{%- endif -%}
+            "{{- device_attr(i,'name') -}}"
+          {%- endfor %}]
+        state: >-
+          {% set s = states.media_player|default('none') %}
+          {% if s|lower != 'none' and not s is string and s|list is iterable %}
+            {{ s|list|count }}
+          {% else %}null{% endif %}
+
