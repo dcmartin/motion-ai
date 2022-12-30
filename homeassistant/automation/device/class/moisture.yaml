@@ -209,12 +209,16 @@
   trigger:
     - platform: state
       entity_id: 'sensor.motion_domain_sensor_count'
-      not_to: 'none'
+      not_to:
+        - 'none'
+        - 'unknown'
       for:
         seconds: 15
     - platform: state
       entity_id: 'sensor.motion_domain_binary_sensor_count'
-      not_to: 'none'
+      not_to:
+        - 'none'
+        - 'unknown'
       for:
         seconds: 15
   condition:
@@ -246,23 +250,36 @@
   trigger:
     - platform: time_pattern
       minutes: '/5'
-    - platform: event
-      event_type: homeassistant_start
     - platform: state
       entity_id: 'automation.motion_device_moisture_required_on'
       attribute: 'current'
+      not_from:
+        - 'none'
+        - 'unknown'
+        - 'unavailable'
       to: '0'
       for:
         seconds: 5
     - platform: state
       entity_id: 'automation.motion_device_moisture_required_off'
       attribute: 'current'
+      not_from:
+        - 'none'
+        - 'unknown'
+        - 'unavailable'
       to: '0'
       for:
         seconds: 5
     - platform: state
       entity_id: 'sensor.motion_device_moisture_count'
-      not_to: 'none'
+      not_from:
+        - 'none'
+        - 'unknown'
+        - 'unavailable'
+      not_to:
+        - 'none'
+        - 'unknown'
+        - 'unavailable'
       for:
         minutes: 1
   action:
@@ -972,7 +989,7 @@
         value_template: >-
           {% set s = state_attr('binary_sensor.motion_device_class','sensors') %}
           {{ s|lower != 'none' and s is iterable }}
-      - alias: 'moisture required not off'
+      - alias: 'test binary_sensors defined'
         condition: template
         value_template: >-
           {% set s = state_attr('binary_sensor.motion_device_class','binary_sensors') %}
@@ -984,7 +1001,7 @@
       {%- if not s is string and s is iterable and s|count > 0 -%}
         {% set sensors = s -%}
       {%- else -%}
-        {% set sensors = none -%}
+        {% set sensors = [] -%}
       {%- endif -%}
       {{- sensors -}}
     binary_sensors: >-
@@ -993,7 +1010,7 @@
       {%- if not s is string and s is iterable and s|count > 0 -%}
         {% set binary_sensors = s -%}
       {%- else -%}
-        {% set binary_sensors = none -%}
+        {% set binary_sensors = [] -%}
       {%- endif -%}
       {{- binary_sensors -}}
     required: >-
@@ -1008,13 +1025,18 @@
       {%- endif -%}
       {{- required -}}
   action:
-    - alias: 'test if required list of device classes is valid'
+    - alias: 'sensors and binary_sensors are not none'
       condition: template
       value_template: >-
         {{ sensors|lower != 'none' and binary_sensors|lower != 'none' }}
+    - alias: 'required is iterable and count > 0'
+      condition: template
+      value_template: >-
+        {{ required is iterable and required|count > 0 }}
     - alias: 'update binary_sensor.motion_device_class required attribute; remove: moisture'
       service: python_script.set_state
       data_template:
+        allow_create: true
         entity_id: binary_sensor.motion_device_class
         sensors: >-
           {{ sensors }}
@@ -1022,10 +1044,6 @@
           {{ binary_sensors }}
         required: >-
           {{ required }}
-    - alias: 'trigger rescan'
-      service: automation.trigger
-      data_template:
-        entity_id: automation.motion_device_moisture_rescan
 
 - id: motion_device_moisture_required_on
   alias: motion_device_moisture_required_on
@@ -1039,12 +1057,14 @@
       - alias: 'test setup complete'
         condition: template
         value_template: >-
-          {{ not is_state('binary_sensor.motion_device_class','unknown') }}
+          {{ is_state('binary_sensor.motion_device_class','on') or is_state('binary_sensor.motion_device_class','off') }}
       - alias: 'moisture required not on'
         condition: template
         value_template: >-
-          {{ 'moisture' in state_attr('binary_sensor.motion_device_class','sensor_list') or 'moisture' in state_attr('binary_sensor.motion_device_class','binary_sensor_list')
-            and (not 'moisture' in state_attr('binary_sensor.motion_device_class','sensors') or not 'moisture' in state_attr('binary_sensor.motion_device_class','binary_sensors')) }}
+          {{ 'moisture' in state_attr('binary_sensor.motion_device_class','sensor_list')
+             or 'moisture' in state_attr('binary_sensor.motion_device_class','binary_sensor_list')
+             and (not 'moisture' in state_attr('binary_sensor.motion_device_class','sensors')
+                  or not 'moisture' in state_attr('binary_sensor.motion_device_class','binary_sensors')) }}
   variables:
     sensors: >-
       {% set s = state_attr('binary_sensor.motion_device_class','sensors') -%}
@@ -1092,10 +1112,6 @@
           {{ binary_sensors }}
         required: >-
           {{ required }}
-    - alias: 'trigger rescan'
-      service: automation.trigger
-      data_template:
-        entity_id: automation.motion_device_moisture_rescan
 
 ## bad
 
