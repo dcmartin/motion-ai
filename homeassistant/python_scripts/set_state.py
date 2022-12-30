@@ -49,5 +49,5 @@ else:
               inputAttributesObject[item] = attr_value
 
         # update
-        logger.debug("set_state: updating; entity: ".format(inputEntity))
+        logger.info("set_state: updating; entity: ".format(inputEntity))
         hass.states.set(inputEntity, inputState, inputAttributesObject)
