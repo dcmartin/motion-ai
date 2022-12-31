@@ -4703,3 +4703,188 @@
           {{- count -}}
         state: >-
           {{ state }}
+
+- id: motion_device_light_exist
+  alias: motion_device_light_exist
+  mode: single
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_light
+      for:
+        seconds: 15
+    - platform: state
+      entity_id: binary_sensor.motion_device_class
+      for:
+        minutes: 1
+    - platform: state
+      entity_id: binary_sensor.motion_device_light_unavailable
+      not_to:
+        - 'none'
+        - 'unknown'
+      for:
+        seconds: 15
+    - platform: state
+      entity_id: binary_sensor.motion_device_class
+      attribute: 'categorys'
+      not_to:
+        - 'none'
+        - 'unknown'
+      for:
+        seconds: 10
+    - platform: state
+      entity_id:
+        - input_number.motion_device_light_low
+        - input_number.motion_device_light_high
+      for:
+        seconds: 5
+    - platform: state
+      entity_id: sensor.motion_device_light_low_spike
+      attribute: 'limit'
+      for:
+        seconds: 5
+    - platform: state
+      entity_id: sensor.motion_device_light_high_spike
+      attribute: 'limit'
+      for:
+        seconds: 5
+  variables:
+    unit: >-
+      {% set s = state_attr('sensor.motion_device_light','measurement')
+         |select('defined')
+         |selectattr('entity_id','defined')
+         |map(attribute='entity_id')
+         |map('state_attr','unit_of_measurement')|reject('none')|sort|unique|list %}
+      {% if s is iterable and s|count > 0 %}{{ s|first }}{% else %}none{% endif %}
+    last: >-
+      {{ utcnow().timestamp() }}
+    good: >-
+      {% set g = state_attr('binary_sensor.motion_device_class','good') -%}
+      {%- set b = state_attr('binary_sensor.motion_device_class','bad') -%}
+      {%- if g|lower != 'none' and b|lower != 'none' -%}
+        {%- if 'light' in g -%}on{%- elif 'light' in b -%}off{%- else -%}none{%- endif -%}
+      {%- else -%}none{%- endif %}
+    bad: >-
+      {% set g = state_attr('binary_sensor.motion_device_class','good') -%}
+      {%- set b = state_attr('binary_sensor.motion_device_class','bad') -%}
+      {%- if g|lower != 'none' and b|lower != 'none' -%}
+        {%- if 'light' in b -%}on{%- elif 'light' in g -%}off{%- else -%}none{%- endif -%}
+      {%- else -%}none{%- endif %}
+    alarm: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','alarm') -%}
+      {%- if s|lower != 'none' -%}
+        {%- if 'light' in s -%}on{%- else -%}none{%- endif -%}
+      {%- else -%}none{%- endif %}
+    activity: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','activity') -%}
+      {%- if s|lower != 'none' -%}
+        {%- if 'light' in s -%}on{%- else -%}none{%- endif -%}
+      {%- else -%}none{%- endif %}
+    required: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','sensors') -%}
+      {% set b = state_attr('binary_sensor.motion_device_class','binary_sensors') -%}
+      {%- if s|lower != 'none' and b|lower != 'none' -%}
+        {% set required = (s|list + b|list)|sort|unique %}
+        {%- if 'light' in required -%}on{%- else -%}none{%- endif -%}
+      {%- else -%}none{%- endif %}
+    low: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','low') -%}
+      {%- if s|lower != 'none' -%}
+        {%- if 'light' in s -%}
+          {{ states('input_number.motion_device_light_low') }}
+        {%- else -%}none{%- endif -%}
+      {%- else -%}none{%- endif %}
+    high: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','high') -%}
+      {%- if s|lower != 'none' -%}
+        {%- if 'light' in s -%}
+          {{ states('input_number.motion_device_light_high') }}
+        {%- else -%}none{%- endif -%}
+      {%- else -%}none{%- endif %}
+    low_spike: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','low_spike') -%}
+      {%- if s|lower != 'none' -%}
+        {%- if 'light' in s -%}
+          {%- set s = state_attr('sensor.motion_device_light_low_spike','limit') -%}
+          {%- if s|lower != 'none' and s is number -%}
+            {{ '%0.2f'|format(s) }}
+          {%- else -%}none{%- endif -%}
+        {%- else -%}none{%- endif -%}
+      {%- else -%}none{%- endif %}
+    high_spike: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','high_spike') -%}
+      {%- if s|lower != 'none' -%}
+        {%- if 'light' in s -%}
+          {%- set s = state_attr('sensor.motion_device_light_high_spike','limit') -%}
+          {%- if s|lower != 'none' and s is number -%}
+            {{ '%0.2f'|format(s) }}
+          {%- else -%}none{%- endif -%}
+        {%- else -%}none{%- endif -%}
+      {%- else -%}none{%- endif %}
+    measurement: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','sensor_list') -%}
+      {%- if s|lower != 'none' -%}
+        {%- if 'light' in s -%}on{%- else -%}none{%- endif -%}
+      {%- else -%}none{%- endif %}
+    status: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','binary_sensor_list') -%}
+      {%- if s|lower != 'none' -%}
+        {%- if 'light' in s -%}on{%- else -%}none{%- endif -%}
+      {%- else -%}none{%- endif %}
+    markdown: >-
+      {% set c = 'light' -%}
+      {%- set alarms = ['required','alarm'] -%}
+      <h1>{{ c|upper }}</h1>
+      {%- set s = state_attr('binary_sensor.motion_device_class','alarms') -%}
+      {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set alarms = alarms + s|sort|unique|list -%}
+      {%- endif -%}
+      {%- for i in alarms if state_attr('binary_sensor.motion_device_light_exist',i)|lower != 'none' -%}
+        {%- if loop.first -%}<ul>{%- endif -%}
+        <li>{{- i|upper -}}: {{ state_attr('binary_sensor.motion_device_light_exist',i) -}}</li>
+        {%- if loop.last -%}</ul>{%- endif -%}
+      {%- endfor -%}
+      {%- set s = state_attr('binary_sensor.motion_device_light_status','markdown') -%} {%- if s|lower != 'none' -%}{{- s -}}{%- endif -%}
+      {%- set s = state_attr('binary_sensor.motion_device_light_measurement','markdown') -%} {%- if s|lower != 'none' -%}{{- s -}}{%- endif -%}
+      {%- set s = state_attr('binary_sensor.motion_device_light_statistics','markdown') -%} {%- if s|lower != 'none' -%}{{- s -}}{%- endif -%}
+      {%- set s = state_attr('binary_sensor.motion_device_light_controls','markdown') -%} {%- if s|lower != 'none' -%}{{- s -}}{%- endif -%}
+      {%- set s = state_attr('binary_sensor.motion_device_light_activity','markdown') -%} {%- if s|lower != 'none' -%}{{- s -}}{%- endif -%}
+      {%- set s = state_attr('binary_sensor.motion_device_light_unavailable','markdown') -%} {%- if s|lower != 'none' -%}{{- s -}}{%- endif -%}
+    state: >-
+      {{- is_state('binary_sensor.motion_device_light_missing','off') -}}
+  action:
+    - alias: 'set sensor.motion_device_light_exist'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_light_exist
+        unit: >-
+          {{- unit -}}
+        last: >-
+          {{- last -}}
+        good: >-
+          {{- good -}}
+        bad: >-
+          {{- bad -}}
+        alarm: >-
+          {{- alarm -}}
+        activity: >-
+          {{- activity -}}
+        required: >-
+          {{- required -}}
+        low: >-
+          {{- low -}}
+        high: >-
+          {{- high -}}
+        low_spike: >-
+          {{- low_spike -}}
+        high_spike: >-
+          {{- high_spike -}}
+        measurement: >-
+          {{- measurement -}}
+        status: >-
+          {{- status -}}
+        markdown: >-
+          {{- markdown -}}
+        state: >-
+          {{- state -}}
+
