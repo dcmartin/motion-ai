@@ -2,86 +2,6 @@
 # homeassistant/template/device/class/class.yaml
 ###
 
-- unique_id: motion_device_class_exist
-  trigger:
-    - platform: state
-      entity_id: binary_sensor.motion_device_class
-      for:
-        minutes: 1
-  binary_sensor:
-    - name: 'motion_device_class_exist'
-      attributes:
-        automations: >-
-          {{ state_attr('binary_sensor.motion_device_class','automations') }}
-        total: >-
-          {{ state_attr('binary_sensor.motion_device_class','total')|int(0) }}
-        mobile: >-
-          {{ state_attr('binary_sensor.motion_device_class','devices')|selectattr('area','==','None')|list }}
-        local: >-
-          {% set s = state_attr('binary_sensor.motion_device_class','devices') -%}
-          {%- if not s is string and s is iterable and s|count > 0 -%}
-            {%- set s = s|selectattr('area','!=','None')|list -%}
-            {%- if not s is string and s is iterable and s|count > 0 -%}
-              {{ s }}
-            {%- else -%}none{%- endif -%}
-          {%- else -%}none{%- endif -%}
-        actions: >-
-          {%- set s = state_attr('binary_sensor.motion_device_class','categorys') -%}
-          {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
-          {%- set n = state_attr('binary_sensor.motion_device_class','notifications') -%}
-          [{%- for j in n -%}
-            {%- if not loop.first -%},{%- endif -%}
-            {"{{- j -}}":
-            [{%- for i in s|sort|unique if is_state('binary_sensor.motion_device_' + i|string + '_' +j|string,'off') and state_attr('binary_sensor.motion_device_' + i|string + '_' +j|string,'responses')|lower != 'none' -%}
-              {%- if not loop.first -%},{%- endif -%}
-              {%- set responses = state_attr('binary_sensor.motion_device_' + i|string + '_' + j|string,'responses') -%}
-              {"{{- i -}}":{"responses":{{ responses|to_json }},"actions":{
-              {%- for k in responses -%}
-                {%- if not loop.first -%},{%- endif -%}
-                {%- set r = state_attr('binary_sensor.motion_device_' + i|string + '_' + j|string,k) -%}
-                "{{- k -}}":{{- r|to_json|replace('null','None')|replace('false','False')|replace('true','True') -}}
-              {%- endfor -%}}}}
-            {%- endfor -%}]}
-          {%- endfor -%}]
-          {%- else -%}[]{%- endif -%}
-        markdown: >-
-          {%- set s = state_attr('binary_sensor.motion_device_class','categorys') -%}
-          {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
-            {%- for i in s|sort|unique if states('binary_sensor.motion_device_' + i|string)|lower != 'null'
-              and states('binary_sensor.motion_device_' + i|string)|lower != 'unknown'
-              and state_attr('binary_sensor.motion_device_' + i|string,'ids')|lower != 'none'
-              and state_attr('binary_sensor.motion_device_' + i|string,'ids')|lower != 'unknown'
-              and states('binary_sensor.motion_device_' + i|string)|lower != 'none' -%}
-              {%- if loop.first -%}{{- '<ul>' -}}{%- endif -%}
-              {%- set o = loop -%}
-              {%- set t = state_attr('binary_sensor.motion_device_' + i,'status') -%}
-              {%- for e in t if 'entity_id' in e -%}
-                {%- if loop.first -%}
-                  {{- '<h3>' -}}
-                  <a href="/notify-devices/{{- i -}}/">{{- i|upper -}}</a>
-                  {{- '</h3>' -}}
-                  {{- '<ol>' -}}
-                {%- endif -%}
-                {{- '<li>' -}}
-                {{- state_attr(e.entity_id,'friendly_name') -}}
-                {{- ': ' -}}
-                {%- set state = states(e.entity_id) -%}
-                {%- set um = state_attr(e.entity_id,'unit_of_measurement') -%}
-                {{- state -}}
-                {%- if um|lower != 'none' and state|lower != 'unavailable' -%}{{- um -}}{%- endif -%}
-                {{- '</li>' -}}
-                {%- if loop.last -%}{{- '</ol>' -}}{%- endif -%}
-              {%- endfor -%}
-              {%- if loop.last -%}{{- '</ul>' -}}{%- endif -%}
-            {%- else -%}<h2>Devices initializing</h2>{%- endfor -%}
-          {%- else -%}<h2>No devices</h2>{%- endif -%}
-          <i>Last updated</i>: {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
-      state: >-
-        {% set s = state_attr('binary_sensor.motion_device_class','total') %}
-        {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' %}
-          {{ s|int(0) > 0 }}
-        {% else %}unknown{% endif %}
-
 - unique_id: motion_device_class_measurement
   trigger:
     - platform: state
@@ -206,113 +126,113 @@
           {%- else -%}off{%- endif %}
 
 
-- unique_id: motion_device_class_missing_exist
-  trigger:
-    - platform: state
-      entity_id: binary_sensor.motion_device_class
-      attribute: 'alarm'
-    - platform: state
-      entity_id: binary_sensor.motion_device_class
-      attribute: 'missing'
-      not_to:
-        - 'none'
-        - 'unknown'
-      for:
-        seconds: 10
-  binary_sensor:
-    - name: 'motion_device_class_missing_exist'
-      attributes:
-        alarm: >-
-          {% set s = state_attr('binary_sensor.motion_device_class','alarm') -%}
-          {%- if s|lower != 'none' -%}
-            {%- if 'missing' in s -%}on{%- else -%}none{%- endif -%}
-          {%- else -%}none{%- endif %}
-        id: >-
-          {%- set id = 'device-missing' -%}
-          {{ id }}
-        interval: >-
-          {%- set interval = 5 -%}
-          {{ interval }}
-        group: >- 
-          {%- set group = 'device-notify' -%}
-          {{ group }}
-        approve: >-
-          {%- set approve = {'title':'Rescan all','icon':'mdi:home-search-outline','symbol':'sfsymbols:house.circle','trigger':'automation.motion_device_class_rescan_all'} -%}
-          {{ approve }}
-        deny: >-
-          {%- set deny = {'title':'Require off','icon':'mdi:bell-cancel-outline','symbol':'sfsymbols:bell.slash.circle','trigger':'automation.motion_device_class_missing_required_off'} -%}
-          {{ deny }}
-        wait: >-
-          {%- set wait = {'title':'Dismiss all','icon':'mdi:bell-sleep-outline','symbol':'sfsymbols:bell.slash','trigger':'automation.motion_device_class_missing_dismiss_all'} -%}
-          {{ wait }}
-        help: >-
-          {%- set p = state_attr('sensor.motion_role_primary','friendly_name') -%}
-          {%- set help = {'title':'Notify ' + p|string,'icon':'mdi:message-alert','symbol':'sfsymbols:message','trigger':'automation.motion_notification_missing_help'} -%}
-          {{ help }}
-        responses: >-
-          {%- set responses = ['approve','deny','wait','help'] -%}
-          {{ responses }}
-      state: >-
-        {% set s = state_attr('binary_sensor.motion_device_class','missing') %}
-        {%- if s|lower != 'none' and s is iterable -%}
-          {{- s|count > 0 -}}
-        {%- else -%}off{%- endif -%}
-
-- unique_id: motion_device_class_missing
-  trigger:
-    - platform: state
-      entity_id: binary_sensor.motion_device_class_missing_exist
-      not_to:
-        - 'none'
-        - 'unknown'
-    - platform: state
-      entity_id: group.motion_device_class_missing
-      for:
-        minutes: 1
-  binary_sensor:
-    - name: 'motion_device_class_missing'
-      attributes:
-        actions: >-
-          {%- set id = 'device-class-missing' -%}
-          {%- set approve = state_attr('binary_sensor.motion_device_class_missing_exist','approve') -%}
-          {%- set deny = state_attr('binary_sensor.motion_device_class_missing_exist','deny') -%}
-          {%- set wait = state_attr('binary_sensor.motion_device_class_missing_exist','wait') -%}
-          {%- set help = state_attr('binary_sensor.motion_device_class_missing_exist','help') -%}
-          {%- set group = state_attr('binary_sensor.motion_device_class_missing_exist','group') -%}
-          {%- set interval = state_attr('binary_sensor.motion_device_class_missing_exist','interval') -%}
-          {%- set responses = state_attr('binary_sensor.motion_device_class_missing_exist','responses') -%}
-          {%- set p = state_attr('sensor.motion_role_primary','friendly_name') -%}
-          {%- set a = [
-            {'id':'approve','action': id|string + '-approve','icon': approve.icon|default('mdi:cancel')|string,'symbol': approve.symbol|default('')|string,'title': approve.title|default('')|string,'destructive':false,'trigger': approve.trigger|default('none')},
-            {'id':'deny','action': id|string + '-deny','icon': deny.icon|default('mdi:cancel')|string,'symbol': deny.symbol|default('')|string,'title': deny.title|default('')|string,'destructive':true,'trigger': deny.trigger|default('none')},
-            {'id':'wait','action': id|string + '-wait','icon': wait.icon|default('mdi:cancel')|string,'symbol': wait.symbol|default('')|string,'title': wait.title|default('')|string,'destructive':false,'trigger': wait.trigger|default('none')},
-            {'id':'help','action': id|string + '-help','icon': help.icon|default('mdi:cancel')|string,'symbol': help.symbol|default('')|string,'title': help.title|default('')|string,'destructive':false,'trigger': help.trigger|default('none')}
-            ] -%}
-          {"id":"{{- id -}}","group":"{{- group -}}","interval":{{- interval -}},"responses":{{- responses -}},"primary":"{{- p -}}","actions":{{ a }}}
-        count: >-
-          {% set s = state_attr('binary_sensor.motion_device_class','missing') %}
-          {% if not s is string and s is iterable %}
-            {{ s|count }}
-          {% else %}null{% endif %}
-        markdown: >-
-          {%- set count = none -%}
-          {%- set s = state_attr('binary_sensor.motion_device_class','missing') -%}
-          {%- if not s is string and s is iterable and s|count > 0 -%}
-            {%- set count = s|count -%}
-            <h2><a href="/notify-missing/">Missing</a> existing device category(s)</h2>
-            {%- for i in s %}
-              {%- if loop.first -%}<ol>{%- endif -%}
-              <li><a href="/notify-devices/{{- i -}}">{{- i|upper -}}</a></li>
-              {%- if loop.last -%}</ol>{%- endif -%}
-            {%- endfor -%}
-          {%- else -%}
-            <h2>No missing devices</h2>
-          {%- endif %}
-          <br><b>Alarms enabled</b>: <code>{{- state_attr('binary_sensor.motion_device_class_missing_exist','alarm')|lower == 'on' }}</code>
-          <br><b>Outstanding alarms</b>: <code>{{- count -}}</code>
-          <br><i>Last updated</i>: {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
-      state: >-
-        {% set s = state_attr('binary_sensor.motion_device_class','missing') %}
-        {% if not s is string and s is iterable %}
-          {{ s|count > 0 }}
-        {% else %}unknown{% endif %}
+#- unique_id: motion_device_class_missing_exist
+#  trigger:
+#    - platform: state
+#      entity_id: binary_sensor.motion_device_class
+#      attribute: 'alarm'
+#    - platform: state
+#      entity_id: binary_sensor.motion_device_class
+#      attribute: 'missing'
+#      not_to:
+#        - 'none'
+#        - 'unknown'
+#      for:
+#        seconds: 10
+#  binary_sensor:
+#    - name: 'motion_device_class_missing_exist'
+#      attributes:
+#        alarm: >-
+#          {% set s = state_attr('binary_sensor.motion_device_class','alarm') -%}
+#          {%- if s|lower != 'none' -%}
+#            {%- if 'missing' in s -%}on{%- else -%}none{%- endif -%}
+#          {%- else -%}none{%- endif %}
+#        id: >-
+#          {%- set id = 'device-missing' -%}
+#          {{ id }}
+#        interval: >-
+#          {%- set interval = 5 -%}
+#          {{ interval }}
+#        group: >- 
+#          {%- set group = 'device-notify' -%}
+#          {{ group }}
+#        approve: >-
+#          {%- set approve = {'title':'Rescan all','icon':'mdi:home-search-outline','symbol':'sfsymbols:house.circle','trigger':'automation.motion_device_class_rescan_all'} -%}
+#          {{ approve }}
+#        deny: >-
+#          {%- set deny = {'title':'Require off','icon':'mdi:bell-cancel-outline','symbol':'sfsymbols:bell.slash.circle','trigger':'automation.motion_device_class_missing_required_off'} -%}
+#          {{ deny }}
+#        wait: >-
+#          {%- set wait = {'title':'Dismiss all','icon':'mdi:bell-sleep-outline','symbol':'sfsymbols:bell.slash','trigger':'automation.motion_device_class_missing_dismiss_all'} -%}
+#          {{ wait }}
+#        help: >-
+#          {%- set p = state_attr('sensor.motion_role_primary','friendly_name') -%}
+#          {%- set help = {'title':'Notify ' + p|string,'icon':'mdi:message-alert','symbol':'sfsymbols:message','trigger':'automation.motion_notification_missing_help'} -%}
+#          {{ help }}
+#        responses: >-
+#          {%- set responses = ['approve','deny','wait','help'] -%}
+#          {{ responses }}
+#      state: >-
+#        {% set s = state_attr('binary_sensor.motion_device_class','missing') %}
+#        {%- if s|lower != 'none' and s is iterable -%}
+#          {{- s|count > 0 -}}
+#        {%- else -%}off{%- endif -%}
+#
+#- unique_id: motion_device_class_missing
+#  trigger:
+#    - platform: state
+#      entity_id: binary_sensor.motion_device_class_missing_exist
+#      not_to:
+#        - 'none'
+#        - 'unknown'
+#    - platform: state
+#      entity_id: group.motion_device_class_missing
+#      for:
+#        minutes: 1
+#  binary_sensor:
+#    - name: 'motion_device_class_missing'
+#      attributes:
+#        actions: >-
+#          {%- set id = 'device-class-missing' -%}
+#          {%- set approve = state_attr('binary_sensor.motion_device_class_missing_exist','approve') -%}
+#          {%- set deny = state_attr('binary_sensor.motion_device_class_missing_exist','deny') -%}
+#          {%- set wait = state_attr('binary_sensor.motion_device_class_missing_exist','wait') -%}
+#          {%- set help = state_attr('binary_sensor.motion_device_class_missing_exist','help') -%}
+#          {%- set group = state_attr('binary_sensor.motion_device_class_missing_exist','group') -%}
+#          {%- set interval = state_attr('binary_sensor.motion_device_class_missing_exist','interval') -%}
+#          {%- set responses = state_attr('binary_sensor.motion_device_class_missing_exist','responses') -%}
+#          {%- set p = state_attr('sensor.motion_role_primary','friendly_name') -%}
+#          {%- set a = [
+#            {'id':'approve','action': id|string + '-approve','icon': approve.icon|default('mdi:cancel')|string,'symbol': approve.symbol|default('')|string,'title': approve.title|default('')|string,'destructive':false,'trigger': approve.trigger|default('none')},
+#            {'id':'deny','action': id|string + '-deny','icon': deny.icon|default('mdi:cancel')|string,'symbol': deny.symbol|default('')|string,'title': deny.title|default('')|string,'destructive':true,'trigger': deny.trigger|default('none')},
+#            {'id':'wait','action': id|string + '-wait','icon': wait.icon|default('mdi:cancel')|string,'symbol': wait.symbol|default('')|string,'title': wait.title|default('')|string,'destructive':false,'trigger': wait.trigger|default('none')},
+#            {'id':'help','action': id|string + '-help','icon': help.icon|default('mdi:cancel')|string,'symbol': help.symbol|default('')|string,'title': help.title|default('')|string,'destructive':false,'trigger': help.trigger|default('none')}
+#            ] -%}
+#          {"id":"{{- id -}}","group":"{{- group -}}","interval":{{- interval -}},"responses":{{- responses -}},"primary":"{{- p -}}","actions":{{ a }}}
+#        count: >-
+#          {% set s = state_attr('binary_sensor.motion_device_class','missing') %}
+#          {% if not s is string and s is iterable %}
+#            {{ s|count }}
+#          {% else %}null{% endif %}
+#        markdown: >-
+#          {%- set count = none -%}
+#          {%- set s = state_attr('binary_sensor.motion_device_class','missing') -%}
+#          {%- if not s is string and s is iterable and s|count > 0 -%}
+#            {%- set count = s|count -%}
+#            <h2><a href="/notify-missing/">Missing</a> existing device category(s)</h2>
+#            {%- for i in s %}
+#              {%- if loop.first -%}<ol>{%- endif -%}
+#              <li><a href="/notify-devices/{{- i -}}">{{- i|upper -}}</a></li>
+#              {%- if loop.last -%}</ol>{%- endif -%}
+#            {%- endfor -%}
+#          {%- else -%}
+#            <h2>No missing devices</h2>
+#          {%- endif %}
+#          <br><b>Alarms enabled</b>: <code>{{- state_attr('binary_sensor.motion_device_class_missing_exist','alarm')|lower == 'on' }}</code>
+#          <br><b>Outstanding alarms</b>: <code>{{- count -}}</code>
+#          <br><i>Last updated</i>: {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+#      state: >-
+#        {% set s = state_attr('binary_sensor.motion_device_class','missing') %}
+#        {% if not s is string and s is iterable %}
+#          {{ s|count > 0 }}
+#        {% else %}unknown{% endif %}

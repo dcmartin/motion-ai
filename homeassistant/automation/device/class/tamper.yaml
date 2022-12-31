@@ -212,20 +212,11 @@
       not_to:
         - 'none'
         - 'unknown'
-      for:
-        seconds: 15
     - platform: state
       entity_id: 'sensor.motion_domain_binary_sensor_count'
       not_to:
         - 'none'
         - 'unknown'
-      for:
-        seconds: 15
-  condition:
-    - alias: 'test if sensor and binary_sensor defined'
-      condition: template
-      value_template: >-
-        {{ states.sensor is iterable and states.binary_sensor is iterable }}
   variables:
     state: >-
       {%- set class = 'tamper' -%}
@@ -996,48 +987,38 @@
           {{ s|lower != 'none' and s is iterable }}
   variables:
     sensors: >-
+      {% set sensors = [] -%}
       {% set s = state_attr('binary_sensor.motion_device_class','sensors') -%}
       {%- set s = s|reject('==','tamper')|list -%}
       {%- if not s is string and s is iterable and s|count > 0 -%}
         {% set sensors = s -%}
-      {%- else -%}
-        {% set sensors = [] -%}
       {%- endif -%}
       {{- sensors -}}
     binary_sensors: >-
+      {% set binary_sensors = [] -%}
       {% set s = state_attr('binary_sensor.motion_device_class','binary_sensors') -%}
       {%- set s = s|reject('==','tamper')|list -%}
       {%- if not s is string and s is iterable and s|count > 0 -%}
         {% set binary_sensors = s -%}
-      {%- else -%}
-        {% set binary_sensors = [] -%}
       {%- endif -%}
       {{- binary_sensors -}}
     required: >-
       {%- set required = [] %}
       {%- set s = sensors -%}
-      {%- if s|lower != 'none' and s is iterable -%}
+      {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
         {%- set required = (required + s)|sort|unique|list -%}
       {%- endif -%}
       {%- set s = binary_sensors -%}
-      {%- if s|lower != 'none' and s is iterable -%}
+      {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
         {%- set required = (required + s)|sort|unique|list -%}
       {%- endif -%}
       {{- required -}}
   action:
-    - alias: 'sensors and binary_sensors are not none'
-      condition: template
-      value_template: >-
-        {{ sensors|lower != 'none' and binary_sensors|lower != 'none' }}
-    - alias: 'required is iterable and count > 0'
-      condition: template
-      value_template: >-
-        {{ required is iterable and required|count > 0 }}
     - alias: 'update binary_sensor.motion_device_class required attribute; remove: tamper'
       service: python_script.set_state
       data_template:
-        allow_create: true
         entity_id: binary_sensor.motion_device_class
+        allow_create: true
         sensors: >-
           {{ sensors }}
         binary_sensors: >-
