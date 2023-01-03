@@ -353,7 +353,7 @@
         {%- if not loop.first -%},{%- endif -%}
         {%- set e = 'binary_sensor.motion_device_' + i|string -%}
         {%- set devices = state_attr(e, 'devices') -%}
-        {%- for j in devices|map(attribute='did')|list -%}
+        {%- for j in devices|selectattr('did','defined')|map(attribute='did')|list -%}
           {%- if not loop.first -%},{%- endif -%}
           {"class":"{{- i -}}","did":"{{- j -}}","area":"{{ devices|selectattr('did','==',j)|map(attribute='area')|list|first }}"}
         {% else %}{{ none }}{%- endfor -%}
@@ -731,106 +731,6 @@
         entity_id: binary_sensor.motion_device_class
         unavailable: >-
           {{ ids }}
-
-## rescan_missing
-
-#- id: motion_device_class_rescan_missing
-#  alias: motion_device_class_rescan_missing
-#  mode: 'restart'
-#  max_exceeded: 'warn'
-#  initial_state: 'on'
-#  trigger:
-#    - platform: 'state'
-#      entity_id: 'group.motion_device_class_missing'
-#      to: 'on'
-#  variables:
-#    missing: >-
-#      {%- set s = state_attr('binary_sensor.motion_device_class','sensor_list')|list + state_attr('binary_sensor.motion_device_class','binary_sensor_list')|list -%}
-#      [{%- for i in s|sort|unique if is_state('binary_sensor.motion_device_' + i + '_missing','on') -%}
-#        {%- set k = state_attr('binary_sensor.motion_device_' + i,'missing') -%}
-#        {%- if k|lower != 'none' and k is iterable and k|count > 0 -%}
-#          {%- if not loop.first -%},{%- endif -%}
-#          {%- for j in k -%}
-#            {%- if not loop.first -%},{%- endif -%}
-#            {"did":"{{- device_id(j.entity_id) -}}","entity_id":"{{- j.entity_id -}}","id":"{{- j.id -}}","class":"{{- i -}}"}
-#          {%- endfor -%}
-#        {%- endif -%}
-#      {%- endfor -%}]
-#    ids: >-
-#      {% set ids = none %}
-#      {% if not missing is string and missing is iterable and missing|count > 0 %}
-#        {% set ids = missing|map(attribute='id')|sort|unique|list %}
-#      {% endif %}
-#      {{ ids }}
-#    dids: >-
-#      {% set dids = none %}
-#      {% if not missing is string and missing is iterable and missing|count > 0 %}
-#        {% set dids = missing|map(attribute='did')|sort|unique|list %}
-#      {% endif %}
-#      {{ dids }}
-#    count: >-
-#      {% if not dids is string and dids is iterable and dids|count > 0 %}
-#        {{ dids|count }}
-#      {% else %}null{% endif %}
-#    last: >-
-#      {% set last = state_attr('binary_sensor.motion_device_class_missing','last') %}
-#      {% if count|int(0) > 0 %}{{ last }}{% else %}{{ utcnow().timestamp() }}{% endif %}
-#    state: >-
-#      {% if count|int(0) > 0 %}on{% else %}off{% endif %}
-#    markdown: >-
-#      {% set s = dids -%}
-#      {%- if s|lower != 'none' and not s is string and s is iterable -%}
-#        <a href="/notify-missing/"><h2>Unavailable devices</h2></a>
-#        {%- for i in s -%}
-#          {%- set k = state_attr('binary_sensor.motion_device_class','devices')|selectattr('did','==',i)|list -%}
-#          {%- if k|lower != 'none' and not k is string and k is iterable and k|count > 0 -%}
-#            {%- set k = k|first -%}
-#            {%- set area = state_attr('sensor.motion_areas','areas')|selectattr('id','==',k.area)|list -%}
-#            {%- if area|lower != 'none' and not area is string and area is iterable and area|count > 0 -%}
-#              {%- set area = area|map(attribute='name')|first -%}
-#            {%- else -%}
-#              {%- set area = 'unknown' -%}
-#            {%- endif -%}
-#            {%- if loop.first -%}<ul>{%- endif -%}
-#            <li>The <a href="/config/devices/device/{{- k.did -}}">{{- k.friendly_name -}}</a> device ({{- k.manufacturer }} {{ k.model -}}) in <a href="/config/areas/area/{{- k.area -}}">{{ area }}</a> has missing sensors in the following categories:
-#            {%- for c in k.class if is_state('binary_sensor.motion_device_' + c|string + '_missing','on') -%}
-#              {%- if loop.first -%}<ol>{%- endif -%}
-#              <li><a href="/notify-devices/{{- c -}}">{{- c -}}</a></li>
-#              {%- if loop.last -%}</ol>{%- endif -%}
-#            {%- endfor -%}
-#            </li>
-#          {%- endif -%}
-#          {%- if loop.last -%}</ul>{%- endif -%}
-#        {%- endfor -%}
-#      {%- else -%}<h2>No missing devices</h2>{%- endif -%}
-#      <br><b>Alarms enabled</b>: <code>{{- state_attr('binary_sensor.motion_device_class_missing_exist','alarm')|lower == 'on' }}</code>
-#      <br><b>Outstanding alarms</b>: <code>{{- state_attr('binary_sensor.motion_device_class_missing','count')|int(0) > 0 }}</code>
-#      <br><i>Last updated</i>: {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
-#  action:
-#    - alias: 'update binary_sensor.motion_device_class_missing'
-#      service: python_script.set_state
-#      data_template:
-#        entity_id: binary_sensor.motion_device_class_missing
-#        last: >-
-#          {{ last }}
-#        dids: >-
-#          {{ dids }}
-#        ids: >-
-#          {{ ids }}
-#        count: >-
-#          {{ count }}
-#        markdown: >-
-#          {{ markdown }}
-#        details: >-
-#          {{ missing }}
-#        state: >-
-#          {{ state }}
-#    - alias: 'update binary_sensor.motion_device_class: missing'
-#      service: python_script.set_state
-#      data_template:
-#        entity_id: binary_sensor.motion_device_class
-#        missing: >-
-#          {{ ids }}
 
 - id: motion_device_class_exist
   alias: motion_device_class_exist
