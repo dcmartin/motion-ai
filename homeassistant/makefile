@@ -6,6 +6,10 @@ SETUP := setup.json
 TIMESTAMP ?= $(shell date -u '%FT%TZ')
 THIS_HOSTIP ?= $(shell hostname -i | awk '{ print $$1 }')
 
+WEATHER_AMBIENT_MAC ?= $(if $(wildcard WEATHER_AMBIENT_MAC),$(shell v=$$(cat WEATHER_AMBIENT_MAC) && echo "${TG}== WEATHER_AMBIENT_MAC: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='none' && echo "${TB}** WEATHER_AMBIENT_MAC unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.WEATHER_AMBIENT_MAC' $(SETUP)) && echo "${TS}++ WEATHER_AMBIENT_MAC: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+WEATHER_AMBIENT_APPKEY ?= $(if $(wildcard WEATHER_AMBIENT_APPKEY),$(shell v=$$(cat WEATHER_AMBIENT_APPKEY) && echo "${TG}== WEATHER_AMBIENT_APPKEY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='none' && echo "${TB}** WEATHER_AMBIENT_APPKEY unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.WEATHER_AMBIENT_APPKEY' $(SETUP)) && echo "${TS}++ WEATHER_AMBIENT_APPKEY: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+WEATHER_AMBIENT_APIKEY ?= $(if $(wildcard WEATHER_AMBIENT_APIKEY),$(shell v=$$(cat WEATHER_AMBIENT_APIKEY) && echo "${TG}== WEATHER_AMBIENT_APIKEY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='none' && echo "${TB}** WEATHER_AMBIENT_APIKEY unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.WEATHER_AMBIENT_APIKEY' $(SETUP)) && echo "${TS}++ WEATHER_AMBIENT_APIKEY: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+
 UPTIMEROBOT_RSSURL ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.UPTIMEROBOT_RSSURL' $(SETUP)) && echo "${TS}++ UPTIMEROBOT_RSSURL: $${v}${NC}" > /dev/stderr && echo "$${v}"), $(if $(wildcard UPTIMEROBOT_RSSURL),$(shell v=$$(cat UPTIMEROBOT_RSSURL) && echo "${TG}== UPTIMEROBOT_RSSURL: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='https://rss.uptimerobot.com/status' && echo "${TB}** UPTIMEROBOT_RSSURL unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 
 MOTION_REPOSITORY ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.MOTION_REPOSITORY' $(SETUP)) && echo "${TS}++ MOTION_REPOSITORY: $${v}${NC}" > /dev/stderr && echo "$${v}"), $(if $(wildcard MOTION_REPOSITORY),$(shell v=$$(cat MOTION_REPOSITORY) && echo "${TG}== MOTION_REPOSITORY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='https://github.com/motion-ai/motion-ai.git' && echo "${TB}** MOTION_REPOSITORY unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
@@ -389,6 +393,9 @@ secrets.yaml: secrets.yaml.tmpl setup.json
 	  OMADA_USERNAME="$(OMADA_USERNAME)" \
 	  TPLINK_DISCOVERY="$(TPLINK_DISCOVERY)" \
 	  UPTIMEROBOT_RSSURL="$(UPTIMEROBOT_RSSURL)" \
+	  WEATHER_AMBIENT_MAC="$(WEATHER_AMBIENT_MAC)" \
+	  WEATHER_AMBIENT_APIKEY="$(WEATHER_AMBIENT_APIKEY)" \
+	  WEATHER_AMBIENT_APPKEY="$(WEATHER_AMBIENT_APPKEY)" \
 	&& cat $< | envsubst > $@
 
 lovelace_dashboards.json: lovelace_dashboards.json.tmpl

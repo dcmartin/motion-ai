@@ -124,6 +124,15 @@
 
 - platform: template
   sensors:
+    weather_rain_today:
+      unique_id: weather_rain_today
+      friendly_name: Rain today
+      device_class: 'moisture'
+      value_template: >-
+        {{ states('sensor.weather_rain_today')|int(0) > 0 }}
+
+- platform: template
+  sensors:
     weather_ambient:
       unique_id: weather_ambient
       friendly_name: Ambient weather
@@ -139,19 +148,28 @@
         {%- else -%}{{- 'mdi:video' -}}{%- endif -%}
       attribute_templates:
         resource: >-
-          {%- set s = 'https://api.ambientweather.net/v1' -%}
-          {{- s -}}
+          {%- set resource = 'https://api.ambientweather.net/v1/devices/' -%}
+          {%- set s = states('input_text.weather_ambient_mac') -%}
+          {%- if s|lower != 'none' and s is string and s|length > 0 -%}
+            {%- set resource = resource + '?macAddress=' + s|replace(':','%3A') -%}
+            {%- set s = states('input_text.weather_ambient_appkey') -%}
+            {%- if s|lower != 'none' and s is string and s|length > 0 -%}
+              {%- set resource = resource + '&applicationKey=' + s -%}
+            {%- endif -%}
+            {%- set s = states('input_text.weather_ambient_apikey') -%}
+            {%- if s|lower != 'none' and s is string and s|length > 0 -%}
+              {%- set resource = resource + '&apiKey=' + s -%}
+            {%- endif -%}
+          {%- endif -%}
+          {{- resource -}}
         mac: >-
           {% set mac = states('input_text.weather_ambient_mac') -%}
-          {%- set mac = 'C4:5B:BE:5D:F2:DE' -%}
           {{- mac -}}
         apikey: >-
           {% set apikey = states('input_text.weather_ambient_apikey') -%}
-          {%- set apikey = 'c5b236c65d27423b982398346f5173389b946151f32f4d35845dd6f4bf43beab' -%}
           {{- apikey -}}
         appkey: >-
           {% set appkey = states('input_text.weather_ambient_appkey') -%}
-          {% set appkey = 'c1445d34f97e48cab358a82a30dd5e546d652b595e7e439f8f48fd4986e3b3ff' -%}
           {{- appkey -}}
         timestamp: >-
           {{ state_attr('sensor.weather_ambient','timestamp') }}
@@ -160,5 +178,5 @@
       value_template: >-
         {% set s = states('sensor.weather_ambient') %}
         {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
-          {{ s|lower == 'true' }}
+          {{ s|lower == 'on' }}
         {% else %}unknown{% endif %}

@@ -120,8 +120,6 @@
          {{ state_attr('sensor.weather_temperature_oldest','age_coverage_ratio')|float(0) * 100 }}
         usage: >-
          {{ state_attr('sensor.weather_temperature_oldest','buffer_usage_ratio')|float(0) * 100 }}
-        quartiles: >-
-          {{ states('sensor.weather_temperature_quartiles_1w') }}
       value_template: >-
         {{- state_attr('binary_sensor.weather_forecasted','temperature') -}}
 
@@ -177,15 +175,7 @@
   max_age:
     days: 7
 
-#- platform: statistics
-#  name: weather_temperature_quartiles_1w
-#  entity_id: sensor.weather_temperature
-#  state_characteristic: quantiles
-#  quantile_intervals: 4
-#  quantile_method: inclusive
-#  sampling_size: 1000
-#  max_age:
-#    days: 7
+## ambient weather station
 
 - platform: template
   sensors:
@@ -203,7 +193,7 @@
   json_attributes:
     - devices
   value_template: >
-    {{- value_json is defined and value_json is iterable and value_json|count > 0 -}}
+    {{- value_json is defined and value_json is iterable -}}
 
 - platform: rest
   name: weather_ambient_rest
@@ -220,7 +210,7 @@
   resource_template: >-
     {{ state_attr('binary_sensor.weather_ambient','resource') }}
   value_template: >-
-    {{ value_json is defined and value_json is iterable and 'macAddress' in value_json }}
+    {{- value_json is defined and value_json is iterable -}}
 
 - platform: template
   sensors:
@@ -230,10 +220,6 @@
       attribute_templates:
         eval: >-
           {%- set s = state_attr('binary_sensor.weather_ambient','resource') -%}
-          {%- set mac = state_attr('binary_sensor.weather_ambient','mac') -%}
-          {%- set apikey = state_attr('binary_sensor.weather_ambient','apikey') -%}
-          {%- set appkey = state_attr('binary_sensor.weather_ambient','appkey') -%}
-          {%- set s = s + '/devices/?macAddress=' + mac|replace(':','%3A') + '&applicationKey=' + appkey + '&apiKey=' + apikey -%}
           {{- 'curl -sSL -k "' +  s|string + '"' + '| jq \'{"devices":to_entries}\'' -}}
         rest: >-
           {% set s = states('sensor.weather_ambient_rest') %}
@@ -242,21 +228,15 @@
           {% set s = states('sensor.weather_ambient_command') %}
           {% if s|lower == 'true' %}on{% elif s|lower == 'false' %}off{% else %}unknown{% endif %}
         source: >-
-          {% set s = states('sensor.weather_ambient_rest') %}
-          {% if s|lower == 'true' %}
-            {% set s = state_attr('sensor.weather_ambient_rest','lastData') %}
-            {% if s|lower != 'none' and s is iterable and 'dateutc' in s %}
-              {% set r = s.dateutc %}
-            {% endif %}
+          {% set s = state_attr('sensor.weather_ambient_rest','lastData') %}
+          {% if s|lower != 'none' and s is iterable and 'dateutc' in s %}
+            {% set r = s.dateutc %}
           {% endif %}
-          {% set s = states('sensor.weather_ambient_command') %}
-          {% if s|lower == 'true' %}
-            {% set s = state_attr('sensor.weather_ambient_command','devices') %}
-            {% if s|lower != 'none' and s is iterable and s|count > 0 %}
-              {%- set s = s|first -%}
-              {% if s|lower != 'none' and s is iterable and 'lastData' in s %}
-                {% set c = (s|first).lastData.dateutc -%}
-              {% endif %}
+          {% set s = state_attr('sensor.weather_ambient_command','devices') %}
+          {% if s|lower != 'none' and s is iterable and s|count > 0 %}
+            {%- set s = s|first -%}
+            {% if s|lower != 'none' and s is iterable and 'lastData' in s %}
+              {% set c = s.lastData.dateutc -%}
             {% endif %}
           {% endif %}
           {% if r is defined and r|lower != 'none' and r|int(0) > 0  and c is defined and c|lower != 'none' and c|int(0) > 0 %}
@@ -271,18 +251,15 @@
             {{ 'command' }}
           {% else %}none{% endif %}
         timestamp: >-
-          {% set s = states('sensor.weather_ambient_rest') %}
-          {% if s|lower == 'true' %}
-            {% set s = state_attr('sensor.weather_ambient_rest','lastData') %}
-            {% if s|lower != 'none' and s is iterable and 'dateutc' in s %}
-              {% set r = s.dateutc %}
-            {% endif %}
+          {% set s = state_attr('sensor.weather_ambient_rest','lastData') %}
+          {% if s|lower != 'none' and s is iterable and 'dateutc' in s %}
+            {% set r = s.dateutc %}
           {% endif %}
-          {% set s = states('sensor.weather_ambient_command') %}
-          {% if s|lower == 'true' %}
-            {% set s = state_attr('sensor.weather_ambient_command','devices') %}
-            {% if s|lower != 'none' and s is iterable and s|count > 0 %}
-              {% set c = (s|first).lastData.dateutc -%}
+          {% set s = state_attr('sensor.weather_ambient_command','devices') %}
+          {% if s|lower != 'none' and s is iterable and s|count > 0 %}
+            {% set s = s|first -%}
+            {% if s|lower != 'none' and s is iterable and 'lastData' in s %}
+              {% set c = s.lastData.dateutc -%}
             {% endif %}
           {% endif %}
           {% if r is defined and r|lower != 'none' and r|int(0) > 0  and c is defined and c|lower != 'none' and c|int(0) > 0 %}
@@ -297,20 +274,17 @@
             {{ c }}
           {% else %}none{% endif %}
         info: >-
-          {% set s = states('sensor.weather_ambient_rest') %}
-          {% if s|lower == 'true' %}
+          {% set s = state_attr('sensor.weather_ambient_rest','lastData') %}
+          {% if s|lower != 'none' and s is iterable and 'dateutc' in s %}
+            {% set r = s.dateutc %}
             {% set sr = state_attr('sensor.weather_ambient_rest','info') %}
-            {% set s = state_attr('sensor.weather_ambient_rest','lastData') %}
-            {% if s|lower != 'none' and s is iterable and 'dateutc' in s %}
-              {% set r = s.dateutc %}
-            {% endif %}
           {% endif %}
-          {% set s = states('sensor.weather_ambient_command') %}
-          {% if s|lower == 'true' %}
-            {% set s = state_attr('sensor.weather_ambient_command','devices') %}
-            {% if s|lower != 'none' and s is iterable and s|count > 0 %}
-              {% set c = (s|first).lastData.dateutc %}
-              {% set cr = (s|first).info %}
+          {% set s = state_attr('sensor.weather_ambient_command','devices') %}
+          {% if s|lower != 'none' and s is iterable and s|count > 0 %}
+            {% set s = s|first %}
+            {% if s|lower != 'none' and s is iterable and 'lastData' in s %}
+              {% set c = s.lastData.dateutc %}
+              {% set sc = s.info %}
             {% endif %}
           {% endif %}
           {% if r is defined and r|lower != 'none' and r|int(0) > 0  and c is defined and c|lower != 'none' and c|int(0) > 0 %}
@@ -325,20 +299,17 @@
             {{ sc }}
           {% else %}none{% endif %}
         lastData: >-
-          {% set s = states('sensor.weather_ambient_rest') %}
-          {% if s|lower == 'true' %}
-            {% set sr = state_attr('sensor.weather_ambient_rest','lastData') %}
-            {% set s = state_attr('sensor.weather_ambient_rest','lastData') %}
-            {% if s|lower != 'none' and s is iterable and 'dateutc' in s %}
-              {% set r = s.dateutc %}
-            {% endif %}
+          {% set s = state_attr('sensor.weather_ambient_rest','lastData') %}
+          {% if s|lower != 'none' and s is iterable and 'dateutc' in s %}
+            {% set r = s.dateutc %}
+            {% set sr = s %}
           {% endif %}
-          {% set s = states('sensor.weather_ambient_command') %}
-          {% if s|lower == 'true' %}
-            {% set s = state_attr('sensor.weather_ambient_command','devices') %}
-            {% if s|lower != 'none' and s is iterable and s|count > 0 %}
-              {% set c = (s|first).lastData.dateutc %}
-              {% set cr = (s|first).lastData %}
+          {% set s = state_attr('sensor.weather_ambient_command','devices') %}
+          {% if s|lower != 'none' and s is iterable and s|count > 0 %}
+            {% set s = s|first %}
+            {% if s|lower != 'none' and s is iterable and 'lastData' in s %}
+              {% set c = s.lastData.dateutc %}
+              {% set sc = s.lastData %}
             {% endif %}
           {% endif %}
           {% if r is defined and r|lower != 'none' and r|int(0) > 0  and c is defined and c|lower != 'none' and c|int(0) > 0 %}
@@ -353,20 +324,17 @@
             {{ sc }}
           {% else %}none{% endif %}
         macAddress: >-
-          {% set s = states('sensor.weather_ambient_rest') %}
-          {% if s|lower == 'true' %}
+          {% set s = state_attr('sensor.weather_ambient_rest','lastData') %}
+          {% if s|lower != 'none' and s is iterable and 'dateutc' in s %}
+            {% set r = s.dateutc %}
             {% set sr = state_attr('sensor.weather_ambient_rest','macAddress') %}
-            {% set s = state_attr('sensor.weather_ambient_rest','lastData') %}
-            {% if s|lower != 'none' and s is iterable and 'dateutc' in s %}
-              {% set r = s.dateutc %}
-            {% endif %}
           {% endif %}
-          {% set s = states('sensor.weather_ambient_command') %}
-          {% if s|lower == 'true' %}
-            {% set s = state_attr('sensor.weather_ambient_command','devices') %}
-            {% if s|lower != 'none' and s is iterable and s|count > 0 %}
-              {% set c = (s|first).lastData.dateutc %}
-              {% set cr = (s|first).macAddress %}
+          {% set s = state_attr('sensor.weather_ambient_command','devices') %}
+          {% if s|lower != 'none' and s is iterable and s|count > 0 %}
+            {% set s = s|first %}
+            {% if s|lower != 'none' and s is iterable and 'lastData' in s %}
+              {% set c = s.lastData.dateutc %}
+              {% set sc = s.macAddress %}
             {% endif %}
           {% endif %}
           {% if r is defined and r|lower != 'none' and r|int(0) > 0  and c is defined and c|lower != 'none' and c|int(0) > 0 %}
@@ -381,34 +349,148 @@
             {{ sc }}
           {% else %}none{% endif %}
       value_template: >-
-        {{ states('sensor.weather_ambient_rest')|lower == 'true' or states('sensor.weather_ambient_command')|lower == 'true' }}
+          {% set s = state_attr('sensor.weather_ambient_rest','lastData') %}
+          {% if s|lower != 'none' and s is iterable and 'dateutc' in s %}
+            {% set r = s.dateutc %}
+          {% endif %}
+          {% set s = state_attr('sensor.weather_ambient_command','devices') %}
+          {% if s|lower != 'none' and s is iterable and s|count > 0 %}
+            {%- set s = s|first -%}
+            {% if s|lower != 'none' and s is iterable and 'lastData' in s %}
+              {% set c = s.lastData.dateutc -%}
+            {% endif %}
+          {% endif %}
+          {% if r is defined and r|lower != 'none' and r|int(0) > 0  and c is defined and c|lower != 'none' and c|int(0) > 0 %}
+            {% if r|int(0) > c|int(0) %}
+              {{ 'on' }}
+            {% else %}
+              {{ 'on' }}
+            {% endif %}
+          {% elif r is defined and r|lower != 'none' and r|int(0) > 0 %}
+            {{ 'on' }}
+          {% elif c is defined and c|lower != 'none' and c|int(0) > 0 %}
+            {{ 'on' }}
+          {% else %}off{% endif %}
+
+# temperature
+
+- platform: template
+  sensors:
+    weather_temperature_ambient:
+      friendly_name: Ambient temperature
+      device_class: temperature
+      attribute_templates:
+        age: >-
+          {{ timedelta(days=7) }}
+        min: >-
+          {{ states('sensor.weather_temperature_ambient_min')|default('null') }}
+        max: >-
+          {{ states('sensor.weather_temperature_ambient_max')|default('null') }}
+        mean: >-
+          {{ states('sensor.weather_temperature_ambient_mean')|default('null') }}
+        stdev: >-
+          {{ states('sensor.weather_temperature_ambient_stdev')|default('null') }}
+        oldest: >-
+          {{ states('sensor.weather_temperature_ambient_oldest') }}
+        coverage: >-
+         {{ state_attr('sensor.weather_temperature_ambient_oldest','age_coverage_ratio')|float(0) * 100 }}
+        usage: >-
+         {{ state_attr('sensor.weather_temperature_ambient_oldest','buffer_usage_ratio')|float(0) * 100 }}
+      value_template: >-
+        {%- set s = state_attr('sensor.weather_ambient','lastData') -%}
+        {%- if s|lower != 'none' and s is iterable and 'tempf' in s -%}
+          {{- s.tempf -}}
+        {%- else -%}none{%- endif -%}
+
+# history
+
+- platform: history_stats
+  name: weather_temperature_ambient_history_1w
+  entity_id: binary_sensor.weather_ambient
+  state: 'on'
+  type: ratio
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7) }}'
+  end: '{{ now() }}'
+
+- platform: statistics
+  name: weather_temperature_ambient_oldest
+  entity_id: sensor.weather_temperature_ambient_history_1w
+  state_characteristic: datetime_oldest
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+# statistics
+
+- platform: statistics
+  name: weather_temperature_ambient_min
+  entity_id: sensor.weather_temperature_ambient
+  state_characteristic: value_min
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: weather_temperature_ambient_mean
+  entity_id: sensor.weather_temperature_ambient
+  state_characteristic: mean
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: weather_temperature_ambient_max
+  entity_id: sensor.weather_temperature_ambient
+  state_characteristic: value_max
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: weather_temperature_ambient_stdev
+  entity_id: sensor.weather_temperature_ambient
+  state_characteristic: standard_deviation
+  sampling_size: 1000
+  max_age:
+    days: 7
 
 # rain
 
 - platform: template
   sensors:
-    weather_rain:
-      friendly_name: Total rain
+    weather_rain_today:
+      friendly_name: Today rain
+      device_class: 'precipitation'
       unit_of_measurement: 'in'
       attribute_templates:
         age: >-
           {{ timedelta(days=7) }}
         min: >-
-          {{ states('sensor.weather_rain_min')|default('null') }}
+          {{ states('sensor.weather_rain_today_min')|default('null') }}
         max: >-
-          {{ states('sensor.weather_rain_max')|default('null') }}
+          {{ states('sensor.weather_rain_today_max')|default('null') }}
         mean: >-
-          {{ states('sensor.weather_rain_mean')|default('null') }}
+          {{ states('sensor.weather_rain_today_mean')|default('null') }}
         stdev: >-
-          {{ states('sensor.weather_rain_stdev')|default('null') }}
+          {{ states('sensor.weather_rain_today_stdev')|default('null') }}
         oldest: >-
-          {{ states('sensor.weather_rain_oldest') }}
+          {{ states('sensor.weather_rain_today_oldest') }}
         coverage: >-
-         {{ state_attr('sensor.weather_rain_oldest','age_coverage_ratio')|float(0) * 100 }}
+         {{ state_attr('sensor.weather_rain_today_oldest','age_coverage_ratio')|float(0) * 100 }}
         usage: >-
-         {{ state_attr('sensor.weather_rain_oldest','buffer_usage_ratio')|float(0) * 100 }}
-        quartiles: >-
-          {{ states('sensor.weather_rain_quartiles_1w') }}
+         {{ state_attr('sensor.weather_rain_today_oldest','buffer_usage_ratio')|float(0) * 100 }}
+      value_template: >-
+        {%- set s = state_attr('sensor.weather_ambient','lastData') -%}
+        {%- if s|lower != 'none' and s is iterable and 'dailyrainin' in s -%}
+          {{- s.dailyrainin -}}
+        {%- else -%}none{%- endif -%}
+
+- platform: template
+  sensors:
+    weather_rain_total:
+      friendly_name: Total rain
+      unit_of_measurement: 'in'
+      device_class: 'precipitation'
       value_template: >-
         {%- set s = state_attr('sensor.weather_ambient','lastData') -%}
         {%- if s|lower != 'none' and s is iterable and 'totalrainin' in s -%}
@@ -419,13 +501,11 @@
 
 - platform: history_stats
   name: weather_rain_history_1w
-  entity_id: binary_sensor.weather_ambient
+  entity_id: binary_sensor.weather_rain_today
   state: 'on'
   type: ratio
   start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7) }}'
   end: '{{ now() }}'
-
-# statistics
 
 - platform: statistics
   name: weather_rain_oldest
@@ -435,35 +515,36 @@
   max_age:
     days: 7
 
+# statistics
+
 - platform: statistics
-  name: weather_rain_min
-  entity_id: sensor.weather_rain
+  name: weather_rain_today_min
+  entity_id: sensor.weather_rain_today
   state_characteristic: value_min
   sampling_size: 1000
   max_age:
     days: 7
 
 - platform: statistics
-  name: weather_rain_mean
-  entity_id: sensor.weather_rain
+  name: weather_rain_today_mean
+  entity_id: sensor.weather_rain_today
   state_characteristic: mean
   sampling_size: 1000
   max_age:
     days: 7
 
 - platform: statistics
-  name: weather_rain_max
-  entity_id: sensor.weather_rain
+  name: weather_rain_today_max
+  entity_id: sensor.weather_rain_today
   state_characteristic: value_max
   sampling_size: 1000
   max_age:
     days: 7
 
 - platform: statistics
-  name: weather_rain_stdev
-  entity_id: sensor.weather_rain
+  name: weather_rain_today_stdev
+  entity_id: sensor.weather_rain_today
   state_characteristic: standard_deviation
   sampling_size: 1000
   max_age:
     days: 7
-
