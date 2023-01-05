@@ -6,11 +6,11 @@ SETUP := setup.json
 TIMESTAMP ?= $(shell date -u '%FT%TZ')
 THIS_HOSTIP ?= $(shell hostname -i | awk '{ print $$1 }')
 
-WEATHER_AMBIENT_MAC ?= $(if $(wildcard WEATHER_AMBIENT_MAC),$(shell v=$$(cat WEATHER_AMBIENT_MAC) && echo "${TG}== WEATHER_AMBIENT_MAC: $${v}${NC}" > /dev/stderr && echo "$${v}"),,$(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.WEATHER_AMBIENT_MAC' $(SETUP)) && echo "${TS}++ WEATHER_AMBIENT_MAC: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='warn' && echo "${TB}** WEATHER_AMBIENT_MAC unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")
-WEATHER_AMBIENT_APPKEY ?= $(if $(wildcard WEATHER_AMBIENT_APPKEY),$(shell v=$$(cat WEATHER_AMBIENT_APPKEY) && echo "${TG}== WEATHER_AMBIENT_APPKEY: $${v}${NC}" > /dev/stderr && echo "$${v}"),,$(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.WEATHER_AMBIENT_APPKEY' $(SETUP)) && echo "${TS}++ WEATHER_AMBIENT_APPKEY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='warn' && echo "${TB}** WEATHER_AMBIENT_APPKEY unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")
-WEATHER_AMBIENT_APIKEY ?= $(if $(wildcard WEATHER_AMBIENT_APIKEY),$(shell v=$$(cat WEATHER_AMBIENT_APIKEY) && echo "${TG}== WEATHER_AMBIENT_APIKEY: $${v}${NC}" > /dev/stderr && echo "$${v}"),,$(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.WEATHER_AMBIENT_APIKEY' $(SETUP)) && echo "${TS}++ WEATHER_AMBIENT_APIKEY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='warn' && echo "${TB}** WEATHER_AMBIENT_APIKEY unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")
-LOGGER_SET_STATE ?= $(if $(wildcard LOGGER_SET_STATE),$(shell v=$$(cat LOGGER_SET_STATE) && echo "${TG}== LOGGER_SET_STATE: $${v}${NC}" > /dev/stderr && echo "$${v}"),,$(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.LOGGER_SET_STATE' $(SETUP)) && echo "${TS}++ LOGGER_SET_STATE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='warn' && echo "${TB}** LOGGER_SET_STATE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")
-))
+WEATHER_AMBIENT_MAC ?= $(if $(wildcard WEATHER_AMBIENT_MAC),$(shell v=$$(cat WEATHER_AMBIENT_MAC) && echo "${TG}== WEATHER_AMBIENT_MAC: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.WEATHER_AMBIENT_MAC' $(SETUP)) && if [ "$${v}" = "null" ]; then v='warn' && echo "${TS}++ WEATHER_AMBIENT_MAC not defined in $(SETUP); default: $${v}${NC}" > /dev/stderr; else echo "${TG}== WEATHER_AMBIENT_MAC: $${v}${NC}" > /dev/stderr; fi && echo "$${v}") ,$(shell v='warn' && echo "${TB}** WEATHER_AMBIENT_MAC unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+WEATHER_AMBIENT_APIKEY ?= $(if $(wildcard WEATHER_AMBIENT_APIKEY),$(shell v=$$(cat WEATHER_AMBIENT_APIKEY) && echo "${TG}== WEATHER_AMBIENT_APIKEY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.WEATHER_AMBIENT_APIKEY' $(SETUP)) && if [ "$${v}" = "null" ]; then v='warn' && echo "${TS}++ WEATHER_AMBIENT_APIKEY not defined in $(SETUP); default: $${v}${NC}" > /dev/stderr; else echo "${TG}== WEATHER_AMBIENT_APIKEY: $${v}${NC}" > /dev/stderr; fi && echo "$${v}") ,$(shell v='warn' && echo "${TB}** WEATHER_AMBIENT_APIKEY unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+WEATHER_AMBIENT_APPKEY ?= $(if $(wildcard WEATHER_AMBIENT_APPKEY),$(shell v=$$(cat WEATHER_AMBIENT_APPKEY) && echo "${TG}== WEATHER_AMBIENT_APPKEY: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.WEATHER_AMBIENT_APPKEY' $(SETUP)) && if [ "$${v}" = "null" ]; then v='warn' && echo "${TS}++ WEATHER_AMBIENT_APPKEY not defined in $(SETUP); default: $${v}${NC}" > /dev/stderr; else echo "${TG}== WEATHER_AMBIENT_APPKEY: $${v}${NC}" > /dev/stderr; fi && echo "$${v}") ,$(shell v='warn' && echo "${TB}** WEATHER_AMBIENT_APPKEY unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
+
+LOGGER_SET_STATE ?= $(if $(wildcard LOGGER_SET_STATE),$(shell v=$$(cat LOGGER_SET_STATE) && echo "${TG}== LOGGER_SET_STATE: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.LOGGER_SET_STATE' $(SETUP)) && if [ "$${v}" = "null" ]; then v='warn' && echo "${TS}++ LOGGER_SET_STATE not defined in $(SETUP); default: $${v}${NC}" > /dev/stderr; else echo "${TG}== LOGGER_SET_STATE: $${v}${NC}" > /dev/stderr; fi && echo "$${v}") ,$(shell v='warn' && echo "${TB}** LOGGER_SET_STATE unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 
 UPTIMEROBOT_RSSURL ?= $(if $(wildcard $(SETUP)),$(shell v=$$(jq -r '.UPTIMEROBOT_RSSURL' $(SETUP)) && echo "${TS}++ UPTIMEROBOT_RSSURL: $${v}${NC}" > /dev/stderr && echo "$${v}"), $(if $(wildcard UPTIMEROBOT_RSSURL),$(shell v=$$(cat UPTIMEROBOT_RSSURL) && echo "${TG}== UPTIMEROBOT_RSSURL: $${v}${NC}" > /dev/stderr && echo "$${v}"),$(shell v='https://rss.uptimerobot.com/status' && echo "${TB}** UPTIMEROBOT_RSSURL unset; default: $${v}${NC}" > /dev/stderr && echo "$${v}")))
 
@@ -304,7 +304,6 @@ secrets.yaml: secrets.yaml.tmpl setup.json
 	  IPERF_HOST="$(IPERF_HOST)" \
 	  JUPYTER_URL="$(JUPYTER_URL)" \
 	  LOGGER_AUTOMATION="$(LOGGER_AUTOMATION)" \
-	  LOGGER_SET_STATE="$(LOGGER_SET_STATE)" \
 	  LOGGER_DEFAULT="$(LOGGER_DEFAULT)" \
 	  LOGGER_MQTT="$(LOGGER_MQTT)" \
 	  MARIADB_HOST="$(MARIADB_HOST)" \
@@ -399,6 +398,7 @@ secrets.yaml: secrets.yaml.tmpl setup.json
 	  WEATHER_AMBIENT_MAC="$(WEATHER_AMBIENT_MAC)" \
 	  WEATHER_AMBIENT_APIKEY="$(WEATHER_AMBIENT_APIKEY)" \
 	  WEATHER_AMBIENT_APPKEY="$(WEATHER_AMBIENT_APPKEY)" \
+	  LOGGER_SET_STATE="$(LOGGER_SET_STATE)" \
 	&& cat $< | envsubst > $@
 
 lovelace_dashboards.json: lovelace_dashboards.json.tmpl
