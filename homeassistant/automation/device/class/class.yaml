@@ -682,23 +682,25 @@
       {%- if s|lower != 'none' and not s is string and s is iterable -%}
         <a href="/notify-unavailable/"><h2>Unavailable devices</h2></a>
         {%- for i in s -%}
+          {%- if loop.first -%}<ul>{%- endif -%}
           {%- set k = state_attr('binary_sensor.motion_device_class','devices')|selectattr('did','==',i)|list -%}
           {%- if k|lower != 'none' and not k is string and k is iterable and k|count > 0 -%}
             {%- set k = k|first -%}
-            {%- set area = state_attr('sensor.motion_areas','areas')|selectattr('id','==',k.area)|list -%}
-            {%- if area|lower != 'none' and not area is string and area is iterable and area|count > 0 -%}
-              {%- set area = area|map(attribute='name')|first -%}
-            {%- else -%}
-              {%- set area = 'unknown' -%}
+            {%- if k|lower != 'none' and k is iterable and 'area' in k and 'class' in k -%}
+              {%- set area = state_attr('sensor.motion_areas','areas')|selectattr('id','==',k.area)|list -%}
+              {%- if area|lower != 'none' and not area is string and area is iterable and area|count > 0 -%}
+                {%- set area = area|map(attribute='name')|first -%}
+              {%- else -%}
+                {%- set area = 'unknown' -%}
+              {%- endif -%}
+              <li>The <a href="/config/devices/device/{{- k.did -}}">{{- k.friendly_name -}}</a> device ({{- k.manufacturer }} {{ k.model -}}) in <a href="/config/areas/area/{{- k.area -}}">{{ area }}</a> has unavailable sensors in the following categories:
+              {%- for c in k.class if is_state('binary_sensor.motion_device_' + c|string + '_unavailable','on') -%}
+                {%- if loop.first -%}<ol>{%- endif -%}
+                <li><a href="/notify-devices/{{- c -}}">{{- c -}}</a></li>
+                {%- if loop.last -%}</ol>{%- endif -%}
+              {%- endfor -%}
+              </li>
             {%- endif -%}
-            {%- if loop.first -%}<ul>{%- endif -%}
-            <li>The <a href="/config/devices/device/{{- k.did -}}">{{- k.friendly_name -}}</a> device ({{- k.manufacturer }} {{ k.model -}}) in <a href="/config/areas/area/{{- k.area -}}">{{ area }}</a> has unavailable sensors in the following categories:
-            {%- for c in k.class if is_state('binary_sensor.motion_device_' + c|string + '_unavailable','on') -%}
-              {%- if loop.first -%}<ol>{%- endif -%}
-              <li><a href="/notify-devices/{{- c -}}">{{- c -}}</a></li>
-              {%- if loop.last -%}</ol>{%- endif -%}
-            {%- endfor -%}
-            </li>
           {%- endif -%}
           {%- if loop.last -%}</ul>{%- endif -%}
         {%- endfor -%}
