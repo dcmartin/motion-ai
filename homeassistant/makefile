@@ -662,7 +662,7 @@ logclean:
 	  && if [ ! -z "$${LOGPATH}" ]; then echo 'Attempting to remove log file: '"$${LOGPATH}" \
 	  && sudo LOGPATH=$${LOGPATH} /bin/rm -f $${LOGPATH}; fi
 
-.PHONY: chown refresh neat tidy all default run stop logs restart clean realclean distclean $(PACKAGES) $(WEBCAMS) images lovelace*.json $(MOTION_DIRS) secrets.yaml
+.PHONY: chown refresh neat tidy all default run stop logs restart clean realclean distclean $(PACKAGES) $(WEBCAMS) images $(MOTION_DIRS) secrets.yaml ${NOTIFY_DASHBOARDS} ${LOVELACE_DASHBOARDS}
 
 ##
 ## COLORS
