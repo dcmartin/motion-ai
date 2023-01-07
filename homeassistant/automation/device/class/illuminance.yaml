@@ -249,8 +249,6 @@
         - 'unknown'
         - 'unavailable'
       to: '0'
-      for:
-        seconds: 5
     - platform: state
       entity_id: 'automation.motion_device_illuminance_required_off'
       attribute: 'current'
@@ -259,8 +257,6 @@
         - 'unknown'
         - 'unavailable'
       to: '0'
-      for:
-        seconds: 5
     - platform: state
       entity_id: 'sensor.motion_device_illuminance_count'
       not_from:
@@ -271,23 +267,13 @@
         - 'none'
         - 'unknown'
         - 'unavailable'
-      for:
-        minutes: 1
+  condition:
+     condition: and
+     conditions:
+       - condition: template
+         value_template: >-
+           {{ states('sensor.motion_device_illuminance')|int(0) > 0 }}
   action:
-    - choose:
-        - conditions:
-            - condition: template
-              value_template: >
-                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
-          sequence:
-            - service: persistent_notification.create
-              data_template:
-                title: >-
-                  DEBUG: illuminance rescan watchdog
-                notification_id: >
-                  {{- 'info-illuminance-rescan' -}}
-                message: >-
-                  Temperature rescan: {{ states('binary_sensor.motion_device_illuminance_rescan') -}}; ago: {{ state_attr('automation.motion_device_illuminance_rescan','last_triggered')|relative_time -}}; all:  {{ state_attr('binary_sensor.motion_device_illuminance_rescan','all') -}}.
     - alias: 'illuminance rescan not running'
       condition: template
       value_template: >-
@@ -297,6 +283,20 @@
       value_template: >-
         {%- set s = utcnow().timestamp() -%}
         {{- s - state_attr('automation.motion_device_illuminance_rescan','last_triggered')|as_timestamp(s) > 60 }}
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','notice') }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  NOTICE: illuminance rescan watchdog
+                notification_id: >
+                  {{- 'info-illuminance-rescan' -}}
+                message: >-
+                  Temperature rescan: {{ trigger.platform -}}: {{ states('binary_sensor.motion_device_illuminance_rescan') -}}; ago: {{ state_attr('automation.motion_device_illuminance_rescan','last_triggered')|relative_time -}}; all:  {{ state_attr('binary_sensor.motion_device_illuminance_rescan','all') -}}.
     - alias: 'trigger motion_device_illuminance_rescan'
       service: automation.trigger
       data_template:
@@ -304,7 +304,7 @@
 
 - id: motion_device_illuminance_rescan
   alias: motion_device_illuminance_rescan
-  mode: 'single'
+  mode: 'restart'
   max_exceeded: 'warn'
   initial_state: 'on'
   trigger:
@@ -676,11 +676,6 @@
       minutes: '/5'
     - platform: state
       entity_id: 'group.motion_device_illuminance'
-      to:
-        - 'on'
-        - 'off'
-      for:
-        seconds: 15
   condition:
     condition: and
     conditions:
@@ -4684,15 +4679,8 @@
         - binary_sensor.motion_device_illuminance_activity
         - binary_sensor.motion_device_illuminance_unavailable
     - platform: state
-      entity_id: 'automation.motion_device_illuminance_rescan'
-      attribute: 'current'
-      to: '0'
-      for:
-        seconds: 10
-    - platform: state
       entity_id: 'binary_sensor.motion_device_illuminance'
-      for:
-        seconds: 10
+      attribute: 'devices'
     - platform: state
       entity_id:
         - input_number.motion_device_illuminance_low
