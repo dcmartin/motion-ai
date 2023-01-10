@@ -554,7 +554,7 @@
     - alias: 'test if entities'
       condition: template
       value_template: >-
-        {{ entities is iterable and entities|count > 0 }}
+        {{ entities is iterable and entities|count >= 0 }}
   action:
     - alias: 'set group.motion_device_class_unavailable sensors'
       service: group.set
@@ -610,7 +610,7 @@
     - alias: 'test if entities'
       condition: template
       value_template: >-
-        {{ entities is iterable and entities|count > 0 }}
+        {{ entities is iterable and entities|count >= 0 }}
   action:
     - alias: 'set group.motion_device_class_activity sensors'
       service: group.set
@@ -628,13 +628,21 @@
   initial_state: 'on'
   trigger:
     - platform: 'state'
+      entity_id: 'binary_sensor.motion_device_class'
+      attribute: 'categorys'
+    - platform: 'state'
+      entity_id: 'binary_sensor.motion_device_class'
+      attribute: 'devices'
+    - platform: 'state'
+      entity_id: 'sensor.motion_areas'
+      attribute: 'areas'
+    - platform: 'state'
       entity_id: 'group.motion_device_class_unavailable'
-      to: 'on'
   variables:
     unavailable: >-
       {%- set s = state_attr('binary_sensor.motion_device_class','categorys') -%}
       {%- if s|lower != 'none' and not s is string and s is iterable -%}
-      [{%- for i in s|sort|unique if is_state('binary_sensor.motion_device_' + i + '_unavailable','on') -%}
+      [{%- for i in s if is_state('binary_sensor.motion_device_' + i + '_unavailable','on') -%}
         {%- if not loop.first -%},{%- endif -%}
         {%- for j in state_attr('binary_sensor.motion_device_' + i,'unavailable') -%}
           {%- if not loop.first -%},{%- endif -%}
@@ -655,9 +663,11 @@
       {% endif %}
       {{ dids }}
     count: >-
+      {% set count = null %}
       {% if dids|lower != 'none' and dids is iterable and dids|count > 0 %}
-        {{ dids|count }}
-      {% else %}null{% endif %}
+        {% set count = dids|count %}
+      {% endif %}
+      {{ count }}
     last: >-
       {% set last = state_attr('binary_sensor.motion_device_class_unavailable','last') %}
       {% if count|int(0) > 0 %}{{ last }}{% else %}{{ utcnow().timestamp() }}{% endif %}
