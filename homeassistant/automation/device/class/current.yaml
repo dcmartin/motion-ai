@@ -478,9 +478,9 @@
         {%- endfor -%}]
       {%- else -%}none{%- endif %}
     status: >-
-      {%- set sensors = states.sensor|list + states.binary_sensor|list -%}
       {%- set s = dids %}
       {%- if not s is string and s is iterable and s|count > 0 -%}
+        {%- set sensors = states.sensor|list + states.binary_sensor|list -%}
         [{%- for i in s -%}
           {%- set did = i|string -%}
           {%- set id = devices|selectattr('did','==',did)|map(attribute='id')|first -%}
@@ -497,6 +497,11 @@
         {%- set unit = status|map(attribute='entity_id')|map('state_attr','unit_of_measurement')|reject('in',['none','unknown','unavailable'])|map('string')|sort|unique|first -%}
       {%- endif -%}
       {{- unit -}}
+    entities: >-
+      {%- set s = status -%}
+      {%- if not s is string and s is iterable and s|count > 0 -%}
+        {{ s|map(attribute='entity_id')|reject('none')|list }}
+      {%- else -%}[]{%- endif %}
     state: >-
       {%- if dids|lower != 'none' and dids is iterable and dids|count > 0 %}on{%- else -%}off{%- endif -%}
   action:
@@ -550,44 +555,13 @@
           {{ devices }}
         state: >-
           {{ state }}
-
-- id: motion_device_current_statistics_group_set
-  alias: motion_device_current_statitics_group_set
-  mode: 'single'
-  max_exceeded: 'warn'
-  initial_state: 'on'
-  trigger:
-    - platform: 'state'
-      entity_id: 'binary_sensor.motion_device_current_exist'
-      to:
-        - 'on'
-        - 'off'
-  variables:
-    dids: >-
-      {{ state_attr('binary_sensor.motion_device_current','dids') }}
-    entities: >-
-      {%- set s = dids -%}
-      {%- if not s is string and s is iterable and s|count > 0 -%}
-        [{%- for i in s -%}
-          {%- set o = loop -%}
-          {%- set did = i -%}
-          {%- for state in states.sensor|list if device_id(state.entity_id) == did and state.attributes.device_class|default('null')|lower == 'null' and state.attributes.state_class|default('null')|string == 'measurement' -%}
-            "{{- state.entity_id -}}"
-            {%- if not (o.last and loop.last) -%},{%- endif -%}
-          {%- endfor -%}
-        {%- endfor -%}]
-      {%- else -%}[]{%- endif %}
-  condition:
-    condition: and
-    conditions:
-      - condition: template
-        value_template: >-
-          {{ entities is iterable }}
-  action:
-    - alias: 'set group.motion_device_current statistics'
+    - condition: template
+      value_template: >-
+        {{ entities is iterable }}
+    - alias: 'set group.motion_device_current'
       service: group.set
       data_template:
-        object_id: motion_device_current_statistics
+        object_id: motion_device_current
         entities: >-
           {{ entities }}
 
@@ -4559,6 +4533,34 @@
       {{- state_attr('binary_sensor.motion_device_' + class,'status') -}}
     values: >-
       {%- set values = state_attr('binary_sensor.motion_device_' + class,'values') -%}
+    statistics: >-
+      {%- set sensors = states.sensor|list -%}
+      {%- set s = dids -%}
+      {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        [{%- for i in s -%}
+          {%- set o = loop -%}
+          {%- for state in sensors if device_id(state.entity_id) == i
+              and state.attributes.device_class|default('null')|lower == class
+              and state.attributes.state_class|default('null')|string == 'measurement' -%}
+            {"did":"{{- i -}}","name":"{{- state_attr(state.entity_id,'friendly_name') -}}","state":"{{- state.state }} {{ state.attributes.unit_of_measurement-}}","entity_id":"{{- state.entity_id -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
+            {%- if not (loop.last and o.last) -%},{%- endif -%}
+          {%- endfor -%}
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
+    measurement: >-
+      {%- set sensors = states.sensor|list -%}
+      {%- set s = dids %}
+      {%- if not s is string and s is iterable and s|count > 0 -%}
+        [{%- for i in s -%}
+          {%- set did = i|string -%}
+          {%- set id = devices|selectattr('did','==',did)|map(attribute='id')|first -%}
+          {%- set o = loop -%}
+          {%- for state in sensors if device_id(state.entity_id) == did and (state.attributes.device_class|default('null')|string == class)  -%}
+            {"did":"{{- did -}}","id":"{{- id -}}","name":"{{- state_attr(state.entity_id,'friendly_name') -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
+            {%- if not (loop.last and o.last) -%},{%- endif -%}
+          {%- endfor -%}
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
       {{- values -}}
     ids: >-
       {%- set ids = status|selectattr('entity_id','defined')|rejectattr('entity_id','search','binary_sensor\.')|selectattr('entity_id','search','sensor\.')|map(attribute='id')|list -%}
@@ -4573,6 +4575,34 @@
       {% if s|lower != 'none' and not s is string %}
         {{- devices|rejectattr('area','in',['none','None'])|selectattr('id','in',ids)|map(attribute='area')|sort|unique|list -}}
       {% else %}none{% endif %}
+    statistics: >-
+      {%- set sensors = states.sensor|list -%}
+      {%- set s = dids -%}
+      {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        [{%- for i in s -%}
+          {%- set o = loop -%}
+          {%- for state in sensors if device_id(state.entity_id) == i
+              and state.attributes.device_class|default('null')|lower == class
+              and state.attributes.state_class|default('null')|string == 'measurement' -%}
+            {"did":"{{- i -}}","name":"{{- state_attr(state.entity_id,'friendly_name') -}}","state":"{{- state.state }} {{ state.attributes.unit_of_measurement-}}","entity_id":"{{- state.entity_id -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
+            {%- if not (loop.last and o.last) -%},{%- endif -%}
+          {%- endfor -%}
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
+    measurement: >-
+      {%- set sensors = states.sensor|list -%}
+      {%- set s = dids %}
+      {%- if not s is string and s is iterable and s|count > 0 -%}
+        [{%- for i in s -%}
+          {%- set did = i|string -%}
+          {%- set id = devices|selectattr('did','==',did)|map(attribute='id')|first -%}
+          {%- set o = loop -%}
+          {%- for state in sensors if device_id(state.entity_id) == did and (state.attributes.device_class|default('null')|string == class)  -%}
+            {"did":"{{- did -}}","id":"{{- id -}}","name":"{{- state_attr(state.entity_id,'friendly_name') -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
+            {%- if not (loop.last and o.last) -%},{%- endif -%}
+          {%- endfor -%}
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
     min: >-
       {% set s = values -%}
       {% if s|lower != 'none' and not s is string %}
@@ -4613,36 +4643,8 @@
           {{ (s|count) }}
         {% else %}none{% endif %}
       {% else %}none{% endif %}
-    statistics: >-
-      {%- set sensors = states.sensor|list -%}
-      {%- set s = dids -%}
-      {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
-        [{%- for i in s -%}
-          {%- set o = loop -%}
-          {%- for state in sensors if device_id(state.entity_id) == i
-              and state.attributes.device_class|default('null')|lower == class
-              and state.attributes.state_class|default('null')|string == 'measurement' -%}
-            {"did":"{{- i -}}","name":"{{- state_attr(state.entity_id,'friendly_name') -}}","state":"{{- state.state }} {{ state.attributes.unit_of_measurement-}}","entity_id":"{{- state.entity_id -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
-            {%- if not (loop.last and o.last) -%},{%- endif -%}
-          {%- endfor -%}
-        {%- endfor -%}]
-      {%- else -%}none{%- endif %}
-    measurement: >-
-      {%- set sensors = states.sensor|list -%}
-      {%- set s = dids %}
-      {%- if not s is string and s is iterable and s|count > 0 -%}
-        [{%- for i in s -%}
-          {%- set did = i|string -%}
-          {%- set id = devices|selectattr('did','==',did)|map(attribute='id')|first -%}
-          {%- set o = loop -%}
-          {%- for state in sensors if device_id(state.entity_id) == did and (state.attributes.device_class|default('null')|string == class)  -%}
-            {"did":"{{- did -}}","id":"{{- id -}}","name":"{{- state_attr(state.entity_id,'friendly_name') -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
-            {%- if not (loop.last and o.last) -%},{%- endif -%}
-          {%- endfor -%}
-        {%- endfor -%}]
-      {%- else -%}none{%- endif %}
     state: >-
-      {{- state_attr('sensor.motion_device_current','mean') -}}
+      {{- mean -}}
   action:
     - alias: 'set sensor.motion_device_current'
       service: python_script.set_state
@@ -4681,18 +4683,50 @@
   initial_state: 'on'
   trigger:
     - platform: state
-      entity_id: 'group.motion_device_current'
+      entity_id: 'automation.motion_device_current_required_on'
+      attribute: 'current'
+      to: '0'
     - platform: state
-      entity_id: 
-        - binary_sensor.motion_device_current_status
-        - binary_sensor.motion_device_current_measurement
-        - binary_sensor.motion_device_current_statistics
-        - binary_sensor.motion_device_current_controls
-        - binary_sensor.motion_device_current_activity
-        - binary_sensor.motion_device_current_unavailable
+      entity_id: 'automation.motion_device_current_required_off'
+      attribute: 'current'
+      to: '0'
+    - platform: state
+      entity_id: 'automation.motion_device_current_rescan'
+      attribute: 'current'
+      to: '0'
+    - platform: state
+      entity_id: 'sensor.motion_device_current'
+      attribute: 'ids'
+    - platform: state
+      entity_id: 'group.motion_device_current'
+      attribute: 'entity_id'
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_current_measurement'
+      attribute: 'markdown'
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_current_status'
+      attribute: 'markdown'
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_current_statistics'
+      attribute: 'markdown'
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_current_controls'
+      attribute: 'markdown'
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_current_activity'
+      attribute: 'markdown'
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_current_unavailable'
+      attribute: 'markdown'
     - platform: state
       entity_id: 'binary_sensor.motion_device_current'
       attribute: 'devices'
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_class'
+      attribute: 'binary_sensors'
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_class'
+      attribute: 'sensors'
     - platform: state
       entity_id:
         - input_number.motion_device_current_low
@@ -4804,8 +4838,8 @@
         {%- if loop.last -%}</ul>{%- endif -%}
       {%- endfor -%}
       {%- set s = state_attr('binary_sensor.motion_device_current_status','markdown') -%} {%- if s|lower != 'none' -%}{{- s -}}{%- endif -%}
-      {%- set s = state_attr('sensor.motion_device_current_measurement','markdown') -%} {%- if s|lower != 'none' -%}{{- s -}}{%- endif -%}
-      {%- set s = state_attr('sensor.motion_device_current_statistics','markdown') -%} {%- if s|lower != 'none' -%}{{- s -}}{%- endif -%}
+      {%- set s = state_attr('binary_sensor.motion_device_current_measurement','markdown') -%} {%- if s|lower != 'none' -%}{{- s -}}{%- endif -%}
+      {%- set s = state_attr('binary_sensor.motion_device_current_statistics','markdown') -%} {%- if s|lower != 'none' -%}{{- s -}}{%- endif -%}
       {%- set s = state_attr('binary_sensor.motion_device_current_controls','markdown') -%} {%- if s|lower != 'none' -%}{{- s -}}{%- endif -%}
       {%- set s = state_attr('binary_sensor.motion_device_current_activity','markdown') -%} {%- if s|lower != 'none' -%}{{- s -}}{%- endif -%}
       {%- set s = state_attr('binary_sensor.motion_device_current_unavailable','markdown') -%} {%- if s|lower != 'none' -%}{{- s -}}{%- endif -%}

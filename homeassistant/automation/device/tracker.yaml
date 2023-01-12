@@ -102,6 +102,9 @@
   initial_state: 'on'
   trigger:
     - platform: state
+      entity_id: binary_sensor.motion_device_tracker_exist
+      attribute: 'dids'
+    - platform: state
       entity_id: input_text.motion_person_device
     - platform: state
       entity_id: input_text.motion_primary_device
@@ -123,15 +126,15 @@
       {%- endif -%}
       {{- total }}
     device_list: >-
-      {%- set device_trackers = states.device_tracker|selectattr('entity_id','defined')|map(attribute='entity_id')|selectattr('device_id','defined')|map('device_id')|list -%}
+      {%- set device_trackers = state_attr('binary_sensor.motion_device_tracker_exist','dids') -%}
       {%- set s = state_attr('binary_sensor.motion_device_class','sensor_list')|list + state_attr('binary_sensor.motion_device_class','binary_sensor_list')|list -%}
       [{%- for i in s|sort|unique if i|lower != 'none' and not is_state_attr('binary_sensor.motion_device_' + i|string,'devices','none') -%}
         {%- set l = loop -%}
         {%- set e = 'binary_sensor.motion_device_' + i|string -%}
         {%- set devices = state_attr(e, 'devices') -%}
-        {%- for j in devices|selectattr('did','defined')|map(attribute='did')|list if j|lower != 'none' and j in device_trackers -%}
+        {%- for j in devices|selectattr('did','defined')|map(attribute='did')|list if j|lower != 'none' and j|string in device_trackers -%}
           {%- set lo = loop -%}
-          {%- for id in states.person|selectattr('attributes.source', 'defined')|map(attribute='attributes.source')|reject('none') if j == device_id(id) -%}
+          {%- for id in states.person|selectattr('attributes.source', 'defined')|map(attribute='attributes.source')|reject('none') if j|string == device_id(id) -%}
             {%- set loo = loop -%}
             {%- set p = states.person|selectattr('attributes.source', 'defined')|selectattr('attributes.source','==',id)|map(attribute='entity_id')|first -%}
             {"class":"{{- i -}}","did":"{{- j -}}","person":"{{- p|default(none)|replace('person.','') -}}"}
