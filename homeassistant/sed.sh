@@ -9,3 +9,5 @@ for i in battery connectivity current door energy gas humidity illuminance light
 for i in battery connectivity current door energy gas humidity illuminance light moisture motion occupancy opening plug power presence problem safety smoke tamper update vibration voltage ; do sed -e "s/temperature/${i}/g" template/device/class/temperature.yaml > template/device/class/${i}.yaml; done 
 
 for i in battery connectivity current door energy gas humidity illuminance light moisture motion occupancy opening plug power presence problem safety smoke tamper update vibration voltage ; do sed -e "s/temperature/${i}/g" group/device/class/temperature.yaml > group/device/class/${i}.yaml; done 
+
+for i in battery connectivity current door energy gas humidity illuminance light moisture motion occupancy opening plug power presence problem safety smoke tamper update vibration voltage ; do sed -e "s/temperature/${i}/g" binary_sensor/alarm/class/temperature.yaml > binary_sensor/alarm/class/${i}.yaml; done 
