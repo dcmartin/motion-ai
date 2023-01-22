@@ -1551,10 +1551,8 @@
   initial_state: 'off'
   trigger:
   variables:
-    alarms: >-
-      {% set alarms = state_attr('binary_sensor.motion_device_class','alarms') %}
-      {{ alarms }}
     all: >-
+      {% set alarms = state_attr('binary_sensor.motion_device_class','alarms') %}
       {% set all = alarms|map('regex_replace','^','automation.motion_device_occupancy_')|map('regex_replace','$','_dismiss')|list %}
       {{ all }}
   condition:
@@ -1563,41 +1561,13 @@
       - alias: 'test if alarms are defined'
         condition: template
         value_template: >
-          {{ alarms|lower != 'none' and not alarms is string and alarms is iterable and alarms|count > 0 }}
+          {{ all|lower != 'none' and not all is string and all is iterable and all|count > 0 }}
   action:
-    - choose:
-        - conditions:
-            - alias: 'list of automations'
-              condition: template
-              value_template: >
-                {{ all is iterable and all|count > 0 }}
-          sequence:
-            - alias: 'dismiss ALL occupancy alarms'
-              service: automation.trigger
-              data_template:
-                entity_id: >-
-                  {{ all }}
-    - alias: 'test failure'
-      condition: template
-      value_template: >
-        {{ not all is iterable or all|count < 1 }}
-    - repeat:
-        while:
-          - condition: template
-            value_template: >-
-              {% set s = alarms[repeat.index - 1]|default('unknown') -%}
-              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
-        sequence:
-          - variables:
-              alarm: >-
-                {% set alarm = alarms[repeat.index - 1]|default('unknown') -%}
-                {{ alarm }}
-              automation: >-
-                {{ 'automation.motion_device_occupancy_' + alarm + '_dismiss' }}
-          - service: automation.trigger
-            data_template:
-              entity_id: >-
-                {{ automation }}
+    - alias: 'dismiss ALL occupancy alarms'
+      service: automation.trigger
+      data_template:
+        entity_id: >-
+          {{ all }}
 
 - id: motion_device_occupancy_low_dismiss
   alias: motion_device_occupancy_low_dismiss
