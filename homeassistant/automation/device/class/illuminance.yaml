@@ -217,6 +217,13 @@
       not_to:
         - 'none'
         - 'unknown'
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test if sensors and binary_sensors are defined'
+        condition: template
+        value_template: >-
+          {{ states.sensor is iterable and states.sensor|count > 0 and states.binary_sensor is iterable and states.binary_sensor|count > 0 }}
   variables:
     state: >-
       {%- set class = 'illuminance' -%}
@@ -239,8 +246,6 @@
   max_exceeded: 'warn'
   initial_state: 'on'
   trigger:
-#    - platform: event
-#      event_type: homeassistant_started
     - platform: time_pattern
       minutes: '/15'
     - platform: state
@@ -265,6 +270,8 @@
         - 'none'
         - 'unknown'
         - 'unavailable'
+      for:
+        seconds: 10
   action:
     - alias: 'STOP if illuminance rescan running'
       condition: template
@@ -291,7 +298,7 @@
                 notification_id: >
                   {{- 'info-illuminance-rescan' -}}
                 message: >-
-                  Temperature rescan: {{ trigger.platform -}}: {{ states('binary_sensor.motion_device_illuminance_rescan') -}}; ago: {{ state_attr('automation.motion_device_illuminance_rescan','last_triggered')|relative_time -}}; all:  {{ state_attr('binary_sensor.motion_device_illuminance_rescan','all') -}}.
+                  Temperature rescan: {{ trigger.platform -}}: {{ states('binary_sensor.motion_device_illuminance') -}}; ago: {{ state_attr('automation.motion_device_illuminance_rescan','last_triggered')|relative_time -}}; all:  {{ state_attr('binary_sensor.motion_device_illuminance','all') -}}.
     - alias: 'TRIGGER automation.motion_device_illuminance_rescan'
       service: automation.trigger
       data_template:
@@ -299,7 +306,7 @@
 
 - id: motion_device_illuminance_rescan
   alias: motion_device_illuminance_rescan
-  mode: 'restart'
+  mode: 'single'
   max_exceeded: 'warn'
   initial_state: 'on'
   trigger:
@@ -3442,13 +3449,9 @@
     - platform: state
       entity_id: 'binary_sensor.motion_device_illuminance'
       attribute: 'devices'
-#      not_to:
-#        - 'unknown'
     - platform: state
       entity_id: 'binary_sensor.motion_device_class'
       attribute: 'required'
-#      not_to:
-#        - 'unknown'
   variables:
     last: >-
       {{ utcnow().timestamp() }}
@@ -3651,10 +3654,8 @@
     - platform: state
       entity_id: 'binary_sensor.motion_device_illuminance'
       attribute: 'high_spike'
-#      not_to:
-#        - 'unknown'
-#      for:
-#        seconds: 10
+      for:
+        seconds: 10
   variables:
     details: >-
       {% if state_attr('binary_sensor.motion_device_illuminance_exist','high_spike')|lower != 'none' %}
@@ -3939,10 +3940,13 @@
     - platform: state
       entity_id: 'binary_sensor.motion_device_illuminance'
       attribute: 'low_spike'
-#      not_to:
-#        - 'unknown'
-#      for:
-#        seconds: 10
+      for:
+        seconds: 10
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_illuminance_exist'
+      attribute: 'low_spike'
+      for:
+        seconds: 10
   variables:
     details: >-
       {% if state_attr('binary_sensor.motion_device_illuminance_exist','low_spike')|lower != 'none' %}
@@ -4577,8 +4581,6 @@
     - platform: state
       entity_id: 'binary_sensor.motion_device_illuminance'
       attribute: 'status'
-#      not_to:
-#        - 'unknown'
   condition:
     condition: and
     conditions:
@@ -4731,13 +4733,11 @@
   mode: single
   initial_state: 'on'
   trigger:
-    - platform: time_pattern
-      minutes: /5
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_illuminance'
-      attribute: 'devices'
-#      not_to:
-#        - 'unknown'
+#    - platform: time_pattern
+#      minutes: /5
+#    - platform: state
+#      entity_id: 'binary_sensor.motion_device_illuminance'
+#      attribute: 'devices'
     - platform: state
       entity_id: 'group.motion_device_illuminance'
       attribute: 'entity_id'
@@ -4754,25 +4754,9 @@
     - platform: state
       entity_id: binary_sensor.motion_device_illuminance_low_spike
       attribute: 'limit'
-      not_to:
-        - 'unknown'
-        - 'null'
-        - 'none'
     - platform: state
       entity_id: binary_sensor.motion_device_illuminance_high_spike
       attribute: 'limit'
-      not_to:
-        - 'unknown'
-        - 'null'
-        - 'none'
-  condition:
-    condition: and
-    conditions:
-      - alias: 'test illuminance devices not none or unknown'
-        condition: template
-        value_template: >-
-          {% set s = state_attr('binary_sensor.motion_device_illuminance','devices')  %}
-          {{ s|lower != 'none' and s|lower != 'unknown' }}
   variables:
     unit: >-
       {% set unit = state_attr('binary_sensor.motion_device_illuminance','unit') -%}
