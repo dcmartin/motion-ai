@@ -10,8 +10,24 @@
   trigger:
     - platform: time_pattern
       minutes: '/5'
+    - platform: state
+      entity_id: 'group.motion_device_gas'
+  variables:
+    group: >-
+      {% set group = states('group.motion_device_gas') %}
+      {{ group }}
+    sensors: >-
+      {% set sensors = state_attr('group.motion_device_gas','entity_id') %}
+      {{ sensors }}
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test if gas group state is unknown and sensors are defined'
+        condition: template
+        value_template: >-
+          {{ group|lower == 'unknown' and sensors is iterable and sensor|count > 0 }}
   action:
-    - alias: 'set expired'
+    - alias: 'set expired iff status of group is unknown and group has sensors'
       service: python_script.set_state
       data_template:
         entity_id: binary_sensor.motion_device_gas_expired
@@ -610,15 +626,16 @@
         condition: template
         value_template: >-
           {{ is_state_attr('automation.motion_device_gas_rescan', 'current', 0) }}
-      - alias: 'gas state older than 1 minute'
+      - alias: 'gas status not running'
         condition: template
         value_template: >-
           {{ is_state_attr('automation.motion_device_gas_status', 'current', 0) }}
+      - alias: 'status is older than 60 seconds'
+        condition: template
+        value_template: >-
+          {%- set s = utcnow().timestamp()|float(0) -%}
+          {{- s - state_attr('automation.motion_device_gas_status','last_triggered')|as_timestamp(s) > 60 }}
   action:
-    - alias: 'wait until rescan is older than 60 seconds'
-      wait_template: >-
-        {%- set s = utcnow().timestamp()|float(0) -%}
-        {{- s - state_attr('automation.motion_device_gas_status','last_triggered')|as_timestamp(s) > 60 }}
     - choose:
         - conditions:
             - condition: template
