@@ -166,6 +166,8 @@
   max_exceeded: 'warn'
   initial_state: 'on'
   trigger:
+    - platform: time_pattern
+      minutes: '/5'
     - platform: state
       entity_id: 'sensor.motion_domain_sensor_count'
       not_to:
@@ -177,18 +179,30 @@
         - 'none'
         - 'unknown'
   variables:
-    state: >-
+    class: >_
       {%- set class = 'door' -%}
-      {%- set s = (states.sensor|list + states.binary_sensor|list)|reject('none')|selectattr('attributes.device_class','defined')|selectattr('attributes.device_class','==',class)|rejectattr('entity_id','search','sensor\.motion_') -%}
+      {{ class }}
+    entitys: >-
+      {%- set entitys = none -%}
+      {%- set s = (states.sensor|list + states.binary_sensor|list)|reject('none')|selectattr('attributes.device_class','defined')|selectattr('attributes.device_class','==',class)|rejectattr('entity_id','search','sensor\.motion_')|list -%}
       {%- if not s is string and s|lower != 'none' and s is iterable -%}
-        {{ s|list|count }}
-      {%- else -%}none{%- endif -%}
+        {%- set entitys = s -%}
+      {%- endif -%}
+      {{ entitys }}
+    state: >-
+      {%- set state = none -%}
+      {%- if not entitys is string and entitys|lower != 'none' and entitys is iterable -%}
+        {%- set state = entitys|count -%}
+      {%- endif -%}
+      {{ state }}
   action:
     - alias: 'update motion_device_door_count'
       service: python_script.set_state
       data_template:
         entity_id: sensor.motion_device_door_count
         allow_create: true
+        entitys: >-
+          {{ entitys }}
         state: >-
           {{ state }}
 
@@ -198,42 +212,19 @@
   max_exceeded: 'warn'
   initial_state: 'on'
   trigger:
-    - platform: time_pattern
-      minutes: '/15'
     - platform: state
-      entity_id: 'automation.motion_device_door_required_on'
-      attribute: 'current'
-      not_from:
-        - 'none'
-        - 'unknown'
-        - 'unavailable'
-      to: '0'
-    - platform: state
-      entity_id: 'automation.motion_device_door_required_off'
-      attribute: 'current'
-      not_from:
-        - 'none'
-        - 'unknown'
-        - 'unavailable'
-      to: '0'
+      entity_id: 'binary_sensor.motion_device_class'
+      attribute: 'required'
+      for:
+        seconds: 30
     - platform: state
       entity_id: 'sensor.motion_device_door_count'
-      not_to:
-        - 'none'
-        - 'unknown'
-        - 'unavailable'
-      for:
-        seconds: 10
   action:
-    - alias: 'STOP if door rescan running'
+    - alias: 'test is automation is NOT currently running'
       condition: template
       value_template: >-
         {{ is_state_attr('automation.motion_device_door_rescan','current',0) }}
-    - alias: 'STOP if sensors and binary_sensors are not defined'
-      condition: template
-      value_template: >-
-        {{ states.sensor|lower != 'none' and states.sensor is iterable and states.binary_sensor|lower != 'none' and states.binary_sensor is iterable }}
-    - alias: 'STOP if either automation_enable or automation_disable are running'
+    - alias: 'test if automations are NOT being enabled or disabled'
       condition: template
       value_template: >-
         {{ is_state_attr('automation.motion_device_door_automation_enable','current',0) and is_state_attr('automation.motion_device_door_automation_disable','current',0) }}
