@@ -9,9 +9,12 @@
   initial_state: 'off'
   trigger:
     - platform: time_pattern
-      minutes: '/5'
+      minutes: '/1'
     - platform: state
       entity_id: 'group.motion_device_connectivity'
+      to: 'unknown'
+      for:
+        seconds: 30
   variables:
     group: >-
       {% set group = states('group.motion_device_connectivity') %}
@@ -31,20 +34,17 @@
       service: python_script.set_state
       data_template:
         entity_id: binary_sensor.motion_device_connectivity_expired
+        allow_create: true
         last: >-
           {{ utcnow().timestamp() }}
         state: >-
-          {%- if states is iterable and 'binary_sensor.motion_device_connectivity' in states -%}
-            {%- set s = states['binary_sensor.motion_device_connectivity'] -%}
-            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable and 'last_updated' in s and s.last_updated|lower != 'none' -%}
-              {%- set lu = s.last_updated %}
-              {%- set s = state_attr('group.motion_device_connectivity','entity_id') -%}
-              {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
-                {%- for i in s if 'last_updated' in states[i] and states[i].last_updated > lu -%}
-                  {%- if loop.first -%}on{%- endif -%}
-                {%- else -%}off{%- endfor -%}
-              {%- else -%}off{%- endif -%}
-            {%- else -%}off{%- endif -%}
+          {%- set s = states['binary_sensor.motion_device_connectivity']|default('none') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable and 'last_updated' in s and s.last_updated|lower != 'none' -%}
+            {%- set lu = s.last_updated %}
+            {%- set s = sensors -%}
+            {%- for i in s if 'last_updated' in states[i] and states[i].last_updated > lu -%}
+              {%- if loop.first -%}on{%- endif -%}
+            {%- else -%}off{%- endfor -%}
           {%- else -%}off{%- endif -%}
 
 - id: motion_device_connectivity_automation_enable
