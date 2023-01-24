@@ -169,15 +169,9 @@
     - platform: time_pattern
       minutes: '/5'
     - platform: state
-      entity_id: 'sensor.motion_domain_sensor_count'
-      not_to:
-        - 'none'
-        - 'unknown'
-    - platform: state
       entity_id: 'sensor.motion_domain_binary_sensor_count'
-      not_to:
-        - 'none'
-        - 'unknown'
+    - platform: state
+      entity_id: 'sensor.motion_domain_sensor_count'
   variables:
     class: >-
       {%- set class = 'current' -%}
@@ -186,7 +180,7 @@
       {%- set entitys = none -%}
       {%- set s = (states.sensor|list + states.binary_sensor|list)|reject('none')|selectattr('attributes.device_class','defined')|selectattr('attributes.device_class','==',class)|rejectattr('entity_id','search','sensor\.motion_')|list -%}
       {%- if not s is string and s|lower != 'none' and s is iterable -%}
-        {%- set entitys = s -%}
+        {%- set entitys = s|reject('none')|map(attribute='entity_id')|list -%}
       {%- endif -%}
       {{ entitys }}
     state: >-
@@ -215,8 +209,6 @@
     - platform: state
       entity_id: 'binary_sensor.motion_device_class'
       attribute: 'required'
-      for:
-        seconds: 30
     - platform: state
       entity_id: 'sensor.motion_device_current_count'
   action:
@@ -253,64 +245,42 @@
   max_exceeded: 'warn'
   initial_state: 'on'
   trigger:
+    - platform: event
+      event_type: homeassistant_start
   variables:
     class: >-
       {%- set class = 'current' -%}
       {{- class -}}
+    entitys: >-
+      {%- set entitys = state_attr('sensor.motion_device_' + class + '_count','entitys') -%}
+      {{ entitys }}
     all: >-
-      {%- set sensors = states.sensor|list + states.binary_sensor|list -%}
-      {%- set s = sensors -%}
+      {%- set s = entitys -%}
       {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
-        {%- set s = s|selectattr('attributes.device_class','defined')|list -%}
-        {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
-          {%- set s = s|selectattr('attributes.device_class','==',class)|list -%}
-          {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
-            {%- set s = s|selectattr('entity_id','defined')|list -%}
-            {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
-              {%- set s = s|rejectattr('entity_id','search','sensor\.motion_')|list %}
-              {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
-                [{%- for state in s if device_id(state.entity_id)|lower != 'none' -%}
-                  {%- if not loop.first -%},{% endif -%}
-                  {%- set did = device_id(state.entity_id) -%}
-                  {%- set n = device_attr(did,'name_by_user') -%}
-                  {%- if n|lower == 'none' -%}{%- set n = device_attr(did,'name') -%}{%- endif -%}
-                  {% set n = n|replace('&','_')|replace(' ','_')|replace('\'','')|replace('-','_')|lower -%}
-                  {"id":"{{- n -}}","did":"{{- did  -}}"}
-                {%- endfor -%}]
-              {%- else -%}none{%- endif -%}
-            {%- else -%}none{%- endif -%}
-          {%- else -%}none{%- endif -%}
-        {%- else -%}none{%- endif -%}
+        [{%- for entity_id in s if device_id(entity_id)|lower != 'none' -%}
+          {%- if not loop.first -%},{% endif -%}
+          {%- set did = device_id(entity_id) -%}
+          {%- set n = device_attr(did,'name_by_user') -%}
+          {%- if n|lower == 'none' -%}{%- set n = device_attr(did,'name') -%}{%- endif -%}
+          {% set n = n|replace('&','_')|replace(' ','_')|replace('\'','')|replace('-','_')|lower -%}
+          {"id":"{{- n -}}","did":"{{- did  -}}"}
+        {%- endfor -%}]
       {%- else -%}none{%- endif -%}
     mobile: >-
-      {%- set sensors = states.sensor|list + states.binary_sensor|list -%}
-      {%- set device_trackers = [] -%}
       {%- set s = states.device_tracker|selectattr('entity_id','defined')|map(attribute='entity_id')|list -%}
       {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
         {%- set s = s|map('device_id')|list -%}
         {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
           {%- set device_trackers = s -%}
-          {%- set s = sensors -%}
+          {%- set s = entitys -%}
           {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
-            {%- set s = s|selectattr('attributes.device_class','defined')|list -%}
-            {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
-              {%- set s = s|selectattr('attributes.device_class','==',class)|list -%}
-              {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
-                {%- set s = s|selectattr('entity_id','defined')|list -%}
-                {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
-                  {%- set s = s|rejectattr('entity_id','search','sensor\.motion_')|list %}
-                  {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
-                    [{%- for state in s if device_id(state.entity_id)|lower != 'none' and device_id(state.entity_id) in device_trackers -%}
-                      {%- if not loop.first -%},{% endif -%}
-                      {%- set n = device_attr(device_id(state.entity_id),'name_by_user') -%}
-                      {%- if n|lower == 'none' -%}{%- set n = device_attr(device_id(state.entity_id),'name') -%}{%- endif -%}
-                      {% set n = n|replace('&','_')|replace(' ','_')|replace('\'','')|replace('-','_')|lower -%}
-                      "{{- n -}}"
-                    {%- endfor -%}]
-                  {%- else -%}none{%- endif -%}
-                {%- else -%}none{%- endif -%}
-              {%- else -%}none{%- endif -%}
-            {%- else -%}none{%- endif -%}
+            [{%- for entity_id in s if device_id(entity_id)|lower != 'none' and device_id(entity_id) in device_trackers -%}
+              {%- if not loop.first -%},{% endif -%}
+              {%- set n = device_attr(device_id(entity_id),'name_by_user') -%}
+              {%- if n|lower == 'none' -%}{%- set n = device_attr(device_id(entity_id),'name') -%}{%- endif -%}
+              {% set n = n|replace('&','_')|replace(' ','_')|replace('\'','')|replace('-','_')|lower -%}
+              "{{- n -}}"
+            {%- endfor -%}]
           {%- else -%}none{%- endif -%}
         {%- else -%}none{%- endif -%}
       {%- else -%}none{%- endif -%}
@@ -3385,8 +3355,9 @@
       entity_id: 'binary_sensor.motion_device_current_exist'
       to: 'off'
   variables:
-    last: >-
-      {{ utcnow().timestamp() }}
+    class: >-
+      {%- set class = 'current' -%}
+      {{ class }}
     responses: >-
       {%- set responses = ['deny','wait','help'] -%}
       {{- responses -}}
@@ -3401,7 +3372,6 @@
       {%- set help = {'id':'help','action':id|string + '-help','title':'Notify ' + primary|string,'icon':'mdi:message-alert','symbol':'sfsymbols:message','destructive':false,'trigger':'automation.motion_notification_current_missing'} -%}
       [{{ approve }},{{ deny }},{{ wait }},{{ help }}]
     state: >-
-      {%- set class = 'current' -%}
       {%- set s = state_attr('binary_sensor.motion_device_' + class,'devices') -%}
       {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}off
       {%- else -%}
@@ -3410,6 +3380,25 @@
           {%- if class in s -%}on{%- else -%}off{%- endif -%}
         {%- else -%}off{%- endif -%}
       {%- endif -%}
+    last: >-
+      {%- if state == 'off' -%}
+        {%- set last = none -%}
+      {%- elif state == 'on' -%}
+        {%- set s = state_attr('binary_sensor.motion_device_current_missing','last') -%}
+        {%- if s|float(0) > 0 -%}
+          {%- set last = s|float(0) %}
+        {%- else -%}
+          {%- set last = utcnow().timestamp() %}
+        {%- endif -%}
+      {%- endif -%}
+      {{ last }}
+    details: >-
+      {%- if state == 'on' -%}
+        {%- set details = ['current is missing for ' + (last|as_timestamp(0)|as_datetime|relative_time|string)] -%}
+      {%- else -%}
+        {%- set details = ['current is not missing'] -%}
+      {%- endif -%}
+      {{ details }}
     markdown: >-
       {%- if state|lower == 'on' -%}Missing <a href="/notify-devices/current">current</a> sensors.{%- else -%}No missing current sensors.{%- endif -%}
       <i>Last updated</i>: {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
@@ -3420,6 +3409,8 @@
         entity_id: binary_sensor.motion_device_current_missing
         last: >-
           {{ last }}
+        details: >-
+          {{ details }}
         responses: >-
           {{ responses }}
         actions: >-
@@ -4656,6 +4647,10 @@
   mode: single
   initial_state: 'on'
   trigger:
+    - platform: event
+      event_type: homeassistant_start
+    - platform: state
+      entity_id: 'sensor.motion_device_current_count'
     - platform: state
       entity_id: 'group.motion_device_current'
       attribute: 'entity_id'

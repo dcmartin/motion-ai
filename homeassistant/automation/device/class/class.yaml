@@ -10,44 +10,21 @@
   max_exceeded: 'warn'
   initial_state: 'on'
   trigger:
-    - platform: event
-      event_type: 'homeassistant_started'
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_class'
-      attribute: 'categorys'
   variables:
-    categorys: >-
-      {{- state_attr('binary_sensor.motion_device_class','categorys') -}}
+    all: >-
+      {%- set categorys = state_attr('binary_sensor.motion_device_class','categorys') -%}
+      {%- set all = categorys|map('regex_replace','^','automation.motion_device_temperature_')|map('regex_replace','$','_rescan')|list -%}
+      {{ all }}
   action:
-    - alias: 'test if categorys defined'
+    - alias: 'test if automation categorys are defined'
       condition: template
       value_template: >
-        {{ categorys|lower != 'none' and not categorys is string and categorys is iterable }}
-    - repeat:
-        while:
-          - condition: template
-            value_template: >-
-              {% set s = categorys[repeat.index-1]|default('') %}
-              {{ s|string != '' }}
-        sequence:
-          - variables:
-              automation: >-
-                {% set s = categorys[repeat.index-1] %}
-                {{ 'automation.motion_device_' + s|string + '_rescan' }}
-          - alias: 'test if class rescan automation is ON and NOT running'
-            condition: template
-            value_template: >-
-              {{ is_state(automation,'on') and is_state_attr(automation,'current',0) }}
-          - alias: 'trigger automation motion_device_<class>_rescan'
-            service: automation.trigger
-            data_template:
-              entity_id: >-
-                {{ automation }}
-    - alias: 'trigger automation class_rescan_watchdog'
+        {{ all|lower != 'none' and not all is string and all is iterable and all|count > 0 }}
+    - alias: 'trigger ALL automation motion_device_<class>_rescan'
       service: automation.trigger
       data_template:
         entity_id: >-
-          {{ 'automation.motion_device_class_rescan_watchdog' }}
+          {{ all }}
 
 ## rescan
 
@@ -350,8 +327,8 @@
           [{%- for i in dids|map(attribute='did')|sort|unique|list -%}
             {%- if not loop.first -%},{%- endif -%}
             {%- set did = i -%}
-            {%- set c = dids|selectattr('did','==',did)|map(attribute='class')|sort|unique|list -%}
-            {%- set a = dids|selectattr('did','==',did)|map(attribute='area')|first %}
+            {%- set c = dids|selectattr('did','==',did)|selectattr('class','defined')|map(attribute='class')|sort|unique|list -%}
+            {%- set a = dids|selectattr('did','==',did)|selectattr('area','defined')|map(attribute='area')|first %}
             {%- set n = device_attr(did,'name_by_user') -%}
             {%- if n|lower == 'none' -%}{%- set n = device_attr(did,'name') -%}{%- endif -%}
             {"name":"{{- device_attr(did,'name') -}}","did":"{{- did -}}","friendly_name":"{{- n -}}","manufacturer":"{{- device_attr(did,'manufacturer') -}}","model":"{{- device_attr(did,'model') -}}","sw_version":"{{- device_attr(did,'sw_version') -}}","class":{{- c|default(none) -}},"area":"{{- a|default(none) -}}"}
@@ -369,7 +346,7 @@
       {%- else -%}null{%- endif %}
     found: >-
       {%- if dids is iterable -%}
-        {{ dids|map(attribute='class')|sort|unique|list }}
+        {{ dids|selectattr('class','defined')|map(attribute='class')|sort|unique|list }}
       {%- else -%}[]{%- endif -%}
     automations: >-
       {%- if found is iterable -%}
