@@ -160,7 +160,7 @@
   initial_state: 'on'
   trigger:
     - platform: time_pattern
-      minutes: '/1'
+      minutes: '/5'
     - platform: state
       entity_id: 'binary_sensor.motion_device_class'
       attribute: 'required'
@@ -186,9 +186,9 @@
                 title: >-
                   INFO: update rescan watchdog
                 notification_id: >
-                  {{- 'info-update-rescan' -}}
+                  {{- 'info-update-rescan-watchdog' -}}
                 message: >-
-                  Temperature rescan: {{ trigger.platform -}}: {{ states('binary_sensor.motion_device_update') -}}; ago: {{ state_attr('automation.motion_device_update_rescan','last_triggered')|relative_time -}}; all:  {{ state_attr('binary_sensor.motion_device_update','all') -}}.
+                  Temperature rescan: {{ trigger -}}: {{ states('binary_sensor.motion_device_update') -}}; ago: {{ state_attr('automation.motion_device_update_rescan','last_triggered')|relative_time -}}; all:  {{ state_attr('binary_sensor.motion_device_update','all') -}}.
     - alias: 'TRIGGER automation.motion_device_update_rescan'
       service: automation.trigger
       data_template:
@@ -359,26 +359,7 @@
         {%- set unit = status|map(attribute='entity_id')|map('state_attr','unit_of_measurement')|reject('in',['none','unknown','unavailable'])|map('string')|sort|unique|first -%}
       {%- endif -%}
       {{- unit -}}
-    entities: >-
-      {%- set s = status -%}
-      {%- if not s is string and s is iterable and s|count > 0 -%}
-        {{ s|map(attribute='entity_id')|reject('none')|list }}
-      {%- else -%}[]{%- endif %}
   action:
-    - choose:
-        - conditions:
-            - condition: template
-              value_template: >
-                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
-          sequence:
-            - service: persistent_notification.create
-              data_template:
-                title: >-
-                  DEBUG: update rescan
-                notification_id: >
-                  {{- 'log-update-rescan' -}}
-                message: >-
-                  Trigger: {{ trigger }}
     - alias: 'UPDATE binary_sensor.motion_device_update ids, etc..'
       service: python_script.set_state
       data_template:
@@ -418,12 +399,42 @@
     - condition: template
       value_template: >-
         {{ entities is iterable }}
+    - variables:
+        entities: >-
+          {%- set s = status -%}
+          {%- if not s is string and s is iterable and s|count > 0 -%}
+            {{ s|map(attribute='entity_id')|reject('none')|list }}
+          {%- else -%}[]{%- endif %}
+        sensors: >-
+          {%- set s = status -%}
+          {%- if not s is string and s is iterable and s|count > 0 -%}
+            {{ s|rejectattr('entity_id','search','binary_sensor\.')|map(attribute='entity_id')|reject('none')|list }}
+          {%- else -%}[]{%- endif %}
+        binary_sensors: >-
+          {%- set s = status -%}
+          {%- if not s is string and s is iterable and s|count > 0 -%}
+            {{ s|selectattr('entity_id','search','binary_sensor\.')|map(attribute='entity_id')|reject('none')|list }}
+          {%- else -%}[]{%- endif %}
     - alias: 'set group.motion_device_update'
       service: group.set
       data_template:
         object_id: motion_device_update
         entities: >-
           {{ entities }}
+    - alias: 'set binary_sensor.motion_device_update_group: entity_id'
+      service: python_script.set_state
+      data_template:
+        entity_id: 'binary_sensor.motion_device_update_status_group'
+        allow_create: 'true'
+        entity_ids: >-
+          {{ binary_sensors }}
+    - alias: 'set sensor.motion_device_update_measurement_group: entity_id'
+      service: python_script.set_state
+      data_template:
+        entity_id: 'sensor.motion_device_update_measurement_group'
+        allow_create: 'true'
+        entity_ids: >-
+          {{ sensors }}
 
 - id: motion_device_update_unavailable_on
   alias: motion_device_update_unavailable_on
@@ -507,7 +518,7 @@
   initial_state: 'off'
   trigger:
     - platform: time_pattern
-      minutes: '/1'
+      minutes: '/5'
     - platform: state
       entity_id: 'group.motion_device_update'
     - platform: state
@@ -3126,6 +3137,8 @@
   mode: single
   initial_state: 'off'
   trigger:
+    - platform: time_pattern
+      minutes: '/5'
     - platform: state
       entity_id: 'binary_sensor.motion_device_update'
       attribute: 'status'
@@ -3291,6 +3304,9 @@
       entity_id: 'binary_sensor.motion_device_update_exist'
       to: 'off'
   variables:
+    now: >-
+     {%- set now = utcnow().timestamp() -%}
+     {{ now }}
     class: >-
       {%- set class = 'update' -%}
       {{ class }}
@@ -3312,9 +3328,9 @@
       {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}off
       {%- else -%}
         {%- set s = state_attr('binary_sensor.motion_device_class','required') -%}
-        {%- if s|lower != 'none' and s is iterable -%}
-          {%- if class in s -%}on{%- else -%}off{%- endif -%}
-        {%- else -%}off{%- endif -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' -%}
+          {%- if s is iterable and class in s -%}on{%- else -%}off{%- endif -%}
+        {%- else -%}unknown{%- endif -%}
       {%- endif -%}
     last: >-
       {%- if state == 'off' -%}
@@ -3324,20 +3340,24 @@
         {%- if s|float(0) > 0 -%}
           {%- set last = s|float(0) %}
         {%- else -%}
-          {%- set last = utcnow().timestamp() %}
+          {%- set last = now %}
         {%- endif -%}
       {%- endif -%}
       {{ last }}
     details: >-
       {%- if state == 'on' -%}
-        {%- set details = ['update is missing for ' + (last|as_timestamp(0)|as_datetime|relative_time|string)] -%}
-      {%- else -%}
+        {%- set details = ['update is missing for ' + (last|as_timestamp(now)|as_datetime|relative_time|string)] -%}
+      {%- elif state == 'off' -%}
         {%- set details = ['update is not missing'] -%}
+      {%- else -%}
+        {%- set details = ['update missing is unknown'] -%}
       {%- endif -%}
       {{ details }}
     markdown: >-
-      {%- if state|lower == 'on' -%}Missing <a href="/notify-devices/update">update</a> sensors.{%- else -%}No missing update sensors.{%- endif -%}
-      <i>Last updated</i>: {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+      {%- if state|lower == 'on' -%}Missing <a href="/notify-devices/update">update</a> sensors.
+      {%- elif state|lower == 'off' -%}No missing update sensors.
+      {%- else -%}Unknown missingupdate sensors.{%- endif -%}
+      <i>Last updated</i>: {{ now|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
   action:
     - alias: 'set binary_sensor.motion_device_update_missing: attributes & state'
       service: python_script.set_state
@@ -4436,7 +4456,7 @@
   initial_state: 'off'
   trigger:
     - platform: time_pattern
-      minutes: /1
+      minutes: /5
   variables:
     class: >-
       {%- set class = 'update' -%}
@@ -4576,6 +4596,8 @@
   mode: single
   initial_state: 'on'
   trigger:
+    - platform: time_pattern
+      minutes: /5
     - platform: state
       entity_id: 'sensor.motion_device_update_count'
     - platform: state
