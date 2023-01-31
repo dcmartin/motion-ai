@@ -224,7 +224,7 @@
     - alias: 'test is automation is NOT currently running'
       condition: template
       value_template: >-
-        {{ is_state_attr('automation.motion_device_humidity_rescan','current',0) }}
+        {{ trigger.platform != 'time_pattern' or is_state_attr('automation.motion_device_humidity_rescan','current',0) }}
     - alias: 'test if automations are NOT being enabled or disabled'
       condition: template
       value_template: >-
@@ -250,7 +250,7 @@
 
 - id: motion_device_humidity_rescan
   alias: motion_device_humidity_rescan
-  mode: 'single'
+  mode: 'restart'
   max_exceeded: 'warn'
   initial_state: 'on'
   trigger:
@@ -391,8 +391,8 @@
       {%- set s = devices %}
       {%- if not s is string and s is iterable and s|count > 0 -%}
         [{%- for i in s -%}
-          {%- set id = s.id -%}
-          {%- set did = s.did -%}
+          {%- set id = i.id -%}
+          {%- set did = i.did -%}
           {%- set o = loop -%}
           {%- for entity_id in entitys if device_id(entity_id) == did and state_attr(entity_id,'device_class')|string == class  -%}
             {"did":"{{- did -}}","id":"{{- id -}}","name":"{{- state_attr(entity_id,'friendly_name') -}}","entity_id":"{{- entity_id -}}","state":"{{- states(entity_id) -}}","updated":{{- states[entity_id].last_updated|as_timestamp(None) -}}}
@@ -400,11 +400,6 @@
           {%- endfor -%}
         {%- endfor -%}]
       {%- else -%}none{%- endif %}
-    unavailable: >-
-      {%- set s = status -%}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
-        {{- s|reject('none')|selectattr('state','in',['unavailable','unknown'])|list -}}
-      {%- else -%}none{%- endif -%} 
     unit: >-
       {% set unit = '†' %}
       {%- if status|lower != 'none' and status is iterable and status|count > 0 -%}
@@ -422,8 +417,6 @@
           {{ unit }}
         status: >-
           {{ status }}
-        unavailable: >-
-          {{ unavailable }}
         ids: >-
           {{ ids }}
         dids: >-
@@ -608,11 +601,6 @@
         condition: template
         value_template: >-
           {{ is_state_attr('automation.motion_device_humidity_status', 'current', 0) }}
-      - alias: 'status is older than 60 seconds'
-        condition: template
-        value_template: >-
-          {%- set s = utcnow().timestamp()|float(0) -%}
-          {{- s - state_attr('automation.motion_device_humidity_status','last_triggered')|as_timestamp(s) > 60 }}
   action:
     - choose:
         - conditions:
@@ -3215,7 +3203,7 @@
       entity_id: 'binary_sensor.motion_device_humidity'
       attribute: 'status'
       for:
-        seconds: 30
+        seconds: 10
   variables:
     class: >-
       {% set class = 'humidity' %}
@@ -3315,11 +3303,6 @@
       {%- if actions|lower != 'none' and 'help' in actions -%}
       {{ actions.help }}
       {%- else -%}none{%- endif -%}
-  condition:
-    - alias: 'binary_sensor.motion_device_humidity_unavailable state is NOT UNKNOWN'
-      condition: template
-      value_template: >
-        {{ state|lower != 'unknown' }}
   action:
     - alias: 'UPDATE: binary_sensor.motion_device_humidity: unavailable'
       service: python_script.set_state
@@ -3327,6 +3310,10 @@
         entity_id: binary_sensor.motion_device_humidity
         unavailable: >-
           {{ unavailable }}
+    - alias: 'binary_sensor.motion_device_humidity_unavailable state is NOT UNKNOWN'
+      condition: template
+      value_template: >
+        {{ state|lower != 'unknown' }}
     - alias: 'UPDATE: binary_sensor.motion_device_humidity_unavailable: state & attributes'
       service: python_script.set_state
       data_template:
@@ -4688,7 +4675,9 @@
     - platform: time_pattern
       minutes: /5
     - platform: state
-      entity_id: 'sensor.motion_device_humidity_count'
+      entity_id: 'sensor.motion_device_humidity'
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_humidity'
     - platform: state
       entity_id: 'group.motion_device_humidity'
       attribute: 'entity_id'
@@ -4818,6 +4807,20 @@
       {%- set s = state_attr('binary_sensor.motion_device_humidity','devices') -%}
       {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}on{%- else -%}off{%- endif -%}
   action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: humidity exist
+                notification_id: >-
+                  {{ 'device-humidity-exist' }}
+                message: >-
+                  Set humidity exist: <b>{{- state -}}</b>
     - alias: 'set binary_sensor.motion_device_humidity_exist'
       service: python_script.set_state
       data_template:
