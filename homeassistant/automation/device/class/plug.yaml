@@ -3191,76 +3191,74 @@
     - platform: time_pattern
       minutes: '/5'
     - platform: state
-      entity_id: 'binary_sensor.motion_device_plug'
-      attribute: 'status'
-      for:
-        seconds: 30
+      entity_id: 'group.motion_device_plug'
   variables:
     class: >-
       {% set class = 'plug' %}
       {{ class }}
     unavailable: >-
-      {%- set s = state_attr('binary_sensor.motion_device_' + class,'status') -%}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
-        {{- s|reject('none')|selectattr('state','in',['unavailable','unknown'])|list -}}
-      {%- else -%}none{%- endif -%} 
-    ids: >-
-      {% set s = unavailable %}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
-        {{ s|map(attribute='id')|sort|unique|list }}
-      {%- else -%}none{%- endif %}
+      {%- set unavailable = None -%}
+      {%- set s = state_attr('group.motion_device_' + class,'entity_id') -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable and s|count > 0 -%}
+        {%- set unavailable = s|select('is_state','unavailable')|list -%}
+      {%- endif -%} 
+      {{- unavailable -}}
     dids: >-
-      {% set s = unavailable %}
+      {%- set dids = None -%}
+      {%- set s = unavailable -%}
       {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
-        {{ s|map(attribute='did')|sort|unique|list }}
-      {%- else -%}none{%- endif %}
+        {% set dids = s|map('device_id')|sort|unique|list -%}
+      {%- endif %}
+      {{- dids -}}
+    ids: >-
+      {%- set ids = None -%}
+      {%- set s = dids -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+        {%- set ids = dids|map('device_attr','name')|list -%}
+        {#- set id = devices|selectattr('did','==',did)|map(attribute='id')|first -#}
+      {%- endif %}
+      {{- ids -}}
     details: >-
-      {% set s = unavailable %}
+      {% set s = unavailable -%}
       {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
-        { {%- for i in s|map(attribute='id')|sort|unique -%}
+        { {%- for i in dids -%}
           {%- if not loop.first -%},{%- endif -%}
-          "{{ i }}":
-          [{%- for j in s|selectattr('id','==',i)|map(attribute='entity_id') -%}
+          {%- set name = device_attr(i,'name_by_user') -%}{%- if name|lower == 'none' -%}{%- set name = device_attr(i,'name') -%}{%- endif -%}
+          "{{ name }}":
+          [{%- for j in unavailable if device_id(j) == i -%}
             {%- if not loop.first -%},{%- endif -%}
             "{{- state_attr(j,'friendly_name') -}}"
           {%- endfor -%}]
         {% endfor %} }
       {%- else -%}none{%- endif %}
     state: >-
-      {% set s = unavailable %}
+      {% set s = unavailable -%}
       {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and not s is string and s is iterable %}
         {% if s|count > 0 %}on{% else %}off{% endif %}
       {% else %}unknown{% endif %}
     last: >-
-      {% if state|lower == 'off' %}
+      {% set s = state_attr('binary_sensor.motion_device_' + class + '_unavailable','last') -%}
+      {% if s|as_timestamp(0) != 0 and state|lower == 'off' %}
         {{ state_attr('binary_sensor.motion_device_' + class + '_unavailable','last') }}
       {%- else -%}{{ utcnow().timestamp() }}{%- endif %}
     markdown: >-
-      {%- if details|lower != 'none' -%}
-        {%- for i in details -%}
-          {%- if loop.first -%}<ul>{%- endif -%}
+      {% set s = unavailable -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+         {%- for i in dids -%}
+          {%- if loop.first -%}{{- '<ol>' -}}{%- endif -%}
+          {%- set name = device_attr(i,'name_by_user') -%}{%- if name|lower == 'none' -%}{%- set name = device_attr(i,'name') -%}{%- endif -%}
           {{- '<li>' -}}
-          {%- set e = state_attr('binary_sensor.motion_device_' + class,'status') -%}
-          {%- if e|lower != 'none' and not e is string and e is iterable and e|count > 0 -%}
-            {%- set e = e|selectattr('id','==',i)|list -%}
-            {%- if e|lower != 'none' and not e is string and e is iterable and e|count > 0 -%}
-              {%- set e = e|first -%}
-              {%- set did = device_id(e.entity_id) -%}
-              <a href="/config/devices/device/{{- did -}}"><b>{{- device_attr(device_id(e.entity_id),'name') -}}</b></a><br><i>Last updated</i>: {{- e.updated|as_datetime|relative_time }} ago
-              {%- for j in details[i] -%}
-                {%- if loop.first -%}<ul>{%- endif -%}
-                <li>{{- j -}}</li>
-                {%- if loop.last %}</ul>{% endif -%}
-              {%- endfor -%}
-              {{- '</li>' -}}
-              {%- if loop.last %}</ul>{% endif -%}
-            {%- else -%}
-              <li>{{ i }} is {{ states(i.entity_id) }}</li>
-            {%- endif -%}
-          {%- else -%}
-            <li>{{ i }} is {{ states(i.entity_id) }}</li>
-          {%- endif -%}
-        {%- endfor -%}
+          <a href="/config/devices/device/{{- i -}}"><b>{{- name -}}</b></a><br>
+          {%- for j in unavailable if device_id(j) == i -%}
+            {%- if loop.first -%}{{- '<ul>' -}}{%- endif -%}
+            {{- '<li>' -}}
+            {{- state_attr(j,'friendly_name') -}}
+            {{- '</li>' -}}
+            {%- if loop.last -%}{{- '</ul>' -}}{%- endif -%}
+          {%- endfor -%}
+          {{- '</li>' -}}
+          {%- if loop.last -%}{{- '</ol>' -}}{%- endif -%}
+        {% endfor %} 
       {%- else -%}
         <b>No unavailable plug sensors</b> at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}
       {%- endif %}
