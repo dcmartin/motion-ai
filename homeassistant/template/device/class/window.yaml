@@ -1,0 +1,356 @@
+###
+# homeassistant/template/device/class/window.yaml
+###
+
+- unique_id: motion_device_window_high_spike_template
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_device_window_1w_max
+      for:
+        seconds: 30
+  sensor:
+    - name: 'motion_device_window_high_spike'
+      state_class: 'measurement'
+      device_class: 'power_factor'
+      unit_of_measurement: '%'
+      attributes:
+        limit: >-
+          {% set mean = state_attr('sensor.motion_device_window_max','mean') %}
+          {% set stdev = state_attr('sensor.motion_device_window_max','stdev') %}
+          {%- if mean|lower != 'none' and mean is number and stdev|lower != 'none' and stdev is number -%}
+            {% set max = state_attr('sensor.motion_device_window_max','max') %}
+            {% set s = mean|float(0) + stdev|float(0) * states('input_number.motion_device_window_stdev')|float(1) %}
+            {%- if s > max|float(s) -%}{{ max }}{%- else -%}{{ s }}{%- endif -%}
+          {%- else -%}none{%- endif -%}
+        factor: >-
+          {% set mean = state_attr('sensor.motion_device_window_max','mean') %}
+          {% set stdev = state_attr('sensor.motion_device_window_max','stdev') %}
+          {%- if mean|lower != 'none' and mean is number and stdev|lower != 'none' and stdev is number and mean|float(0) > 0 -%}
+            {{ (mean|float(0) + stdev|float(0)) / mean|float(1) * 100 }}
+          {%- else -%}none{%- endif -%}
+        spike: >-
+         {{ states.sensor.motion_device_window_max.attributes }}
+      state: >-
+        {{- state_attr('sensor.motion_device_window','max') -}}
+
+- unique_id: motion_device_window_low_spike_template
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_device_window_1w_min
+      for:
+        seconds: 30
+  sensor:
+    - name: 'motion_device_window_low_spike'
+      state_class: 'measurement'
+      device_class: 'power_factor'
+      unit_of_measurement: '%'
+      attributes:
+        limit: >-
+          {% set mean = state_attr('sensor.motion_device_window_min','mean') %}
+          {% set stdev = state_attr('sensor.motion_device_window_min','stdev') %}
+          {%- if mean|lower != 'none' and mean is number and stdev|lower != 'none' and stdev is number -%}
+            {% set min = state_attr('sensor.motion_device_window_min','min') %}
+            {% set s = mean|float(0) + stdev|float(0) * states('input_number.motion_device_window_stdev')|float(1) %}
+            {%- if s < min|float(s) -%}{{ min }}{%- else -%}{{ s }}{%- endif -%}
+          {%- else -%}none{%- endif -%}
+        factor: >-
+          {% set mean = state_attr('sensor.motion_device_window_min','mean') %}
+          {% set stdev = state_attr('sensor.motion_device_window_min','stdev') %}
+          {%- if mean|lower != 'none' and mean is number and stdev|lower != 'none' and stdev is number and mean|float(0) > 0 -%}
+            {{ (mean|float(0) - stdev|float(0)) / mean|float(1) * 100 }}
+          {%- else -%}none{%- endif -%}
+        spike: >-
+         {{ states.sensor.motion_device_window_min.attributes }}
+      state: >-
+        {{- state_attr('sensor.motion_device_window','min') -}}
+
+- unique_id: motion_device_window_alarm_template
+  trigger:
+    - platform: state
+      entity_id: group.motion_device_window_alarm
+    - platform: state
+      entity_id: binary_sensor.motion_device_window_exist
+      attribute: 'alarm'
+    - platform: state
+      entity_id: binary_sensor.motion_device_class
+      attribute: 'alarms'
+  binary_sensor:
+    - name: 'motion_device_window_alarm'
+      device_class: problem
+      attributes:
+        status: >-
+          {{ '{' -}}
+          {%- for i in state_attr('binary_sensor.motion_device_class','alarms') -%}
+            {%- if not loop.first -%},{%- endif -%}
+            {{- '"' + i|string + '":"' ~ states('binary_sensor.motion_device_window_' + i) ~ '"' -}}
+          {%- endfor -%}
+          {{- '}' }}
+        markdown: >-
+          {%- for i in state_attr('binary_sensor.motion_device_class','alarms') if is_state('binary_sensor.motion_device_window_' + i|string,'on') -%}
+            {%- if loop.first -%}<ul>{%- endif -%}
+            {%- if states('binary_sensor.motion_device_window_' + i|string) -%}
+              {%- set s = state_attr('binary_sensor.motion_device_window_' + i|string,'markdown') -%}
+               <li>The window alarm is: <b>{{- i|upper -}}</b>{%- if s|lower != 'none' -%}<br>{{- s -}}</br>{%- endif -%}</li>
+            {%- endif -%}
+            {%- if loop.last -%}</ul>{%- endif -%}
+          {%- endfor -%}
+      state: >-
+        {%- set s = state_attr('binary_sensor.motion_device_class','alarms') -%}
+        {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+          {%- for i in s if states('binary_sensor.motion_device_window_' + i)|lower == 'on' -%}
+            {%- if loop.first -%}on{%- endif -%}
+          {% else %}off{%- endfor -%}
+        {%- else -%}off{%- endif -%}
+
+- unique_id: motion_device_window_alarm_exist_template
+  trigger:
+    - platform: state
+      entity_id:
+        - binary_sensor.motion_device_window
+        - binary_sensor.motion_device_window_alarm
+        - binary_sensor.motion_device_window_exist
+        - binary_sensor.motion_device_window_good
+        - binary_sensor.motion_device_window_bad
+        - binary_sensor.motion_device_window_low
+        - binary_sensor.motion_device_window_high
+        - binary_sensor.motion_device_window_low_spike
+        - binary_sensor.motion_device_window_high_spike
+        - binary_sensor.motion_device_window_missing
+        - binary_sensor.motion_device_window_unavailable
+  binary_sensor:
+    - name: motion_device_window_alarm_exist
+      device_class: 'problem'
+      attributes:
+        friendly_name: 'Alarm exists: window'
+        actions: >-
+          {%- set group = 'device-window' -%}
+          {%- set interval = 300 -%}
+          {%- set all = [] -%}
+          {#- bad -#}
+          {%- set id = group|string + '-bad' -%}
+          {%- set responses = state_attr('binary_sensor.motion_device_window_bad','responses') -%}
+          {%- set actions = state_attr('binary_sensor.motion_device_window_bad','actions') -%}
+          {%- set all = all + [{'id': id,'group': group,'interval': interval,'responses': responses,'actions': actions}] -%}
+          {#- good -#}
+          {%- set id = group|string + '-good' -%}
+          {%- set responses = state_attr('binary_sensor.motion_device_window_good','responses') -%}
+          {%- set actions = state_attr('binary_sensor.motion_device_window_good','actions') -%}
+          {%- set all = all + [{'id': id,'group': group,'interval': interval,'responses': responses,'actions': actions}] -%}
+          {#- high -#}
+          {%- set id = group|string + '-high' -%}
+          {%- set responses = state_attr('binary_sensor.motion_device_window_high','responses') -%}
+          {%- set actions = state_attr('binary_sensor.motion_device_window_high','actions') -%}
+          {%- set all = all + [{'id': id,'group': group,'interval': interval,'responses': responses,'actions': actions}] -%}
+          {#- low -#}
+          {%- set id = group|string + '-low' -%}
+          {%- set responses = state_attr('binary_sensor.motion_device_window_low','responses') -%}
+          {%- set actions = state_attr('binary_sensor.motion_device_window_low','actions') -%}
+          {%- set all = all + [{'id': id,'group': group,'interval': interval,'responses': responses,'actions': actions}] -%}
+          {#- high-spike -#}
+          {%- set id = group|string + '-high_spike' -%}
+          {%- set responses = state_attr('binary_sensor.motion_device_window_high_spike','responses') -%}
+          {%- set actions = state_attr('binary_sensor.motion_device_window_high_spike','actions') -%}
+          {%- set all = all + [{'id': id,'group': group,'interval': interval,'responses': responses,'actions': actions}] -%}
+          {#- low-spike -#}
+          {%- set id = group|string + '-low_spike' -%}
+          {%- set responses = state_attr('binary_sensor.motion_device_window_low_spike','responses') -%}
+          {%- set actions = state_attr('binary_sensor.motion_device_window_low_spike','actions') -%}
+          {%- set all = all + [{'id': id,'group': group,'interval': interval,'responses': responses,'actions': actions}] -%}
+          {#- missing -#}
+          {%- set id = group|string + '-missing' -%}
+          {%- set responses = state_attr('binary_sensor.motion_device_window_missing','responses') -%}
+          {%- set actions = state_attr('binary_sensor.motion_device_window_missing','actions') -%}
+          {%- set all = all + [{'id': id,'group': group,'interval': interval,'responses': responses,'actions': actions}] -%}
+          {#- unavailable -#}
+          {%- set id = group|string + '-unavailable' -%}
+          {%- set responses = state_attr('binary_sensor.motion_device_window_unavailable','responses') -%}
+          {%- set actions = state_attr('binary_sensor.motion_device_window_unavailable','actions') -%}
+          {%- set all = all + [{'id': id,'group': group,'interval': interval,'responses': responses,'actions': actions}] -%}
+          {#- activity -#}
+          {%- set id = group|string + '-activity' -%}
+          {%- set responses = state_attr('binary_sensor.motion_device_window_activity','responses') -%}
+          {%- set actions = state_attr('binary_sensor.motion_device_window_activity','actions') -%}
+          {%- set all = all + [{'id': id,'group': group,'interval': interval,'responses': responses,'actions': actions}] -%}
+          {#- found -#}
+          {%- set id = group|string + '-found' -%}
+          {%- set responses = state_attr('binary_sensor.motion_device_window_found','responses') -%}
+          {%- set actions = state_attr('binary_sensor.motion_device_window_found','actions') -%}
+          {%- set all = all + [{'id': id,'group': group,'interval': interval,'responses': responses,'actions': actions}] -%}
+          {{- all -}}
+        good: >-
+          {{ not is_state_attr('binary_sensor.motion_device_window_exist','good','none') and is_state('binary_sensor.motion_device_window_good','on') }}
+        bad: >-
+          {{ not is_state_attr('binary_sensor.motion_device_window_exist','bad','none') and is_state('binary_sensor.motion_device_window_bad','on') }}
+        activity: >-
+          {{ not is_state_attr('binary_sensor.motion_device_window_exist','activity','none') and is_state('binary_sensor.motion_device_window_activity','on') }}
+        low: >-
+          {{ not is_state_attr('binary_sensor.motion_device_window_exist','low','none') and is_state('binary_sensor.motion_device_window_low','on') }}
+        high: >-
+          {{ not is_state_attr('binary_sensor.motion_device_window_exist','high','none') and is_state('binary_sensor.motion_device_window_high','on') }}
+        low_spike: >-
+          {{ not is_state_attr('binary_sensor.motion_device_window_exist','low_spike','none') and is_state('binary_sensor.motion_device_window_low_spike','on') }}
+        high_spike: >-
+          {{ not is_state_attr('binary_sensor.motion_device_window_exist','high_spike','none') and is_state('binary_sensor.motion_device_window_high_spike','on') }}
+        missing: >-
+          {{ not is_state_attr('binary_sensor.motion_device_window_exist','required','none') and not is_state('binary_sensor.motion_device_window_missing','off') }}
+        unavailable: >-
+          {{ is_state('binary_sensor.motion_device_window_unavailable','on') }}
+        found: >-
+          {{ is_state('binary_sensor.motion_device_window_exist','on') }}
+        active: >-
+          {%- set s = state_attr('binary_sensor.motion_device_window_alarm','status') -%}
+          {% if s|lower != 'none' and not s is string and s is iterable and s|count > 0 %}
+            {%- if s.values()|reject('==','off')|list|count > 0 -%}on{%- else -%}off{%- endif -%}
+          {% else %}unknown{% endif %}
+        markdown: >-
+          {%- set s = states('binary_sensor.motion_device_window_alarm') -%}
+          <h2>The <a href="/notify-devices/window">window</a> alarm is: <i>{{- s|upper -}}</i></h2>
+          {%- if s|lower == 'on' -%}
+            {{- state_attr('binary_sensor.motion_device_window_alarm','markdown') -}}
+          {%- endif -%}
+      state: >-
+        {{ is_state_attr('binary_sensor.motion_device_window_exist','alarm','on') and is_state('binary_sensor.motion_device_window_alarm','on') }}
+
+- unique_id: motion_device_window_status_template
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_window
+    - platform: state
+      entity_id: 'automation.motion_device_window_status'
+      attribute: 'current'
+      to: '0'
+  binary_sensor:
+    - name: motion_device_window_status
+      attributes:
+        markdown: >-
+          {%- set s = state_attr('binary_sensor.motion_device_window','status') %}
+          {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+            {%- set s = s|selectattr('entity_id','search','binary_sensor\.')|list -%}
+            {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+            {{- '<h2>Status</h2><ul>' -}}
+            {%- for i in s if 'entity_id' in  i -%}
+              {%- set u = device_id(i.entity_id) -%}
+              {{- '<li>' -}}
+              {%- if u|lower != 'none' -%}
+                <a href="/config/devices/device/{{- u -}}"><b>{{- i.name -}}</b></a>: {{ states(i.entity_id) }}
+              {%- else -%}
+                <b>{{- i.name -}}</b>: {{ states(i.entity_id) -}}
+              {%- endif -%}
+              {{- '</li>' -}}
+            {%- endfor -%}
+            {{- '</ul>' -}}
+            {%- else -%}<h2>No status</h2>{%- endif -%}
+          {%- else -%}<h2>No status</h2>{%- endif -%}
+        found: >-
+          {%- set s = state_attr('binary_sensor.motion_device_window','status') %}
+          {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+            {%- set s = s|selectattr('entity_id','search','binary_sensor\.')|list -%}
+            {{- s|lower != 'none' and not s is string and s is iterable and s|count > 0 -}}
+          {% else %}false{% endif %}
+      state: >-
+        {% set s = state_attr('binary_sensor.motion_device_window_exist','status') %}
+        {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' %}
+          {{ s }}
+        {% else %}unknown{% endif %}
+
+
+- unique_id: motion_device_window_measurement_template
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_device_window
+    - platform: state
+      entity_id: 'automation.motion_device_window_status'
+      attribute: 'current'
+      to: '0'
+  binary_sensor:
+    - name: motion_device_window_measurement
+      attributes:
+        markdown: >-
+          {%- set class = 'window' %}
+          {%- set s = state_attr('sensor.motion_device_' + class,'measurement') %}
+          {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+            {%- set s = s|rejectattr('entity_id','search','binary_sensor\.')|selectattr('entity_id','search','sensor\.')|list -%}
+            {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+              {{- '<h2>Measurements</h2><ul>' -}}
+              {%- for i in s if 'entity_id' in i -%}
+                {%- set u = device_id(i.entity_id) -%}
+                {%- set v = states(i.entity_id) -%}
+                {%- if v|lower != 'none' and v|lower != 'unknown' and v|lower != 'unavailable' and v|lower != 'null' and v|string|count > 0 -%}
+                  {%- set uom = state_attr(i.entity_id,'unit_of_measurement') -%}
+                  {%- if uom|lower != 'none' and uom|lower != 'unknown' and uom|lower != 'unavailable' and uom|lower != 'null' and uom|string|count > 0 -%}
+                    {%- set v = v|string + uom|string -%}
+                  {%- endif -%}
+                {%- endif -%}
+                {{- '<li>' -}}
+                {%- if u|lower != 'none' -%}
+                  <a href="/config/devices/device/{{- u -}}"><b>{{- i.name -}}</b></a>: {{ v }}
+                {%- else -%}
+                  <b>{{- i.name -}}</b>: {{ v }}
+                {%- endif -%}
+                {{- '</li>' -}}
+              {%- endfor -%}
+              {{- '</ul>' -}}
+            {%- else -%}<h2>No measurements</h2>{%- endif -%}
+          {%- else -%}<h2>No measurements</h2>{%- endif -%}
+        found: >-
+          {%- set class = 'window' %}
+          {%- set s = state_attr('binary_sensor.motion_device_' + class,'status') %}
+          {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+            {%- set s = s|rejectattr('entity_id','search','binary_sensor\.')|selectattr('entity_id','search','sensor\.')|list -%}
+            {{- s|lower != 'none' and not s is string and s is iterable and s|count > 0 -}}
+          {% else %}false{% endif %}
+      state: >-
+        {%- set class = 'window' %}
+        {% set s = state_attr('binary_sensor.motion_device_' + class + '_exist','measurement') %}
+        {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' %}
+          {{ s }}
+        {% else %}unknown{% endif %}
+
+
+- unique_id: motion_device_window_statistics_template
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_device_window
+    - platform: state
+      entity_id: 'automation.motion_device_window_status'
+      attribute: 'current'
+      to: '0'
+  binary_sensor:
+    - name: motion_device_window_statistics
+      attributes:
+        status: >-
+          {%- set s = state_attr('sensor.motion_device_window','statistics') %}
+          {%- if s|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s is iterable and s|count > 0 -%}
+            [{%- for i in s if 'entity_id' in i -%}
+            {%- if not loop.first -%},{%- endif -%}
+              {'{{- i.name -}}':['{{- states(i.entity_id) }} {{ state_attr(i.entity_id,'unit_of_measurement') -}}','{{- states[i.entity_id].last_updated|relative_time }}']}
+            {%- endfor -%}]
+          {%- else -%}none{%- endif -%}
+        markdown: >-
+          {%- set s = state_attr('sensor.motion_device_window','statistics') %}
+          {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+            {{- '<h2>Statistics</h2><ul>' -}}
+            {%- for i in s if 'entity_id' in i -%}
+              {%- set u = device_id(i.entity_id) -%}
+              {%- set v = states(i.entity_id) -%}
+              {%- if v|lower != 'none' and v|lower != 'unknown' and v|lower != 'unavailable' and v|lower != 'null' and v|string|count > 0 -%}
+                {%- set uom = state_attr(i.entity_id,'unit_of_measurement') -%}
+                {%- if uom|lower != 'none' and uom|lower != 'unknown' and uom|lower != 'unavailable' and uom|lower != 'null' and uom|string|count > 0 -%}
+                  {%- set v = v|string + uom|string -%}
+                {%- endif -%}
+              {%- endif -%}
+              {{- '<li>' -}}
+              {%- if u|lower != 'none' -%}
+                <a href="/config/devices/device/{{- u -}}"><b>{{- i.name -}}</b></a>: {{ v }}
+              {%- else -%}
+                <b>{{- i.name -}}</b>: {{ v -}}
+              {%- endif -%}
+              {{- '</li>' -}}
+            {%- endfor -%}
+            {{- '</ul>' -}}
+          {%- else -%}<h2>No statistics</h2>{%- endif -%}
+      state: >-
+        {% set s = state_attr('sensor.motion_device_window','statistics') %}
+        {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s is iterable %}
+          {{ s|count > 0 }}
+        {% else %}off{% endif %}
