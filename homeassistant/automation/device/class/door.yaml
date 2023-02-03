@@ -267,9 +267,9 @@
         [{%- for entity_id in s if device_id(entity_id)|lower != 'none' -%}
           {%- if not loop.first -%},{% endif -%}
           {%- set did = device_id(entity_id) -%}
-          {%- set n = device_attr(did,'name_by_user') -%}{%- if n|lower == 'none' -%}{%- set n = device_attr(did,'name') -%}{%- endif -%}
-          {% set n = n|replace('&','_')|replace(' ','_')|replace('\'','')|replace('-','_')|lower -%}
-          {"id":"{{- n -}}","did":"{{- did  -}}"}
+          {%- set id = device_attr(did,'name_by_user') -%}{%- if id|lower == 'none' -%}{%- set id = device_attr(did,'name') -%}{%- endif -%}
+          {% set id = id|replace('&','_')|replace(' ','_')|replace('\'','')|replace('-','_')|lower -%}
+          {"id":"{{- id -}}","did":"{{- did  -}}"}
         {%- endfor -%}]
       {%- else -%}none{%- endif -%}
     mobile: >-
@@ -282,9 +282,9 @@
           {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
             [{%- for entity_id in s if device_id(entity_id)|lower != 'none' and device_id(entity_id) in device_trackers -%}
               {%- if not loop.first -%},{% endif -%}
-              {%- set n = device_attr(device_id(entity_id),'name_by_user') -%}{%- if n|lower == 'none' -%}{%- set n = device_attr(device_id(entity_id),'name') -%}{%- endif -%}
-              {% set n = n|replace('&','_')|replace(' ','_')|replace('\'','')|replace('-','_')|lower -%}
-              "{{- n -}}"
+              {%- set id = device_attr(device_id(entity_id),'name_by_user') -%}{%- if id|lower == 'none' -%}{%- set id = device_attr(device_id(entity_id),'name') -%}{%- endif -%}
+              {% set id = id|replace('&','_')|replace(' ','_')|replace('\'','')|replace('-','_')|lower -%}
+              "{{- id -}}"
             {%- endfor -%}]
           {%- else -%}none{%- endif -%}
         {%- else -%}none{%- endif -%}
@@ -347,7 +347,7 @@
           {%- set o = loop -%}
           {%- for state in (states.button|list + states.switch|list) if device_attr(state.entity_id, 'name') == i and state.attributes.device_class|default('null')|string == 'null' -%}
             {%- set ctl = state_attr(state.entity_id,'friendly_name') -%}
-            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","name":"{{- ctl -}}"}
+            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","friendly_name":"{{- ctl -}}"}
             {%- if not (loop.last and o.last) -%},{%- endif -%}
           {%- endfor -%}
         {%- endfor -%}]
@@ -389,6 +389,9 @@
           {%- set p = all|selectattr('did','==',did)|map(attribute='id')|list -%}
           {%- if p|lower != 'none' and s is iterable and p|count > 0 -%}
             {%- set id = p|first -%}
+          {%- else -%}
+            {%- set id = device_attr(did,'name_by_user') -%}{%- if id|lower == 'none' or id|string|length == 0 or id|lower == 'unknown' -%}{%- set id = device_attr(did,'name') -%}{%- endif -%}
+            {% set id = id|replace('&','_')|replace(' ','_')|replace('\'','')|replace('-','_')|lower -%}
           {%- endif -%}
           {%- set k = areas|selectattr('did','==',did)|map(attribute='area')|first -%}
           {%- set n = device_attr(did,'name_by_user') -%}
@@ -405,7 +408,7 @@
           {%- set did = i.did -%}
           {%- set o = loop -%}
           {%- for entity_id in entitys if device_id(entity_id) == did and state_attr(entity_id,'device_class')|string == class  -%}
-            {"did":"{{- did -}}","id":"{{- id -}}","name":"{{- state_attr(entity_id,'friendly_name') -}}","entity_id":"{{- entity_id -}}","state":"{{- states(entity_id) -}}","updated":{{- states[entity_id].last_updated|as_timestamp(None) -}}}
+            {"did":"{{- did -}}","id":"{{- id -}}","friendly_name":"{{- state_attr(entity_id,'friendly_name') -}}","entity_id":"{{- entity_id -}}","state":"{{- states(entity_id) -}}","updated":{{- states[entity_id].last_updated|as_timestamp(None) -}}}
             {%- if not (loop.last and o.last) -%},{%- endif -%}
           {%- endfor -%}
         {%- endfor -%}]
@@ -648,9 +651,10 @@
             {%- set id = p|first -%}
           {%- else -%}
             {%- set id = device_attr(did,'name_by_user') -%}{%- if id|lower == 'none' or id|string|length == 0 or id|lower == 'unknown' -%}{%- set id = device_attr(did,'name') -%}{%- endif -%}
+            {% set id = id|replace('&','_')|replace(' ','_')|replace('\'','')|replace('-','_')|lower -%}
           {%- endif -%}
           {%- if not loop.first -%},{%- endif -%}
-          {"did":"{{- did -}}","id":"{{- id -}}","name":"{{- state_attr(state,'friendly_name') -}}","entity_id":"{{- state -}}","state":"{{- states(state) -}}","updated":{{- states[state].last_updated|as_timestamp(None) -}}}
+          {"did":"{{- did -}}","id":"{{- id -}}","friendly_name":"{{- state_attr(state,'friendly_name') -}}","entity_id":"{{- state -}}","state":"{{- states(state) -}}","updated":{{- states[state].last_updated|as_timestamp(None) -}}}
         {%- endfor -%}]
       {%- else -%}none{%- endif %}
     high: >-
@@ -1402,11 +1406,11 @@
                 {%- set d = d|first -%}
                 <li><a href="/config/devices/device/{{- d.did -}}">{{- d.friendly_name|replace("'","") -}}</a> is {{ states(low[loop.index-1].entity_id) -}}{{- state_attr(low[loop.index-1].entity_id,'unit_of_measurement') }} in <a href="/config/areas/area/{{- area_id(low[loop.index-1].entity_id) -}}">{{- area_id(low[loop.index-1].entity_id) -}}</a></li>
               {%- else -%}
-                <li>{{- i.id }} door is {{ states(i.entity_id) -}}{{- state_attr(i.entity_id,'unit_of_measurement') }}</li>
+                <li>{{- d.friendly_name }} door is {{ states(i.entity_id) -}}{{- state_attr(i.entity_id,'unit_of_measurement') }}</li>
               {%- endif -%}
             {%- else -%}
               {{- '<li>' -}}
-              {{- i.id }} door is {{ states(i.entity_id) -}}{{- state_attr(i.entity_id,'unit_of_measurement') }}
+              <code>{{- i.id -}}</code> ({{- i.did|default('none') -}}) door is {{ states(i.entity_id) -}}{{- state_attr(i.entity_id,'unit_of_measurement') }}
               {{- '</li>' -}}
             {%- endif -%}
             {%- if loop.last -%}{{- '</ul>' -}}{%- endif -%}
@@ -1715,11 +1719,11 @@
                 {%- set d = d|first -%}
                 <li><a href="/config/devices/device/{{- d.did -}}">{{- d.friendly_name|replace("'","") -}}</a> is {{ states(high[loop.index-1].entity_id) -}}{{- state_attr(high[loop.index-1].entity_id,'unit_of_measurement') }} in <a href="/config/areas/area/{{- area_id(high[loop.index-1].entity_id) -}}">{{- area_id(high[loop.index-1].entity_id) -}}</a></li>
               {%- else -%}
-                <li>{{- i.id }} door is {{ states(i.entity_id) -}}{{- state_attr(i.entity_id,'unit_of_measurement') }}</li>
+                <li>{{- d.friendly_name }} door is {{ states(i.entity_id) -}}{{- state_attr(i.entity_id,'unit_of_measurement') }}</li>
               {%- endif -%}
             {%- else -%}
               {{- '<li>' -}}
-              {{- i.id }} door is {{ states(i.entity_id) -}}{{- state_attr(i.entity_id,'unit_of_measurement') }}
+              <code>{{- i.id -}}</code> ({{- i.did|default('none') -}}) door is {{ states(i.entity_id) -}}{{- state_attr(i.entity_id,'unit_of_measurement') }}
               {{- '</li>' -}}
             {%- endif -%}
             {%- if loop.last -%}{{- '</ul>' -}}{%- endif -%}
@@ -3749,11 +3753,11 @@
                 {%- set d = d|first -%}
                 <li><a href="/config/devices/device/{{- d.did -}}">{{- d.friendly_name|replace("'","") -}}</a> is {{ states(high_spike[loop.index-1].entity_id) -}}{{- state_attr(high_spike[loop.index-1].entity_id,'unit_of_measurement') }} in <a href="/config/areas/area/{{- area_id(high_spike[loop.index-1].entity_id) -}}">{{- area_id(high_spike[loop.index-1].entity_id) -}}</a></li>
               {%- else -%}
-                <li>{{- i.id }} door is {{ states(i.entity_id) -}}{{- state_attr(i.entity_id,'unit_of_measurement') }}</li>
+                <li>{{- d.friendly_name }} door is {{ states(i.entity_id) -}}{{- state_attr(i.entity_id,'unit_of_measurement') }}</li>
               {%- endif -%}
             {%- else -%}
               {{- '<li>' -}}
-              {{- i.id }} door is {{ states(i.entity_id) -}}{{- state_attr(i.entity_id,'unit_of_measurement') }}
+              <code>{{- i.id -}}</code> ({{- i.did|default('none') -}}) door is {{ states(i.entity_id) -}}{{- state_attr(i.entity_id,'unit_of_measurement') }}
               {{- '</li>' -}}
             {%- endif -%}
             {%- if loop.last -%}{{- '</ul>' -}}{%- endif -%}
@@ -4036,11 +4040,11 @@
                 {%- set d = d|first -%}
                 <li><a href="/config/devices/device/{{- d.did -}}">{{- d.friendly_name|replace("'","") -}}</a> is {{ states(low_spike[loop.index-1].entity_id) -}}{{- state_attr(low_spike[loop.index-1].entity_id,'unit_of_measurement') }} in <a href="/config/areas/area/{{- area_id(low_spike[loop.index-1].entity_id) -}}">{{- area_id(low_spike[loop.index-1].entity_id) -}}</a></li>
               {%- else -%}
-                <li>{{- i.id }} door is {{ states(i.entity_id) -}}{{- state_attr(i.entity_id,'unit_of_measurement') }}</li>
+                <li>{{- d.friendly_name }} door is {{ states(i.entity_id) -}}{{- state_attr(i.entity_id,'unit_of_measurement') }}</li>
               {%- endif -%}
             {%- else -%}
               {{- '<li>' -}}
-              {{- i.id }} door is {{ states(i.entity_id) -}}{{- state_attr(i.entity_id,'unit_of_measurement') }}
+              <code>{{- i.id -}}</code> ({{- i.did|default('none') -}}) door is {{ states(i.entity_id) -}}{{- state_attr(i.entity_id,'unit_of_measurement') }}
               {{- '</li>' -}}
             {%- endif -%}
             {%- if loop.last -%}{{- '</ul>' -}}{%- endif -%}
@@ -4536,7 +4540,7 @@
           {%- set did = device_id(state) -%}
           {%- set id = devices|selectattr('did','==',did)|map(attribute='id')|first -%}
           {%- if not loop.first -%},{%- endif -%}
-          {"did":"{{- did -}}","id":"{{- id -}}","name":"{{- state_attr(state,'friendly_name') -}}","entity_id":"{{- state -}}","state":"{{- states(state) -}}","updated":{{- states[state].last_updated|as_timestamp(None) -}}}
+          {"did":"{{- did -}}","id":"{{- id -}}","friendly_name":"{{- state_attr(state,'friendly_name') -}}","entity_id":"{{- state -}}","state":"{{- states(state) -}}","updated":{{- states[state].last_updated|as_timestamp(None) -}}}
         {%- endfor -%}]
       {%- else -%}none{%- endif %}
     values: >-
@@ -4551,7 +4555,7 @@
       {%- set s = status -%}
       {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
         [{%- for i in s if state_attr(i.entity_id, 'state_class')|string == 'measurement' -%}
-          {"did":"{{- i.did -}}","name":"{{- state_attr(i.entity_id,'friendly_name') -}}","state":"{{- states(i.entity_id) }} {{ state_attr(i.entity_id,'unit_of_measurement') -}}","entity_id":"{{- i.entity_id -}}","updated":{{- states[i.entity_id].last_updated|as_timestamp(None) -}}}
+          {"did":"{{- i.did -}}","friendly_name":"{{- state_attr(i.entity_id,'friendly_name') -}}","state":"{{- states(i.entity_id) }} {{ state_attr(i.entity_id,'unit_of_measurement') -}}","entity_id":"{{- i.entity_id -}}","updated":{{- states[i.entity_id].last_updated|as_timestamp(None) -}}}
           {%- if not loop.last -%},{%- endif -%}
         {%- endfor -%}]
       {%- else -%}none{%- endif %}
@@ -4559,7 +4563,7 @@
       {%- set s = status -%}
       {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
         [{%- for i in s -%}
-          {"did":"{{- i.did -}}","id":"{{- i.id -}}","name":"{{- state_attr(i.entity_id,'friendly_name') -}}","entity_id":"{{- i.entity_id -}}","state":"{{- states(i.entity_id) -}}","updated":{{- states[i.entity_id].last_updated|as_timestamp(None) -}}}
+          {"did":"{{- i.did -}}","id":"{{- i.id -}}","friendly_name":"{{- state_attr(i.entity_id,'friendly_name') -}}","entity_id":"{{- i.entity_id -}}","state":"{{- states(i.entity_id) -}}","updated":{{- states[i.entity_id].last_updated|as_timestamp(None) -}}}
           {%- if not loop.last -%},{%- endif -%}
         {%- endfor -%}]
       {%- else -%}none{%- endif %}
