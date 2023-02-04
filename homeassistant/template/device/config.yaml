@@ -34,34 +34,27 @@
 #      state: >-
 #        {{- trigger is iterable and 'event' in trigger }}
 #
-#- unique_id: motion_devices_config_device_registry
-#  trigger:
-#    - platform: event
-#      event_type: device_registry_updated
-#  binary_sensor:
-#    - name: 'motion_devices_config_device_registry'
-#      auto_off:
-#        seconds: 5
-#      attributes:
-#        event: >-
-#          {%- if trigger is iterable and 'event' in trigger -%}
-#            {{- trigger.event -}}
-#          {%- else -%}none{%- endif -%}
-#        data: >-
-#          {%- if trigger is iterable and 'event' in trigger and trigger.event is iterable and 'data' in trigger.event -%}
-#            {{- trigger.event.data -}}
-#          {%- else -%}none{%- endif -%}
-#        origin: >-
-#          {%- if trigger is iterable and 'event' in trigger and trigger.event is iterable and 'origin' in trigger.event -%}
-#            {{- trigger.event.origin -}}
-#          {%- else -%}none{%- endif -%}
-#        time: >-
-#          {%- if trigger is iterable and 'event' in trigger and trigger.event is iterable and 'time_fired' in trigger.event -%}
-#            {{- trigger.event.time_fired -}}
-#          {%- else -%}none{%- endif -%}
-#        context: >-
-#          {%- if trigger is iterable and 'event' in trigger and trigger.event is iterable and 'context' in trigger.event -%}
-#            {{- trigger.event.context -}}
-#          {%- else -%}none{%- endif -%}
-#      state: >-
-#        {{- trigger is iterable and 'event' in trigger }}
+
+- unique_id: motion_devices_update
+  trigger:
+    - platform: time_pattern
+      minutes: /1
+  binary_sensor:
+    - name: 'motion_devices_update'
+      attributes:
+        intervals: >-
+          {% set s = state_attr('group.motion_devices','entity_id') -%}
+          {% if s|lower != 'none' and s is iterable and s|count > 0 -%}
+            {%- set dids = s|map('state_attr','did')|list -%}
+            {%- set intervals = s|map('state_attr','interval')|list -%}
+            {% for i in dids -%}
+              {%- if loop.first -%}[{%- else -%},{%- endif -%}
+              {{- '{' -}}
+              "{{ device_attr(i,'name') }}":{{ intervals[loop.index-1] }}
+              {{- '}' -}}
+              {%- if loop.last -%}]{%- endif -%}
+            {% endfor %}
+          {%- else -%}none{%- endif -%}
+      state: >-
+        {% set s = state_attr('group.motion_devices','entity_id') -%}
+        {{- s|lower != 'none' and s is iterable and s|count > 0 -}}
