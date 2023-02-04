@@ -12,7 +12,10 @@
       event_type: state_changed
   variables:
     entity_id: >-
-      {% set entity_id = trigger.event.data.entity_id|default(None) -%}
+      {% set entity_id = None -%}
+      {% if trigger is defined and trigger is iterable and 'event' in trigger -%}
+        {% set entity_id = trigger.event.data.entity_id|default(None) -%}
+      {%- endif -%}
       {{ entity_id }}
     entity_group: >-
       {% set entity_group = state_attr('group.motion_device_problem','entity_id') -%}
@@ -30,10 +33,32 @@
       data_template:
         entity_id: 'binary_sensor.motion_device_problem_change'
         allow_create: true
-        entity: >-
+        entity_id: >-
           {{ entity_id }}
         state: >-
           {{ 'on' }}
+    - variables:
+        now: >-
+          {{ utcnow().timestamp() }}
+        did: >-
+          {{ device_id(entity_id) }}
+        sensor: >-
+          {{ 'binary_sensor.motion_devices_' + did }}
+        interval: >-
+          {% set s = state_attr(sensor,'last')|float(0) -%}
+          {%- if s|float(0) > 0 -%}
+            {{- utcnow().timestamp() - s|float(0) -}}
+          {%- else -%}None{%- endif %}
+    - alias: 'set binary_sensor.motion_devices_<did>'
+      service: python_script.set_state
+      data_template:
+        entity_id: >-
+          {{ sensor }}
+        allow_create: true
+        last: >-
+          {{ now }}
+        interval: >-
+          {{ interval }}
 
 - id: motion_device_problem_automation_enable_notify
   alias: motion_device_problem_automation_enable_notify
@@ -233,7 +258,7 @@
     - alias: 'update motion_device_problem_count'
       service: python_script.set_state
       data_template:
-        entity_id: sensor.motion_device_problem_count
+        entity_id: 'sensor.motion_device_problem_count'
         allow_create: true
         entitys: >-
           {{ entitys }}
@@ -2967,6 +2992,15 @@
               sensor: >-
                 {% set sensor = 'binary_sensor.motion_devices_' + did|string %}
                 {{ sensor }}
+              categorys: >-
+                {%- set categorys = ['problem'] -%}
+                {% set s = state_attr(sensor,'categorys') -%}
+                {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
+                  {%- set categorys = (s + categorys)|sort|unique|list -%}
+                {%- endif -%}
+                {{ categorys }}
+              last: >-
+                {{ utcnow().timestamp() }}
               manufacturer: >-
                 {% set manufacturer = device_attr(did,'manufacturer') %}
                 {{ manufacturer }}
@@ -3014,6 +3048,8 @@
                 {{  sensor }}
               did: >-
                 {{  did }}
+              categorys: >-
+                {{  categorys }}
               manufacturer: >-
                 {{- manufacturer -}}
               model: >-
@@ -3024,6 +3060,8 @@
                 {{- url -}}
               config: >-
                 {{- config -}}
+              last: >-
+                {{- last -}}
               state: >-
                 {{- state -}}
           - alias: 'add to ALL devices group'
@@ -4678,7 +4716,7 @@
     - alias: 'set sensor.motion_device_problem'
       service: python_script.set_state
       data_template:
-        entity_id: sensor.motion_device_problem
+        entity_id: 'sensor.motion_device_problem'
         last: >-
           {{- utcnow().timestamp() -}}
         unit: >-
