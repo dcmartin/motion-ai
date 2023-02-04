@@ -4,7 +4,8 @@
 
 - id: motion_device_gas_change
   alias: motion_device_gas_change
-  mode: 'single'
+  mode: 'queued'
+  max: 20
   max_exceeded: 'warn'
   initial_state: 'off'
   trigger:
@@ -43,7 +44,7 @@
         did: >-
           {{ device_id(entity_id) }}
         sensor: >-
-          {{ 'binary_sensor.motion_devices_' + did }}
+          {{ 'binary_sensor.motion_devices_' + did|string }}
         interval: >-
           {% set s = state_attr(sensor,'last')|float(0) -%}
           {%- if s|float(0) > 0 -%}
@@ -2994,9 +2995,9 @@
                 {{ sensor }}
               categorys: >-
                 {%- set categorys = ['gas'] -%}
-                {% set s = state_attr(sensor,'categorys') -%}
+                {%- set s = state_attr(sensor,'categorys') -%}
                 {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
-                  {%- set categorys = (s + categorys)|sort|unique|list -%}
+                  {%- set categorys = (s|reject('none')|list + categorys)|sort|unique|list -%}
                 {%- endif -%}
                 {{ categorys }}
               last: >-
@@ -3035,11 +3036,6 @@
                 {{ config }}
               state: >-
                 {% if not did in shellys %}on{% else %}unknown{% endif %}
-          - alias: 'test if device sensor already in ALL devices group'
-            condition: template
-            value_template: >-
-              {% set s = state_attr('group.motion_devices','entity_id') %}
-              {{ s|lower == 'none' or ( not s is string and s is iterable and not sensor in s ) }}
           - alias: 'create gas device sensor'
             service: python_script.set_state
             data_template:
@@ -3064,7 +3060,12 @@
                 {{- last -}}
               state: >-
                 {{- state -}}
-          - alias: 'add to ALL devices group'
+          - alias: 'test if device sensor already in ALL devices group'
+            condition: template
+            value_template: >-
+              {% set s = state_attr('group.motion_devices','entity_id') %}
+              {{ s|lower == 'none' or ( not s is string and s is iterable and not sensor in s ) }}
+          - alias: 'add gas device to ALL devices group'
             service: group.set
             data_template:
               object_id: motion_devices
