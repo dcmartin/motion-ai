@@ -273,7 +273,7 @@
   initial_state: 'on'
   trigger:
     - platform: time_pattern
-      minutes: '/5'
+      minutes: '/15'
     - platform: state
       entity_id: 'binary_sensor.motion_device_class'
       attribute: 'required'
@@ -519,16 +519,6 @@
           {%- if not s is string and s is iterable and s|count > 0 -%}
             {{ s|map(attribute='entity_id')|reject('none')|list }}
           {%- else -%}[]{%- endif %}
-#        sensors: >-
-#          {%- set s = status -%}
-#          {%- if not s is string and s is iterable and s|count > 0 -%}
-#            {{ s|rejectattr('entity_id','search','binary_sensor\.')|map(attribute='entity_id')|reject('none')|list }}
-#          {%- else -%}[]{%- endif %}
-#        binary_sensors: >-
-#          {%- set s = status -%}
-#          {%- if not s is string and s is iterable and s|count > 0 -%}
-#            {{ s|selectattr('entity_id','search','binary_sensor\.')|map(attribute='entity_id')|reject('none')|list }}
-#          {%- else -%}[]{%- endif %}
     - condition: template
       value_template: >-
         {{ entities is iterable }}
@@ -538,32 +528,6 @@
         object_id: motion_device_tamper
         entities: >-
           {{ entities }}
-#    - alias: 'group.set: binary_sensor.motion_device_tamper_status_group'
-#      service: group.set
-#      data_template:
-#        object_id: binary_sensor.motion_device_tamper_status_group
-#        entities: >-
-#          {{ binary_sensors }}
-#    - alias: 'group.set: sensor.motion_device_tamper_measurement_group'
-#      service: group.set
-#      data_template:
-#        object_id: sensor.motion_device_tamper_measurement_group
-#        entities: >-
-#          {{ sensors }}
-#    - alias: 'set binary_sensor.motion_device_tamper_group: entity_id'
-#      service: python_script.set_state
-#      data_template:
-#        entity_id: 'binary_sensor.motion_device_tamper_status_group'
-#        allow_create: 'true'
-#        entity_ids: >-
-#          {{ binary_sensors }}
-#    - alias: 'set sensor.motion_device_tamper_measurement_group: entity_id'
-#      service: python_script.set_state
-#      data_template:
-#        entity_id: 'sensor.motion_device_tamper_measurement_group'
-#        allow_create: 'true'
-#        entity_ids: >-
-#          {{ sensors }}
 
 - id: motion_device_tamper_unavailable_on
   alias: motion_device_tamper_unavailable_on
@@ -647,26 +611,25 @@
   initial_state: 'off'
   trigger:
     - platform: state
-      entity_id:
-        - 'binary_sensor.motion_device_class'
-        - 'binary_sensor.motion_device_tamper_exist'
-      for:
-        seconds: 10
+      entity_id: 'binary_sensor.motion_device_class'
+      attribute: 'devices'
     - platform: state
-      entity_id:
-        - 'binary_sensor.motion_device_tamper_change'
-        - 'group.motion_device_tamper'
-  condition:
-    condition: and
-    conditions:
-      - alias: 'test if tamper change is on'
-        condition: template
-        value_template: >-
-          {{ is_state('binary_sensor.motion_device_tamper_change','on') }}
-      - alias: 'test if temperate_state is on'
-        condition: template
-        value_template: >-
-          {{ is_state('automation.motion_device_tamper_status','on') }}
+      entity_id: 'binary_sensor.motion_device_tamper_exist'
+      attribute:
+        - 'good'
+        - 'bad'
+        - 'high'
+        - 'low'
+        - 'high_spike'
+        - 'low_spike'
+        - 'activity'
+        - 'found'
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_tamper_change'
+      to: 'on'
+    - platform: state
+      entity_id: 'group.motion_device_tamper'
+      attribute: 'entity_id'
   action:
     - choose:
         - conditions:
@@ -677,7 +640,7 @@
             - service: persistent_notification.create
               data_template:
                 title: >-
-                  DEBUG: tamper state watchdog
+                  DEBUG: tamper status watchdog
                 notification_id: >
                   {{- 'log-tamper-status' -}}
                 message: >-
@@ -694,7 +657,7 @@
 
 - id: motion_device_tamper_status
   alias: motion_device_tamper_status
-  mode: 'single'
+  mode: 'restart'
   initial_state: 'off'
   trigger:
   variables:
@@ -4602,20 +4565,8 @@
       entity_id: 'group.motion_device_tamper'
       attribute: 'entity_id'
     - platform: state
-      entity_id:
-        - 'binary_sensor.motion_device_tamper_change'
-  condition:
-    condition: and
-    conditions:
-      - alias: 'test if temperate_change is on'
-        condition: template
-        value_template: >-
-          {{ is_state('binary_sensor.motion_device_tamper_change','on') }}
-      - alias: 'test if entitys exist'
-        condition: template
-        value_template: >-
-          {%- set s = state_attr('group.motion_device_tamper','entity_id') -%}
-          {{ s|lower != 'none' and not s is string and s is iterable and s|count > 0 }}
+      entity_id: 'binary_sensor.motion_device_tamper_change'
+      to: 'on'
   variables:
     class: >-
       {%- set class = 'tamper' -%}
@@ -4912,6 +4863,9 @@
   mode: restart
   initial_state: 'on'
   trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_class'
+      attribute: 'alarms'
     - platform: state
       entity_id:
         - 'binary_sensor.motion_device_tamper_exist'
