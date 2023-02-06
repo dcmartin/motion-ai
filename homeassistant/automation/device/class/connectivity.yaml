@@ -50,12 +50,16 @@
           {%- if s|float(0) > 0 -%}
             {{- utcnow().timestamp() - s|float(0) -}}
           {%- else -%}None{%- endif %}
-    - alias: 'set binary_sensor.motion_devices_<did>'
+        count: >-
+          {{ state_attr(sensor,'count')|int(0) + 1 -}}
+    - alias: 'set binary_sensor.motion_devices_<did>: count, last, interval'
       service: python_script.set_state
       data_template:
         entity_id: >-
           {{ sensor }}
         allow_create: true
+        count: >-
+          {{ count }}
         last: >-
           {{ now }}
         interval: >-
@@ -234,17 +238,21 @@
   max_exceeded: 'warn'
   initial_state: 'on'
   trigger:
+    - platform: time_pattern
+      minutes: '/15'
     - platform: state
-      entity_id: 'sensor.motion_domain_binary_sensor_count'
-    - platform: state
-      entity_id: 'sensor.motion_domain_sensor_count'
+      entity_id:
+        - 'sensor.motion_domain_binary_sensor_count'
+        - 'sensor.motion_domain_sensor_count'
+      for:
+        seconds: 15
   variables:
     class: >-
       {%- set class = 'connectivity' -%}
       {{ class }}
     entitys: >-
-      {%- set entitys = none -%}
-      {%- set s = (states.sensor|list + states.binary_sensor|list)|reject('none')|selectattr('attributes.device_class','defined')|selectattr('attributes.device_class','==',class)|rejectattr('entity_id','search','sensor\.motion_')|list -%}
+      {%- set entitys = [] -%}
+      {%- set s = (states.sensor|list + states.binary_sensor|list)|reject('none')|selectattr('attributes.device_class','defined')|selectattr('attributes.device_class','==',class)|rejectattr('entity_id','search','sensor\.motion_')|rejectattr('entity_id','search','sensor\.processor_')|list -%}
       {%- if not s is string and s|lower != 'none' and s is iterable -%}
         {%- set entitys = s|reject('none')|map(attribute='entity_id')|list -%}
       {%- endif -%}
@@ -272,13 +280,19 @@
   max_exceeded: 'warn'
   initial_state: 'on'
   trigger:
-    - platform: time_pattern
-      minutes: '/15'
     - platform: state
       entity_id: 'binary_sensor.motion_device_class'
       attribute: 'required'
     - platform: state
       entity_id: 'sensor.motion_device_connectivity_count'
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test if entitys is none or connectivity not in entitys'
+        condition: template
+        value_template: >-
+          {%- set entitys = state_attr('sensor.motion_device_connectivity_count','entitys') -%}
+          {{ entitys|lower != 'none' and entitys is iterable and entitys|count > 0 }}
   action:
     - choose:
         - conditions:
@@ -474,7 +488,7 @@
     - alias: 'UPDATE binary_sensor.motion_device_connectivity ids, etc..'
       service: python_script.set_state
       data_template:
-        entity_id: binary_sensor.motion_device_connectivity
+        entity_id: 'binary_sensor.motion_device_connectivity'
         scan: >-
           {{ utcnow().timestamp() }}
         unit: >-
@@ -507,7 +521,7 @@
           {{ devices }}
     - condition: template
       value_template: >-
-        {{ entitys is iterable }}
+        {{ entitys|lower != 'none' and not entitys is string and entitys is iterable and entitys|count > 0 }}
     - alias: 'GROUP.set: group.motion_device_connectivity'
       service: group.set
       data_template:
@@ -601,6 +615,14 @@
     - platform: state
       entity_id: 'binary_sensor.motion_device_connectivity_change'
       to: 'on'
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test entitys defined'
+        condition: template
+        value_template: >-
+          {%- set s = state_attr('group.motion_device_connectivity','entity_id') -%}
+          {{- s|lower != 'none' and not s is string and s is iterable and s|count > 0 -}}
   action:
     - choose:
         - conditions:
@@ -636,12 +658,16 @@
       {% set class = 'connectivity' %}
       {{ class }}
     devices: >-
-      {%- set devices = state_attr('binary_sensor.motion_device_' + class,'devices') -%}
-      {{ devices }}
+      {% set devices = None -%}
+      {%- set s = state_attr('binary_sensor.motion_device_' + class,'devices') -%}
+      {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set devices = s -%}
+      {%- endif -%}
+      {{- devices }}
     status: >-
       {%- set s = state_attr('group.motion_device_' + class,'entity_id') -%}
-      {%- if devices|lower != 'none' and devices is iterable and devices|count > 0 and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
-        [{%- for state in s -%}
+      {%- if devices|lower != 'none' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        [{%- for state in s if device_id(state)|default('none') != 'none' -%}
           {%- set did = device_id(state) -%}
           {%- set id = 'none' -%}
           {%- set p = devices|selectattr('did','==',did)|map(attribute='id')|list -%}
