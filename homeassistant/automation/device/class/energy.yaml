@@ -5,7 +5,7 @@
 - id: motion_device_energy_change
   alias: motion_device_energy_change
   mode: 'queued'
-  max: 100
+  max: 20
   max_exceeded: 'warn'
   initial_state: 'off'
   trigger:
@@ -39,31 +39,24 @@
         state: >-
           {{ 'on' }}
     - variables:
-        now: >-
-          {{ utcnow().timestamp() }}
         did: >-
           {{ device_id(entity_id) }}
         sensor: >-
           {{ 'binary_sensor.motion_devices_' + did|string }}
-        interval: >-
-          {% set s = state_attr(sensor,'last')|float(0) -%}
-          {%- if s|float(0) > 0 -%}
-            {{- utcnow().timestamp() - s|float(0) -}}
-          {%- else -%}None{%- endif %}
-        count: >-
-          {{ state_attr(sensor,'count')|int(0) + 1 -}}
     - alias: 'set binary_sensor.motion_devices_<did>: count, last, interval'
       service: python_script.set_state
       data_template:
         entity_id: >-
           {{ sensor }}
-        allow_create: true
-        count: >-
-          {{ count }}
         last: >-
-          {{ now }}
+          {{ utcnow().timestamp() }}
+        count: >-
+          {{ state_attr(sensor,'count')|int(0) + 1 -}}
         interval: >-
-          {{ interval }}
+          {% set s = state_attr(sensor,'last')|float(0) -%}
+          {%- if s|float(0) > 0 -%}
+            {{- utcnow().timestamp() - s|float(0) -}}
+          {%- else -%}None{%- endif %}
 
 - id: motion_device_energy_automation_enable_notify
   alias: motion_device_energy_automation_enable_notify
@@ -247,18 +240,28 @@
       {%- set class = 'energy' -%}
       {{ class }}
     entitys: >-
-      {%- set entitys = [] -%}
       {%- set s = (states.sensor|list + states.binary_sensor|list)|reject('none')|selectattr('attributes.device_class','defined')|selectattr('attributes.device_class','==',class)|rejectattr('attributes.source_value_valid','defined')|rejectattr('entity_id','search','sensor\.motion_')|rejectattr('entity_id','search','sensor\.processor_')|list -%}
       {%- if not s is string and s|lower != 'none' and s is iterable -%}
-        {%- set entitys = s|reject('none')|map(attribute='entity_id')|list -%}
+        [{%- for i in s|reject('none')|list if device_id(i.entity_id)|lower != 'none' -%}
+          {%- if not loop.first -%},{%- endif -%}
+          "{{ i.entity_id }}"
+        {%- endfor -%}]
+      {%- else-%}
+        {{- None -}}
       {%- endif -%}
-      {{ entitys }}
     state: >-
       {%- set state = none -%}
       {%- if not entitys is string and entitys|lower != 'none' and entitys is iterable -%}
         {%- set state = entitys|count -%}
       {%- endif -%}
       {{ state }}
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test if entitys is none or energy not in entitys'
+        condition: template
+        value_template: >-
+          {{ entitys|lower != 'none' }}
   action:
     - alias: 'update motion_device_energy_count'
       service: python_script.set_state
@@ -611,6 +614,8 @@
     - platform: state
       entity_id: 'binary_sensor.motion_device_energy_change'
       to: 'on'
+      for:
+        seconds: 10
   condition:
     condition: and
     conditions:
