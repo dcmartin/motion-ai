@@ -244,22 +244,37 @@
       {% set all = states|selectattr('attributes.device_class','defined')|selectattr('attributes.device_class','==',class)|rejectattr('attributes.source_value_valid','defined')|list %}
       {{ all }}
     total: >-
-      {% set total = all|count %}
+      {% set total = None %}
+      {% if all|lower != 'none' and not all is string and all is iterable and all|count > 0 %}
+        {% set total = all|count %}
+      {% endif %}
       {{ total }}
     dids: >-
-      {% set dids = all|map(attribute='entity_id')|map('device_id')|reject('none')|sort|unique|list %}
+      {% set dids = None %}
+      {% if all|lower != 'none' and not all is string and all is iterable and all|count > 0 %}
+      {% set dids = all|reject('none')|map(attribute='entity_id')|map('device_id')|reject('none')|sort|unique|list %}
+      {% endif %}
       {{ dids }}
     entitys: >-
+      {% if all|lower != 'none' and not all is string and all is iterable and all|count > 0 %}
       [{%- for i in all|map(attribute='entity_id')|reject('none')|sort|unique|list if device_id(i)|lower != 'none' %}
         {%- if not loop.first -%},{%- endif -%}
         "{{- i -}}"
       {%- endfor -%}]
+      {% else %}none{% endif %}
     state: >-
       {%- set state = none -%}
       {%- if not entitys is string and entitys|lower != 'none' and entitys is iterable -%}
         {%- set state = entitys|count -%}
       {%- endif -%}
       {{ state }}
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test if state is not none'
+        condition: template
+        value_template: >-
+          {{ state|lower != 'none' }}
   action:
     - alias: 'update motion_device_energy_count'
       service: python_script.set_state
