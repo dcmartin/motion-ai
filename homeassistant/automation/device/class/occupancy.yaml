@@ -618,7 +618,7 @@
       entity_id: 'binary_sensor.motion_device_occupancy_change'
       to: 'on'
       for:
-        seconds: 10
+        seconds: 30
   condition:
     condition: and
     conditions:
@@ -3275,37 +3275,38 @@
 - id: motion_device_occupancy_unavailable
   alias: motion_device_occupancy_unavailable
   mode: single
+  max_exceeded: 'warn'
   initial_state: 'off'
   trigger:
-    - platform: time_pattern
-      minutes: '/5'
     - platform: state
-      entity_id: 'group.motion_device_occupancy'
+      entity_id: 'binary_sensor.motion_device_occupancy'
+      attribute: 'status'
+      for:
+        seconds: 30
   variables:
     class: >-
       {% set class = 'occupancy' %}
       {{ class }}
     unavailable: >-
       {%- set unavailable = None -%}
-      {%- set s = state_attr('group.motion_device_' + class,'entity_id') -%}
+      {%- set s = state_attr('binary_sensor.motion_device_' + class,'status') -%}
       {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable and s|count > 0 -%}
-        {%- set unavailable = s|select('is_state','unavailable')|list -%}
+        {%- set unavailable = s|selectattr('state','in',['unavailable'])|map(attribute='entity_id')list -%}
       {%- endif -%} 
       {{- unavailable -}}
     dids: >-
       {%- set dids = None -%}
-      {%- set s = unavailable -%}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
-        {% set dids = s|map('device_id')|sort|unique|list -%}
-      {%- endif %}
+      {%- set s = state_attr('binary_sensor.motion_device_' + class,'status') -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable and s|count > 0 -%}
+        {%- set dids = s|selectattr('state','in',['unavailable'])|map(attribute='did')list -%}
+      {%- endif -%} 
       {{- dids -}}
     ids: >-
       {%- set ids = None -%}
-      {%- set s = dids -%}
-      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
-        {%- set ids = dids|map('device_attr','name')|list -%}
-        {#- set id = devices|selectattr('did','==',did)|map(attribute='id')|first -#}
-      {%- endif %}
+      {%- set s = state_attr('binary_sensor.motion_device_' + class,'status') -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable and s|count > 0 -%}
+        {%- set ids = s|selectattr('state','in',['unavailable'])|map(attribute='id')list -%}
+      {%- endif -%} 
       {{- ids -}}
     details: >-
       {% set s = unavailable -%}
