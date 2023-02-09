@@ -229,7 +229,7 @@
 - id: motion_device_update_count
   alias: motion_device_update_count
   mode: 'single'
-  max_exceeded: 'silent'
+  max_exceeded: 'warn'
   initial_state: 'on'
   trigger:
     - platform: state
@@ -240,42 +240,30 @@
     class: >-
       {%- set class = 'update' -%}
       {{ class }}
-    all: >-
-      {% set all = states|selectattr('attributes.device_class','defined')|selectattr('attributes.device_class','==',class)|rejectattr('attributes.source_value_valid','defined')|list %}
-      {{ all }}
     total: >-
-      {% set total = None %}
-      {% if all|lower != 'none' and not all is string and all is iterable %}
-        {% set total = all|count %}
-      {% endif %}
+      {%- set total = states|selectattr('attributes.device_class','defined')|selectattr('attributes.device_class','==',class)|rejectattr('attributes.source_value_valid','defined')|list|count -%}
       {{ total }}
     dids: >-
-      {% set dids = None %}
-      {% if all|lower != 'none' and not all is string and all is iterable and all|count > 0 %}
-      {% set dids = all|selecattr('entity_id','defined')|map(attribute='entity_id')|reject('none')|map('device_id')|reject('none')|sort|unique|list %}
-      {% endif %}
-      {{ dids }}
-    entitys: >-
-      {% if all|lower != 'none' and not all is string and all is iterable and all|count > 0 %}
-      [{%- for i in all|selectattr('entity_id','defined')|map(attribute='entity_id')|reject('none')|sort|unique|list if device_id(i)|lower != 'none' %}
+      [{%- for i in states|selectattr('attributes.device_class','defined')|selectattr('attributes.device_class','==',class)|rejectattr('attributes.source_value_valid','defined')|selectattr('entity_id','defined')|map(attribute='entity_id')|map('device_id')|reject('none')|sort|unique|list -%}
         {%- if not loop.first -%},{%- endif -%}
         "{{- i -}}"
       {%- endfor -%}]
-      {% else %}none{% endif %}
+    entitys: >-
+      [{%- for i in states|selectattr('attributes.device_class','defined')|selectattr('attributes.device_class','==',class)|rejectattr('attributes.source_value_valid','defined')|selectattr('entity_id','defined')|map(attribute='entity_id')|sort|unique|list if device_id(i)|lower != 'none' -%}
+        {%- if not loop.first -%},{%- endif -%}
+        "{{- i -}}"
+      {%- endfor -%}]
     state: >-
-      {%- set state = none -%}
+      {%- set state = None -%}
       {%- if not entitys is string and entitys|lower != 'none' and entitys is iterable -%}
         {%- set state = entitys|count -%}
       {%- endif -%}
       {{ state }}
-  condition:
-    condition: and
-    conditions:
-      - alias: 'test if state is not none'
-        condition: template
-        value_template: >-
-          {{ state|lower != 'none' }}
   action:
+    - alias: 'test if entitys is not none'
+      condition: template
+      value_template: >-
+        {{ entitys|lower != 'none' }}
     - alias: 'update motion_device_update_count'
       service: python_script.set_state
       data_template:
