@@ -829,17 +829,6 @@
           {%- endfor -%}]
         {%- else -%}none{%- endif -%}
       {%- else -%}none{%- endif %}
-    activity: >-
-      {% set activity = state_attr('binary_sensor.motion_device_' + class|string + '_exist','activity') -%}
-      {%- if activity|lower != 'none' -%}
-        {% set s = status -%}
-        {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
-          [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,activity) -%}
-            {%- if not loop.first -%},{%- endif -%}
-            {"did":"{{- i.did -}}","id":"{{- i.id -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- i.updated -}}}
-          {%- endfor -%}]
-        {%- else -%}none{%- endif -%}
-      {%- else -%}none{%- endif %}
     found: >-
       {%- set s = status -%}
       {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
@@ -906,16 +895,9 @@
           {%- set result = 'off' -%}
         {%- endif -%}
       {%- endif -%}
-      {%- if activity|lower != 'none' and not activity is string and activity is iterable -%}
-        {%- if activity|count > 0 -%}
-          {%- set result = 'on' -%}
-        {%- else -%}
-          {%- set result = 'off' -%}
-        {%- endif -%}
-      {%- endif -%}
       {%- if result is defined -%}
         {{- result -}}
-      {%- else -%}unknown{%- endif %}
+      {%- else -%}{{- states('binary_sensor.motion_device_' + class|string) -}}{%- endif %}
   action:
     - alias: 'update binary_sensor.motion_device_occupancy: state'
       service: python_script.set_state
@@ -936,8 +918,6 @@
           {{ low_spike }}
         found: >-
           {{ found }}
-        activity: >-
-          {{ activity }}
         values: >-
           {{ values }}
         state: >-
@@ -2289,26 +2269,50 @@
   initial_state: 'off'
   trigger:
     - platform: state
-      entity_id: 'binary_sensor.motion_device_occupancy'
-      attribute: 'activity'
+      entity_id: 'group.motion_device_occupancy'
+      to:
+        - 'on'
+        - 'off'
+  condition:
+    condition: and
+    conditions:
+      - alias: 'occupancy in class activity'
+        condition: template
+        value_template: >-
+          {% set s = state_attr('binary_sensor.motion_device_class','activity') -%}
+          {{ s|lower != 'none' and s is iterable and 'occupancy' in s -}}
   variables:
+    class: >-
+      {{ 'occupancy' }}
+    activity: >-
+      {% set activity = state_attr('binary_sensor.motion_device_' + class|string + '_exist','activity') -%}
+      {%- if activity|lower != 'none' -%}
+        {% set s = state_attr('group.motion_device_' + class|string,'entity_id') -%}
+        [{% for i in s if is_state(i,activity) -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {%- set did = device_id(i) -%}
+          {%- set id = device_attr(did,'name_by_user') -%}{%- if id|lower == 'none' -%}{%- set id = device_attr(did,'name') -%}{%- endif -%}
+          {% set id = id|replace('&','_')|replace(' ','_')|replace('\'','')|replace('-','_')|lower -%}
+          {"did":"{{- did -}}","id":"{{- id -}}","entity_id":"{{- i -}}","state":"{{- states(i) -}}","updated":{{- states[i].last_updated|as_timestamp(None) -}}}
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
     ids: >-
-      {% set s = state_attr('binary_sensor.motion_device_occupancy','activity') %}
+      {% set s = activity %}
       {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
         {{ s|map(attribute='id')|sort|unique|list }}
       {%- else -%}none{%- endif %}
     dids: >-
-      {% set s = state_attr('binary_sensor.motion_device_occupancy','activity') %}
+      {% set s = activity %}
       {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
         {{ s|map(attribute='entity_id')|map('device_id')|sort|unique|list }}
       {%- else -%}none{%- endif %}
     details: >-
-      {% set s = state_attr('binary_sensor.motion_device_occupancy','activity') %}
+      {% set s = activity %}
       {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' -%}
         {{ s }}
       {%- else -%}none{%- endif %}
     state: >-
-      {% set s = state_attr('binary_sensor.motion_device_occupancy','activity') %}
+      {% set s = activity %}
       {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and not s is string and s is iterable %}
         {% if s|count > 0 %}on{% else %}off{% endif %}
       {% else %}unknown{% endif %}
@@ -2351,7 +2355,8 @@
       value_template: >
         {{ state|lower != 'unknown' }}
   action:
-    - service: python_script.set_state
+    - alias: 'update binary_sensor.motion_device_occupancy_activity'
+      service: python_script.set_state
       data_template:
         entity_id: binary_sensor.motion_device_occupancy_activity
         approve: >-
@@ -2377,10 +2382,12 @@
     - condition: template
       value_template: >
         {{ state|lower == 'on' }}
-    - alias: 'set occupancy condition: activity'
+    - alias: 'set binary_sensor.motion_device_occupancy: activity'
       service: python_script.set_state
       data_template:
         entity_id: binary_sensor.motion_device_occupancy
+        activity: >-
+          {{ activity }}
         condition: >-
           {{ 'activity' }}
 
