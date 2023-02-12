@@ -2,6 +2,63 @@
 # homeassistant/template/device/class/class_activity.yaml
 ###
 
+- unique_id: motion_device_class_activity_detect
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_class'
+      attribute: 'categorys'
+    - platform: state
+      entity_id: 'group.motion_device_class_activity'
+      to:
+        - 'on'
+        - 'off'
+    - platform: time_pattern
+      seconds: /30
+  binary_sensor:
+    - name: 'motion_device_class_activity_detect'
+      attributes:
+        friendly_name: 'Activity detected from devices'
+        status: >-
+          {%- set s = state_attr('binary_sensor.motion_device_class','categorys') -%}
+          [{%- for i in s if is_state_attr('binary_sensor.motion_device_' + i + '_exist','activity','on') and state_attr('group.motion_device_' + i,'entity_id')|lower != 'unknown' -%}
+            {%- set l = loop %}
+            {%- for j in state_attr('group.motion_device_' + i,'entity_id') if states(j)|lower == 'on' -%}
+              {%- set did = device_id(j) -%}
+              {%- set id = device_attr(did,'name') -%}
+              {"id":"{{- id -}}","did":"{{- did -}}","class":"{{- i -}}","updated":{{- (states[j].last_updated)|as_timestamp(0) -}},"when":"{{- (states[j].last_updated)|as_timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}"}
+              {%- if not (l.last and loop.last) -%},{%- endif -%}
+            {%- endfor -%}
+          {%- endfor -%}]
+        markdown: >-
+          {%- set s = state_attr('binary_sensor.motion_device_class','categorys') -%}
+          {%- for i in s if is_state_attr('binary_sensor.motion_device_' + i + '_exist','activity','on') and state_attr('group.motion_device_' + i,'entity_id')|lower != 'unknown' -%}
+            {%- if loop.first -%}{{- '<h2>Activity</h2>' -}}{%- endif -%}
+            {%- set l = loop %}
+            {%- for j in state_attr('group.motion_device_' + i,'entity_id') if states(j)|lower == 'on' -%}
+              {%- set lo = loop %}
+              {%- for k in state_attr('group.motion_device_' + i,'entity_id')|map('device_id')|reject('none')|sort|unique if device_id(j) == k -%}
+                {%- set did = device_id(j) -%}
+                {%- if lo.first -%}{{- '<ul>' -}}{%- endif -%}
+                {%- if loop.first -%}<li><a href="/config/devices/device/{{- did -}}">{{- device_attr(did,'name') -}}</a> in <a href="/config/areas/area/{{- area_id(j) -}}">{{- area_id(j) -}}</a></li>{%- endif -%}
+                {%- if loop.first -%}<ul>{%- endif -%}
+                {{- '<li><i>' -}}
+                {{ i -}}: {{ state_attr(j,'friendly_name') }} {{ states[j].last_updated|relative_time|default('unknown') }} ago
+                {{- '</i></li>' -}}
+                {%- if loop.last -%}</ul>{%- endif -%}
+                {%- if lo.last -%}{{- '</ul>' -}}{%- endif -%}
+              {%- endfor -%}
+            {%- endfor -%}
+          {%- else -%}<h2>No device activity</h2>{%- endfor -%}
+          <br><b>Alarms enabled</b>: <code>{{- state_attr('binary_sensor.motion_device_class_activity_exist','alarm')|lower == 'on' }}</code>
+          <br><i>Last updated</i>: {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+      state: >-
+        {% set s = state_attr('group.motion_device_class_activity','entity_id') -%}
+        {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+          {%- for i in s if states(i|replace('binary_sensor','group')|replace('_activity',''))|lower == 'on' -%}
+            {%- if loop.first -%}on{%- endif -%}
+          {%- else -%}off{% endfor %}
+        {%- else -%}unknown{% endif %}
+
 - unique_id: motion_device_class_activity_inactive_on
   trigger:
     - platform: state
