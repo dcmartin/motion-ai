@@ -2269,7 +2269,7 @@
   initial_state: 'off'
   trigger:
     - platform: state
-      entity_id: 'group.motion_device_plug'
+      entity_id: 'binary_sensor.motion_device_class_activity_detect'
       to:
         - 'on'
         - 'off'
@@ -2281,12 +2281,21 @@
         value_template: >-
           {% set s = state_attr('binary_sensor.motion_device_class','activity') -%}
           {{ s|lower != 'none' and s is iterable and 'plug' in s -}}
+      - alias: 'plug has activity defined'
+        condition: template
+        value_template: >-
+          {%- set s = state_attr('binary_sensor.motion_device_plug_exist','activity') -%}
+          {{- s|lower != 'none' -}}
   variables:
     class: >-
-      {{ 'plug' }}
-    activity: >-
-      {%- set activity = state_attr('binary_sensor.motion_device_' + class|string + '_exist','activity') -%}
-      {%- if activity|lower != 'none' -%}
+      {%- set class = 'plug' -%}
+      {{ class }}
+    markdown: >-
+      {{ state_attr('binary_sensor.motion_device_class_activity_detect','markdown') }}
+    status: >-
+      {%- set s = state_attr('binary_sensor.motion_device_' + class|string + '_exist','activity') -%}
+      {%- if s|lower != 'none' -%}
+        {%- set activity = s|string -%}
         {%- set s = state_attr('group.motion_device_' + class|string,'entity_id') -%}
         [{%- for i in s if is_state(i,activity) -%}
           {%- if not loop.first -%},{%- endif -%}
@@ -2297,22 +2306,17 @@
         {%- endfor -%}]
       {%- else -%}none{%- endif -%}
     ids: >-
-      {%- set s = activity -%}
+      {%- set s = status  -%}
       {%- if s|lower != 'none' and s is iterable -%}
         {{ s|map(attribute='id')|sort|unique|list }}
       {%- else -%}none{%- endif -%}
     dids: >-
-      {%- set s = activity -%}
+      {%- set s = status  -%}
       {%- if s|lower != 'none' and s is iterable -%}
         {{ s|map(attribute='entity_id')|map('device_id')|sort|unique|list }}
       {%- else -%}none{%- endif -%}
-    details: >-
-      {%- set s = activity -%}
-      {%- if s|lower != 'none' and s is iterable -%}
-        {{ s }}
-      {%- else -%}none{%- endif -%}
     state: >-
-      {%- set s = activity -%}
+      {%- set s = status  -%}
       {%- if s|lower != 'none' and s is iterable -%}
         {%- if s|count > 0 -%}on{%- else -%}off{%- endif -%}
       {%- else -%}unknown{%- endif -%}
@@ -2371,8 +2375,10 @@
           {{ ids }}
         dids: >-
           {{ dids }}
-        details: >-
-          {{ details }}
+        status: >-
+          {{ status  }}
+        markdown: >-
+          {{ markdown }}
         state: >-
           {{ state }}
     - condition: template
@@ -2383,9 +2389,7 @@
       data_template:
         entity_id: binary_sensor.motion_device_plug
         activity: >-
-          {{ activity }}
-        condition: >-
-          {{ 'activity' }}
+          {{ status  }}
 
 - id: motion_device_plug_activity_disable
   alias: motion_device_plug_activity_disable
