@@ -147,18 +147,35 @@
       for:
         seconds: 10
   variables:
-    details: >-
-      {% set details = state_attr('binary_sensor.motion_device_class_activity_detect','status') %}
-      {{ details }}
+    status: >-
+      {% set status = state_attr('binary_sensor.motion_device_class_activity_detect','status') %}
+      {{ status }}
     count: >-
-      {% set count = details|count %}
+      {% set count = None %}
+      {%- if status|lower != 'none' and status is iterable -%}
+      {% set count = status|count %}
+      {%- endif -%}
       {{ count }}
     ids: >-
-      {% set ids = details|map(attribute='id')|sort|unique|list %}
+      {% set ids = None %}
+      {%- if status|lower != 'none' and status is iterable -%}
+        {% set ids = status|map(attribute='id')|sort|unique|list %}
+      {%- endif -%}
       {{ ids }}
     dids: >-
-      {% set dids = details|map(attribute='did')|sort|unique|list %}
+      {% set dids = None %}
+      {%- if status|lower != 'none' and status is iterable -%}
+        {% set dids = status|map(attribute='did')|sort|unique|list %}
+      {%- endif -%}
       {{ dids }}
+    details: >-
+      {%- if status is iterable and status|count > 0 -%}
+        {%- for s in status -%}
+          {%- if loop.first -%}{{- '{' -}}{%- else -%},{%- endif -%}
+          "{{- state_attr(s.entity_id,'friendly_name') -}}": "{{- s.state -}}"
+          {%- if loop.last-%}{{- '}' -}}{%- endif -%}
+        {%- endfor -%}
+      {%- else -%}none{%- endif %}
     markdown: >-
       {%- set devices = state_attr('binary_sensor.motion_device_class','devices') -%}
       {%- if dids is iterable and dids|count > 0 and devices is iterable and devices|count > 0 -%}
@@ -222,6 +239,8 @@
           {{ count }}
         markdown: >-
           {{ markdown }}
+        status: >-
+          {{ status }}
         details: >-
           {{ details }}
         state: >-
