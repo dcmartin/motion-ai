@@ -2,6 +2,102 @@
 # homeassistant/template/device/class/gas.yaml
 ###
 
+- unique_id: motion_device_gas_unavailable
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_gas'
+      attribute: 'unavailable'
+  binary_sensor:
+    - name: 'motion_device_gas_unavailable'
+      device_class: 'problem'
+      attributes:
+        markdown: >-
+          {%- set class = 'gas' -%}
+          {%- set s = state_attr('binary_sensor.motion_device_gas','unavailable') }}
+          {%- if s|lower != 'none' and s is iterable and s|count > 0 %}
+            {%- set s = s|selecattr('entity_id','defined')|map(attribute='entity_id')|list -%
+            {%- set categorys = s|map('state_attr','device_class')|sort|unique|list %}
+            {%- for i in categorys -%}
+              {%- if loop.first -%}{{- '<h2>Activity</h2>' -}}{%- endif -%}
+              {%- set l = loop %}
+              {%- for j in state_attr('group.motion_device_' + i,'entity_id') if states(j)|lower == 'unavailable' -%}
+                {%- set lo = loop %}
+                {%- for k in state_attr('group.motion_device_' + i,'entity_id')|map('device_id')|reject('none')|sort|unique if device_id(j) == k -%}
+                  {%- set did = device_id(j) -%}
+                  {%- if lo.first -%}{{- '<ul>' -}}{%- endif -%}
+                  {%- if loop.first -%}<li><a href="/config/devices/device/{{- did -}}">{{- device_attr(did,'name') -}}</a> in <a href="/config/areas/area/{{- area_id(j) -}}">{{- area_id(j) -}}</a></li>{%- endif -%}
+                  {%- if loop.first -%}<ul>{%- endif -%}
+                  {{- '<li><i>' -}}
+                  {{ i -}}: {{ state_attr(j,'friendly_name') }} at {{ states[j].last_updated|as_timestamp(0)|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+                  {{- '</i></li>' -}}
+                  {%- if loop.last -%}</ul>{%- endif -%}
+                  {%- if lo.last -%}{{- '</ul>' -}}{%- endif -%}
+                {%- endfor -%}
+              {%- endfor -%}
+            {%- else -%}<h2>No {{ class }} unavailable; sensors: {{ state_attr('group.motion_device_class_unavailable','entity_id')|count }}</h2>{%- endfor -%}
+          {%- else -%}<h2>No {{ class }} sensors monitoring unavailable</h2>{%- endif -%}
+          <br><b>Alarms enabled</b>: <code>{{- state_attr('binary_sensor.motion_device_class_unavailable_exist','alarm')|lower == 'on' }}</code>
+          <br><i>Last updated</i>: {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+        status: >-
+          {{ state_attr('binary_sensor.motion_device_gas','unavailable') }}
+        details: >-
+          {%- set class = 'gas' -%}
+          {%- set s = state_attr('binary_sensor.motion_device_gas','unavailable') -%}
+          [{%- for i in s -%}
+            {%- if not loop.first -%},{%- else -%}{{- '{' -}}{%- endif -%}
+            "{{- state_attr(i.entity_id,'friendly_name') -}}"
+            {%- if loop.last -%}{{- '}' -}}{%- endif -%}
+          {%- endfor -%}]
+        past: >-
+          {%- set class = 'gas' -%}
+          {%- set status = state_attr('binary_sensor.motion_device_gas','unavailable') -%}
+          {%- if status|lower != 'none' and status is iterable status|count > 0 -%}
+            {{- state_attr('binary_sensor.motion_device_' + class + '_unavailable','status') -}}
+          {%- else -%}{{- state_attr('binary_sensor.motion_device_' + class + '_unavailable','past') -}}{%- endif %}
+        last: >-
+          {%- set class = 'gas' -%}
+          {%- set status = state_attr('binary_sensor.motion_device_gas','unavailable') -%}
+          {% if status|lower != 'none' and status is iterable status|count > 0 %}
+            {{ utcnow().timestamp() }}
+          {%- else -%}{{ state_attr('binary_sensor.motion_device_' + class + '_unavailable','last') }}{%- endif %}
+        actions: >-
+          {%- set actions = none -%}
+          {%- set s = state_attr('binary_sensor.motion_device_class_unavailable_exist','actions') -%}
+          {%- if s|lower != 'none' and 'actions' in s -%}
+            {%- set actions = s.actions -%}
+          {%- endif -%}
+          {{- actions -}}
+        responses: >-
+          {%- set responses = none -%}
+          {%- set s = state_attr('binary_sensor.motion_device_class_unavailable_exist','actions') -%}
+          {%- if s|lower != 'none' and 'responses' in s -%}
+            {%- set responses = s.responses -%}
+          {%- endif -%}
+          {{- responses -}}
+        approve: >-
+          {%- set actions = state_attr('binary_sensor.motion_device_class_unavailable_exist','actions') -%}
+          {%- if actions|lower != 'none' and 'approve' in actions -%}
+          {{ actions.approve }}
+          {%- else -%}none{%- endif -%}
+        deny: >-
+          {%- set actions = state_attr('binary_sensor.motion_device_class_unavailable_exist','actions') -%}
+          {%- if actions|lower != 'none' and 'deny' in actions -%}
+          {{ actions.deny }}
+          {%- else -%}none{%- endif -%}
+        wait: >-
+          {%- set actions = state_attr('binary_sensor.motion_device_class_unavailable_exist','actions') -%}
+          {%- if actions|lower != 'none' and 'wait' in actions -%}
+          {{ actions.wait }}
+          {%- else -%}none{%- endif -%}
+        help: >-
+          {%- set actions = state_attr('binary_sensor.motion_device_class_unavailable_exist','actions') -%}
+          {%- if actions|lower != 'none' and 'help' in actions -%}
+          {{ actions.help }}
+          {%- else -%}none{%- endif -%}
+      state: >-
+        {%- set s = state_attr('binary_sensor.motion_device_gas','unavailable') -%}
+        {{- s|lower != 'none' and s is iterable and s|count > 0 -}}
+
 - unique_id: motion_device_gas_activity
   trigger:
     - platform: state
