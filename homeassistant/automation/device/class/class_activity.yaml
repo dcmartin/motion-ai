@@ -11,61 +11,29 @@
     - platform: state
       entity_id: binary_sensor.motion_device_class_activity_exist
       to: 'on'
+  condition:
+    - alias: 'test if activity existence changed'
+      condition: template
+      value_template: >-
+        {{ not is_state_attr('binary_sensor.motion_device_class_activity','automations','on') }}
   variables:
     automations: >-
       {% set automations = ['motion_device_class_activity','motion_device_class_activity_notify','motion_device_class_activity_dismiss'] %}
       {{ automations }}
+    all: >-
+      {{ automations|map('regex_replace','^','automation.')|list }}
   action:
     - alias: 'enable automations for device_class_activity'
-      repeat:
-        while:
-          - condition: template
-            value_template: >-
-              {% set s = automations[repeat.index-1]|default('') %}
-              {{ s|string != '' }}
-        sequence:
-          - variables:
-              automation: >-
-                {% set s = automations[repeat.index-1] %}
-                {{ 'automation.' + s|string }}
-          - condition: template
-            value_template: >-
-              {{ states(automation)|lower == 'off' }}
-          - service: automation.turn_on
-            data_template:
-              entity_id: >-
-                {{ automation }}
-          - condition: template
-            value_template: >
-              {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','trace') }}
-          - service: persistent_notification.create
-            data_template:
-              title: >-
-                TRACE: activity automation
-              notification_id: >
-                {{- 'log-automation-activity' -}}
-              message: >-
-                Enable automation: {{ automation }}
+      service: automation.turn_on
+      data_template:
+        entity_id: >-
+          {{ all }}
     - alias: 'indicate complete'
       service: python_script.set_state
       data_template:
         entity_id: binary_sensor.motion_device_class_activity
         automations: >-
           {{ 'on' }}
-    - choose:
-        - conditions:
-            - condition: template
-              value_template: >
-                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
-          sequence:
-            - service: persistent_notification.create
-              data_template:
-                title: >-
-                  DEBUG: activity enabled
-                notification_id: >
-                  {{- 'log-automation-activity' -}}
-                message: >-
-                  All activity automations enabled: {{ automations|count }}
 
 - id: motion_device_class_activity_automation_disable
   alias: motion_device_class_activity_automation_disable
@@ -78,64 +46,25 @@
     - alias: 'test if activity existence changed'
       condition: template
       value_template: >-
-        {{ trigger.to_state.state != trigger.from_state.state }}
+        {{ is_state_attr('binary_sensor.motion_device_class_activity','automations','on') }}
   variables:
     automations: >-
       {% set automations = ['motion_device_class_activity','motion_device_class_activity_notify','motion_device_class_activity_dismiss'] %}
       {{ automations }}
+    all: >-
+      {{ automations|map('regex_replace','^','automation.')|list }}
   action:
     - alias: 'disable automations for device_class_activity'
-      repeat:
-        while:
-          - condition: template
-            value_template: >-
-              {% set s = automations[repeat.index-1]|default('') %}
-              {{ s|string != '' }}
-        sequence:
-          - variables:
-              automation: >-
-                {% set s = automations[repeat.index-1] %}
-                {{ 'automation.' + s|string }}
-          - alias: 'test if automation is on'
-            condition: template
-            value_template: >-
-              {{ states(automation)|lower == 'on' }}
-          - service: automation.turn_off
-            data_template:
-              entity_id: >-
-                {{ automation }}
-          - condition: template
-            value_template: >
-              {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','trace') }}
-          - service: persistent_notification.create
-            data_template:
-              title: >-
-                {% set s = automations[repeat.index-1] %}
-                TRACE: activity automation
-              notification_id: >
-                {{- 'log-automation-activity' -}}
-              message: >-
-                Disable automation: {{ automation }}
+      service: automation.turn_off
+      data_template:
+        entity_id: >-
+          {{ all }}
     - alias: 'indicate complete'
       service: python_script.set_state
       data_template:
         entity_id: binary_sensor.motion_device_class_activity
         automations: >-
           {{ 'off' }}
-    - choose:
-        - conditions:
-            - condition: template
-              value_template: >
-                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
-          sequence:
-            - service: persistent_notification.create
-              data_template:
-                title: >-
-                  DEBUG: activity disabled
-                notification_id: >
-                  {{- 'log-automation-activity' -}}
-                message: >-
-                  All activity automations disabled: {{ automations|count }}
 
 - id: motion_device_class_activity
   alias: motion_device_class_activity
