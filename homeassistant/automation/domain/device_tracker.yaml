@@ -32,14 +32,11 @@
         entity_id: sensor.motion_domain_device_tracker_count
         allow_create: true
         online: >-
-          {{ states.device_tracker|selectattr('state','==','home')|default([])|list|count + states.device_tracker|selectattr('state','==','not_home')|default([])|list|count }}
+          {{ states.device_tracker|selectattr('state','in',['home','not_home'])|list|count }}
         offline: >-
-          {{ states.device_tracker|count - (states.device_tracker|selectattr('state','==','home')|default([])|list|count + states.device_tracker|selectattr('state','==','not_home')|default([])|list|count) }}
-        ids: >-
-          [{%- for i in states.device_tracker|map(attribute='entity_id')|default(none) if i|lower != 'none' -%}
-            {%- if not loop.first -%},{%- endif -%}
-            "{{- device_attr(i,'name') -}}"
-          {%- endfor %}]
+          {{ states.device_tracker|rejectattr('state','in',['home','not_home'])|list|count }}
+        dids: >-
+          {{ states.device_tracker|map(attribute='entity_id')|map('device_id')|reject('none')|sort|unique|list }}
         state: >-
           {% set s = states.device_tracker|default('none') %}
           {% if s|lower != 'none' and not s is string and s|list is iterable %}
