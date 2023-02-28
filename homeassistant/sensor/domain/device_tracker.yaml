@@ -13,6 +13,8 @@
           {{- 'none' -}}
         dids: >-
           {{- 'none' -}}
+        unavailable: >-
+          {{- 'none' -}}
         online: >-
           {{- 'none' -}}
         offline: >-
@@ -27,6 +29,22 @@
       friendly_name: Device Tracker status
       icon_template: 'mdi:cellphone'
       attribute_templates:
+        dids: >-
+          {{- state_attr('sensor.motion_domain_device_tracker_count','dids') -}}
+        unavailable: >-
+          {{- state_attr('sensor.motion_domain_device_tracker_count','unavailable')|reject('none')|map('device_attr','name')|list -}}
+        available: >-
+          {%- set dids = state_attr('sensor.motion_domain_device_tracker_count','dids') -%}
+          {%- set unavailable = state_attr('sensor.motion_domain_device_tracker_count','unavailable') -%}
+          [{%- for device_tracker in states.device_tracker if dids is iterable and device_id(device_tracker.entity_id) in dids and unavailable is iterable and not device_id(device_tracker.entity_id) in unavailable -%}
+            {%- if not loop.first -%},{%- endif -%}
+            "{{- device_tracker.entity_id -}}"
+          {%- endfor -%}]
+        ids: >-
+          {%- set s = state_attr('sensor.motion_domain_device_tracker_count','dids') -%}
+          {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
+            {{- s|map('device_attr','name')|list -}}
+          {%- else -%}none{%- endif -%}
         online: >-
           {{ state_attr('sensor.motion_domain_device_tracker_count','online') }}
         offline: >-
@@ -39,13 +57,6 @@
           {{ states('sensor.motion_domain_device_tracker_count_mean')|default('null') }}
         stdev: >-
           {{ states('sensor.motion_domain_device_tracker_count_stdev')|default('null') }}
-        dids: >-
-          {{- state_attr('sensor.motion_domain_device_tracker_count','dids') -}}
-        ids: >-
-          {%- set s = state_attr('sensor.motion_domain_device_tracker_count','dids') -%}
-          {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
-            {{- s|map('device_attr','name')|list -}}
-          {%- else -%}none{%- endif -%}
         agos: >-
           [{%- for state in states.device_tracker -%}
             {%- if not loop.first -%},{%- endif -%}
