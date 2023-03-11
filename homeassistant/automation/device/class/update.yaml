@@ -333,25 +333,19 @@
 
 - id: motion_device_update_rescan_watchdog
   alias: motion_device_update_rescan_watchdog
-  mode: 'restart'
+  mode: 'single'
   max_exceeded: 'warn'
   initial_state: 'on'
   trigger:
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_class'
-      attribute: 'required'
-    - platform: state
-      entity_id: 'sensor.motion_device_update_count'
-      for:
-        seconds: 30
+    - platform: time_pattern
+      minutes: /15
   condition:
     condition: and
     conditions:
-      - alias: 'test if entitys is none or update not in entitys'
+      - alias: 'test if time_pattern'
         condition: template
         value_template: >-
-          {%- set entitys = state_attr('sensor.motion_device_update_count','entitys') -%}
-          {{ entitys|lower != 'none' and entitys is iterable }}
+          {{- trigger.platform == 'time_pattern' and state_attr('automation.motion_device_update_rescan','last_triggered')|as_timestamp(0) < (utcnow().timestamp() - 60) -}}
   action:
     - choose:
         - conditions:
@@ -366,7 +360,12 @@
                 notification_id: >
                   {{- 'log-update-rescan-watchdog' -}}
                 message: >-
-                  Platform: {{ trigger.platform|default('none') -}}; entity: {{ trigger.entity_id|default('none') -}}; from: {{ trigger.from_state.state -}}; to: {{ trigger.to_state.state -}}; last triggered: {{ state_attr('automation.motion_device_update_rescan','last_triggered')|relative_time -}}; dids: {{ state_attr('binary_sensor.motion_device_update','dids') -}}.
+                  Platform: {{ trigger.platform -}}.
+                  {%- if trigger.platform == 'state' -%}
+                    Entity ID: {{ trigger.entity_id|default('none') }}{% if 'from' in trigger %}from {{ trigger.from }}{% endif %}{% if 'to' in trigger %}to {{ trigger.to }}{% endif %}{% if 'for' in trigger %} for {{ trigger.for }}{% endif -%}.
+                  {%- elif trigger.platform == 'time_pattern' -%}
+                    at {{ trigger.now|as_timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}.
+                  {%- endif -%}
     - alias: 'TRIGGER automation.motion_device_update_rescan'
       service: automation.trigger
       data_template:
@@ -374,10 +373,23 @@
 
 - id: motion_device_update_rescan
   alias: motion_device_update_rescan
-  mode: 'single'
+  mode: 'restart'
   max_exceeded: 'warn'
   initial_state: 'on'
   trigger:
+    - platform: state
+      entity_id: 'sensor.motion_device_update_count'
+      attribute: 'entitys'
+      for:
+        seconds: 15
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test if entitys exist'
+        condition: template
+        value_template: >-
+          {%- set entitys = state_attr('sensor.motion_device_update_count','entitys') -%}
+          {{ entitys|lower != 'none' and entitys is iterable }}
   variables:
     class: >-
       {%- set class = 'update' -%}
@@ -561,7 +573,8 @@
           {{ areas }}
         devices: >-
           {{ devices }}
-    - condition: template
+    - alias: 'test if entitys exist for update'
+      condition: template
       value_template: >-
         {{ entitys|lower != 'none' and not entitys is string and entitys is iterable and entitys|count > 0 }}
     - alias: 'GROUP.set: group.motion_device_update'
@@ -714,11 +727,15 @@
 
 - id: motion_device_update_status_watchdog
   alias: motion_device_update_status_watchdog
-  mode: 'restart'
+  mode: 'single'
+  max_exceeded: 'warn'
   initial_state: 'off'
   trigger:
     - platform: time_pattern
       minutes: /5
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_update'
+      attribute: 'scan'
   condition:
     condition: and
     conditions:
@@ -2925,7 +2942,7 @@
 
 - id: motion_device_update_devices
   alias: motion_device_update_devices
-  mode: queued
+  mode: 'restart'
   initial_state: 'on'
   trigger:
     - platform: state
@@ -3298,8 +3315,9 @@
       for:
         seconds: 30
     - platform: state
-      entity_id: 'binary_sensor.motion_device_class'
-      attribute: 'required'
+      entity_id: 'binary_sensor.motion_device_update_required'
+      to:
+        - 'on'
     - platform: state
       entity_id: 'binary_sensor.motion_device_update_exist'
       to:
@@ -4590,25 +4608,16 @@
 
 - id: motion_device_update_exist
   alias: motion_device_update_exist
-  mode: restart
+  mode: 'restart'
   max_exceeded: 'warn'
   initial_state: 'on'
   trigger:
     - platform: state
-      entity_id: 'group.motion_device_update'
-      attribute: 'entity_id'
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_class'
-      attribute: 'devices'
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_class'
-      attribute: 'required'
-    - platform: state
-      entity_id: 'binary_sensor.motion_device_class'
-      attribute: 'categorys'
+      entity_id: 'binary_sensor.motion_device_update_required'
     - platform: state
       entity_id: 'binary_sensor.motion_device_update'
-      attribute: 'devices'
+      for:
+        seconds: 15
     - platform: state
       entity_id:
         - 'input_number.motion_device_update_low'
@@ -4711,19 +4720,17 @@
         - conditions:
             - condition: template
               value_template: >
-                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','info') }}
           sequence:
             - service: persistent_notification.create
               data_template:
                 title: >-
-                  DEBUG: update exist
+                  INFO: update exist
                 notification_id: >-
                   {{ 'device-update-exist' }}
                 message: >-
-                  Platform: {{ trigger.platform|default('none') -}}; entity: {{ trigger.entity_id|default('none') -}}; current: {{ states('binary_sensor.motion_device_update_exist') -}}; new: {{ state -}}; rescan: {{ state_attr('automation.motion_device_update_rescan','last_triggered')|relative_time -}}; ids: {{ state_attr('binary_sensor.motion_device_update','ids') -}}.
-
-                  Set update exist: <b>{{- state -}}</b>
-    - alias: 'set binary_sensor.motion_device_update_exist: state'
+                  Platform: {{ trigger.platform|default('none') -}}; entity: {{ trigger.entity_id|default('none') -}}; current: {{ states('binary_sensor.motion_device_update_exist') -}}; new: {{ state -}}; rescan: {{ state_attr('automation.motion_device_update_rescan','last_triggered')|relative_time -}}; ids: {{ state_attr('binary_sensor.motion_device_update','ids') -}}.  Set update exist: <b>{{- state -}}</b>
+    - alias: 'set binary_sensor.motion_device_update_exist: state, etc..'
       service: python_script.set_state
       data_template:
         entity_id: binary_sensor.motion_device_update_exist
