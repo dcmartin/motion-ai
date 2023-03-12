@@ -417,8 +417,14 @@
   max_exceeded: 'warn'
   trigger:
     - platform: state
-      entity_id: binary_sensor.motion_device_device_class_activity
+      entity_id: binary_sensor.motion_device_class_activity
       to: 'off'
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
   action:
     - alias: "wait until complete"
       wait_template: >-
@@ -438,8 +444,14 @@
   max_exceeded: 'warn'
   trigger:
     - platform: state
-      entity_id: binary_sensor.motion_device_device_class_activity
+      entity_id: binary_sensor.motion_device_class_activity
       to: 'on'
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
   variables:
     latest: >-
       {% set s = state_attr('binary_sensor.motion_device_class_activity','status') %}
@@ -453,6 +465,11 @@
       {% set s = latest %}
       {% if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' %}
         {{ s.entity_id }}
+      {% else %}null{% endif %}
+    did: >-
+      {% set s = latest %}
+      {% if not s is string and s is iterable and 'did' in s %}
+        {{ s.did }}
       {% else %}null{% endif %}
     id: >-
       {% set s = latest %}
@@ -520,57 +537,41 @@
                           {{ 'person-occupancy-' + id|string }}
                         message: >-
                           Occupancy sensor **{{ id }}** location invalid; distance: {{ '%0.1d'|format(distance|float(0)/1000) }} Km.  Using **Home** _zone_ as default.
-            - alias: 'set sensor.motion_person_occupancy with home gps'
-              service: python_script.set_state
-              data_template:
-                entity_id: sensor.motion_person_occupancy
-                sensor: >-
-                  {{ sensor }}
-                prior: >-
-                  {{ state_attr('sensor.motion_person_occupancy_previous','sensor') }}
-                id: >-
-                  {{ id }}
-                latitude: >-
-                  {{ state_attr('zone.home','latitude') }}
-                longitude: >-
-                  {{ state_attr('zone.home','longitude') }}
-                gps_accuracy: >-
-                  {{ gps_accuracy }}
-                ago: >-
-                  {{ '%0.1f'|format(ago|float(0.0)) }}
-                area: >-
-                  {{ area }}
-                state: >-
-                  {{ 'on' }}
-        - conditions:
-            - condition: template
-              value_template: >-
-                {{ id|lower != 'null' and gps_valid|lower == 'true' }}
-          sequence:
-            - alias: 'set sensor.motion_person_occupancy with sensor gps'
-              service: python_script.set_state
-              data_template:
-                entity_id: sensor.motion_person_occupancy
-                sensor: >-
-                  {{ sensor }}
-                prior: >-
-                  {{ state_attr('sensor.motion_person_occupancy_previous','sensor') }}
-                id: >-
-                  {{ id }}
-                latitude: >-
-                  {{ latitude }}
-                longitude: >-
-                  {{ longitude }}
-                gps_accuracy: >-
-                  {{ gps_accuracy }}
-                distance: >-
-                  {{ distance }}
-                ago: >-
-                  {{ '%0.1f'|format(ago|float(0.0)) }}
-                area: >-
-                  {{ area }}
-                state: >-
-                  {{ 'on' }}
+    - variables:
+        lat: >-
+          {% if gps_valid|lower != 'true' %}
+            {{ state_attr('zone.home','latitude') }}
+          {% else %}{{ latitude }}{% endif %}
+        long: >-
+          {% if gps_valid|lower != 'true' %}
+            {{ state_attr('zone.home','longitude') }}
+          {% else %}{{ latitude }}{% endif %}
+     - alias: 'set sensor.motion_person_occupancy with sensor gps'
+       service: python_script.set_state
+       data_template:
+         entity_id: sensor.motion_person_occupancy
+         sensor: >-
+           {{ sensor }}
+         prior: >-
+           {{ state_attr('sensor.motion_person_occupancy_previous','sensor') }}
+         did: >-
+           {{ did }}
+         id: >-
+           {{ id }}
+         latitude: >-
+           {{ lat }}
+         longitude: >-
+           {{ long }}
+         gps_accuracy: >-
+           {{ gps_accuracy }}
+         distance: >-
+           {{ distance }}
+         ago: >-
+           {{ '%0.1f'|format(ago|float(0.0)) }}
+         area: >-
+           {{ area }}
+         state: >-
+           {{ 'on' }}
     - choose:
         - conditions:
             - condition: template
