@@ -69,6 +69,29 @@
       entity_id: binary_sensor.motion_person_smartphone
       to: 'on'
   variables:
+    evidence: >-
+      {%- set s = state_attr('binary_sensor.motion_person_msartphone','observations') -%}
+      {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
+        {%- set s = s|selectattr('observed','defined')|selectattr('observed','==',True)|map(attribute='entity_id')|list -%}
+        {%- if s is iterable and s|list|count > 0 -%}
+          {%- set eids = s -%}
+          [{%- for i in eids -%}
+            {%- if not loop.first -%},{%- endif -%}
+            {"source":"{{- i -}}","evidence":
+            {%- set s = state_attr(i,'sensor') -%}
+            {%- if s|lower != 'none' -%}
+              {%- if s|lower != 'none' -%}
+                {"sensor":"{{- s -}}","state":"{{- states(s) -}}","updated":{{- states[s].last_updated|as_timestamp(none) -}}}
+              {%- else -%}none{%- endif -%}
+            {%- else -%}
+              {%- set s = state_attr(i,'evidence') -%}
+              {%- if s|lower != 'none' -%}
+                {{- s -}}
+              {%- else -%}none{%- endif -%}
+            {%- endif -%}}
+          {%- endfor -%}]
+        {%- else -%}[]{%- endif -%}
+      {%- else -%}[]{%- endif -%}
     now: >-
       {{ utcnow().timestamp() }}
   action:
@@ -77,14 +100,18 @@
       data_template:
         entity_id: sensor.motion_person_smartphone
         allow_create: true
-        observations: >-
-          {{ state_attr('binary_sensor.motion_person_smartphone','observations') }}
-        entities: >-
-          {{ state_attr('binary_sensor.motion_person_smartphone','occured_observation_entities') }}
+        start: >-
+          {{ now }}
+        evidence: >-
+          {{ evidence }}
         probability: >-
           {{ state_attr('binary_sensor.motion_person_smartphone','probability') }}
         threshold: >-
           {{ state_attr('binary_sensor.motion_person_smartphone','probability_threshold') }}
+        observations: >-
+          {{ state_attr('binary_sensor.motion_person_smartphone','observations') }}
+        entities: >-
+          {{ state_attr('binary_sensor.motion_person_smartphone','occured_observation_entities') }}
         start: >-
           {{ now }}
 
