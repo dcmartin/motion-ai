@@ -248,32 +248,36 @@
       {{ utcnow().timestamp() }}
     evidence: >-
       {%- set s = state_attr('binary_sensor.motion_person_detected','observations') -%}
-      {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
+      {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
         {%- set s = s|selectattr('observed','defined')|selectattr('observed','==',True)|map(attribute='entity_id')|list -%}
-        {%- if s is iterable and s|list|count > 0 -%}
+        {%- if s is iterable and s|count > 0 -%}
           {%- set eids = s -%}
           [{%- for i in eids -%}
             {%- if not loop.first -%},{%- endif -%}
-            {"source":"{{- i -}}","evidence":
             {%- set s = state_attr(i,'sensor') -%}
+            {%- set e = state_attr(i,'evidence') -%}
             {%- if s|lower != 'none' -%}
-              {%- set sensor = s -%}
-              {%- set e = state_attr(sensor,'event') -%}
+              {"source":"{{- i -}}","sensor":"{{- s -}}",
+              {%- set e = state_attr(s,'event') -%}
               {%- if e|lower != 'none' and 'camera' in e -%}
                 {%- set c = e.camera|default('none') -%}
                 {%- if c|lower != 'none' -%}
                   {%- set t = states('sensor.motion_detected_person_threshold')|float(0) -%}
                   {%- set tc = states('sensor.motion_detected_person_threshold_confirmed')|float(0) -%}
-                  {%- set n = state_attr(sensor,'results')|selectattr('entity','==','person')|selectattr('confidence','>',t)|list|count -%}
-                  {%- set b = state_attr(sensor,'results')|selectattr('entity','==','person')|map(attribute='confidence')|max -%}
-                  {"sensor":"{{- sensor -}}","name":"{{- c -}}","count":{{- n|int -}},"confidence":{{- b|int -}},"threshold":{{- t|int -}},"confirmed":{{- tc|int -}},"state":"{{- states(sensor) -}}"},
+                  {%- set n = state_attr(s,'results')|selectattr('entity','==','person')|selectattr('confidence','>',t)|list|count -%}
+                  {%- set b = state_attr(s,'results')|selectattr('entity','==','person')|map(attribute='confidence')|max -%}
+                  "name":"{{- c -}}","count":{{- n|int -}},"confidence":{{- b|int -}},"threshold":{{- t|int -}},"confirmed":{{- tc|int -}},
                 {%- endif -%}
+                "state":"{{- states(s) -}}","updated":{{- states[s].last_updated|as_timestamp(none) -}}}
               {%- endif -%}
-            {%- else -%}"null",{%- endif -%}
-            "state":"{{- states(i) -}}"}
+            {%- elif e|lower != 'none' and not e is string and e is iterable -%}
+              {"source":"{{- i -}}","evidence":{{- e -}}}
+            {%- else -%}
+              {"sensor":"{{- i -}}","state":"{{- states(i) -}}","updated":{{- states[i].last_updated|as_timestamp(none) -}}}
+            {%- endif -%}
           {%- endfor -%}]
-        {%- else -%}[]{%- endif -%}
-      {%- else -%}[]{%- endif -%}
+        {%- else -%}none{%- endif -%}
+      {%- else -%}none{%- endif -%}
   action:
     - alias: 'set sensor.motion_person_detected start w/ observations, entities, probabiltiy, threshold, evidence'
       service: python_script.set_state
