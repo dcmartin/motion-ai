@@ -89,9 +89,21 @@
             {% set active = status|count|int(0) > 0 %}
           {%- endif -%}
           {% if active|lower == 'true' %}
-            {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+            {{ status|sort(reverse=true,attribute='updated')|map(attribute='when')|reject('none')|first  }}
           {% else %}
             {{ when }}
+          {% endif %}
+        where: >-
+          {% set where = state_attr('binary_sensor.motion_device_class_activity','where') %}
+          {% set active = 'unknown' %}
+          {% set status = state_attr('binary_sensor.motion_device_class_activity_detect','status') %}
+          {%- if status|lower != 'none' and status is iterable -%}
+            {% set active = status|count|int(0) > 0 %}
+          {%- endif -%}
+          {% if active|lower == 'true' %}
+            {{ status|sort(reverse=true,attribute='updated')|map(attribute='entity_id')|map('area_id')|reject('none')|sort|unique|list  }}
+          {% else %}
+            {{ where }}
           {% endif %}
         details: >-
           {% set status = state_attr('binary_sensor.motion_device_class_activity_detect','status') %}
