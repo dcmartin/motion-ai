@@ -4,25 +4,6 @@
 
 - platform: template
   sensors:
-    motion_person_activity_expired:
-      friendly_name: 'Occupancy expired'
-      icon_template: >-
-        {% if is_state('binary_sensor.motion_person_activity_expired','on') %}
-          {{ 'mdi:check-circle' }}
-        {% else %}{{ 'mdi:check-circle-outline' }}{% endif %}
-      value_template: >-
-        {% set s = states('input_number.motion_person_activity_expired') %}
-        {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unavailable' and s|lower != 'unknown' %}
-          {% set timeout = s|float(0.0) * 60 %}
-          {% set s = states.sensor.motion_person_activity.last_updated|default('unknown') %}
-          {% if s|lower != 'none' and s|lower != 'null' and s|lower != 'unavailable' and s|lower != 'unknown' %}
-            {% set updated = as_timestamp(s,0) %}
-            {{ is_state('binary_sensor.motion_person_activity','on') and utcnow().timestamp() - updated > timeout }}
-          {% else %}on{% endif %}
-        {% else %}on{% endif %}
-
-- platform: template
-  sensors:
     motion_person_active:
       friendly_name: 'Person active'
       icon_template: >-
@@ -72,19 +53,21 @@
     motion_person_activity_status:
       friendly_name: 'Person activity status'
       icon_template: >-
-        {% if is_state('sensor.motion_person_activity_status','unknown') -%}{{- 'mdi:account-question-outline' -}}
-        {%- elif is_state('sensor.motion_person_active','unknown') -%}{{- 'mdi:account-question' -}}
-        {%- elif is_state('binary_sensor.motion_person_activity','off') -%}{{- 'mdi:account-remove' -}}
-        {%- elif is_state('binary_sensor.motion_person_activity_expired','on') -%}{{- 'mdi:account-arrow-down' -}}
-        {%- elif is_state('binary_sensor.motion_person_activity','on') -%}{{- 'mdi:account-plus' -}}{%- else -%}{{- 'mdi:account-remove-outline' -}}{%- endif %}
+        {% set s = states('sensor.motion_person_active') %}
+        {% if s|lower == 'off' or s|lower == 'none' or s|lower == 'null' or s|string|length == 0 %}{{- 'mdi:account-remove' -}}
+        {% elif s|lower == 'on' and is_state('binary_sensor.motion_person_activity_expired','on') %}{{- 'mdi:account-arrow-down' -}}
+        {% elif s|lower == 'on' %}{{- 'mdi:account-plus' -}}
+        {% else %{{- 'mdi:account-question-outline' -}}{% endif %}
+{%- else -%}{{- 'mdi:account-remove-outline' -}}{%- endif %}
       attribute_templates:
         evidence: >-
           {{ state_attr('sensor.motion_person_active','evidence') }}
       value_template: >-
-        {% if is_state('sensor.motion_person_active','unknown') %}unknown
-        {% elif is_state('binary_sensor.motion_person_activity','off') %}off
-        {% elif is_state('binary_sensor.motion_person_activity_expired','on') %}expired
-        {% elif is_state('binary_sensor.motion_person_activity','on') %}on{% else %}off{% endif %}
+        {% set s = states('sensor.motion_person_active') %}
+        {% if s|lower == 'off' or s|lower == 'none' or s|lower == 'null' or s|string|length == 0 %}off
+        {% elif s|lower == 'on' and is_state('binary_sensor.motion_person_activity_expired','on') %}expired
+        {% elif s|lower == 'on' %}on
+        {% else %}unknown{% endif %}
     motion_person_active_where:
       friendly_name: 'Person active where'
       icon_template: 'mdi:map-marker'
