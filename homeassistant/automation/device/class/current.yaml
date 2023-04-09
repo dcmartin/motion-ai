@@ -410,7 +410,7 @@
           {%- set did = device_id(entity_id) -%}
           {%- set id = device_attr(did,'name_by_user') -%}{%- if id|lower == 'none' -%}{%- set id = device_attr(did,'name') -%}{%- endif -%}
           {% set id = id|replace('&','_')|replace(' ','_')|replace('\'','')|replace('-','_')|lower -%}
-          {"id":"{{- id -}}","did":"{{- did  -}}","area":"{{- area_id(entity_id) -}}"}
+          {"entity_id":"{{- entity_id -}}","id":"{{- id -}}","did":"{{- did  -}}","area":"{{- area_id(entity_id) -}}"}
         {%- endfor -%}]
       {%- else -%}none{%- endif -%}
     mobile: >-
@@ -542,6 +542,18 @@
         {%- set unit = entitys|map('state_attr','unit_of_measurement')|map('string')|reject('in',['none','unknown','unavailable'])|sort|unique|first -%}
       {%- endif -%}
       {{- unit -}}
+    statistics: >-
+      {%- set s = entitys -%}
+      {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
+        [{%- for entity_id in s if device_id(entity_id)|lower != 'none' and state_attr(entity_id,'state_class')|lower in ['total','total_increasing'] -%}
+          {%- if not loop.first -%},{% endif -%}
+          {%- set did = device_id(entity_id) -%}
+          {%- set id = device_attr(did,'name_by_user') -%}{%- if id|lower == 'none' -%}{%- set id = device_attr(did,'name') -%}{%- endif -%}
+          {% set id = id|replace('&','_')|replace(' ','_')|replace('\'','')|replace('-','_')|lower -%}
+          {%- set unit = state_attr(entity_id,'unit_of_measurement') -%}
+          {"entity_id":"{{- entity_id -}}","class":"{{- state_attr(entity_id,'state_class') -}}","unit":"{{- unit -}}","id":"{{- id -}}","did":"{{- did  -}}","area":"{{- area_id(entity_id) -}}"}
+        {%- endfor -%}]
+      {%- else -%}none{%- endif -%}
   action:
     - alias: 'update binary_sensor.motion_device_current: rescan'
       service: python_script.set_state
@@ -575,6 +587,8 @@
           {{ areas }}
         devices: >-
           {{ devices }}
+        statistics: >-
+          {{ statistics }}
     - alias: 'test if entitys exist for current'
       condition: template
       value_template: >-
@@ -817,7 +831,7 @@
             {% set id = id|replace('&','_')|replace(' ','_')|replace('\'','')|replace('-','_')|lower -%}
           {%- endif -%}
           {%- if not loop.first -%},{%- endif -%}
-          {"did":"{{- did -}}","id":"{{- id -}}","friendly_name":"{{- state_attr(state,'friendly_name') -}}","entity_id":"{{- state -}}","state":"{{- states(state) -}}","updated":{{- states[state].last_updated|as_timestamp(None) -}}}
+          {"did":"{{- did -}}","id":"{{- id -}}","class":"{{- state_attr(state,'state_class') -}}","friendly_name":"{{- state_attr(state,'friendly_name') -}}","entity_id":"{{- state -}}","state":"{{- states(state) -}}","updated":{{- states[state].last_updated|as_timestamp(None) -}}}
         {%- endfor -%}]
       {%- else -%}none{%- endif %}
   action:
@@ -4512,7 +4526,7 @@
     measurement: >-
       {%- set s = status -%}
       {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
-        [{%- for i in s|rejectattr('entity_id','search','binary_sensor\.')|selectattr('entity_id','search','sensor\.')|list -%}
+        [{%- for i in s|rejectattr('entity_id','search','binary_sensor\.')|selectattr('entity_id','search','sensor\.')|list if not state_attr(i.entity_id, 'state_class')|string in ['total','total_increasing'] -%}
           {"did":"{{- i.did -}}","id":"{{- i.id -}}","friendly_name":"{{- state_attr(i.entity_id,'friendly_name') -}}","entity_id":"{{- i.entity_id -}}","state":"{{- states(i.entity_id) -}}","updated":{{- states[i.entity_id].last_updated|as_timestamp(None) -}}}
           {%- if not loop.last -%},{%- endif -%}
         {%- endfor -%}]
@@ -4528,8 +4542,8 @@
     statistics: >-
       {%- set s = status -%}
       {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
-        [{%- for i in s if state_attr(i.entity_id, 'state_class')|string == 'measurement' -%}
-          {"did":"{{- i.did -}}","friendly_name":"{{- state_attr(i.entity_id,'friendly_name') -}}","state":"{{- states(i.entity_id) }} {{ state_attr(i.entity_id,'unit_of_measurement') -}}","entity_id":"{{- i.entity_id -}}","updated":{{- states[i.entity_id].last_updated|as_timestamp(None) -}}}
+        [{%- for i in s|rejectattr('entity_id','search','binary_sensor\.')|selectattr('entity_id','search','sensor\.')|list if state_attr(i.entity_id, 'state_class')|string in ['total','total_increasing'] -%}
+          {"did":"{{- i.did -}}","class":"{{- i.class -}}","id":"{{- i.id -}}","friendly_name":"{{- state_attr(i.entity_id,'friendly_name') -}}","entity_id":"{{- i.entity_id -}}","state":"{{- states(i.entity_id) -}}","updated":{{- states[i.entity_id].last_updated|as_timestamp(None) -}}}
           {%- if not loop.last -%},{%- endif -%}
         {%- endfor -%}]
       {%- else -%}none{%- endif %}
@@ -4629,484 +4643,3 @@
         state: >-
           {{ state }}
 
-### EXISTENCE
-#
-#- id: motion_device_current_exist_status
-#  alias: motion_device_current_exist_status
-#  mode: 'single'
-#  max_exceeded: 'warn'
-#  initial_state: 'off'
-#  trigger:
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_current_exist'
-#      attribute: 'last'
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_class'
-#      attribute: 'binary_sensor_list'
-#      for:
-#        seconds: 10
-#  variables:
-#    status: >-
-#      {% set s = state_attr('binary_sensor.motion_device_class','binary_sensor_list') -%}
-#      {%- if s|lower != 'none' -%}
-#        {%- if 'current' in s -%}on{%- else -%}none{%- endif -%}
-#      {%- else -%}none{%- endif %}
-#  action:
-#    - alias: 'set binary_sensor.motion_device_current_exist: status'
-#      service: python_script.set_state
-#      data_template:
-#        entity_id: binary_sensor.motion_device_current_exist
-#        status: >-
-#          {{- status -}}
-#
-#- id: motion_device_current_exist_measurement
-#  alias: motion_device_current_exist_measurement
-#  mode: 'single'
-#  max_exceeded: 'warn'
-#  initial_state: 'off'
-#  trigger:
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_current_exist'
-#      attribute: 'last'
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_class'
-#      attribute: 'sensor_list'
-#      for:
-#        seconds: 10
-#  variables:
-#    measurement: >-
-#      {% set s = state_attr('binary_sensor.motion_device_class','sensor_list') -%}
-#      {%- if s|lower != 'none' -%}
-#        {%- if 'current' in s -%}on{%- else -%}none{%- endif -%}
-#      {%- else -%}none{%- endif %}
-#  action:
-#    - alias: 'set binary_sensor.motion_device_current_exist: measurement'
-#      service: python_script.set_state
-#      data_template:
-#        entity_id: binary_sensor.motion_device_current_exist
-#        measurement: >-
-#          {{- measurement -}}
-#
-#- id: motion_device_current_exist_required
-#  alias: motion_device_current_exist_required
-#  mode: 'single'
-#  max_exceeded: 'warn'
-#  initial_state: 'off'
-#  trigger:
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_current_exist'
-#      attribute: 'last'
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_class'
-#      attribute: 'sensors'
-#      for:
-#        seconds: 10
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_class'
-#      attribute: 'binary_sensors'
-#      for:
-#        seconds: 10
-#  variables:
-#    required: >-
-#      {% set s = state_attr('binary_sensor.motion_device_class','sensors') -%}
-#      {% set b = state_attr('binary_sensor.motion_device_class','binary_sensors') -%}
-#      {%- if s|lower != 'none' and b|lower != 'none' -%}
-#        {% set required = (s|list + b|list)|sort|unique %}
-#        {%- if 'current' in required -%}on{%- else -%}none{%- endif -%}
-#      {%- else -%}none{%- endif %}
-#  action:
-#    - alias: 'set binary_sensor.motion_device_current_exist: required'
-#      service: python_script.set_state
-#      data_template:
-#        entity_id: binary_sensor.motion_device_current_exist
-#        required: >-
-#          {{- required -}}
-#
-#- id: motion_device_current_exist_good
-#  alias: motion_device_current_exist_good
-#  mode: 'single'
-#  max_exceeded: 'warn'
-#  initial_state: 'off'
-#  trigger:
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_current_exist'
-#      attribute: 'last'
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_class'
-#      attribute: 'good'
-#      for:
-#        seconds: 10
-#  variables:
-#    good: >-
-#      {% set g = state_attr('binary_sensor.motion_device_class','good') -%}
-#      {%- set b = state_attr('binary_sensor.motion_device_class','bad') -%}
-#      {%- if g|lower != 'none' and b|lower != 'none' -%}
-#        {%- if 'current' in g -%}on{%- elif 'current' in b -%}off{%- else -%}none{%- endif -%}
-#      {%- else -%}none{%- endif %}
-#  action:
-#    - alias: 'set binary_sensor.motion_device_current_exist: good'
-#      service: python_script.set_state
-#      data_template:
-#        entity_id: binary_sensor.motion_device_current_exist
-#        good: >-
-#          {{- good -}}
-#
-#- id: motion_device_current_exist_bad
-#  alias: motion_device_current_exist_bad
-#  mode: 'single'
-#  max_exceeded: 'warn'
-#  initial_state: 'off'
-#  trigger:
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_current_exist'
-#      attribute: 'last'
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_class'
-#      attribute: 'bad'
-#      for:
-#        seconds: 10
-#  variables:
-#    bad: >-
-#      {% set g = state_attr('binary_sensor.motion_device_class','good') -%}
-#      {%- set b = state_attr('binary_sensor.motion_device_class','bad') -%}
-#      {%- if g|lower != 'none' and b|lower != 'none' -%}
-#        {%- if 'current' in b -%}on{%- elif 'current' in g -%}off{%- else -%}none{%- endif -%}
-#      {%- else -%}none{%- endif %}
-#  action:
-#    - alias: 'set binary_sensor.motion_device_current_exist: bad'
-#      service: python_script.set_state
-#      data_template:
-#        entity_id: binary_sensor.motion_device_current_exist
-#        bad: >-
-#          {{- bad -}}
-#
-#- id: motion_device_current_exist_low
-#  alias: motion_device_current_exist_low
-#  mode: 'single'
-#  max_exceeded: 'warn'
-#  initial_state: 'off'
-#  trigger:
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_current_exist'
-#      attribute: 'last'
-#    - platform: state
-#      entity_id: 'input_number.motion_device_current_low'
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_class'
-#      attribute: 'low'
-#      for:
-#        seconds: 10
-#  variables:
-#    low: >-
-#      {% set s = state_attr('binary_sensor.motion_device_class','low') -%}
-#      {%- if s|lower != 'none' -%}
-#        {%- if 'current' in s -%}
-#          {{ states('input_number.motion_device_current_low') }}
-#        {%- else -%}none{%- endif -%}
-#      {%- else -%}none{%- endif %}
-#  action:
-#    - alias: 'set binary_sensor.motion_device_current_exist: low'
-#      service: python_script.set_state
-#      data_template:
-#        entity_id: binary_sensor.motion_device_current_exist
-#        low: >-
-#          {{- low -}}
-#
-#- id: motion_device_current_exist_high
-#  alias: motion_device_current_exist_high
-#  mode: 'single'
-#  max_exceeded: 'warn'
-#  initial_state: 'off'
-#  trigger:
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_current_exist'
-#      attribute: 'last'
-#    - platform: state
-#      entity_id: 'input_number.motion_device_current_high'
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_class'
-#      attribute: 'high'
-#      for:
-#        seconds: 10
-#  variables:
-#    high: >-
-#      {% set s = state_attr('binary_sensor.motion_device_class','high') -%}
-#      {%- if s|lower != 'none' -%}
-#        {%- if 'current' in s -%}
-#          {{ states('input_number.motion_device_current_high') }}
-#        {%- else -%}none{%- endif -%}
-#      {%- else -%}none{%- endif %}
-#  action:
-#    - alias: 'set binary_sensor.motion_device_current_exist: high'
-#      service: python_script.set_state
-#      data_template:
-#        entity_id: binary_sensor.motion_device_current_exist
-#        high: >-
-#          {{- high -}}
-#
-#- id: motion_device_current_exist_low_spike
-#  alias: motion_device_current_exist_low_spike
-#  mode: 'single'
-#  max_exceeded: 'warn'
-#  initial_state: 'off'
-#  trigger:
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_current_exist'
-#      attribute: 'last'
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_class'
-#      attribute: 'low_spike'
-#      for:
-#        seconds: 10
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_current_low_spike'
-#      attribute: 'limit'
-#  variables:
-#    low_spike: >-
-#      {% set s = state_attr('sensor.motion_device_class','low_spike_spike') -%}
-#      {%- if s|lower != 'none' -%}
-#        {%- if 'current' in s -%}
-#          {%- set s = state_attr('sensor.motion_device_current_low_spike_spike','limit') -%}
-#          {%- if s|lower != 'none' and s is number -%}
-#            {{ '%0.2f'|format(s) }}
-#          {%- else -%}none{%- endif -%}
-#        {%- else -%}none{%- endif -%}
-#      {%- else -%}none{%- endif %}
-#  action:
-#    - alias: 'set binary_sensor.motion_device_current_exist: low_spike'
-#      service: python_script.set_state
-#      data_template:
-#        entity_id: binary_sensor.motion_device_current_exist
-#        low_spike: >-
-#          {{- low_spike -}}
-#
-#- id: motion_device_current_exist_high_spike
-#  alias: motion_device_current_exist_high_spike
-#  mode: 'single'
-#  max_exceeded: 'warn'
-#  initial_state: 'off'
-#  trigger:
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_current_exist'
-#      attribute: 'last'
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_class'
-#      attribute: 'high_spike'
-#      for:
-#        seconds: 10
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_current_high_spike'
-#      attribute: 'limit'
-#  variables:
-#    high_spike: >-
-#      {% set s = state_attr('sensor.motion_device_class','high_spike_spike') -%}
-#      {%- if s|lower != 'none' -%}
-#        {%- if 'current' in s -%}
-#          {%- set s = state_attr('sensor.motion_device_current_high_spike_spike','limit') -%}
-#          {%- if s|lower!= 'none' and s is number -%}
-#            {{ '%0.2f'|format(s) }}
-#          {%- else -%}none{%- endif -%}
-#        {%- else -%}none{%- endif -%}
-#      {%- else -%}none{%- endif %}
-#  action:
-#    - alias: 'set binary_sensor.motion_device_current_exist: high_spike'
-#      service: python_script.set_state
-#      data_template:
-#        entity_id: binary_sensor.motion_device_current_exist
-#        high_spike: >-
-#          {{- high_spike -}}
-#
-#- id: motion_device_current_exist_activity
-#  alias: motion_device_current_exist_activity
-#  mode: 'single'
-#  max_exceeded: 'warn'
-#  initial_state: 'off'
-#  trigger:
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_current_exist'
-#      attribute: 'last'
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_class'
-#      attribute: 'activity'
-#      for:
-#        seconds: 10
-#  variables:
-#    activity: >-
-#      {% set s = state_attr('binary_sensor.motion_device_class','activity') -%}
-#      {%- if s|lower != 'none' -%}
-#        {%- if 'current' in s -%}on{%- else -%}none{%- endif -%}
-#      {%- else -%}none{%- endif %}
-#  action:
-#    - alias: 'set binary_sensor.motion_device_current_exist: activity'
-#      service: python_script.set_state
-#      data_template:
-#        entity_id: binary_sensor.motion_device_current_exist
-#        activity: >-
-#          {{- activity -}}
-#
-#- id: motion_device_current_exist_unavailable
-#  alias: motion_device_current_exist_unavailable
-#  mode: 'single'
-#  max_exceeded: 'warn'
-#  initial_state: 'off'
-#  trigger:
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_current_exist'
-#      attribute: 'last'
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_class'
-#      attribute: 'automations'
-#      for:
-#        seconds: 10
-#  variables:
-#    unavailable: >-
-#      {% set s = state_attr('binary_sensor.motion_device_class','automations') -%}
-#      {%- if s|lower != 'none' -%}
-#        {%- if 'current' in s -%}on{%- else -%}none{%- endif -%}
-#      {%- else -%}none{%- endif %}
-#  action:
-#    - alias: 'set binary_sensor.motion_device_current_exist: unavailable'
-#      service: python_script.set_state
-#      data_template:
-#        entity_id: binary_sensor.motion_device_current_exist
-#        unavailable: >-
-#          {{- unavailable -}}
-#
-#- id: motion_device_current_exist_alarm
-#  alias: motion_device_current_exist_alarm
-#  mode: 'single'
-#  max_exceeded: 'warn'
-#  initial_state: 'off'
-#  trigger:
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_current_exist'
-#      attribute: 'last'
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_class'
-#      attribute: 'alarm'
-#      for:
-#        seconds: 10
-#  variables:
-#    alarm: >-
-#      {% set s = state_attr('binary_sensor.motion_device_class','alarm') -%}
-#      {%- if s|lower != 'none' -%}
-#        {%- if 'current' in s -%}on{%- else -%}none{%- endif -%}
-#      {%- else -%}none{%- endif %}
-#  action:
-#    - alias: 'set binary_sensor.motion_device_current_exist: alarm'
-#      service: python_script.set_state
-#      data_template:
-#        entity_id: binary_sensor.motion_device_current_exist
-#        alarm: >-
-#          {{- alarm -}}
-#
-#- id: motion_device_current_exist
-#  alias: motion_device_current_exist
-#  mode: 'restart'
-#  max_exceeded: 'warn'
-#  initial_state: 'off'
-#  trigger:
-#    - platform: state
-#      entity_id: 'group.motion_device_current'
-#      attribute: 'entity_id'
-#  variables:
-#    unit: >-
-#      {% set unit = state_attr('binary_sensor.motion_device_current','unit') -%}
-#      {{ unit }}
-#    last: >-
-#      {{ utcnow().timestamp() }}
-#    state: >-
-#      {%- set s = state_attr('group.motion_device_current','entity_id') -%}
-#      {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}on{%- else -%}off{%- endif -%}
-#  action:
-#    - choose:
-#        - conditions:
-#            - condition: template
-#              value_template: >
-#                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','info') }}
-#          sequence:
-#            - service: persistent_notification.create
-#              data_template:
-#                title: >-
-#                  INFO: current exist
-#                notification_id: >-
-#                  {{ 'device-current-exist' }}
-#                message: >-
-#                  Platform: {{ trigger.platform|default('none') -}}; entity: {{ trigger.entity_id|default('none') -}}; current: {{ states('binary_sensor.motion_device_current_exist') -}}; new: {{ state -}}; rescan: {{ state_attr('automation.motion_device_current_rescan','last_triggered')|relative_time -}}; ids: {{ state_attr('binary_sensor.motion_device_current','ids') -}}.  Set current exist: <b>{{- state -}}</b>
-#    - alias: 'set binary_sensor.motion_device_current_exist: state, etc..'
-#      service: python_script.set_state
-#      data_template:
-#        entity_id: binary_sensor.motion_device_current_exist
-#        unit: >-
-#          {{- unit -}}
-#        last: >-
-#          {{- last -}}
-#        state: >-
-#          {{- state -}}
-#
-#- id: motion_device_current_exist_markdown
-#  alias: motion_device_current_exist_markdown
-#  mode: restart
-#  initial_state: 'off'
-#  trigger:
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_class'
-#      attribute: 'alarms'
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_class'
-#      attribute: 'devices'
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_class'
-#      attribute: 'required'
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_current'
-#      attribute: 'devices'
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_current'
-#      attribute: 'status'
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_current_activity'
-#      attribute: 'markdown'
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_current_status'
-#      attribute: 'markdown'
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_current_measurement'
-#      attribute: 'markdown'
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_current_statistics'
-#      attribute: 'markdown'
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_current_controls'
-#      attribute: 'markdown'
-#    - platform: state
-#      entity_id: 'binary_sensor.motion_device_current_unavailable'
-#      attribute: 'markdown'
-#  variables:
-#    markdown: >-
-#      {% set c = 'current' -%}
-#      {%- set alarms = ['required','alarm'] -%}
-#      <h1>{{ c|upper }}</h1>
-#      {%- set s = state_attr('binary_sensor.motion_device_class','alarms') -%}
-#      {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
-#        {%- set alarms = alarms + s|sort|unique|list -%}
-#      {%- endif -%}
-#      {%- for i in alarms if state_attr('binary_sensor.motion_device_current_exist',i)|lower != 'none' -%}
-#        {%- if loop.first -%}<ul>{%- endif -%}
-#        <li>{{- i|upper -}}: {{ state_attr('binary_sensor.motion_device_current_exist',i) -}}</li>
-#        {%- if loop.last -%}</ul>{%- endif -%}
-#      {%- endfor -%}
-#      {%- set s = state_attr('binary_sensor.motion_device_current_status','markdown') -%} {%- if s|lower != 'none' -%}{{- s -}}{%- endif -%}
-#      {%- set s = state_attr('binary_sensor.motion_device_current_measurement','markdown') -%} {%- if s|lower != 'none' -%}{{- s -}}{%- endif -%}
-#      {%- set s = state_attr('binary_sensor.motion_device_current_statistics','markdown') -%} {%- if s|lower != 'none' -%}{{- s -}}{%- endif -%}
-#      {%- set s = state_attr('binary_sensor.motion_device_current_controls','markdown') -%} {%- if s|lower != 'none' -%}{{- s -}}{%- endif -%}
-#      {%- set s = state_attr('binary_sensor.motion_device_current_activity','markdown') -%} {%- if s|lower != 'none' -%}{{- s -}}{%- endif -%}
-#      {%- set s = state_attr('binary_sensor.motion_device_current_unavailable','markdown') -%} {%- if s|lower != 'none' -%}{{- s -}}{%- endif -%}
-#  action:
-#    - alias: 'set binary_sensor.motion_device_current_exist: markdown'
-#      service: python_script.set_state
-#      data_template:
-#        entity_id: binary_sensor.motion_device_current_exist
-#        markdown: >-
-#          {{- markdown -}}
-#
