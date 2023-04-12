@@ -64,7 +64,7 @@
                and states('sensor.internet_test')|lower == 'true' -%}
           {{- states.sensor.internet_receive.state }} Mbps; {{ states.sensor.internet_receive_mean.state }} μ;
         {%- endif %}
-        Σ: {{ states('counter.internet_counter')|int(0) -}};
+        Σ: {{ states('sensor.internet_count')|int(0) -}};
         Δ: {{ states('input_number.internet_scan_interval')|int(0) -}}s
 
 - platform: template
@@ -223,7 +223,23 @@
 # count
 
 - platform: history_stats
-  name: internet_counter
+  name: internet_slow_count
+  entity_id: binary_sensor.internet_slow
+  state: 'on'
+  type: count
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: internet_fast_count
+  entity_id: binary_sensor.internet_fast
+  state: 'on'
+  type: count
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: internet_count
   entity_id: sensor.internet_test
   state: 'True'
   type: count
@@ -242,28 +258,6 @@
           {{ utcnow().timestamp()|int(0) - d|int(0) }}
         {%- else -%}null{%- endif -%}
 
-#- platform: template
-#  sensors:
-#    internet_counter:
-#      friendly_name: 'Internet test count'
-#      icon_template: 'mdi:check-network'
-#      unit_of_measurement: tests
-#      value_template: >
-#        {% if states('counter.internet_counter')|lower != 'unavailable' %}
-#          {{ states('counter.internet_counter')|int(0) }}
-#        {%- else -%}null{%- endif -%}
-
-- platform: template
-  sensors:
-    internet_slow_counter:
-      friendly_name: 'Internet slow counter'
-      icon_template: 'mdi:minus-network'
-      unit_of_measurement: tests
-      value_template: >
-        {% if states('counter.internet_slow_counter')|lower != 'unavailable' %}
-          {{ states('counter.internet_slow_counter')|int(0) }}
-        {%- else -%}null{%- endif -%}
-
 - platform: template
   sensors:
     internet_slow_percent:
@@ -271,21 +265,10 @@
       icon_template: 'mdi:minus-network'
       unit_of_measurement: '%'
       value_template: >
-        {% set c = states('counter.internet_slow_counter') %}
-        {% set ic = states('counter.internet_counter') %}
+        {% set c = states('sensor.internet_slow_count') %}
+        {% set ic = states('sensor.internet_count') %}
         {% if ic|int(0) > 0 %}
           {{ c|float(0.0) / ic|float(0.0) * 100.0 }}
-        {%- else -%}null{%- endif -%}
-
-- platform: template
-  sensors:
-    internet_fast_counter:
-      friendly_name: 'Internet fast counter'
-      icon_template: 'mdi:plus-network'
-      unit_of_measurement: tests
-      value_template: >
-        {% if states('counter.internet_fast_counter')|lower != 'unavailable' %}
-          {{ states('counter.internet_fast_counter')|int(0) }}
         {%- else -%}null{%- endif -%}
 
 - platform: template
@@ -295,8 +278,8 @@
       icon_template: 'mdi:plus-network'
       unit_of_measurement: '%'
       value_template: >
-        {% set c = states('counter.internet_fast_counter') %}
-        {% set ic = states('counter.internet_counter') %}
+        {% set c = states('sensor.internet_fast_count') %}
+        {% set ic = states('sensor.internet_count') %}
         {% if ic|int(0) > 0 %}
           {{ c|float(0.0) / ic|float(0.0) * 100.0 }}
         {%- else -%}null{%- endif -%}

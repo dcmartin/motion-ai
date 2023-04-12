@@ -64,7 +64,7 @@
                and states('sensor.intranet_test')|lower == 'true' -%}
           {{- states.sensor.intranet_receive.state }} Mbps; {{ states.sensor.intranet_receive_mean.state }} μ;
         {%- endif %}
-        Σ: {{ states('counter.intranet_counter')|int(0) -}};
+        Σ: {{ states('sensor.intranet_count')|int(0) -}};
         Δ: {{ states('input_number.intranet_scan_interval')|int(0) -}}s
 
 - platform: template
@@ -223,7 +223,23 @@
 # count
 
 - platform: history_stats
-  name: intranet_counter
+  name: intranet_slow_count
+  entity_id: binary_sensor.intranet_slow
+  state: 'on'
+  type: count
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: intranet_fast_count
+  entity_id: binary_sensor.intranet_fast
+  state: 'on'
+  type: count
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: intranet_count
   entity_id: sensor.intranet_test
   state: 'True'
   type: count
@@ -242,28 +258,6 @@
           {{ utcnow().timestamp()|int(0) - d|int(0) }}
         {%- else -%}null{%- endif -%}
 
-#- platform: template
-#  sensors:
-#    intranet_counter:
-#      friendly_name: 'Intranet test count'
-#      icon_template: 'mdi:check-network'
-#      unit_of_measurement: tests
-#      value_template: >
-#        {% if states('counter.intranet_counter')|lower != 'unavailable' %}
-#          {{ states('counter.intranet_counter')|int(0) }}
-#        {%- else -%}null{%- endif -%}
-
-- platform: template
-  sensors:
-    intranet_slow_counter:
-      friendly_name: 'Intranet slow counter'
-      icon_template: 'mdi:minus-network'
-      unit_of_measurement: tests
-      value_template: >
-        {% if states('counter.intranet_slow_counter')|lower != 'unavailable' %}
-          {{ states('counter.intranet_slow_counter')|int(0) }}
-        {%- else -%}null{%- endif -%}
-
 - platform: template
   sensors:
     intranet_slow_percent:
@@ -271,21 +265,10 @@
       icon_template: 'mdi:minus-network'
       unit_of_measurement: '%'
       value_template: >
-        {% set c = states('counter.intranet_slow_counter') %}
-        {% set ic = states('counter.intranet_counter') %}
+        {% set c = states('sensor.intranet_slow_count') %}
+        {% set ic = states('sensor.intranet_count') %}
         {% if ic|int(0) > 0 %}
           {{ c|float(0.0) / ic|float(0.0) * 100.0 }}
-        {%- else -%}null{%- endif -%}
-
-- platform: template
-  sensors:
-    intranet_fast_counter:
-      friendly_name: 'Intranet fast counter'
-      icon_template: 'mdi:plus-network'
-      unit_of_measurement: tests
-      value_template: >
-        {% if states('counter.intranet_fast_counter')|lower != 'unavailable' %}
-          {{ states('counter.intranet_fast_counter')|int(0) }}
         {%- else -%}null{%- endif -%}
 
 - platform: template
@@ -295,8 +278,8 @@
       icon_template: 'mdi:plus-network'
       unit_of_measurement: '%'
       value_template: >
-        {% set c = states('counter.intranet_fast_counter') %}
-        {% set ic = states('counter.intranet_counter') %}
+        {% set c = states('sensor.intranet_fast_count') %}
+        {% set ic = states('sensor.intranet_count') %}
         {% if ic|int(0) > 0 %}
           {{ c|float(0.0) / ic|float(0.0) * 100.0 }}
         {%- else -%}null{%- endif -%}
