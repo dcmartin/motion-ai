@@ -1,0 +1,4645 @@
+###
+# homeassistant/automation/motion/device/irradiance.yaml
+###
+
+- id: motion_device_irradiance_change_disable
+  alias: motion_device_irradiance_change_disable
+  mode: 'single'
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_irradiance_exist
+      to: 'off'
+      for:
+        seconds: 30
+  variables:
+    automations: >-
+      {%- set automations = ['motion_device_irradiance_change','motion_device_irradiance_change_disable'] -%}
+      {{ automations }}
+    all: >-
+      {{ automations|map('regex_replace','^','automation.')|list }}
+  action:
+    - alias: 'turn OFF irradiance CHANGE'
+      service: automation.turn_off
+      data_template:
+        entity_id: >-
+          {{ all }}
+
+- id: motion_device_irradiance_change_enable
+  alias: motion_device_irradiance_change_enable
+  mode: 'single'
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_irradiance_exist
+      to: 'on'
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test if irradiance is non-binary'
+        condition: template
+        value_template: >-
+          {{ state_attr('group.motion_device_irradiance','entity_id')|reject('search','^binary_sensor\.')|list|count > 0 }}
+  variables:
+    automations: >-
+      {%- set automations = ['motion_device_irradiance_change','motion_device_irradiance_change_disable'] -%}
+      {{ automations }}
+    all: >-
+      {{ automations|map('regex_replace','^','automation.')|list }}
+  action:
+    - alias: 'turn ON irradiance CHANGE'
+      service: automation.turn_on
+      data_template:
+        entity_id: >-
+          {{ all }}
+
+- id: motion_device_irradiance_change
+  alias: motion_device_irradiance_change
+  mode: 'queued'
+  max: 20
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+    - platform: event
+      event_type: state_changed
+  variables:
+    entity_id: >-
+      {% set entity_id = None -%}
+      {% if trigger is defined and trigger is iterable and 'event' in trigger -%}
+        {% set entity_id = trigger.event.data.entity_id|default(None) -%}
+      {%- endif -%}
+      {{ entity_id }}
+    entity_group: >-
+      {% set entity_group = state_attr('group.motion_device_irradiance','entity_id') -%}
+      {{ entity_group }}
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test if entity in irradiance group'
+        condition: template
+        value_template: >
+          {{- entity_id|lower != 'none' and entity_group|lower != 'none' and entity_id in entity_group -}}
+  action:
+    - alias: 'set binary_sensor.motion_device_irradiance_change'
+      service: python_script.set_state
+      data_template:
+        entity_id: 'binary_sensor.motion_device_irradiance_change'
+        allow_create: true
+        entity: >-
+          {{ entity_id }}
+        state: >-
+          {{ 'on' }}
+    - variables:
+        did: >-
+          {{ device_id(entity_id) }}
+        sensor: >-
+          {{ 'binary_sensor.motion_devices_' + did|string }}
+    - alias: 'set binary_sensor.motion_devices_<did>: count, last, interval'
+      service: python_script.set_state
+      data_template:
+        allow_create: true
+        entity_id: >-
+          {{ sensor }}
+        last: >-
+          {{ utcnow().timestamp() }}
+        count: >-
+          {{ state_attr(sensor,'count')|int(0) + 1 -}}
+        interval: >-
+          {% set s = state_attr(sensor,'last')|float(0) -%}
+          {%- if s|float(0) > 0 -%}
+            {{- utcnow().timestamp() - s|float(0) -}}
+          {%- else -%}None{%- endif %}
+
+- id: motion_device_irradiance_automation_enable_notify
+  alias: motion_device_irradiance_automation_enable_notify
+  mode: 'single'
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_irradiance
+      attribute: 'automations'
+      to: 'on'
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test log level'
+        condition: template
+        value_template: >
+          {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+  action:
+    - alias: 'create log notification'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          DEBUG: irradiance automation: on
+        notification_id: >
+          {{- 'log-automation-irradiance' -}}
+        message: >-
+          All irradiance automations are {{ state_attr('binary_sensor.motion_device_irradiance','automations')|upper }}
+
+- id: motion_device_irradiance_automation_disable_notify
+  alias: motion_device_irradiance_automation_disable_notify
+  mode: 'single'
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_irradiance
+      attribute: 'automations'
+      to: 'off'
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test log level'
+        condition: template
+        value_template: >
+          {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+  action:
+    - alias: 'create log notification'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          DEBUG: irradiance automation: off
+        notification_id: >
+          {{- 'log-automation-irradiance' -}}
+        message: >-
+          All irradiance automations are {{ state_attr('binary_sensor.motion_device_irradiance','automations')|upper }}
+
+- id: motion_device_irradiance_automation_enable
+  alias: motion_device_irradiance_automation_enable
+  mode: 'single'
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_irradiance_exist
+      to: 'on'
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test if irradiance exist is on and test if irradiance automations not on'
+        condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_irradiance_exist','on') and not is_state_attr('binary_sensor.motion_device_irradiance','automations','on') }}
+  variables:
+    automations: >-
+      {%- set automations = ['motion_device_irradiance_state','motion_device_irradiance_sensor','motion_device_irradiance_automation_disable','motion_device_irradiance_status_watchdog','motion_device_irradiance_status','motion_device_irradiance_bad','motion_device_irradiance_bad_off','motion_device_irradiance_bad_on','motion_device_irradiance_alarm_bad_on','motion_device_irradiance_bad_dismiss','motion_device_irradiance_bad_notify','motion_device_irradiance_low','motion_device_irradiance_low_off','motion_device_irradiance_low_on','motion_device_irradiance_alarm_low_on','motion_device_irradiance_alarm_low_off','motion_device_irradiance_low_notify','motion_device_irradiance_dismiss','motion_device_irradiance_low_dismiss','motion_device_irradiance_high','motion_device_irradiance_high_off','motion_device_irradiance_high_on','motion_device_irradiance_alarm_high_on','motion_device_irradiance_alarm_high_off','motion_device_irradiance_high_notify','motion_device_irradiance_high_dismiss','motion_device_irradiance_good','motion_device_irradiance_good_off','motion_device_irradiance_good_on','motion_device_irradiance_alarm_good_on','motion_device_irradiance_good_dismiss','motion_device_irradiance_good_notify','motion_device_irradiance_activity_disable','motion_device_irradiance_activity_enable','motion_device_irradiance_activity_notify','motion_device_irradiance_turn_on','motion_device_irradiance_turn_off','motion_device_irradiance_toggle','motion_device_irradiance_self_test','motion_device_irradiance_mute','motion_device_irradiance_unmute','motion_device_irradiance_restart','motion_device_irradiance_update','motion_device_irradiance_cleared_notify','motion_device_irradiance_cleared_dismiss','motion_device_irradiance_activity_dismiss','motion_device_irradiance_high_spike','motion_device_irradiance_high_spike_off','motion_device_irradiance_high_spike_on','motion_device_irradiance_alarm_high_spike_on','motion_device_irradiance_alarm_high_spike_off','motion_device_irradiance_high_spike_notify','motion_device_irradiance_high_spike_dismiss','motion_device_irradiance_low_spike','motion_device_irradiance_low_spike_off','motion_device_irradiance_low_spike_on','motion_device_irradiance_alarm_low_spike_on','motion_device_irradiance_alarm_low_spike_off','motion_device_irradiance_low_spike_notify','motion_device_irradiance_low_spike_dismiss'] -%}
+      {{ automations }}
+    all: >-
+      {{ automations|map('regex_replace','^','automation.')|list }}
+  action:
+    - alias: 'wait until disable is not running'
+      wait_template: >-
+        {{ is_state('automation.motion_device_irradiance_automation_disable','off') or is_state_attr('automation.motion_device_irradiance_automation_disable','current',0) }}
+    - alias: 'turn ON ALL irradiance automations'
+      service: automation.turn_on
+      data_template:
+        entity_id: >-
+          {{ all }}
+    - alias: 'set binary_sensor.motion_device_irradiance: automations to ON'
+      service: python_script.set_state
+      data_template:
+        entity_id: 'binary_sensor.motion_device_irradiance'
+        automations: >-
+          {{ 'on' }}
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: irradiance enabled
+                notification_id: >
+                  {{- 'log-automation-irradiance' -}}
+                message: >-
+                  All irradiance automations are enabled; total: {{ automations|count }}
+
+- id: motion_device_irradiance_automation_disable
+  alias: motion_device_irradiance_automation_disable
+  mode: 'single'
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_irradiance_exist
+      to: 'off'
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test if irradiance_exist is off'
+        condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_irradiance_exist','off') }}
+      - alias: 'test if irradiance automations are on'
+        condition: template
+        value_template: >-
+          {{ is_state_attr('binary_sensor.motion_device_irradiance','automations','on') }}
+      - alias: 'test if enable not in progress'
+        condition: template
+        value_template: >-
+          {{ is_state_attr('automation.motion_device_irradiance_automation_enable','current',0) }}
+  variables:
+    automations: >-
+      {%- set automations = ['motion_device_irradiance_state','motion_device_irradiance_sensor','motion_device_irradiance_automation_disable','motion_device_irradiance_status_watchdog','motion_device_irradiance_status','motion_device_irradiance_bad','motion_device_irradiance_bad_off','motion_device_irradiance_bad_on','motion_device_irradiance_alarm_bad_on','motion_device_irradiance_bad_dismiss','motion_device_irradiance_bad_notify','motion_device_irradiance_low','motion_device_irradiance_low_off','motion_device_irradiance_low_on','motion_device_irradiance_alarm_low_on','motion_device_irradiance_alarm_low_off','motion_device_irradiance_low_notify','motion_device_irradiance_dismiss','motion_device_irradiance_low_dismiss','motion_device_irradiance_high','motion_device_irradiance_high_off','motion_device_irradiance_high_on','motion_device_irradiance_alarm_high_on','motion_device_irradiance_alarm_high_off','motion_device_irradiance_high_notify','motion_device_irradiance_high_dismiss','motion_device_irradiance_good','motion_device_irradiance_good_off','motion_device_irradiance_good_on','motion_device_irradiance_alarm_good_on','motion_device_irradiance_good_dismiss','motion_device_irradiance_good_notify','motion_device_irradiance_activity_disable','motion_device_irradiance_activity_enable','motion_device_irradiance_activity_notify','motion_device_irradiance_turn_on','motion_device_irradiance_turn_off','motion_device_irradiance_toggle','motion_device_irradiance_self_test','motion_device_irradiance_mute','motion_device_irradiance_unmute','motion_device_irradiance_restart','motion_device_irradiance_update','motion_device_irradiance_cleared_notify','motion_device_irradiance_cleared_dismiss','motion_device_irradiance_activity_dismiss','motion_device_irradiance_high_spike','motion_device_irradiance_high_spike_off','motion_device_irradiance_high_spike_on','motion_device_irradiance_alarm_high_spike_on','motion_device_irradiance_alarm_high_spike_off','motion_device_irradiance_high_spike_notify','motion_device_irradiance_high_spike_dismiss','motion_device_irradiance_low_spike','motion_device_irradiance_low_spike_off','motion_device_irradiance_low_spike_on','motion_device_irradiance_alarm_low_spike_on','motion_device_irradiance_alarm_low_spike_off','motion_device_irradiance_low_spike_notify','motion_device_irradiance_low_spike_dismiss'] -%}
+      {{ automations }}
+    all: >-
+      {{ automations|map('regex_replace','^','automation.')|list }}
+  action:
+    - wait_template: >-
+        {{ is_state_attr('automation.motion_device_irradiance_automation_enable','current',0) }}
+    - alias: 'turn OFF ALL irradiance automations'
+      service: automation.turn_off
+      data_template:
+        entity_id: >-
+          {{ all }}
+    - alias: 'set binary_sensor.motion_device_irradiance: automations to OFF'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_irradiance
+        automations: >-
+          {{ 'off' }}
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: irradiance disabled
+                notification_id: >
+                  {{- 'log-automation-irradiance' -}}
+                message: >-
+                  All irradiance automations are enabled; total: {{ automations|count }}
+
+- id: motion_device_irradiance_count
+  alias: motion_device_irradiance_count
+  mode: 'single'
+  max_exceeded: 'silent'
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id:
+        - 'sensor.motion_domain_binary_sensor_count'
+        - 'sensor.motion_domain_sensor_count'
+  variables:
+    class: >-
+      {%- set class = 'irradiance' -%}
+      {{ class }}
+    total: >-
+      {%- set total = states|selectattr('attributes.device_class','defined')|selectattr('attributes.device_class','==',class)|rejectattr('attributes.source_value_valid','defined')|list|count -%}
+      {{ total }}
+    dids: >-
+      [{%- for i in states|selectattr('attributes.device_class','defined')|selectattr('attributes.device_class','==',class)|rejectattr('attributes.source_value_valid','defined')|selectattr('entity_id','defined')|map(attribute='entity_id')|map('device_id')|reject('none')|sort|unique|list -%}
+        {%- if not loop.first -%},{%- endif -%}
+        "{{- i -}}"
+      {%- endfor -%}]
+    entitys: >-
+      [{%- for i in states|selectattr('attributes.device_class','defined')|selectattr('attributes.device_class','==',class)|rejectattr('attributes.source_value_valid','defined')|selectattr('entity_id','defined')|map(attribute='entity_id')|sort|unique|list if device_id(i)|lower != 'none' and 'sensor.' in i|string -%}
+        {%- if not loop.first -%},{%- endif -%}
+        "{{- i -}}"
+      {%- endfor -%}]
+    state: >-
+      {%- set state = None -%}
+      {%- if not entitys is string and entitys|lower != 'none' and entitys is iterable -%}
+        {%- set state = entitys|count -%}
+      {%- endif -%}
+      {{ state }}
+  action:
+    - alias: 'test if entitys is not none'
+      condition: template
+      value_template: >-
+        {{ entitys|lower != 'none' }}
+    - alias: 'update motion_device_irradiance_count'
+      service: python_script.set_state
+      data_template:
+        entity_id: 'sensor.motion_device_irradiance_count'
+        allow_create: true
+        total: >-
+          {{ total }}
+        dids: >-
+          {{ dids }}
+        entitys: >-
+          {{ entitys }}
+        state: >-
+          {{ state }}
+
+- id: motion_device_irradiance_rescan_watchdog
+  alias: motion_device_irradiance_rescan_watchdog
+  mode: 'restart'
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+    - platform: time_pattern
+      minutes: /30
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test if time_pattern'
+        condition: template
+        value_template: >-
+          {{- trigger.platform == 'time_pattern' and state_attr('automation.motion_device_irradiance_rescan','last_triggered')|as_timestamp(0) < (utcnow().timestamp() - 60) -}}
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: irradiance rescan watchdog
+                notification_id: >
+                  {{- 'log-irradiance-rescan-watchdog' -}}
+                message: >-
+                  Platform: {{ trigger.platform -}}.
+                  {%- if trigger.platform == 'state' -%}
+                    Entity ID: {{ trigger.entity_id|default('none') }}{% if 'from' in trigger %}from {{ trigger.from }}{% endif %}{% if 'to' in trigger %}to {{ trigger.to }}{% endif %}{% if 'for' in trigger %} for {{ trigger.for }}{% endif -%}.
+                  {%- elif trigger.platform == 'time_pattern' -%}
+                    at {{ trigger.now|as_timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}.
+                  {%- endif -%}
+    - alias: 'TRIGGER automation.motion_device_irradiance_rescan'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_irradiance_rescan
+
+- id: motion_device_irradiance_rescan
+  alias: motion_device_irradiance_rescan
+  mode: 'restart'
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: 'sensor.motion_device_irradiance_count'
+      not_to:
+        - 'none'
+        - 'unknown'
+      for:
+        seconds: 15
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test if entitys exist'
+        condition: template
+        value_template: >-
+          {%- set entitys = state_attr('sensor.motion_device_irradiance_count','entitys') -%}
+          {{ entitys|lower != 'none' and entitys is iterable }}
+  variables:
+    class: >-
+      {%- set class = 'irradiance' -%}
+      {{- class -}}
+    entitys: >-
+      {%- set entitys = state_attr('sensor.motion_device_' + class + '_count','entitys') -%}
+      {{ entitys }}
+    dids: >-
+      {%- set dids = state_attr('sensor.motion_device_' + class + '_count','dids') -%}
+      {{ dids }}
+    all: >-
+      {%- set s = entitys -%}
+      {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
+        [{%- for entity_id in s if device_id(entity_id)|lower != 'none' and not state_attr(entity_id,'state_class')|lower in ['total','total_increasing'] -%}
+          {%- if not loop.first -%},{% endif -%}
+          {%- set did = device_id(entity_id) -%}
+          {%- set id = device_attr(did,'name_by_user') -%}{%- if id|lower == 'none' -%}{%- set id = device_attr(did,'name') -%}{%- endif -%}
+          {% set id = id|replace('&','_')|replace(' ','_')|replace('\'','')|replace('-','_')|lower -%}
+          {"entity_id":"{{- entity_id -}}","id":"{{- id -}}","did":"{{- did  -}}","area":"{{- area_id(entity_id) -}}"}
+        {%- endfor -%}]
+      {%- else -%}none{%- endif -%}
+    mobile: >-
+      {%- set s = states.device_tracker|selectattr('entity_id','defined')|map(attribute='entity_id')|list -%}
+      {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
+        {%- set s = s|map('device_id')|list -%}
+        {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
+          {%- set device_trackers = s|sort|unique|list -%}
+          {%- set s = entitys -%}
+          {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
+            [{%- for entity_id in s if device_id(entity_id)|lower != 'none' and device_id(entity_id) in device_trackers -%}
+              {%- if not loop.first -%},{% endif -%}
+              {%- set id = device_attr(device_id(entity_id),'name_by_user') -%}{%- if id|lower == 'none' -%}{%- set id = device_attr(device_id(entity_id),'name') -%}{%- endif -%}
+              {% set id = id|replace('&','_')|replace(' ','_')|replace('\'','')|replace('-','_')|lower -%}
+              "{{- id -}}"
+            {%- endfor -%}]
+          {%- else -%}none{%- endif -%}
+        {%- else -%}none{%- endif -%}
+      {%- else -%}none{%- endif -%}
+    ids: >-
+      {% set ids = none %}
+      {%- if all|lower != 'none' and all is iterable and all|count > 0 -%}
+        {%- set ids = all|map(attribute='id')|sort|unique|list -%}
+      {%- endif -%}
+      {{ ids }}
+    mobiles: >-
+      {%- if mobile|lower != 'none' and mobile is iterable and mobile|count > 0 -%}
+        {{- mobile|sort|unique|list -}}
+      {% else %}none{% endif %}
+    total: >-
+      {% set s = dids %}
+      {% if s|lower != 'none' and not s is string and s is iterable %}
+        {{ s|count }}
+      {%- else -%}null{%- endif %}
+    update: >-
+      {%- set s = dids %}
+      {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        [{%- for i in s -%}
+          {%- set did = i -%}
+          {%- set id = 'none' -%}
+          {%- set p = all|selectattr('did','==',did)|map(attribute='id')|list -%}
+          {%- if p|lower != 'none' and s is iterable and p|count > 0 -%}
+            {%- set id = p|first -%}
+          {%- endif -%}
+          {%- set o = loop -%}
+          {%- for state in (states.button|list + states.switch|list) if device_id(state.entity_id) == did and state.attributes.device_class|default('null')|string == 'update' -%}
+            {%- set v = state.state -%}
+            {"did":"{{- did -}}","id":"{{- id -}}","entity_id":"{{- state.entity_id -}}"}
+            {%- if not (loop.last and o.last) -%},{%- endif -%}
+          {%- endfor -%}
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
+    restart: >-
+      {%- set s = dids %}
+      {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        [{%- for i in s -%}
+          {%- set o = loop -%}
+          {%- for state in (states.button|list + states.switch|list) if device_id(state.entity_id) == i and state.attributes.device_class|default('null')|string == 'restart' -%}
+            {%- set v = state.state -%}
+            {"id":"{{- device_attr(i,'name') -}}","entity_id":"{{- state.entity_id -}}"}
+            {%- if not (loop.last and o.last) -%},{%- endif -%}
+          {%- endfor -%}
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
+    controls: >-
+      {%- set s = dids -%}
+      {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        [{%- for i in s -%}
+          {%- set o = loop -%}
+          {%- for state in (states.button|list + states.switch|list) if device_id(state.entity_id) == i and state.attributes.device_class|default('null')|string == 'null' -%}
+            {%- set ctl = state_attr(state.entity_id,'friendly_name') -%}
+            {"id":"{{- device_attr(i,'name') -}}","entity_id":"{{- state.entity_id -}}","friendly_name":"{{- ctl -}}"}
+            {%- if not (loop.last and o.last) -%},{%- endif -%}
+          {%- endfor -%}
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
+    test: >-
+      {%- set s = dids -%}
+      {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        [{%- for i in s -%}
+          {%- set o = loop -%}
+          {%- for state in states.sensor if device_id(state.entity_id) == i and state.attributes.self_test|default('none')|string != 'none' -%}
+            {%- if not loop.first or not o.first -%},{%- endif -%}
+            {"id":"{{- device_attr(i,'name') -}}","entity_id":"{{- state.entity_id -}}","state":"{{- state.state -}}","updated":{{- state.last_updated|as_timestamp(None) -}}}
+          {%- endfor -%}
+        {%- endfor -%}]
+      {%- else -%}null{%- endif %}
+    areas: >-
+      {%- set s = dids %}
+      {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        [{%- for i in s -%}
+          {%- set did = i -%}
+          {%- set id = 'none' -%}
+          {%- set p = all|selectattr('did','==',did)|map(attribute='id')|list -%}
+          {%- if p|lower != 'none' and s is iterable and p|count > 0 -%}
+            {%- set id = p|first -%}
+          {%- endif -%}
+          {%- set o = loop -%}
+          {%- for entity_id in entitys if device_id(entity_id) == did and state_attr(entity_id,'device_class')|string == class  -%}
+            {"did":"{{- did -}}","id":"{{- id -}}","area":"{{- area_id(entity_id) -}}","state":"{{- states(entity_id) -}}"}
+            {%- if not (loop.last and o.last) -%},{%- endif -%}
+          {%- endfor -%}
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
+    devices: >-
+      {%- set s = dids %}
+      {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        [{% for i in s -%}
+          {%- set did = i -%}
+          {%- set id = 'none' -%}
+          {%- set p = all|selectattr('did','==',did)|map(attribute='id')|list -%}
+          {%- if p|lower != 'none' and p is iterable and p|count > 0 -%}
+            {%- set id = p|first -%}
+          {%- else -%}
+            {%- set id = device_attr(did,'name_by_user') -%}{%- if id|lower == 'none' or id|string|length == 0 or id|lower == 'unknown' -%}{%- set id = device_attr(did,'name') -%}{%- endif -%}
+            {% set id = id|replace('&','_')|replace(' ','_')|replace('\'','')|replace('-','_')|lower -%}
+          {%- endif -%}
+          {%- set k = areas|selectattr('did','==',did)|map(attribute='area')|reject('none')|list -%}
+          {%- if k is iterable and k|count > 0 -%}{%- set k = k|first -%}{%- else -%}{%- set k = 'none' -%}{%- endif -%}
+          {%- set n = device_attr(did,'name_by_user') -%}
+          {%- if n|lower == 'none' -%}{%- set n = device_attr(did,'name') -%}{%- endif -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {"id":"{{- id -}}", "did":"{{- did -}}", "friendly_name":"{{- n -}}", "manufacturer":"{{- device_attr(did,'manufacturer') -}}", "model":"{{- device_attr(did,'model') -}}", "sw_version":"{{- device_attr(did,'sw_version') -}}", "area":"{{- k -}}"}
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
+    unit: >-
+      {% set unit = '†' %}
+      {%- if entitys|lower != 'none' and entitys is iterable and entitys|count > 0 -%}
+        {%- set unit = entitys|map('state_attr','unit_of_measurement')|map('string')|reject('in',['none','unknown','unavailable'])|sort|unique|first -%}
+      {%- endif -%}
+      {{- unit -}}
+    statistics: >-
+      {%- set s = entitys -%}
+      {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
+        [{%- for entity_id in s if device_id(entity_id)|lower != 'none' and state_attr(entity_id,'state_class')|lower in ['total','total_increasing'] -%}
+          {%- if not loop.first -%},{% endif -%}
+          {%- set did = device_id(entity_id) -%}
+          {%- set id = device_attr(did,'name_by_user') -%}{%- if id|lower == 'none' -%}{%- set id = device_attr(did,'name') -%}{%- endif -%}
+          {% set id = id|replace('&','_')|replace(' ','_')|replace('\'','')|replace('-','_')|lower -%}
+          {%- set unit = state_attr(entity_id,'unit_of_measurement') -%}
+          {"entity_id":"{{- entity_id -}}","class":"{{- state_attr(entity_id,'state_class') -}}","unit":"{{- unit -}}","id":"{{- id -}}","did":"{{- did  -}}","area":"{{- area_id(entity_id) -}}"}
+        {%- endfor -%}]
+      {%- else -%}none{%- endif -%}
+  action:
+    - alias: 'update binary_sensor.motion_device_irradiance: rescan'
+      service: python_script.set_state
+      data_template:
+        entity_id: 'binary_sensor.motion_device_irradiance'
+        scan: >-
+          {{ utcnow().timestamp() }}
+        unit: >-
+          {{ unit }}
+        ids: >-
+          {{ ids }}
+        dids: >-
+          {{ dids }}
+        mobiles: >-
+          {{ mobiles }}
+        total: >-
+          {{ total }}
+        update: >-
+          {{ update }}
+        restart: >-
+          {{ restart }}
+        controls: >-
+          {%- if controls|lower != 'none' and not controls is string and controls is iterable and controls|count > 0  -%}
+            {{ controls|reject('none')|list }}
+          {%- else -%}
+            {{ controls }}
+          {%- endif -%}
+        test: >-
+          {{ test }}
+        areas: >-
+          {{ areas }}
+        devices: >-
+          {{ devices }}
+        statistics: >-
+          {{ statistics }}
+    - alias: 'test if entitys exist for irradiance'
+      condition: template
+      value_template: >-
+        {{ entitys|lower != 'none' and not entitys is string and entitys is iterable and entitys|count > 0 }}
+    - alias: 'GROUP.set: group.motion_device_irradiance'
+      service: group.set
+      data_template:
+        object_id: motion_device_irradiance
+        entities: >-
+          {{ entitys }}
+
+## activity group
+
+- id: motion_device_irradiance_activity_add_class
+  alias: motion_device_irradiance_activity_add_class
+  mode: 'single'
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_irradiance_exist
+      to: 'on'
+  variables:
+    entitys: >-
+      {% set entitys = state_attr('group.motion_device_irradiance','entity_id') %}
+      {{ entitys }}
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test if entitys is none or irradiance not in entitys'
+        condition: template
+        value_template: >-
+          {% set s = state_attr('binary_sensor.motion_device_class','activity') %}
+          {{ s|lower != 'none' and s is iterable and s|count > 0 and 'irradiance' in s }}
+      - alias: 'test if entitys is none or irradiance not in entitys'
+        condition: template
+        value_template: >-
+          {{ entitys|lower != 'none' and entitys is iterable and entitys|count > 0 }}
+  action:
+    - alias: 'GROUP.set: ADD irradiance sensors to ACTIVITY group'
+      service: group.set
+      data_template:
+        object_id: motion_device_class_activity
+        add_entities: >-
+          {{ entitys }}
+
+- id: motion_device_irradiance_activity_remove_class
+  alias: motion_device_irradiance_activity_remove_class
+  mode: 'single'
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_irradiance_exist
+      to: 'off'
+  variables:
+    entitys: >-
+      {% set entitys = state_attr('group.motion_device_irradiance','entity_id') %}
+      {{ entitys }}
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test if entitys is none or irradiance not in entitys'
+        condition: template
+        value_template: >-
+          {{ 'irradiance' in state_attr('binary_sensor.motion_device_class','activity') }}
+      - alias: 'test if entitys is not none'
+        condition: template
+        value_template: >-
+          {{ entitys|lower != 'none' and entitys is iterable and entitys|count > 0 }}
+  action:
+    - alias: 'GROUP.set: REMOVE irradiance sensors from ACTIVITY group'
+      service: group.set
+      data_template:
+        object_id: motion_device_class_activity
+        remove_entities: >-
+          {{ entitys }}
+
+## unavailable group
+
+- id: motion_device_irradiance_unavailable_add
+  alias: motion_device_irradiance_unavailable_add
+  mode: 'single'
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_irradiance_exist
+      to: 'on'
+  variables:
+    sensor: >-
+      {% set sensor = 'binary_sensor.motion_device_irradiance_unavailable' %}
+      {{ sensor }}
+    entitys: >-
+      {% set entitys = state_attr('group.motion_device_class_unavailable','entity_id') %}
+      {{ entitys }}
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test if entitys is none or irradiance not in entitys'
+        condition: template
+        value_template: >-
+          {{ entitys|lower == 'none' or ( entitys is iterable and not sensor in entitys ) }}
+  action:
+    - alias: 'GROUP.set: irradiance to UNAVAILABLE group'
+      service: group.set
+      data_template:
+        object_id: motion_device_class_unavailable
+        add_entities: >-
+          {{ sensor }}
+
+- id: motion_device_irradiance_unavailable_remove
+  alias: motion_device_irradiance_unavailable_remove
+  mode: 'single'
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_irradiance_exist
+      to: 'off'
+  variables:
+    sensor: >-
+      {% set sensor = 'binary_sensor.motion_device_irradiance_unavailable' %}
+      {{ sensor }}
+    entitys: >-
+      {% set entitys = [] %}
+      {% set s = state_attr('group.motion_device_class_unavailable','entity_id') %}
+      {% if s|lower != 'none' and s is iterable %}
+        {% set entitys = s %}
+      {% endif %}
+      {{ entitys }}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ sensor|lower != 'none' and entitys is iterable and sensor in entitys }}
+  action:
+    - variables:
+        entities: >-
+          {%- if entitys is iterable and entitys|count > 0 -%}
+            {{- entitys|reject('==',sensor)|list -}}
+          {%- else -%}[]{%- endif -%}
+    - alias: 'GROUP.set: remove irradiance from UNAVAILABLE group'
+      service: group.set
+      data_template:
+        object_id: motion_device_class_unavailable
+        entities: >-
+          {{ entities }}
+
+## update status
+
+- id: motion_device_irradiance_status_watchdog
+  alias: motion_device_irradiance_status_watchdog
+  mode: 'single'
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+    - platform: time_pattern
+      minutes: /5
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_irradiance'
+      attribute: 'scan'
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test entitys defined'
+        condition: template
+        value_template: >-
+          {%- set s = state_attr('group.motion_device_irradiance','entity_id') -%}
+          {{- s|lower != 'none' and not s is string and s is iterable and s|count > 0 -}}
+      - alias: 'test if time_pattern'
+        condition: template
+        value_template: >-
+          {{- trigger.platform == 'time_pattern' and state_attr('automation.motion_device_irradiance_status','last_triggered')|as_timestamp(0) < (utcnow().timestamp() - 60) -}}
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: irradiance status watchdog
+                notification_id: >
+                  {{- 'log-irradiance-status' -}}
+                message: >-
+                  Platform: {{ trigger.platform -}}.
+                  {%- if trigger.platform == 'state' -%}
+                    Entity ID: {{ trigger.entity_id|default('none') }}{% if 'from' in trigger %}from {{ trigger.from }}{% endif %}{% if 'to' in trigger %}to {{ trigger.to }}{% endif %}{% if 'for' in trigger %} for {{ trigger.for }}{% endif -%}.
+                  {%- elif trigger.platform == 'time_pattern' -%}
+                    at {{ trigger.now|as_timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}.
+                  {%- endif -%}
+    - alias: 'trigger irradiance status'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_irradiance_status
+
+- id: motion_device_irradiance_status
+  alias: motion_device_irradiance_status
+  mode: 'single'
+  max_exceeded: 'silent'
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: 'group.motion_device_irradiance'
+      for:
+        seconds: 5
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_irradiance_change'
+      for:
+        seconds: 5
+  variables:
+    class: >-
+      {% set class = 'irradiance' %}
+      {{ class }}
+    devices: >-
+      {% set devices = None -%}
+      {%- set s = state_attr('binary_sensor.motion_device_' + class,'devices') -%}
+      {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set devices = s -%}
+      {%- endif -%}
+      {{- devices }}
+    status: >-
+      {%- set s = state_attr('group.motion_device_' + class,'entity_id') -%}
+      {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 and devices|lower != 'none' -%}
+        [{%- for state in s if device_id(state)|lower != 'none' -%}
+          {%- set did = device_id(state)|string -%}
+          {%- set p = devices|selectattr('did','defined')|selectattr('did','==',did)|map(attribute='id')|list -%}
+          {%- if p|lower != 'none' and p is iterable and p|count > 0 -%}
+            {%- set id = p|first|default(None)|string -%}
+          {%- endif -%}
+          {%- if not id is defined or id|lower == 'none' or id|string|length == 0 -%}
+            {%- set id = device_attr(did,'name_by_user') -%}
+            {%- if id|lower == 'none' or id|string|length == 0 or id|lower == 'unknown' -%}
+              {%- set id = device_attr(did,'name') -%}
+            {%- endif -%}
+            {% set id = id|replace('&','_')|replace(' ','_')|replace('\'','')|replace('-','_')|lower -%}
+          {%- endif -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {"did":"{{- did -}}","id":"{{- id -}}","class":"{{- state_attr(state,'state_class') -}}","friendly_name":"{{- state_attr(state,'friendly_name') -}}","entity_id":"{{- state -}}","state":"{{- states(state) -}}","updated":{{- states[state].last_updated|as_timestamp(None) -}}}
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
+  action:
+    - alias: 'update binary_sensor.motion_device_irradiance: status'
+      service: python_script.set_state
+      data_template:
+        entity_id: >-
+          {{ 'binary_sensor.motion_device_' + class|string }}
+        status: >-
+          {{ status }}
+    - alias: 'test NOT monitoring CHANGE'
+      condition: template
+      value_template: >
+        {# if not monitoring change #}
+        {{ not is_state('automation.motion_device_irradiance_change','on') }}
+    - variables:
+        did: >-
+          {% if status is iterable and status|count > 0 %}
+            {{ status|sort(reverse=true,attribute='updated')|map(attribute='did')|map('string')|reject('none')|first }}
+          {% else %}none{% endif %}
+        sensor: >-
+          {{ 'binary_sensor.motion_devices_' + did|string }}
+    - alias: 'test if device found'
+      condition: template
+      value_template: >
+        {{ did|lower != 'none' }}
+    - alias: 'set binary_sensor.motion_devices_<did>: count, last, interval'
+      service: python_script.set_state
+      data_template:
+        allow_create: true
+        entity_id: >-
+          {{ sensor }}
+        last: >-
+          {{ utcnow().timestamp() }}
+        count: >-
+          {{ state_attr(sensor,'count')|int(0) + 1 -}}
+        interval: >-
+          {% set s = state_attr(sensor,'last')|float(0) -%}
+          {%- if s|float(0) > 0 -%}
+            {{- utcnow().timestamp() - s|float(0) -}}
+          {%- else -%}None{%- endif %}
+
+- id: motion_device_irradiance_state
+  alias: motion_device_irradiance_state
+  mode: 'single'
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_irradiance'
+      attribute: 'status'
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_irradiance_exist'
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test sensors defined'
+        condition: template
+        value_template: >-
+          {% set s = state_attr('binary_sensor.motion_device_irradiance','status') -%}
+          {{ s|lower != 'none' and not s is string and s is iterable and s|count > 0 }}
+  variables:
+    class: >-
+      {% set class = 'irradiance' %}
+      {{ class }}
+    status: >-
+      {%- set status = state_attr('binary_sensor.motion_device_' + class,'status') -%}
+      {{- status -}}
+    high: >-
+      {% if state_attr('binary_sensor.motion_device_' + class|string + '_exist','high')|float('none') != 'none' -%}
+        {% set s = status -%}
+        {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+          {% set n = state_attr('binary_sensor.motion_device_' + class|string + '_exist','high')|float(0) -%}
+          [{% for i in s if 'entity_id' in i and states(i.entity_id)|float(n) > n -%}
+            {%- if not loop.first -%},{%- endif -%}
+            {"did":"{{- i.did -}}","id":"{{- i.id -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- i.updated -}}}
+          {%- endfor -%}]
+        {%- else -%}none{%- endif -%}
+      {%- else -%}none{%- endif %}
+    low: >-
+      {% if state_attr('binary_sensor.motion_device_' + class|string + '_exist','low')|float('none') != 'none' -%}
+        {%- set s = status -%}
+        {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+          {% set n = state_attr('binary_sensor.motion_device_' + class|string + '_exist','low')|float(0) -%}
+          [{% for i in s if 'entity_id' in i and states(i.entity_id)|float(n) < n -%}
+            {%- if not loop.first -%},{%- endif -%}
+            {"did":"{{- i.did -}}","id":"{{- i.id -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- i.updated -}}}
+          {%- endfor -%}]
+        {%- else -%}none{%- endif -%}
+      {%- else -%}none{%- endif %}
+    good: >-
+      {% set good = state_attr('binary_sensor.motion_device_' + class|string + '_exist','good') -%}
+      {%- if good|lower != 'none' -%}
+        {% set s = status -%}
+        {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+          [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,good) -%}
+            {%- if not loop.first -%},{%- endif -%}
+            {"did":"{{- i.did -}}","id":"{{- i.id -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- i.updated -}}}
+          {%- endfor -%}]
+        {%- else -%}none{%- endif -%}
+      {%- else -%}none{%- endif %}
+    bad: >-
+      {% set bad = state_attr('binary_sensor.motion_device_' + class|string + '_exist','bad') -%}
+      {%- if bad|lower != 'none' -%}
+        {% set s = status -%}
+        {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+          [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,bad) -%}
+            {%- if not loop.first -%},{%- endif -%}
+            {"did":"{{- i.did -}}","id":"{{- i.id -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- i.updated -}}}
+          {%- endfor -%}]
+        {%- else -%}none{%- endif -%}
+      {%- else -%}none{%- endif %}
+    unavailable: >-
+      {%- set s = status -%}
+      {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        [{% for i in s if 'entity_id' in i and not i.entity_id is none and is_state(i.entity_id,'unavailable') or is_state(i.entity_id,'unknown') -%}
+          {%- if not loop.first -%},{%- endif -%}
+            {"did":"{{- i.did -}}","id":"{{- i.id -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- i.updated -}}}
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
+    found: >-
+      {%- set s = status -%}
+      {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        [{% for i in s if 'entity_id' in i and not i.entity_id is none and not is_state(i.entity_id,'unavailable') and not is_state(i.entity_id,'unknown') -%}
+          {%- if not loop.first -%},{%- endif -%}
+            {"did":"{{- i.did -}}","id":"{{- i.id -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- i.updated -}}}
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
+    high_spike: >-
+      {% if state_attr('binary_sensor.motion_device_' + class|string + '_exist','high_spike')|float('none') != 'none' -%}
+        {% set s = status -%}
+        {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+          {% set n = state_attr('binary_sensor.motion_device_' + class|string + '_exist','high_spike')|float(0) -%}
+          [{% for i in s if 'entity_id' in i and states(i.entity_id)|float(n) > n -%}
+            {%- if not loop.first -%},{%- endif -%}
+            {"did":"{{- i.did -}}","id":"{{- i.id -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- i.updated -}}}
+          {%- endfor -%}]
+        {%- else -%}none{%- endif -%}
+      {%- else -%}none{%- endif %}
+    low_spike: >-
+      {% if state_attr('binary_sensor.motion_device_' + class|string + '_exist','low_spike')|float('none') != 'none' -%}
+        {% set s = status -%}
+        {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+          {% set n = state_attr('binary_sensor.motion_device_' + class|string + '_exist','low_spike')|float(0) -%}
+          [{% for i in s if 'entity_id' in i and states(i.entity_id)|float(n) < n -%}
+            {%- if not loop.first -%},{%- endif -%}
+            {"did":"{{- i.did -}}","id":"{{- i.id -}}","entity_id":"{{- i.entity_id -}}","state":"{{- i.state -}}","updated":{{- i.updated -}}}
+          {%- endfor -%}]
+        {%- else -%}none{%- endif -%}
+      {%- else -%}none{%- endif %}
+    values: >-
+      {% set g = state_attr('binary_sensor.motion_device_' + class|string + '_exist','good') -%}
+      {% set b = state_attr('binary_sensor.motion_device_' + class|string + '_exist','bad') -%}
+      {%- if g|lower != 'none' and b|lower != 'none' -%}
+        [{% for i in status if 'entity_id' in i and not i.entity_id is none -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {% if is_state(i.entity_id,g) %}1{% elif is_state(i.entity_id,b) %}0{% else %}none{% endif -%}
+        {%- endfor -%}]
+      {%- else -%}
+        [{% for i in status if 'entity_id' in i and not i.entity_id is none -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {{- states(i.entity_id)|float(none) -}}
+        {%- endfor -%}]
+      {%- endif %}
+    state: >-
+      {% if bad|lower != 'none' and not bad is string and bad is iterable -%}
+        {%- if bad|count > 0 -%}
+          {%- set result = 'on' -%}
+        {%- else -%}
+          {%- set result = 'off' -%}
+        {%- endif -%}
+      {%- endif -%}
+      {%- if low|lower != 'none' and not low is string and low is iterable -%}
+        {%- if low|count > 0 -%}
+          {%- set result = 'on' -%}
+        {%- else -%}
+          {%- set result = 'off' -%}
+        {%- endif -%}
+      {%- endif -%}
+      {%- if high|lower != 'none' and not high is string and high is iterable -%}
+        {%- if high|count > 0 -%}
+          {%- set result = 'on' -%}
+        {%- else -%}
+          {%- set result = 'off' -%}
+        {%- endif -%}
+      {%- endif -%}
+      {%- if result is defined -%}
+        {{- result -}}
+      {%- else -%}{{- states('binary_sensor.motion_device_' + class|string) -}}{%- endif %}
+  action:
+    - alias: 'update binary_sensor.motion_device_irradiance: state'
+      service: python_script.set_state
+      data_template:
+        entity_id: >-
+          {{ 'binary_sensor.motion_device_' + class|string }}
+        high: >-
+          {{ high }}
+        low: >-
+          {{ low }}
+        good: >-
+          {{ good }}
+        bad: >-
+          {{ bad }}
+        high_spike: >-
+          {{ high_spike }}
+        low_spike: >-
+          {{ low_spike }}
+        unavailable: >-
+          {{ unavailable }}
+        found: >-
+          {{ found }}
+        values: >-
+          {{ values }}
+        state: >-
+          {{ state }}
+
+## change irradiance class attributes (alarm,required,..)
+
+# required
+
+- id: motion_device_irradiance_required_off
+  alias: motion_device_irradiance_required_off
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test sensors defined'
+        condition: template
+        value_template: >-
+          {% set s = state_attr('binary_sensor.motion_device_class','sensors') %}
+          {{ s|lower != 'none' and s is iterable }}
+      - alias: 'test binary_sensors defined'
+        condition: template
+        value_template: >-
+          {% set s = state_attr('binary_sensor.motion_device_class','binary_sensors') %}
+          {{ s|lower != 'none' and s is iterable }}
+  variables:
+    sensors: >-
+      {% set sensors = [] -%}
+      {% set s = state_attr('binary_sensor.motion_device_class','sensors') -%}
+      {%- set s = s|reject('==','irradiance')|list -%}
+      {%- if not s is string and s is iterable and s|count > 0 -%}
+        {% set sensors = s -%}
+      {%- endif -%}
+      {{- sensors -}}
+    binary_sensors: >-
+      {% set binary_sensors = [] -%}
+      {% set s = state_attr('binary_sensor.motion_device_class','binary_sensors') -%}
+      {%- set s = s|reject('==','irradiance')|list -%}
+      {%- if not s is string and s is iterable and s|count > 0 -%}
+        {% set binary_sensors = s -%}
+      {%- endif -%}
+      {{- binary_sensors -}}
+    required: >-
+      {%- set required = [] %}
+      {%- set s = sensors -%}
+      {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
+        {%- set required = (required + s)|sort|unique|list -%}
+      {%- endif -%}
+      {%- set s = binary_sensors -%}
+      {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
+        {%- set required = (required + s)|sort|unique|list -%}
+      {%- endif -%}
+      {{- required -}}
+  action:
+    - alias: 'update binary_sensor.motion_device_class required attribute; remove: irradiance'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        allow_create: true
+        sensors: >-
+          {{ sensors }}
+        binary_sensors: >-
+          {{ binary_sensors }}
+        required: >-
+          {{ required }}
+
+- id: motion_device_irradiance_required_on
+  alias: motion_device_irradiance_required_on
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'irradiance required not on'
+        condition: template
+        value_template: >-
+          {%- set s = state_attr('binary_sensor.motion_device_class','sensors') -%}
+          {%- set bs = state_attr('binary_sensor.motion_device_class','binary_sensors') -%}
+          {%- set sl = state_attr('binary_sensor.motion_device_class','sensor_list') -%}
+          {%- set bsl = state_attr('binary_sensor.motion_device_class','binary_sensor_list') -%}
+          {% if sl|lower != 'none' and bsl|lower != 'none' and s|lower != 'none' and bs|lower != 'none' -%}
+          {{ 'irradiance' in sl or 'irradiance' in bsl and (not 'irradiance' in s or not 'irradiance' in bs) }}
+          {%- else -%}false{%- endif %}
+  variables:
+    sensors: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','sensors') -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set sensors = (s|list + ['irradiance'])|sort|unique|list -%}
+      {%- else -%}
+        {%- set sensors = ['irradiance'] -%}
+      {%- endif %}
+      {%- if sensors is defined -%}
+        {{ sensors }}
+      {%- else -%}[]{%- endif %}
+    binary_sensors: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','binary_sensors') -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set binary_sensors = (s|list + ['irradiance'])|sort|unique|list -%}
+      {%- else -%}
+        {%- set binary_sensors = ['irradiance'] -%}
+      {%- endif %}
+      {%- if binary_sensors is defined -%}
+        {{ binary_sensors }}
+      {%- else -%}[]{%- endif %}
+    required: >-
+      {%- set required = [] %}
+      {%- set s = sensors -%}
+      {%- if s|lower != 'none' and s is iterable -%}
+        {%- set required = (required + s)|sort|unique|list -%}
+      {%- endif -%}
+      {%- set s = binary_sensors -%}
+      {%- if s|lower != 'none' and s is iterable -%}
+        {%- set required = (required + s)|sort|unique|list -%}
+      {%- endif -%}
+      {{- required -}}
+  action:
+    - alias: 'test if required list of device classes is valid'
+      condition: template
+      value_template: >-
+        {{ sensors|lower != 'none' and binary_sensors|lower != 'none' }}
+    - alias: 'update binary_sensor.motion_device_class required attribute; add: irradiance'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        sensors: >-
+          {{ sensors }}
+        binary_sensors: >-
+          {{ binary_sensors }}
+        required: >-
+          {{ required }}
+
+## bad
+
+- id: motion_device_irradiance_bad
+  alias: motion_device_irradiance_bad
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_irradiance'
+      attribute: 'bad'
+  variables:
+    details: >-
+      {% if state_attr('binary_sensor.motion_device_irradiance_exist','bad')|lower != 'none' %}
+        {% set s = state_attr('binary_sensor.motion_device_irradiance','bad') %}
+        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+          [{% for i in s -%}
+            {%- if not loop.first -%},{%- endif -%}
+            "{{- state_attr(i.entity_id,'friendly_name') }} is {{ states(i.entity_id) -}}"
+          {%- endfor -%}]
+        {%- else -%}none{%- endif %}
+      {%- else -%}none{%- endif %}
+    state: >-
+      {% set s = state_attr('binary_sensor.motion_device_irradiance','bad') %}
+      {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and not s is string and s is iterable %}
+        {% if s|list|count > 0 %}on{% else %}off{% endif %}
+      {% else %}unknown{% endif %}
+    last: >-
+      {% if state|lower == 'off' %}
+        {{ state_attr('binary_sensor.motion_device_irradiance_bad','last') }}
+      {%- else -%}{{ utcnow().timestamp() }}{%- endif %}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ state|lower != 'unknown' }}
+  action:
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_irradiance_bad
+        last: >-
+          {{ last }}
+        details: >-
+          {{ details }}
+        state: >-
+          {{ state }}
+    - condition: template
+      value_template: >
+        {{ state|lower == 'on' }}
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_irradiance
+        condition: >-
+          {{ 'bad' }}
+
+- id: motion_device_irradiance_bad_off
+  alias: motion_device_irradiance_bad_off
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'irradiance bad not off'
+        condition: template
+        value_template: >-
+          {% set s = state_attr('binary_sensor.motion_device_class','bad') %}
+          {% if s|lower != 'none' and s is iterable %}
+            {{ 'irradiance' in s }}
+          {%- else -%}false{%- endif %}
+  variables:
+    bad: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','bad') -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set s = s|reject('==','irradiance')|list -%}
+        {%- if not s is string and s is iterable and s|count > 0 -%}
+          {% set bad = s -%}
+        {%- else -%}
+          {% set bad = [] -%}
+        {%- endif %}
+      {%- endif %}
+      {%- if bad is defined -%}
+        {{ bad }}
+      {%- else -%}none{%- endif %}
+  action:
+    - alias: 'test if bad list of device classes is valid'
+      condition: template
+      value_template: >-
+        {{ bad|lower != 'none' }}
+    - alias: 'update binary_sensor.motion_device_class bad attribute; remove: irradiance'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        bad: >-
+          {{ bad }}
+
+- id: motion_device_irradiance_bad_on
+  alias: motion_device_irradiance_bad_on
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test setup complete'
+        condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_class','on') or is_state('binary_sensor.motion_device_class','off') }}
+      - alias: 'irradiance bad not on'
+        condition: template
+        value_template: >-
+          {% set s = state_attr('binary_sensor.motion_device_class','bad') -%}
+          {{ s|lower != 'none' and s is iterable and not 'irradiance' in s -}}
+  variables:
+    bad: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','bad') -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set bad = (s|list + ['irradiance'])|sort|unique|list -%}
+      {%- else -%}
+        {%- set bad = ['irradiance'] -%}
+      {%- endif %}
+      {%- if bad is defined -%}
+        {{ bad }}
+      {%- else -%}none{%- endif %}
+  action:
+    - alias: 'test if bad list of device classes is valid'
+      condition: template
+      value_template: >-
+        {{ bad|lower != 'none' }}
+    - alias: 'update binary_sensor.motion_device_class bad attribute; add: irradiance'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        bad: >-
+          {{ bad }}
+
+- id: motion_device_irradiance_alarm_bad_on
+  alias: motion_device_irradiance_alarm_bad_on
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+    - platform: template
+      value_template: >-
+        {{ not is_state_attr('binary_sensor.motion_device_irradiance_exist','bad','none')
+           and is_state_attr('binary_sensor.motion_device_irradiance_exist','bad',states('binary_sensor.motion_device_irradiance')) }}
+  variables:
+    devices: >-
+      {%- set devices = none -%}
+      {% set s = state_attr('binary_sensor.motion_device_irradiance','devices') %}
+      {% if s|lower != 'none' and s|lower != 'null' and not s is string and s is iterable and s|count > 0 %}
+        {% set devices = s %}
+      {%- endif %}
+      {{ devices }}
+    last: >-
+      {% set last = none %}
+      {% set s = state_attr('binary_sensor.motion_device_irradiance','status')|selectattr('state','==',state_attr('binary_sensor.motion_device_irradiance_exist','bad'))|sort(attribute='updated',reverse=true)|list %}
+      {% if s|lower != 'none' and s|lower != 'null' and not s is string and s is iterable and s|count > 0 %}
+        {% set last = s %}
+      {%- endif %}
+      {{ last  }}
+    which: >-
+      {% set which = none %}
+      {% if last|lower != 'none' %}
+        {% set which = last|map(attribute='id')|first %}
+      {%- endif %}
+      {{ which }}
+    did: >-
+      {% set did = none %}
+      {% if devices|lower != 'none'  and which|lower != 'none' %}
+        {% set did = devices|selectattr('id','==',which)|map(attribute='did')|first %}
+      {%- endif %}
+      {{ did }}
+    where: >-
+      {% set where = none %}
+      {% if devices|lower != 'none'  and which|lower != 'none' %}
+        {% set where = devices|selectattr('id','==',which)|map(attribute='area')|first %}
+      {%- endif %}
+      {{ where }}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ which|lower != 'none' and which|lower != 'null' and which|length > 0 }}
+  action:
+    - variables:
+        markdown: >-
+          A <a href="/lovelace-primary/irradiance">irradiance</a> alarm was triggered ({{- state_attr('binary_sensor.motion_device_irradiance_exist','bad')|string -}}); sensor: {{ which -}}; where: {{ where -}}; at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}.
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_irradiance_bad
+        markdown: >-
+          {{ markdown }}
+    - alias: 'update binary_sensor.motion_device_irradiance which, where, did'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_irradiance
+        which: >-
+          {{ which }}
+        where: >-
+          {{ where }}
+        did: >-
+          {{ did }}
+    - condition: template
+      value_template: >
+        {{ is_state_attr('binary_sensor.motion_device_irradiance_exist','alarm','on') }}
+    - alias: 'trigger motion notification'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_irradiance_bad_notify
+
+- id: motion_device_irradiance_bad_notify
+  alias: motion_device_irradiance_bad_notify
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test if markdown defined'
+        condition: template
+        value_template: >-
+          {{ state_attr('binary_sensor.motion_device_irradiance_bad','markdown')|lower != 'none' }}
+  variables:
+    class: >-
+      {{ 'irradiance' }}
+    ids: >-
+      {% set ids = state_attr('binary_sensor.motion_device_irradiance','ids') %}
+      {{ ids }}
+    dids: >-
+      {% set dids = none %}
+      {% set s = state_attr('binary_sensor.motion_device_irradiance','devices') %}
+      {%- if not s is string and s is iterable and s|count > 0 -%}
+        {%- set dids = s|map(attribute='did')|list -%}
+      {%- endif -%}
+      {{ dids }}
+    which: >-
+      {% set which = state_attr('binary_sensor.motion_device_irradiance','which') %}
+      {{ which }}
+    where: >-
+      {% set where = state_attr('binary_sensor.motion_device_irradiance','where') %}
+      {{ where }}
+    did: >-
+      {% set did = state_attr('binary_sensor.motion_device_irradiance','did') %}
+      {{ did }}
+    url: >-
+      {% set url = '/lovelace-primary/' + class %}
+      {{ url }}
+    action: >-
+      {% set action = class + '-alarm' %}
+      {{ action }}
+    title: >-
+      {% set title = states('sensor.motion_app') + ': irradiance bad' %}
+      {{ title }}
+    notification_id: >-
+      {{ 'device-irradiance-status-' + which|string }}
+    icon: >-
+      {% set icon = 'notification-irradiance-bad' %}
+      {{ icon }}
+    header: >-
+      {{- '<img src="/local/images/icons/' + icon + '.png?v1">' -}}
+    footer: >-
+      <a href="/notify-devices/{{- class -}}"><img src="https://img.shields.io/badge/{{- class -}}-device-cyan.svg"></a>
+      {%- if did is defined and did|lower != 'none' and did|lower != 'null' -%}
+         <br><a href="/config/devices/device/{{- did -}}"><img src="https://img.shields.io/badge/{{- class -}}-config-blue.svg"></a>
+      {%- endif -%}
+    body: >-
+      {{ state_attr('binary_sensor.motion_device_irradiance_bad','markdown') }}
+      <p>We have notified <b>{{- state_attr('sensor.motion_role_primary','friendly_name') -}}</b> about your irradiance alarm.
+      To inspect and change the alarm click the <b>{{- action -}}</b> button below.
+      {{- '<p>' -}}
+      <a href="{{- url -}}"><img src="https://img.shields.io/badge/{{- action -}}-yellow.svg"></a>
+    message: >-
+      {{- header -}}<hr>{{- body -}}<br>{{- footer -}}
+  action:
+    - alias: 'notify irradiance sensor activated'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+- id: motion_device_irradiance_bad_dismiss
+  alias: motion_device_irradiance_bad_dismiss
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  variables:
+    notification_id: >-
+      {{ 'device-irradiance-bad' }}
+  action:
+    - alias: 'dismiss irradiance bad notification'
+      service: persistent_notification.dismiss
+      data_template:
+        notification_id: >-
+          {{ notification_id }}
+
+## low
+
+- id: motion_device_irradiance_low
+  alias: motion_device_irradiance_low
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_irradiance'
+      attribute: 'low'
+  variables:
+    details: >-
+      {% if state_attr('binary_sensor.motion_device_irradiance_exist','low')|lower != 'none' %}
+        {% set s = state_attr('binary_sensor.motion_device_irradiance','low') %}
+        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+          [{% for i in s -%}
+            {%- if not loop.first -%},{%- endif -%}
+            "{{- state_attr(i.entity_id,'friendly_name') }} is {{ states(i.entity_id)|int('unknown') -}}{{ state_attr(i.entity_id,'unit_of_measurement') -}}"
+          {%- endfor -%}]
+        {%- else -%}none{%- endif %}
+      {%- else -%}none{%- endif %}
+    state: >-
+      {% set s = state_attr('binary_sensor.motion_device_irradiance','low') %}
+      {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and not s is string and s is iterable %}
+        {% if s|list|count > 0 %}on{% else %}off{% endif %}
+      {% else %}unknown{% endif %}
+    last: >-
+      {% if state|lower == 'off' %}
+        {{ state_attr('binary_sensor.motion_device_irradiance_low','last') }}
+      {%- else -%}{{ utcnow().timestamp() }}{%- endif %}
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test if irradiance low is defined'
+        condition: template
+        value_template: >
+          {{ state|lower != 'unknown' }}
+  action:
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_irradiance_low
+        last: >-
+          {{ last }}
+        details: >-
+          {{ details }}
+        state: >-
+          {{ state }}
+    - condition: template
+      value_template: >
+        {{ state|lower == 'on' }}
+    - alias: 'set irradiance condition: low'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_irradiance
+        condition: >-
+          {{ 'low' }}
+
+- id: motion_device_irradiance_low_off
+  alias: motion_device_irradiance_low_off
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'irradiance low not off'
+        condition: template
+        value_template: >-
+          {% set s = state_attr('binary_sensor.motion_device_class','low') %}
+          {% if s|lower != 'none' and s is iterable %}
+            {{ 'irradiance' in s }}
+          {%- else -%}false{%- endif %}
+  variables:
+    low: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','low') -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set s = s|reject('==','irradiance')|list -%}
+        {%- if not s is string and s is iterable and s|count > 0 -%}
+          {% set low = s -%}
+        {%- else -%}
+          {% set low = [] -%}
+        {%- endif %}
+      {%- endif %}
+      {%- if low is defined -%}
+        {{ low }}
+      {%- else -%}none{%- endif %}
+  action:
+    - alias: 'test if low list of device classes is valid'
+      condition: template
+      value_template: >-
+        {{ low|lower != 'none' }}
+    - alias: 'update binary_sensor.motion_device_class low attribute; remove: irradiance'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        low: >-
+          {{ low }}
+
+- id: motion_device_irradiance_low_on
+  alias: motion_device_irradiance_low_on
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'irradiance low not on'
+        condition: template
+        value_template: >-
+          {% set s = state_attr('binary_sensor.motion_device_class','low') -%}
+          {{ s|lower != 'none' and s is iterable and not 'irradiance' in s -}}
+  variables:
+    low: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','low') -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set low = (s|list + ['irradiance'])|sort|unique|list -%}
+      {%- else -%}
+        {%- set low = ['irradiance'] -%}
+      {%- endif %}
+      {%- if low is defined -%}
+        {{ low }}
+      {%- else -%}none{%- endif %}
+  action:
+    - alias: 'test if low list of device classes is valid'
+      condition: template
+      value_template: >-
+        {{ low|lower != 'none' }}
+    - alias: 'update binary_sensor.motion_device_class low attribute; add: irradiance'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        low: >-
+          {{ low }}
+
+- id: motion_device_irradiance_alarm_low_on
+  alias: motion_device_irradiance_alarm_low_on
+  mode: restart
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_irradiance_low'
+      to: 'on'
+  variables:
+    low: >-
+      {{ state_attr('binary_sensor.motion_device_irradiance','low') }}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{- low|lower != 'none' and low|lower != 'unknown' and not low is string and low is iterable and low|count > 0 -}}
+  action:
+    - variables:
+        markdown: >-
+          A <a href="/lovelace-primary/irradiance">irradiance</a> alarm was triggered (below {{ state_attr('binary_sensor.motion_device_irradiance_exist','low') -}}) at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}:<br>
+          {%- for i in low if 'id' in i and i.id|lower != 'none' -%}
+            {%- set name = state_attr(i.entity_id,'friendly_name')|replace("'","") -%}
+            {%- if loop.first -%}{{- '<ul>' -}}{%- endif -%}
+            {%- set d = state_attr('binary_sensor.motion_device_class','devices') -%}
+            {%- if d|lower != 'none' and not d is string and d is iterable and d|count > 0 -%}
+              {%- set d = d|selectattr('id','==',i.id)|list -%}
+              {%- if d|lower != 'none' and not d is string and d is iterable and d|count > 0 -%}
+                {%- set d = d|first -%}
+                <li><a href="/config/devices/device/{{- d.did -}}">{{- name -}}</a> is {{ states(low[loop.index-1].entity_id) -}}{{- state_attr(low[loop.index-1].entity_id,'unit_of_measurement') }} in <a href="/config/areas/area/{{- area_id(low[loop.index-1].entity_id) -}}">{{- area_id(low[loop.index-1].entity_id) -}}</a></li>
+              {%- else -%}
+                <li>{{- name }} is {{ states(i.entity_id) -}}{{- state_attr(i.entity_id,'unit_of_measurement') }}</li>
+              {%- endif -%}
+            {%- else -%}
+              {{- '<li>' -}}
+              {{ name }} is {{ states(i.entity_id) -}}{{- state_attr(i.entity_id,'unit_of_measurement') }}
+              {{- '</li>' -}}
+            {%- endif -%}
+            {%- if loop.last -%}{{- '</ul>' -}}{%- endif -%}
+          {%- endfor -%}
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_irradiance_low
+        markdown: >-
+          {{ markdown }}
+    - condition: template
+      value_template: >
+        {{ is_state_attr('binary_sensor.motion_device_irradiance_exist','alarm','on') }}
+    - alias: 'trigger motion notification'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_irradiance_low_notify
+
+- id: motion_device_irradiance_alarm_low_off
+  alias: motion_device_irradiance_alarm_low_off
+  mode: restart
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_irradiance_low'
+      to: 'off'
+  action:
+    - condition: template
+      value_template: >
+        {{ is_state_attr('binary_sensor.motion_device_irradiance_exist','alarm','on') }}
+    - alias: 'trigger irradiance low dismiss'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_irradiance_low_dismiss
+
+- id: motion_device_irradiance_low_notify
+  alias: motion_device_irradiance_low_notify
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test if irradiance low markdown is defined'
+        condition: template
+        value_template: >-
+          {{ state_attr('binary_sensor.motion_device_irradiance_low','markdown')|lower != 'none' }}
+  variables:
+    class: >-
+      {{ 'irradiance' }}
+    low: >-
+      {% set low = state_attr('binary_sensor.motion_device_irradiance','low') %}
+      {{ low }}
+    action: >-
+      {% set action = class + '-alarm' %}
+      {{ action }}
+    url: >-
+      {% set url = '/lovelace-primary/' + class %}
+      {{ url }}
+    title: >-
+      {% set title = states('sensor.motion_app') + ': irradiance low' %}
+      {{ title }}
+    notification_id: >-
+      {{ 'device-irradiance-low' }}
+    icon: >-
+      {% set icon = 'notification-irradiance-low' %}
+      {{ icon }}
+    header: >-
+      {{- '<img src="/local/images/icons/' + icon + '.png?v1">' -}}
+    footer: >-
+      <a href="/notify-devices/{{- class -}}"><img src="https://img.shields.io/badge/{{- class -}}-device-cyan.svg"></a>
+      {%- if did is defined and did|lower != 'none' and did|lower != 'null' -%}
+         <br><a href="/config/devices/device/{{- did -}}"><img src="https://img.shields.io/badge/{{- class -}}-config-blue.svg"></a>
+      {%- endif -%}
+    body: >-
+      {{ state_attr('binary_sensor.motion_device_irradiance_low','markdown') }}
+      <p>We have notified <b>{{- state_attr('sensor.motion_role_primary','friendly_name') -}}</b> about your irradiance alarm.
+      To inspect and change the alarm click the <b>{{- action -}}</b> button below.
+      {{- '<p>' -}}
+      <a href="{{- url -}}"><img src="https://img.shields.io/badge/{{- action -}}-yellow.svg"></a>
+    message: >-
+      {{- header -}}<hr>{{- body -}}<br>{{- footer -}}
+  action:
+    - alias: 'notify irradiance sensor activated'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+- id: motion_device_irradiance_dismiss
+  alias: motion_device_irradiance_dismiss
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  variables:
+    all: >-
+      {% set alarms = state_attr('binary_sensor.motion_device_class','alarms') %}
+      {% set all = alarms|map('regex_replace','^','automation.motion_device_irradiance_')|map('regex_replace','$','_dismiss')|list %}
+      {{ all }}
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test if alarms are defined'
+        condition: template
+        value_template: >
+          {{ all|lower != 'none' and not all is string and all is iterable and all|count > 0 }}
+  action:
+    - alias: 'dismiss ALL irradiance alarms'
+      service: automation.trigger
+      data_template:
+        entity_id: >-
+          {{ all }}
+
+- id: motion_device_irradiance_low_dismiss
+  alias: motion_device_irradiance_low_dismiss
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  variables:
+    notification_id: >-
+      {{ 'device-irradiance-low' }}
+  action:
+    - alias: 'dismiss irradiance low notification'
+      service: persistent_notification.dismiss
+      data_template:
+        notification_id: >-
+          {{ notification_id }}
+
+## high
+
+- id: motion_device_irradiance_high
+  alias: motion_device_irradiance_high
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_irradiance_exist'
+      attribute: 'high'
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_irradiance'
+      attribute: 'high'
+  variables:
+    details: >-
+      {% if state_attr('binary_sensor.motion_device_irradiance_exist','high')|lower != 'none' %}
+        {% set s = state_attr('binary_sensor.motion_device_irradiance','high') %}
+        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+          [{% for i in s -%}
+            {%- if not loop.first -%},{%- endif -%}
+            "{{- state_attr(i.entity_id,'friendly_name') }} is {{ states(i.entity_id)|int('unknown') -}}{{ state_attr(i.entity_id,'unit_of_measurement') -}}"
+          {%- endfor -%}]
+        {%- else -%}none{%- endif %}
+      {%- else -%}none{%- endif %}
+    state: >-
+      {% set s = state_attr('binary_sensor.motion_device_irradiance','high') %}
+      {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and not s is string and s is iterable %}
+        {% if s|list|count > 0 %}on{% else %}off{% endif %}
+      {% else %}unknown{% endif %}
+    last: >-
+      {% if state|lower == 'off' %}
+        {{ state_attr('binary_sensor.motion_device_irradiance_high','last') }}
+      {%- else -%}{{ utcnow().timestamp() }}{%- endif %}
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test if irradiance high state is defined'
+        condition: template
+        value_template: >
+          {{ state|lower != 'unknown' }}
+  action:
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_irradiance_high
+        last: >-
+          {{ last }}
+        details: >-
+          {{ details }}
+        state: >-
+          {{ state }}
+    - condition: template
+      value_template: >
+        {{ state|lower == 'on' }}
+    - alias: 'set irradiance condition: high'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_irradiance
+        condition: >-
+          {{ 'high' }}
+
+- id: motion_device_irradiance_high_off
+  alias: motion_device_irradiance_high_off
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'irradiance high not off'
+        condition: template
+        value_template: >-
+          {% set s = state_attr('binary_sensor.motion_device_class','high') -%}
+          {{ s|lower != 'none' and s is iterable and 'irradiance' in s -}}
+  variables:
+    high: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','high') -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set s = s|reject('==','irradiance')|list -%}
+        {%- if not s is string and s is iterable and s|count > 0 -%}
+          {% set high = s -%}
+        {%- else -%}
+          {% set high = [] -%}
+        {%- endif %}
+      {%- endif %}
+      {%- if high is defined -%}
+        {{ high }}
+      {%- else -%}none{%- endif %}
+  action:
+    - alias: 'test if high list of device classes is valid'
+      condition: template
+      value_template: >-
+        {{ high|lower != 'none' }}
+    - alias: 'update binary_sensor.motion_device_class high attribute; remove: irradiance'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        high: >-
+          {{ high }}
+
+- id: motion_device_irradiance_high_on
+  alias: motion_device_irradiance_high_on
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test setup complete'
+        condition: template
+        value_template: >-
+          {{ not is_state('binary_sensor.motion_device_class','unknown') }}
+      - alias: 'irradiance high not on'
+        condition: template
+        value_template: >-
+          {% set s = state_attr('binary_sensor.motion_device_class','high') -%}
+          {{ s|lower != 'none' and s is iterable and not 'irradiance' in s -}}
+  variables:
+    high: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','high') -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set high = (s|list + ['irradiance'])|sort|unique|list -%}
+      {%- else -%}
+        {%- set high = ['irradiance'] -%}
+      {%- endif %}
+      {%- if high is defined -%}
+        {{ high }}
+      {%- else -%}none{%- endif %}
+  action:
+    - alias: 'test if high list of device classes is valid'
+      condition: template
+      value_template: >-
+        {{ high|lower != 'none' }}
+    - alias: 'update binary_sensor.motion_device_class high attribute; add: irradiance'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        high: >-
+          {{ high }}
+
+- id: motion_device_irradiance_alarm_high_on
+  alias: motion_device_irradiance_alarm_high_on
+  mode: restart
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_irradiance_high'
+      to: 'on'
+  variables:
+    high: >-
+      {{ state_attr('binary_sensor.motion_device_irradiance','high') }}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{- high|lower != 'none' and high|lower != 'unknown' and not high is string and high is iterable and high|count > 0 -}}
+  action:
+    - variables:
+        markdown: >-
+          A <a href="/lovelace-primary/irradiance">irradiance</a> alarm was triggered (above {{ state_attr('binary_sensor.motion_device_irradiance_exist','high') -}}) at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}:<br>
+          {%- for i in high if 'id' in i and i.id|lower != 'none' -%}
+            {%- set name = state_attr(i.entity_id,'friendly_name')|replace("'","") -%}
+            {%- if loop.first -%}{{- '<ul>' -}}{%- endif -%}
+            {%- set d = state_attr('binary_sensor.motion_device_class','devices') -%}
+            {%- if d|lower != 'none' and not d is string and d is iterable and d|count > 0 -%}
+              {%- set d = d|selectattr('id','==',i.id)|list -%}
+              {%- if d|lower != 'none' and not d is string and d is iterable and d|count > 0 -%}
+                {%- set d = d|first -%}
+                <li><a href="/config/devices/device/{{- d.did -}}">{{- name -}}</a> is {{ states(high[loop.index-1].entity_id) -}}{{- state_attr(high[loop.index-1].entity_id,'unit_of_measurement') }} in <a href="/config/areas/area/{{- area_id(high[loop.index-1].entity_id) -}}">{{- area_id(high[loop.index-1].entity_id) -}}</a></li>
+              {%- else -%}
+                <li>{{- name }} is {{ states(i.entity_id) -}}{{- state_attr(i.entity_id,'unit_of_measurement') }}</li>
+              {%- endif -%}
+            {%- else -%}
+              {{- '<li>' -}}
+              {{ name }} is {{ states(i.entity_id) -}}{{- state_attr(i.entity_id,'unit_of_measurement') }}
+              {{- '</li>' -}}
+            {%- endif -%}
+            {%- if loop.last -%}{{- '</ul>' -}}{%- endif -%}
+          {%- endfor -%}
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_irradiance_high
+        markdown: >-
+          {{ markdown }}
+    - condition: template
+      value_template: >
+        {{ is_state_attr('binary_sensor.motion_device_irradiance_exist','alarm','on') }}
+    - alias: 'trigger motion notification'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_irradiance_high_notify
+
+- id: motion_device_irradiance_alarm_high_off
+  alias: motion_device_irradiance_alarm_high_off
+  mode: restart
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_irradiance_high'
+      to: 'off'
+  action:
+    - condition: template
+      value_template: >
+        {{ is_state_attr('binary_sensor.motion_device_irradiance_exist','alarm','on') }}
+    - alias: 'trigger irradiance high dismiss'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_irradiance_high_dismiss
+
+- id: motion_device_irradiance_high_notify
+  alias: motion_device_irradiance_high_notify
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ state_attr('binary_sensor.motion_device_irradiance_high','markdown')|lower != 'none' }}
+  variables:
+    class: >-
+      {{ 'irradiance' }}
+    high: >-
+      {% set high = state_attr('binary_sensor.motion_device_irradiance','high') %}
+      {{ high }}
+    action: >-
+      {% set action = class + '-alarm' %}
+      {{ action }}
+    url: >-
+      {% set url = '/lovelace-primary/' + class %}
+      {{ url }}
+    title: >-
+      {% set title = states('sensor.motion_app') + ': ' + class + ' high' %}
+      {{ title }}
+    notification_id: >-
+      {{ 'device-' + class + '-high' }}
+    icon: >-
+      {% set icon = 'notification-' + class + '-high' %}
+      {{ icon }}
+    header: >-
+      {{- '<img src="/local/images/icons/' + icon + '.png?v1">' -}}
+    footer: >-
+      <a href="/notify-devices/{{- class -}}"><img src="https://img.shields.io/badge/{{- class -}}-device-cyan.svg"></a>
+      {%- if did is defined and did|lower != 'none' and did|lower != 'null' -%}
+         <br><a href="/config/devices/device/{{- did -}}"><img src="https://img.shields.io/badge/{{- class -}}-config-blue.svg"></a>
+      {%- endif -%}
+    body: >-
+      {{ state_attr('binary_sensor.motion_device_irradiance_high','markdown') }}
+      <p>We have notified <b>{{- state_attr('sensor.motion_role_primary','friendly_name') -}}</b> about your irradiance alarm.
+      To inspect and change the alarm click the <b>{{- action -}}</b> button below.
+      {{- '<p>' -}}
+      <a href="{{- url -}}"><img src="https://img.shields.io/badge/{{- action -}}-yellow.svg"></a>
+    message: >-
+      {{- header -}}<hr>{{- body -}}<br>{{- footer -}}
+  action:
+    - alias: 'notify irradiance sensor activated'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+- id: motion_device_irradiance_high_dismiss
+  alias: motion_device_irradiance_high_dismiss
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  variables:
+    class: >-
+      {{ 'irradiance' }}
+    notification_id: >-
+      {{ 'device-' + class + '-high' }}
+  action:
+    - alias: 'dismiss irradiance high notification'
+      service: persistent_notification.dismiss
+      data_template:
+        notification_id: >-
+          {{ notification_id }}
+
+## good
+
+- id: motion_device_irradiance_good
+  alias: motion_device_irradiance_good
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_irradiance'
+      attribute: 'good'
+  variables:
+    details: >-
+      {% if state_attr('binary_sensor.motion_device_irradiance_exist','good')|lower != 'none' %}
+        {% set s = state_attr('binary_sensor.motion_device_irradiance','good') %}
+        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+          [{% for i in s -%}
+            {%- if not loop.first -%},{%- endif -%}
+            "{{- state_attr(i.entity_id,'friendly_name') }} is {{ states(i.entity_id) -}}"
+          {%- endfor -%}]
+        {%- else -%}none{%- endif %}
+      {%- else -%}none{%- endif %}
+    state: >-
+      {% set s = state_attr('binary_sensor.motion_device_irradiance','good') %}
+      {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and not s is string and s is iterable %}
+        {% if s|list|count > 0 %}on{% else %}off{% endif %}
+      {% else %}unknown{% endif %}
+    last: >-
+      {% if state|lower == 'off' %}
+        {{ state_attr('binary_sensor.motion_device_irradiance_good','last') }}
+      {%- else -%}{{ utcnow().timestamp() }}{%- endif %}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ state|lower != 'unknown' }}
+  action:
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_irradiance_good
+        last: >-
+          {{ last }}
+        details: >-
+          {{ details }}
+        state: >-
+          {{ state }}
+    - condition: template
+      value_template: >
+        {{ state|lower == 'on' }}
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_irradiance
+        condition: >-
+          {{ 'good' }}
+
+- id: motion_device_irradiance_good_off
+  alias: motion_device_irradiance_good_off
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'irradiance good not off'
+        condition: template
+        value_template: >-
+          {% set s = state_attr('binary_sensor.motion_device_class','good') -%}
+          {{ s|lower != 'none' and s is iterable and 'irradiance' in s -}}
+  variables:
+    good: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','good') -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set s = s|reject('==','irradiance')|list -%}
+        {%- if not s is string and s is iterable and s|count > 0 -%}
+          {% set good = s -%}
+        {%- else -%}
+          {% set good = [] -%}
+        {%- endif %}
+      {%- endif %}
+      {%- if good is defined -%}
+        {{ good }}
+      {%- else -%}none{%- endif %}
+  action:
+    - alias: 'test if good list of device classes is valid'
+      condition: template
+      value_template: >-
+        {{ good|lower != 'none' }}
+    - alias: 'update binary_sensor.motion_device_class good attribute; remove: irradiance'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        good: >-
+          {{ good }}
+
+- id: motion_device_irradiance_good_on
+  alias: motion_device_irradiance_good_on
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test setup complete'
+        condition: template
+        value_template: >-
+          {{ not is_state('binary_sensor.motion_device_class','unknown') }}
+      - alias: 'irradiance good not on'
+        condition: template
+        value_template: >-
+          {% set s = state_attr('binary_sensor.motion_device_class','good') -%}
+          {{ s|lower != 'none' and s is iterable and not 'irradiance' in s -}}
+  variables:
+    good: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','good') -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set good = (s|list + ['irradiance'])|sort|unique|list -%}
+      {%- else -%}
+        {%- set good = ['irradiance'] -%}
+      {%- endif %}
+      {%- if good is defined -%}
+        {{ good }}
+      {%- else -%}none{%- endif %}
+  action:
+    - alias: 'test if good list of device classes is valid'
+      condition: template
+      value_template: >-
+        {{ good|lower != 'none' }}
+    - alias: 'update binary_sensor.motion_device_class good attribute; add: irradiance'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        good: >-
+          {{ good }}
+
+- id: motion_device_irradiance_alarm_good_on
+  alias: motion_device_irradiance_alarm_good_on
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+    - platform: template
+      value_template: >-
+        {{ not is_state_attr('binary_sensor.motion_device_irradiance_exist','good','none')
+           and is_state_attr('binary_sensor.motion_device_irradiance_exist','good',states('binary_sensor.motion_device_irradiance')) }}
+  variables:
+    devices: >-
+      {% set devices = none %}
+      {% set s = state_attr('binary_sensor.motion_device_irradiance','devices') %}
+      {% if s|lower != 'none' and s|lower != 'null' and not s is string and s is iterable and s|count > 0 %}
+        {% set devices = s %}
+      {%- endif %}
+      {{ devices }}
+    last: >-
+      {% set last = none %}
+      {% set s = state_attr('binary_sensor.motion_device_irradiance','status')|selectattr('state','==',state_attr('binary_sensor.motion_device_irradiance_exist','good'))|sort(attribute='updated',reverse=true)|list %}
+      {% if s|lower != 'none' and s|lower != 'null' and not s is string and s is iterable and s|count > 0 %}
+        {% set last = s %}
+      {%- endif %}
+      {{ last  }}
+    which: >-
+      {% set which = none %}
+      {% if last|lower != 'none' %}
+        {% set which = last|map(attribute='id')|first %}
+      {%- endif %}
+      {{ which }}
+    did: >-
+      {% set did = none %}
+      {% if devices|lower != 'none'  and which|lower != 'none' %}
+        {% set did = devices|selectattr('id','==',which)|map(attribute='did')|first %}
+      {%- endif %}
+      {{ did }}
+    where: >-
+      {% set where = none %}
+      {% if devices|lower != 'none'  and which|lower != 'none' %}
+        {% set where = devices|selectattr('id','==',which)|map(attribute='area')|first %}
+      {%- endif %}
+      {{ where }}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ which|lower != 'none' and which|lower != 'null' and which|length > 0 }}
+  action:
+    - variables:
+        markdown: >-
+          A <a href="/lovelace-primary/irradiance">irradiance</a> alarm was triggered ({{- state_attr('binary_sensor.motion_device_irradiance_exist','good')|string -}}); sensor: {{ which -}}; where: {{ where -}}; at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}.
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_irradiance_good
+        markdown: >-
+          {{ markdown }}
+    - alias: 'update binary_sensor.motion_device_irradiance which, where, did'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_irradiance
+        which: >-
+          {{ which }}
+        where: >-
+          {{ where }}
+        did: >-
+          {{ did }}
+    - condition: template
+      value_template: >
+        {{ is_state_attr('binary_sensor.motion_device_irradiance_exist','alarm','on') }}
+    - alias: 'trigger motion notification'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_irradiance_good_notify
+
+- id: motion_device_irradiance_good_notify
+  alias: motion_device_irradiance_good_notify
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  condition:
+    condition: template
+    value_template: >-
+      {{ state_attr('binary_sensor.motion_device_irradiance_good','markdown')|lower != 'none' }}
+  variables:
+    class: >-
+      {{ 'irradiance' }}
+    ids: >-
+      {% set ids = state_attr('binary_sensor.motion_device_irradiance','ids') %}
+      {{ ids }}
+    dids: >-
+      {% set dids = none %}
+      {% set s = state_attr('binary_sensor.motion_device_irradiance','devices') %}
+      {%- if not s is string and s is iterable and s|count > 0 -%}
+        {%- set dids = s|map(attribute='did')|list -%}
+      {%- endif -%}
+      {{ dids }}
+    which: >-
+      {% set which = state_attr('binary_sensor.motion_device_irradiance','which') %}
+      {{ which }}
+    where: >-
+      {% set where = state_attr('binary_sensor.motion_device_irradiance','where') %}
+      {{ where }}
+    did: >-
+      {% set did = state_attr('binary_sensor.motion_device_irradiance','did') %}
+      {{ did }}
+    action: >-
+      {% set action = class + '-alarm' %}
+      {{ action }}
+    url: >-
+      {% set url = '/lovelace-primary/' + class %}
+      {{ url }}
+    title: >-
+      {% set title = states('sensor.motion_app') + ': irradiance good' %}
+      {{ title }}
+    notification_id: >-
+      {{ 'device-irradiance-status-' + which|string }}
+    icon: >-
+      {% set icon = 'notification-irradiance-good' %}
+      {{ icon }}
+    header: >-
+      {{- '<img src="/local/images/icons/' + icon + '.png?v1">' -}}
+    footer: >-
+      <a href="/notify-devices/{{- class -}}"><img src="https://img.shields.io/badge/{{- class -}}-device-cyan.svg"></a>
+      {%- if did is defined and did|lower != 'none' and did|lower != 'null' -%}
+         <br><a href="/config/devices/device/{{- did -}}"><img src="https://img.shields.io/badge/{{- class -}}-config-blue.svg"></a>
+      {%- endif -%}
+    body: >-
+      {{ state_attr('binary_sensor.motion_device_irradiance_good','markdown') }}
+      <p>We have notified <b>{{- state_attr('sensor.motion_role_primary','friendly_name') -}}</b> about your irradiance alarm.
+      To inspect and change the alarm click the <b>{{- action -}}</b> button below.
+      {{- '<p>' -}}
+      <a href="{{- url -}}"><img src="https://img.shields.io/badge/{{- action -}}-yellow.svg"></a>
+    message: >-
+      {{- header -}}<hr>{{- body -}}<br>{{- footer -}}
+  action:
+    - alias: 'notify irradiance sensor activated'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+- id: motion_device_irradiance_good_dismiss
+  alias: motion_device_irradiance_good_dismiss
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  variables:
+    notification_id: >-
+      {{ 'device-irradiance-good' }}
+  action:
+    - alias: 'dismiss irradiance good notification'
+      service: persistent_notification.dismiss
+      data_template:
+        notification_id: >-
+          {{ notification_id }}
+
+- id: motion_device_irradiance_activity_disable
+  alias: motion_device_irradiance_activity_disable
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'irradiance activity not off'
+        condition: template
+        value_template: >-
+          {% set s = state_attr('binary_sensor.motion_device_class','activity') -%}
+          {{ s|lower != 'none' and s is iterable and 'irradiance' in s -}}
+  variables:
+    activity: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','activity') -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set s = s|reject('==','irradiance')|list -%}
+        {%- if not s is string and s is iterable and s|count > 0 -%}
+          {% set activity = s -%}
+        {%- else -%}
+          {% set activity = [] -%}
+        {%- endif %}
+      {%- endif %}
+      {%- if activity is defined -%}
+        {{ activity }}
+      {%- else -%}none{%- endif %}
+  action:
+    - alias: 'test if activity list of device classes is valid'
+      condition: template
+      value_template: >-
+        {{ activity|lower != 'none' }}
+    - alias: 'update binary_sensor.motion_device_class activity attribute; remove: irradiance'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        activity: >-
+          {{ activity }}
+
+- id: motion_device_irradiance_activity_enable
+  alias: motion_device_irradiance_activity_enable
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test setup complete'
+        condition: template
+        value_template: >-
+          {{ not is_state('binary_sensor.motion_device_class','unknown') }}
+      - alias: 'irradiance activity not on'
+        condition: template
+        value_template: >-
+          {% set s = state_attr('binary_sensor.motion_device_class','activity') -%}
+          {{ s|lower != 'none' and s is iterable and not 'irradiance' in s -}}
+  variables:
+    activity: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','activity') -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set activity = (s|list + ['irradiance'])|sort|unique|list -%}
+      {%- else -%}
+        {%- set activity = ['irradiance'] -%}
+      {%- endif %}
+      {%- if activity is defined -%}
+        {{ activity }}
+      {%- else -%}none{%- endif %}
+  action:
+    - alias: 'test if activity list of device classes is valid'
+      condition: template
+      value_template: >-
+        {{ activity|lower != 'none' }}
+    - alias: 'update binary_sensor.motion_device_class activity attribute; add: irradiance'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        activity: >-
+          {{ activity }}
+
+- id: motion_device_irradiance_activity_notify
+  alias: motion_device_irradiance_activity_notify
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_irradiance_activity'
+      to: 'on'
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ state_attr('binary_sensor.motion_device_irradiance_activity','markdown')|lower != 'none' }}
+      - condition: template
+        value_template: >
+          {{ activity|lower != 'none' and activity|lower != 'null' and activity|length > 0 }}
+  variables:
+    class: >-
+      {{ 'irradiance' }}
+    activity: >-
+      {% set activity = state_attr('binary_sensor.motion_device_irradiance','activity') %}
+      {{ activity }}
+    action: >-
+      {% set action = class + '-alarm' %}
+      {{ action }}
+    url: >-
+      {% set url = '/notify-activity/' %}
+      {{ url }}
+    title: >-
+      {% set title = states('sensor.motion_app') + ': irradiance activity alarm' %}
+      {{ title }}
+    notification_id: >-
+      {{ 'device-irradiance-activity' }}
+    icon: >-
+      {% set icon = 'notification-irradiance-activity' %}
+      {{ icon }}
+    header: >-
+      {{- '<img src="/local/images/icons/' + icon + '.png?v1">' -}}
+    footer: >-
+      <a href="/notify-devices/{{- class -}}"><img src="https://img.shields.io/badge/{{- class -}}-device-cyan.svg"></a>
+      {%- if did is defined and did|lower != 'none' and did|lower != 'null' -%}
+         <br><a href="/config/devices/device/{{- did -}}"><img src="https://img.shields.io/badge/{{- class -}}-config-blue.svg"></a>
+      {%- endif -%}
+    body: >-
+      {{ state_attr('binary_sensor.motion_device_irradiance_activity','markdown') }}
+      <p>We have notified <b>{{- state_attr('sensor.motion_role_primary','friendly_name') -}}</b> about your irradiance alarm.
+      To inspect and change the alarm click the <b>{{- action -}}</b> button below.
+      {{- '<p>' -}}
+      <a href="{{- url -}}"><img src="https://img.shields.io/badge/{{- action -}}-yellow.svg"></a>
+    message: >-
+      {{- header -}}<hr>{{- body -}}<br>{{- footer -}}
+  action:
+    - alias: 'notify irradiance sensor activated'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+## alarm (enabled w/o devices)
+
+- id: motion_device_irradiance_alarm_off
+  alias: motion_device_irradiance_alarm_off
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'irradiance alarm not off'
+        condition: template
+        value_template: >-
+          {% set s = state_attr('binary_sensor.motion_device_class','alarm') -%}
+          {{ s|lower != 'none' and s is iterable and 'irradiance' in s -}}
+  variables:
+    alarm: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','alarm') -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set s = s|reject('==','irradiance')|list -%}
+        {%- if not s is string and s is iterable and s|count > 0 -%}
+          {% set alarm = s -%}
+        {%- else -%}
+          {% set alarm = [] -%}
+        {%- endif %}
+      {%- endif %}
+      {%- if alarm is defined -%}
+        {{ alarm }}
+      {%- else -%}none{%- endif %}
+  action:
+    - alias: 'test if alarm list of device classes is valid'
+      condition: template
+      value_template: >-
+        {{ alarm|lower != 'none' }}
+    - alias: 'update binary_sensor.motion_device_class alarm attribute; remove: irradiance'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        alarm: >-
+          {{ alarm }}
+
+- id: motion_device_irradiance_alarm_on
+  alias: motion_device_irradiance_alarm_on
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test setup complete'
+        condition: template
+        value_template: >-
+          {{ not is_state('binary_sensor.motion_device_class','unknown') }}
+      - alias: 'irradiance alarm not on'
+        condition: template
+        value_template: >-
+          {% set s = state_attr('binary_sensor.motion_device_class','alarm') -%}
+          {{ s|lower != 'none' and s is iterable and not 'irradiance' in s -}}
+  variables:
+    alarm: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','alarm') -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set alarm = (s|list + ['irradiance'])|sort|unique|list -%}
+      {%- else -%}
+        {%- set alarm = ['irradiance'] -%}
+      {%- endif %}
+      {%- if alarm is defined -%}
+        {{ alarm }}
+      {%- else -%}none{%- endif %}
+  action:
+    - alias: 'test if alarm list of device classes is valid'
+      condition: template
+      value_template: >-
+        {{ alarm|lower != 'none' }}
+    - alias: 'update binary_sensor.motion_device_class alarm attribute; add: irradiance'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        alarm: >-
+          {{ alarm }}
+
+## toggle
+
+- id: motion_device_irradiance_turn_on
+  alias: motion_device_irradiance_turn_on
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_irradiance_turn_on','on') }}
+  variables:
+    entity_ids: >-
+      {{ state_attr('binary_sensor.motion_device_irradiance_turn_on','entity_ids') }}
+  action:
+    - alias: 'turn_on irradiance sensors'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = entity_ids[repeat.index - 1]|default('unknown') -%}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - service: switch.turn_on
+            data_template:
+              entity_id: >-
+                {{ entity_ids[repeat.index - 1] }}
+
+- id: motion_device_irradiance_turn_off
+  alias: motion_device_irradiance_turn_off
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_irradiance_turn_off','on') }}
+  variables:
+    entity_ids: >-
+      {{ state_attr('binary_sensor.motion_device_irradiance_turn_off','entity_ids') }}
+  action:
+    - alias: 'turn_off irradiance sensors'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = entity_ids[repeat.index - 1]|default('unknown') -%}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - service: switch.turn_off
+            data_template:
+              entity_id: >-
+                {{ entity_ids[repeat.index - 1] }}
+
+- id: motion_device_irradiance_toggle
+  alias: motion_device_irradiance_toggle
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_irradiance_toggle','on') }}
+  variables:
+    entity_ids: >-
+      {{ state_attr('binary_sensor.motion_device_irradiance_toggle','entity_ids') }}
+  action:
+    - alias: 'toggle irradiance sensors'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = entity_ids[repeat.index - 1]|default('unknown') -%}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - service: switch.toggle
+            data_template:
+              entity_id: >-
+                {{ entity_ids[repeat.index - 1] }}
+
+## update, restart, and other contols
+
+- id: motion_device_irradiance_self_test
+  alias: motion_device_irradiance_self_test
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test if self_test is on'
+        condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_irradiance_self_test','on') }}
+  variables:
+    entity_ids: >-
+      {{ state_attr('binary_sensor.motion_device_irradiance_self_test','entity_ids') }}
+  action:
+    - alias: 'test irradiance sensors'
+      repeat:
+        while:
+          - alias: 'test if not done'
+            condition: template
+            value_template: >-
+              {% set s = entity_ids[repeat.index - 1]|default('unknown') -%}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - alias: 'pressing button'
+            service: button.press
+            data_template:
+              entity_id: >-
+                {{ entity_ids[repeat.index - 1] }}
+
+- id: motion_device_irradiance_mute
+  alias: motion_device_irradiance_mute
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_irradiance_mute','on') }}
+  variables:
+    entity_ids: >-
+      {{ state_attr('binary_sensor.motion_device_irradiance_mute','entity_ids') }}
+  action:
+    - alias: 'mute irradiance sensors'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = entity_ids[repeat.index - 1]|default('unknown') -%}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - service: button.press
+            data_template:
+              entity_id: >-
+                {{ entity_ids[repeat.index - 1] }}
+
+- id: motion_device_irradiance_unmute
+  alias: motion_device_irradiance_unmute
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_irradiance_unmute','on') }}
+  variables:
+    entity_ids: >-
+      {{ state_attr('binary_sensor.motion_device_irradiance_unmute','entity_ids') }}
+  action:
+    - alias: 'unmute irradiance sensors'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = entity_ids[repeat.index - 1]|default('unknown') -%}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - service: button.press
+            data_template:
+              entity_id: >-
+                {{ entity_ids[repeat.index - 1] }}
+
+- id: motion_device_irradiance_restart
+  alias: motion_device_irradiance_restart
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_irradiance_restart','on') }}
+  variables:
+    entity_ids: >-
+      {{ state_attr('binary_sensor.motion_device_irradiance_restart','entity_ids') }}
+  action:
+    - alias: 'restart irradiance sensors'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = entity_ids[repeat.index - 1]|default('unknown') -%}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - service: button.press
+            data_template:
+              entity_id: >-
+                {{ entity_ids[repeat.index - 1] }}
+
+- id: motion_device_irradiance_update
+  alias: motion_device_irradiance_update
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ is_state('binary_sensor.motion_device_irradiance_update','on') }}
+  variables:
+    entity_ids: >-
+      {{ state_attr('binary_sensor.motion_device_irradiance_update','entity_ids') }}
+  action:
+    - alias: 'update irradiance sensors'
+      repeat:
+        while:
+          - condition: template
+            value_template: >-
+              {% set s = entity_ids[repeat.index - 1]|default('unknown') -%}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - service: button.press
+            data_template:
+              entity_id: >-
+                {{ entity_ids[repeat.index - 1] }}
+
+# found
+
+- id: motion_device_irradiance_found
+  alias: motion_device_irradiance_found
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_irradiance_exist'
+      to: 'on'
+  variables:
+    dids: >-
+      {% set s = state_attr('binary_sensor.motion_device_irradiance','found') %}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+        {{ s|map(attribute='did')|sort|unique|list }}
+      {%- else -%}none{%- endif %}
+    ids: >-
+      {% set s = state_attr('binary_sensor.motion_device_irradiance','found') %}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+        {{ s|map(attribute='id')|sort|unique|list }}
+      {%- else -%}none{%- endif %}
+    details: >-
+      {% set s = state_attr('binary_sensor.motion_device_irradiance','found') %}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+        "{{ s }}"
+      {%- else -%}none{%- endif %}
+    state: >-
+      {% set s = state_attr('binary_sensor.motion_device_irradiance','found') %}
+      {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and not s is string and s is iterable %}
+        {% if s|count > 0 %}on{% else %}off{% endif %}
+      {% else %}unknown{% endif %}
+    last: >-
+      {% if state|lower == 'off' %}
+        {{ state_attr('binary_sensor.motion_device_irradiance_found','last') }}
+      {%- else -%}{{ utcnow().timestamp() }}{%- endif %}
+    actions: >-
+      {%- set actions = none -%}
+      {%- set s = state_attr('binary_sensor.motion_device_class_found_exist','actions') -%}
+      {%- if s|lower != 'none' and 'actions' in s -%}
+        {%- set actions = s.actions -%}
+      {%- endif -%}
+      {{- actions -}}
+    responses: >-
+      {%- set responses = none -%}
+      {%- set s = state_attr('binary_sensor.motion_device_class_found_exist','actions') -%}
+      {%- if s|lower != 'none' and 'responses' in s -%}
+        {%- set responses = s.responses -%}
+      {%- endif -%}
+      {{- responses -}}
+    approve: >-
+      {%- if actions|lower != 'none' and 'approve' in actions -%}
+      {{ actions.approve }}
+      {%- else -%}none{%- endif -%}
+    deny: >-
+      {%- if actions|lower != 'none' and 'deny' in actions -%}
+      {{ actions.deny }}
+      {%- else -%}none{%- endif -%}
+    wait: >-
+      {%- if actions|lower != 'none' and 'wait' in actions -%}
+      {{ actions.wait }}
+      {%- else -%}none{%- endif -%}
+    help: >-
+      {%- if actions|lower != 'none' and 'help' in actions -%}
+      {{ actions.help }}
+      {%- else -%}none{%- endif -%}
+  condition:
+    - condition: template
+      value_template: >
+        {{ state|lower != 'unknown' }}
+  action:
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_irradiance_found
+        approve: >-
+          {{ approve }}
+        deny: >-
+          {{ deny }}
+        wait: >-
+          {{ wait }}
+        help: >-
+          {{ help }}
+        responses: >-
+          {{ responses }}
+        last: >-
+          {{ last }}
+        dids: >-
+          {{ dids }}
+        ids: >-
+          {{ ids }}
+        details: >-
+          {{ details }}
+        state: >-
+          {{ state }}
+    - condition: template
+      value_template: >
+        {{ state|lower == 'on' }}
+    - alias: 'set irradiance condition: found'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_irradiance
+        condition: >-
+          {{ 'found' }}
+
+- id: motion_device_irradiance_devices
+  alias: motion_device_irradiance_devices
+  mode: 'restart'
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_irradiance
+      attribute: 'devices'
+  variables:
+    class: >-
+      {%- set class = 'irradiance' -%}
+      {{ class }}
+    devices: >-
+      {% set devices = [] -%}
+      {%- set s = state_attr('binary_sensor.motion_device_' + class,'devices') -%}
+      {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set devices = s -%}
+      {%- endif -%}
+      {{ devices }}
+    dids: >-
+      {% set dids = [] -%}
+      {%- if devices|lower != 'none' and devices is iterable and devices|count > 0 -%}
+        {%- set s = devices|selectattr('did','defined')|map(attribute='did')|map('string')|reject('none')|list -%}
+        {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+          {%- set dids = s|sort|unique|list -%}
+        {%- endif -%}
+      {%- endif -%}
+      {{ dids }}
+    shellys: >-
+      {% set shellys = [] -%}
+      {%- if devices|lower != 'none' and devices|count > 0 -%}
+        {%- set s = devices|selectattr('manufacturer','==','Shelly')|selectattr('did','defined')|map(attribute='did')|list -%}
+        {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+          {%- set shellys = s|sort|unique|list -%}
+        {%- endif -%}
+      {%- endif -%}
+      {{ shellys }}
+    unicast: >-
+      {% set unicast = [] -%}
+      {%- if devices|lower != 'none' and devices|count > 0 -%}
+        {%- set s = devices|selectattr('manufacturer','==','Shelly')|selectattr('model','search','Motion')|selectattr('did','defined')|map(attribute='did')|list -%}
+        {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+          {%- set unicast = s|sort|unique|list -%}
+        {%- endif -%}
+      {%- endif -%}
+      {{ unicast }}
+    old: >-
+      {% set old = [] %}
+      {% set s = trigger.to_state.state %}
+      {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {% set old = s|sort|unique|list %}
+      {% endif %}
+      {{ old }}
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test if no change in device ids'
+        condition: template
+        value_template: >-
+          {{ old != dids }}
+      - alias: 'test for device ids'
+        condition: template
+        value_template: >-
+          {{ dids|lower != 'none' and not dids is string and dids is iterable and dids|count > 0 }}
+  action:
+    - alias: 'wait until addon is configured'
+      wait_template: >-
+       {{ is_state('binary_sensor.motion_addon_config','on') }}
+    - alias: 'process (irradiance) devices by device id'
+      repeat:
+        while:
+          - alias: 'test if not done'
+            condition: template
+            value_template: >-
+              {% set s = dids[repeat.index - 1]|default('none') %}
+              {{ s|lower != 'none' }}
+        sequence:
+          - variables:
+              did: >-
+                {{ dids[repeat.index - 1]|default('none') }}
+              sensor: >-
+                {% set sensor = 'binary_sensor.motion_devices_' + did|string %}
+                {{ sensor }}
+              categorys: >-
+                {%- set categorys = [class] -%}
+                {%- set s = state_attr(sensor,'categorys') -%}
+                {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
+                  {%- set categorys = (s|map('string')|reject('none')|list + categorys)|sort|unique|list -%}
+                {%- endif -%}
+                {{ categorys }}
+              now: >-
+                {{ utcnow().timestamp() }}
+              manufacturer: >-
+                {% set manufacturer = device_attr(did,'manufacturer') %}
+                {{ manufacturer }}
+              where: >-
+                {% set s = state_attr('group.motion_device_' + class,'entity_id') -%}
+                {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+                  [{%- for i in s if device_id(i) == did and area_id(i)|lower != 'none' -%}
+                    {%- if not loop.first -%},{%- endif -%}
+                    "{{- area_id(i) -}}"
+                  {%- endfor -%}]
+                {%- endif %}
+              areas: >-
+                {%- set s = state_attr(sensor,'areas')|map('string')|reject('none')|sort|unique|list -%}
+                {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+                  {%- set s = (where + s)|map('string')|reject('none')|sort|unique|list -%}
+                {%- else -%}
+                  {%- set s = where|reject('none')|sort|unique|list -%}
+                  {%- if s|lower == 'none' -%}
+                    {%- set s = [] -%}
+                  {%- endif -%}
+                {%- endif -%}
+                {{ s }}
+              model: >-
+                {% set model = device_attr(did,'model') %}
+                {{ model }}
+              name: >-
+                {% set name = device_attr(did,'name') %}
+                {{ name }}
+              url: >-
+                {% set url = device_attr(did,'configuration_url') %}
+                {{ url }}
+              config: >-
+                {% set config = [] %}
+                {% if did in shellys %}
+                  {% set config = config + [url|string + '/settings/cloud?enabled=false'] %}
+                  {% if class|upper in ['TEMPERATURE'] %}
+                    {% set u = 'C' %}
+                    {% set s = state_attr('sensor.motion_hub','unit_system') %}
+                    {% if s|lower != 'none' and s is iterable and class in s %}
+                      {% set u = s[class]|replace('°','') %}
+                    {% endif %}
+                    {% set config = config + [url|string + '/settings?irradiance_units=' + u|string] %}
+                    {% set config = config + [url|string + '/settings?irradiance_offset=0'] %}
+                  {% endif %}
+                {% endif %}
+                {% if did in unicast %}
+                  {% set config = config + [url|string + '/settings?motion_blind_time_minutes=1&coiot_enable=true&coiot_peer=' + states('sensor.host_lan_ipv4')] %}
+                {% else %}
+                  {% set config = config + [url|string + '/settings?coiot_enable=true&coiot_peer='] %}
+                {% endif %}
+                {{ config }}
+          - alias: 'update/create irradiance device sensor'
+            service: python_script.set_state
+            data_template:
+              allow_create: true
+              entity_id: >-
+                {{  sensor }}
+              did: >-
+                {{  did }}
+              categorys: >-
+                {{  categorys }}
+              last: >-
+                {{- now -}}
+          - alias: 'test if device sensor already in ALL devices group'
+            condition: template
+            value_template: >-
+              {% set s = state_attr('group.motion_devices','entity_id') %}
+              {{ s|lower == 'none' or ( not s is string and s is iterable and not sensor in s ) }}
+          - alias: 'GROUP.set: add irradiance device to ALL devices group'
+            service: group.set
+            data_template:
+              object_id: motion_devices
+              name: 'All devices'
+              add_entities: >-
+                {{ sensor }}
+          - alias: 'set irradiance device: added,manufacturer,..,state'
+            service: python_script.set_state
+            data_template:
+              allow_create: true
+              entity_id: >-
+                {{  sensor }}
+              added: >-
+                {{- now -}}
+              manufacturer: >-
+                {{- manufacturer -}}
+              areas: >-
+                {{- areas -}}
+              model: >-
+                {{- model -}}
+              name: >-
+                {{- name -}}
+              url: >-
+                {{- url -}}
+              config: >-
+                {{- config -}}
+              state: >-
+                {% if not did in shellys %}on{% else %}unknown{% endif %}
+
+## notifications
+
+- id: motion_device_irradiance_found_notify
+  alias: motion_device_irradiance_found_notify
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_irradiance_found
+      to: 'on'
+  variables:
+    class: >-
+      {{- 'irradiance' -}}
+    ids: >-
+      {% set ids = state_attr('binary_sensor.motion_device_irradiance','ids') -%}
+      {{ ids }}
+    devices: >-
+      {% set devices = state_attr('binary_sensor.motion_device_irradiance','devices') -%}
+      {{ devices }}
+    title: >-
+      {% set title = states('sensor.motion_app') + ': irradiance sensor found' -%}
+      {{ title }}
+    notification_id: >-
+      {{ 'device-' + class|string + '-notify' }}
+    icon: >-
+      {% set icon = 'notification-' + class|string + '-found' -%}
+      {{ icon }}
+    header: >-
+      {{- '<img src="/local/images/icons/' + icon + '.png?v1">' -}}
+    footer: >-
+      <a href="/notify-devices/{{- class -}}"><img src="https://img.shields.io/badge/{{- class -}}-device-cyan.svg"></a>
+      {%- if did is defined and did|lower != 'none' and did|lower != 'null' -%}
+         <br><a href="/config/devices/device/{{- did -}}"><img src="https://img.shields.io/badge/{{- class -}}-config-blue.svg"></a>
+      {%- endif -%}
+    body: >-
+      {%- if devices|lower != 'none' -%}
+        Sensor(s) for irradiance found at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}
+        {%- for i in devices -%}
+         {%- if loop.first -%}<ul>{%- endif -%}
+         {%- set name = device_attr(i,'name_by_user') -%}{%- if name|lower == 'none' -%}{%- set name = device_attr(i,'name') -%}{%- endif -%}
+          <li><a href="/config/devices/device/{{- i.did -}}">{{- name|replace("'","") -}}</a> in <a href="/config/areas/area/{{- i.area -}}">{{- i.area -}}</a></li>
+         {%- if loop.last -%}</ul>{%- endif -%}
+        {%- endfor -%}
+      {%- else -%}
+        <b>INVALID</b>: no devices with irradiance sensors at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+      {%- endif -%}
+    message: >-
+      {{- header -}}<hr>{{- body -}}<br>{{- footer -}}
+  action:
+    - alias: 'notify found irradiance sensor'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+- id: motion_device_irradiance_found_dismiss
+  alias: motion_device_irradiance_found_dismiss
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_irradiance_exist'
+      to: 'on'
+      for:
+        minutes: >-
+          {{ states('input_number.motion_device_class_dismiss')|int(5) }}
+  variables:
+    notification_id: >-
+      {{ 'device-irradiance-notify' }}
+  action:
+    - alias: 'dismiss irradiance found notification'
+      service: persistent_notification.dismiss
+      data_template:
+        notification_id: >-
+          {{ notification_id }}
+
+# cleared notify
+
+- id: motion_device_irradiance_cleared_notify
+  alias: motion_device_irradiance_cleared_notify
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_irradiance_exist'
+      attribute: 'good'
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_irradiance'
+      attribute: 'good'
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_irradiance'
+      attribute: 'status'
+  condition:
+    condition: template
+    value_template: >-
+      {% set s = state_attr('binary_sensor.motion_device_irradiance','good') %}
+      {{ not s|lower == 'none' and is_state_attr('binary_sensor.motion_device_irradiance_exist','good','on') }}
+  variables:
+    class: >-
+      {{- 'irradiance' -}}
+    which: >-
+      {% set which = none %}
+      {% set s = state_attr('binary_sensor.motion_device_irradiance','status')|selectattr('state','==','off')|sort(attribute='updated',reverse=true)|list %}
+      {% if s|lower != 'none' and s|lower != 'null' and not s is string and s is iterable and s|count > 0 %}
+        {% set which = s|map(attribute='id')|first  %}
+      {%- endif %}
+      {{ which }}
+    notification_id: >-
+      {{ 'device-irradiance-status-' + which|string }}
+    icon: >-
+      {% set icon = 'notification-irradiance-good' %}
+      {{ icon }}
+    title: >-
+      {% set title = states('sensor.motion_app') + ': irradiance good (' + state_attr('binary_sensor.motion_device_irradiance_exist','good')|string + ')' %}
+      {{ title }}
+    header: >-
+      {{- '<img src="/local/images/icons/' + icon + '.png?v1">' -}}
+    footer: >-
+      <a href="/notify-devices/{{- class -}}"><img src="https://img.shields.io/badge/{{- class -}}-device-cyan.svg"></a>
+      {%- if did is defined and did|lower != 'none' and did|lower != 'null' -%}
+         <br><a href="/config/devices/device/{{- did -}}"><img src="https://img.shields.io/badge/{{- class -}}-config-blue.svg"></a>
+      {%- endif -%}
+    body: >-
+      The <a href="/notify-devices/irradiance">irradiance</a> alarm has cleared; sensor: {{ which -}}.
+    message: >-
+      {{- header -}}<hr>{{- body -}}{{- footer -}}
+  action:
+    - condition: template
+      value_template: >
+        {{ which|lower != 'none' and is_state_attr('binary_sensor.motion_device_irradiance_exist','alarm','on') }}
+    - alias: 'notify irradiance sensor activated'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+# cleared dismissed
+
+- id: motion_device_irradiance_cleared_dismiss
+  alias: motion_device_irradiance_cleared_dismiss
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+    - platform: template
+      value_template: >-
+        {{ is_state_attr('binary_sensor.motion_device_irradiance_exist','good',states('binary_sensor.motion_device_irradiance')) }}
+      for:
+        minutes: >-
+          {{ states('input_number.motion_device_class_dismiss')|int(5) }}
+  variables:
+    ids: >-
+      {%- set ids = state_attr('binary_sensor.motion_device_irradiance','ids') -%}
+      {%- if ids|lower != 'none' and not ids is string and ids is iterable and ids|count > 0 -%}
+        [{%- for i in ids -%}
+          {%- if not loop.first -%},{%- endif -%}
+          "{{- 'device-irradiance-status-' + i|string -}}"
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ ids|lower != 'none' and ids is iterable and ids|count > 0 }}
+  action:
+    - alias: 'dismiss irradiance status'
+      repeat:
+        while:
+          - alias: 'test if not done'
+            condition: template
+            value_template: >-
+              {%- set s = ids[repeat.index - 1]|default('unknown') %}
+              {{ s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|string|length > 0 }}
+        sequence:
+          - alias: 'dismissing persistent notification'
+            service: persistent_notification.dismiss
+            data_template:
+              notification_id: >-
+                {{ ids[repeat.index - 1] }}
+
+# missing
+
+- id: motion_device_irradiance_missing
+  alias: motion_device_irradiance_missing
+  mode: 'single'
+  max_exceeded: 'silent'
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_irradiance'
+      attribute: 'devices'
+      for:
+        seconds: 30
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_irradiance_required'
+      to:
+        - 'on'
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_irradiance_exist'
+      to:
+        - 'on'
+        - 'off'
+      for:
+        seconds: 30
+  variables:
+    now: >-
+     {%- set now = utcnow().timestamp() -%}
+     {{ now }}
+    class: >-
+      {%- set class = 'irradiance' -%}
+      {{ class }}
+    responses: >-
+      {%- set responses = ['deny','wait','help'] -%}
+      {{- responses -}}
+    actions: >-
+      {%- set id = 'device-irradiance-missing' -%}
+      {%- set group = 'device-irradiance' -%}
+      {%- set interval = 300 -%}
+      {%- set primary = state_attr('sensor.motion_role_primary','friendly_name') -%}
+      {%- set approve = {'id':'approve','action':id|string + '-approve','title':'I\'m Okay','icon':'mdi:thumb-up','symbol':'sfsymbols:hand.thumbsup','destructive':false,'trigger':'automation.motion_device_irradiance_missing_okay'} -%}
+      {%- set deny = {'id':'deny','action':id|string + '-deny','title':'Missing alarm off','icon':'mdi:bell-cancel','symbol':'sfsymbols:hand.thumbsdown.fill','destructive':true,'trigger':'automation.motion_device_irradiance_missing_off'} -%}
+      {%- set wait = {'id':'wait','action':id|string + '-wait','title':'Ignore','icon':'mdi:bell-sleep','symbol':'sfsymbols:timer','destructive':false,'trigger':'automation.motion_device_irradiance_missing_dismiss'} -%}
+      {%- set help = {'id':'help','action':id|string + '-help','title':'Notify ' + primary|string,'icon':'mdi:message-alert','symbol':'sfsymbols:message','destructive':false,'trigger':'automation.motion_notification_irradiance_missing'} -%}
+      [{{ approve }},{{ deny }},{{ wait }},{{ help }}]
+    state: >-
+      {%- set s = state_attr('binary_sensor.motion_device_' + class,'devices') -%}
+      {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}off
+      {%- else -%}
+        {%- set s = state_attr('binary_sensor.motion_device_class','required') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' -%}
+          {%- if s is iterable and class in s -%}on{%- else -%}off{%- endif -%}
+        {%- else -%}unknown{%- endif -%}
+      {%- endif -%}
+    last: >-
+      {%- if state == 'off' -%}
+        {%- set last = none -%}
+      {%- elif state == 'on' -%}
+        {%- set s = state_attr('binary_sensor.motion_device_irradiance_missing','last') -%}
+        {%- if s|float(0) > 0 -%}
+          {%- set last = s|float(0) %}
+        {%- else -%}
+          {%- set last = now %}
+        {%- endif -%}
+      {%- endif -%}
+      {{ last }}
+    details: >-
+      {%- if state == 'on' -%}
+        {%- set details = ['irradiance is missing for ' + (last|as_timestamp(now)|as_datetime|relative_time|string)] -%}
+      {%- elif state == 'off' -%}
+        {%- set details = ['irradiance is not missing'] -%}
+      {%- else -%}
+        {%- set details = ['irradiance missing is unknown'] -%}
+      {%- endif -%}
+      {{ details }}
+    markdown: >-
+      {%- if state|lower == 'on' -%}Missing <a href="/notify-devices/irradiance">irradiance</a> sensors.
+      {%- elif state|lower == 'off' -%}No missing irradiance sensors.
+      {%- else -%}Unknown missingirradiance sensors.{%- endif -%}
+      <i>Last updated</i>: {{ now|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+  action:
+    - alias: 'set binary_sensor.motion_device_irradiance_missing: attributes & state'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_irradiance_missing
+        last: >-
+          {{ last }}
+        details: >-
+          {{ details }}
+        responses: >-
+          {{ responses }}
+        actions: >-
+          {{ actions }}
+        markdown: >-
+          {{ markdown }}
+        state: >-
+          {{ state }}
+
+- id: motion_device_irradiance_missing_on
+  alias: motion_device_irradiance_missing_on
+  mode: 'single'
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_irradiance_missing'
+      to: 'on'
+  action:
+    - alias: 'set irradiance condition: missing'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_irradiance
+        condition: >-
+          {{ 'missing' }}
+
+- id: motion_device_irradiance_missing_notify_watchdog
+  alias: motion_device_irradiance_missing_notify_watchdog
+  mode: 'single'
+  initial_state: 'off'
+  trigger:
+    - platform: time_pattern
+      minutes: '/15'
+  condition:
+    - condition: template
+      value_template: >-
+        {{ is_state('binary_sensor.motion_device_irradiance_missing','on') }}
+    - condition: template
+      value_template: >-
+        {{ is_state_attr('automation.motion_device_irradiance_missing_notify', 'current', 0) }}
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+            - condition: template
+              value_template: >
+                {{ trigger.platform == 'time_pattern' }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: irradiance missing notify watchdog
+                notification_id: >
+                  {{- 'debug-irradiance-missing-notify' -}}
+                message: >-
+                  Trigger platform: {{ trigger.platform }}
+    - alias: 'trigger irradiance status'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_irradiance_missing_notify
+
+- id: motion_device_irradiance_missing_notify
+  alias: motion_device_irradiance_missing_notify
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_irradiance_missing
+      to: 'on'
+  condition:
+    - alias: 'test if irradiance devices are missing'
+      condition: template
+      value_template: >-
+        {{ is_state('binary_sensor.motion_device_irradiance_missing','on') }}
+  variables:
+    class: >-
+      {{ 'irradiance' }}
+    ip: >-
+      {{ none }}
+    latitude: >-
+      {{ none }}
+    longitude: >-
+      {{ none }}
+    notification_id: >-
+      {{ 'device-irradiance-missing' }}
+    icon: >-
+      {% set icon = 'notification-irradiance-missing' %}
+      {{ icon }}
+    header: >-
+      {{- '<img src="/local/images/icons/' + icon + '.png?v1">' -}}
+    footer: >-
+      <br><a href="/lovelace-primary/{{- class -}}"><img src="https://img.shields.io/badge/{{- class -}}-missing-orange.svg"></a>
+      <br><a href="/notify-devices/{{- class -}}"><img src="https://img.shields.io/badge/{{- class -}}-device-cyan.svg"></a>
+      {%- if did is defined and did|lower != 'none' and did|lower != 'null' -%}
+         <br><a href="/config/devices/device/{{- did -}}"><img src="https://img.shields.io/badge/{{- class -}}-config-blue.svg"></a>
+      {%- endif -%}
+    title: >-
+      {% set title = states('sensor.motion_app') + ': irradiance sensor missing' %}
+      {{ title }}
+    body: >-
+      {{ state_attr('binary_sensor.motion_device_irradiance_missing','markdown') }}
+    message: >-
+      {{- header -}}<hr>{{- body -}}<p>{{- footer -}}
+  action:
+    - alias: 'notify missing irradiance sensor'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+- id: motion_device_irradiance_missing_dismiss
+  alias: motion_device_irradiance_missing_dismiss
+  mode: single
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_irradiance_missing
+      to: 'off'
+  variables:
+    class: >-
+      {{ 'irradiance' }}
+    notification_id: >-
+      {{ 'device-' + class + '-missing' }}
+  action:
+    - alias: 'dismiss irradiance missing notification'
+      service: persistent_notification.dismiss
+      data_template:
+        notification_id: >-
+          {{ notification_id }}
+
+- id: motion_device_irradiance_activity_dismiss
+  alias: motion_device_irradiance_activity_dismiss
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  variables:
+    class: >-
+      {{ 'irradiance' }}
+    notification_id: >-
+      {{ 'device-' + class + '-activity' }}
+  action:
+    - alias: 'dismiss irradiance activity notification'
+      service: persistent_notification.dismiss
+      data_template:
+        notification_id: >-
+          {{ notification_id }}
+
+## high_spike
+
+- id: motion_device_irradiance_high_spike
+  alias: motion_device_irradiance_high_spike
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_irradiance'
+      attribute: 'high_spike'
+  variables:
+    details: >-
+      {% if state_attr('binary_sensor.motion_device_irradiance_exist','high_spike')|lower != 'none' %}
+        {% set s = state_attr('binary_sensor.motion_device_irradiance','high_spike') %}
+        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+          [{% for i in s -%}
+            {%- if not loop.first -%},{%- endif -%}
+            "{{- state_attr(i.entity_id,'friendly_name') }} is {{ states(i.entity_id)|int('unknown') -}}{{ state_attr(i.entity_id,'unit_of_measurement') -}}"
+          {%- endfor -%}]
+        {%- else -%}none{%- endif %}
+      {%- else -%}none{%- endif %}
+    state: >-
+      {% set s = state_attr('binary_sensor.motion_device_irradiance','high_spike') %}
+      {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and not s is string and s is iterable %}
+        {% if s|list|count > 0 %}on{% else %}off{% endif %}
+      {% else %}unknown{% endif %}
+    last: >-
+      {% if state|lower == 'off' %}
+        {{ state_attr('binary_sensor.motion_device_irradiance_high_spike','last') }}
+      {%- else -%}{{ utcnow().timestamp() }}{%- endif %}
+  condition:
+    - condition: template
+      value_template: >
+        {{ state|lower != 'unknown' }}
+  action:
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_irradiance_high_spike
+        limit: >-
+          {{ state_attr('sensor.motion_device_irradiance_high_spike','limit') }}
+        last: >-
+          {{ last }}
+        details: >-
+          {{ details }}
+        state: >-
+          {{ state }}
+    - condition: template
+      value_template: >
+        {{ state|lower == 'on' }}
+    - alias: 'set irradiance condition: high_spike'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_irradiance
+        condition: >-
+          {{ 'high_spike' }}
+
+- id: motion_device_irradiance_high_spike_off
+  alias: motion_device_irradiance_high_spike_off
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'irradiance high_spike not off'
+        condition: template
+        value_template: >-
+          {% set s = state_attr('binary_sensor.motion_device_class','high_spike') -%}
+          {{ s|lower != 'none' and s is iterable and 'irradiance' in s -}}
+  variables:
+    high_spike: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','high_spike') -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set s = s|reject('==','irradiance')|list -%}
+        {%- if not s is string and s is iterable and s|count > 0 -%}
+          {% set high_spike = s -%}
+        {%- else -%}
+          {% set high_spike = [] -%}
+        {%- endif %}
+      {%- endif %}
+      {%- if high_spike is defined -%}
+        {{ high_spike }}
+      {%- else -%}none{%- endif %}
+  action:
+    - alias: 'test if high_spike list of device classes is valid'
+      condition: template
+      value_template: >-
+        {{ high_spike|lower != 'none' }}
+    - alias: 'update binary_sensor.motion_device_class high_spike attribute; remove: irradiance'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        high_spike: >-
+          {{ high_spike }}
+
+- id: motion_device_irradiance_high_spike_on
+  alias: motion_device_irradiance_high_spike_on
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'irradiance high_spike not on'
+        condition: template
+        value_template: >-
+          {% set s = state_attr('binary_sensor.motion_device_class','high_spike') -%}
+          {{ s|lower != 'none' and s is iterable and not 'irradiance' in s -}}
+  variables:
+    high_spike: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','high_spike') -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set high_spike = (s|list + ['irradiance'])|sort|unique|list -%}
+      {%- else -%}
+        {%- set high_spike = ['irradiance'] -%}
+      {%- endif %}
+      {%- if high_spike is defined -%}
+        {{ high_spike }}
+      {%- else -%}none{%- endif %}
+  action:
+    - alias: 'test if high_spike list of device classes is valid'
+      condition: template
+      value_template: >-
+        {{ high_spike|lower != 'none' }}
+    - alias: 'update binary_sensor.motion_device_class high_spike attribute; add: irradiance'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        high_spike: >-
+          {{ high_spike }}
+
+- id: motion_device_irradiance_alarm_high_spike_on
+  alias: motion_device_irradiance_alarm_high_spike_on
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_irradiance_high_spike'
+      to: 'on'
+  variables:
+    limit: >-
+      {{ state_attr('sensor.motion_device_irradiance_high_spike','limit') }}
+    high_spike: >-
+      {{ state_attr('binary_sensor.motion_device_irradiance','high_spike') }}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{- high_spike|lower != 'none' and high_spike|lower != 'unknown' and not high_spike is string and high_spike is iterable and high_spike|count > 0 -}}
+      - condition: template
+        value_template: >
+          {{- limit|lower != 'none' and limit|lower != 'unknown' and limit is number -}}
+  action:
+    - variables:
+        markdown: >-
+          The <a href="/lovelace-primary/irradiance">irradiance</a> spike alarm was triggered (above {{ limit -}}) at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}:<br>
+          {%- for i in high_spike if 'id' in i and i.id|lower != 'none' -%}
+            {%- set name = state_attr(i.entity_id,'friendly_name')|replace("'","") -%}
+            {%- if loop.first -%}{{- '<ul>' -}}{%- endif -%}
+            {%- set d = state_attr('binary_sensor.motion_device_class','devices') -%}
+            {%- if d|lower != 'none' and not d is string and d is iterable and d|count > 0 -%}
+              {%- set d = d|selectattr('id','==',i.id)|list -%}
+              {%- if d|lower != 'none' and not d is string and d is iterable and d|count > 0 -%}
+                {%- set d = d|first -%}
+                <li><a href="/config/devices/device/{{- d.did -}}">{{- name -}}</a> is {{ states(high_spike[loop.index-1].entity_id) -}}{{- state_attr(high_spike[loop.index-1].entity_id,'unit_of_measurement') }} in <a href="/config/areas/area/{{- area_id(high_spike[loop.index-1].entity_id) -}}">{{- area_id(high_spike[loop.index-1].entity_id) -}}</a></li>
+              {%- else -%}
+                <li>{{- name }} irradiance is {{ states(i.entity_id) -}}{{- state_attr(i.entity_id,'unit_of_measurement') }}</li>
+              {%- endif -%}
+            {%- else -%}
+              {{- '<li>' -}}
+              {{ name }} irradiance is {{ states(i.entity_id) -}}{{- state_attr(i.entity_id,'unit_of_measurement') }}
+              {{- '</li>' -}}
+            {%- endif -%}
+            {%- if loop.last -%}{{- '</ul>' -}}{%- endif -%}
+          {%- endfor -%}
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_irradiance_high_spike
+        markdown: >-
+          {{ markdown }}
+    - condition: template
+      value_template: >
+        {{ is_state_attr('binary_sensor.motion_device_irradiance_exist','alarm','on') }}
+    - alias: 'trigger motion notification'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_irradiance_high_spike_notify
+
+- id: motion_device_irradiance_alarm_high_spike_off
+  alias: motion_device_irradiance_alarm_high_spike_off
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_irradiance_high_spike'
+      to: 'off'
+  action:
+    - condition: template
+      value_template: >
+        {{ is_state_attr('binary_sensor.motion_device_irradiance_exist','alarm','on') }}
+    - alias: 'trigger irradiance high_spike dismiss'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_irradiance_high_spike_dismiss
+
+- id: motion_device_irradiance_high_spike_notify
+  alias: motion_device_irradiance_high_spike_notify
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  condition:
+    condition: template
+    value_template: >-
+      {{ state_attr('binary_sensor.motion_device_irradiance_high_spike','markdown')|lower != 'none' }}
+  variables:
+    class: >-
+      {{ 'irradiance' }}
+    high_spike: >-
+      {% set high_spike = state_attr('binary_sensor.motion_device_irradiance','high_spike') %}
+      {{ high_spike }}
+    action: >-
+      {% set action = class + '-alarm' %}
+      {{ action }}
+    url: >-
+      {% set url = '/lovelace-primary/' + class %}
+      {{ url }}
+    title: >-
+      {% set title = states('sensor.motion_app') + ': ' + class + ' high_spike' %}
+      {{ title }}
+    notification_id: >-
+      {{ 'device-' + class + '-high_spike' }}
+    icon: >-
+      {% set icon = 'notification-' + class + '-high_spike' %}
+      {{ icon }}
+    header: >-
+      {{- '<img src="/local/images/icons/' + icon + '.png?v1">' -}}
+    footer: >-
+      <a href="/notify-devices/{{- class -}}"><img src="https://img.shields.io/badge/{{- class -}}-device-cyan.svg"></a>
+      {%- if did is defined and did|lower != 'none' and did|lower != 'null' -%}
+         <br><a href="/config/devices/device/{{- did -}}"><img src="https://img.shields.io/badge/{{- class -}}-config-blue.svg"></a>
+      {%- endif -%}
+    body: >-
+      {{ state_attr('binary_sensor.motion_device_irradiance_high_spike','markdown') }}
+      <p>We have notified <b>{{- state_attr('sensor.motion_role_primary','friendly_name') -}}</b> about your irradiance alarm.
+      To inspect and change the alarm click the <b>{{- action -}}</b> button below.
+      {{- '<p>' -}}
+      <a href="{{- url -}}"><img src="https://img.shields.io/badge/{{- action -}}-yellow.svg"></a>
+    message: >-
+      {{- header -}}<hr>{{- body -}}<br>{{- footer -}}
+  action:
+    - alias: 'notify irradiance sensor activated'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+- id: motion_device_irradiance_high_spike_dismiss
+  alias: motion_device_irradiance_high_spike_dismiss
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  variables:
+    class: >-
+      {{ 'irradiance' }}
+    notification_id: >-
+      {{ 'device-' + class + '-high_spike' }}
+  action:
+    - alias: 'dismiss irradiance high_spike notification'
+      service: persistent_notification.dismiss
+      data_template:
+        notification_id: >-
+          {{ notification_id }}
+
+## low_spike
+
+- id: motion_device_irradiance_low_spike
+  alias: motion_device_irradiance_low_spike
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_irradiance'
+      attribute: 'low_spike'
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_irradiance_exist'
+      attribute: 'low_spike'
+  variables:
+    details: >-
+      {% if state_attr('binary_sensor.motion_device_irradiance_exist','low_spike')|lower != 'none' %}
+        {% set s = state_attr('binary_sensor.motion_device_irradiance','low_spike') %}
+        {%- if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s is iterable -%}
+          [{% for i in s -%}
+            {%- if not loop.first -%},{%- endif -%}
+            "{{- state_attr(i.entity_id,'friendly_name') }} is {{ states(i.entity_id)|int('unknown') -}}{{ state_attr(i.entity_id,'unit_of_measurement') -}}"
+          {%- endfor -%}]
+        {%- else -%}none{%- endif %}
+      {%- else -%}none{%- endif %}
+    state: >-
+      {% set s = state_attr('binary_sensor.motion_device_irradiance','low_spike') %}
+      {% if s|lower != 'null' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and not s is string and s is iterable %}
+        {% if s|list|count > 0 %}on{% else %}off{% endif %}
+      {% else %}unknown{% endif %}
+    last: >-
+      {% if state|lower == 'off' %}
+        {{ state_attr('binary_sensor.motion_device_irradiance_low_spike','last') }}
+      {%- else -%}{{ utcnow().timestamp() }}{%- endif %}
+  condition:
+    - condition: template
+      value_template: >
+        {{ state|lower != 'unknown' }}
+  action:
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_irradiance_low_spike
+        limit: >-
+          {{ state_attr('sensor.motion_device_irradiance_low_spike','limit') }}
+        last: >-
+          {{ last }}
+        details: >-
+          {{ details }}
+        state: >-
+          {{ state }}
+    - condition: template
+      value_template: >
+        {{ state|lower == 'on' }}
+    - alias: 'set irradiance condition: low_spike'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_irradiance
+        condition: >-
+          {{ 'low_spike' }}
+
+- id: motion_device_irradiance_low_spike_off
+  alias: motion_device_irradiance_low_spike_off
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'irradiance low_spike not off'
+        condition: template
+        value_template: >-
+          {% set s = state_attr('binary_sensor.motion_device_class','low_spike') -%}
+          {{ s|lower != 'none' and s is iterable and 'irradiance' in s -}}
+  variables:
+    low_spike: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','low_spike') -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set s = s|reject('==','irradiance')|list -%}
+        {%- if not s is string and s is iterable and s|count > 0 -%}
+          {% set low_spike = s -%}
+        {%- else -%}
+          {% set low_spike = [] -%}
+        {%- endif %}
+      {%- endif %}
+      {%- if low_spike is defined -%}
+        {{ low_spike }}
+      {%- else -%}none{%- endif %}
+  action:
+    - alias: 'test if low_spike list of device classes is valid'
+      condition: template
+      value_template: >-
+        {{ low_spike|lower != 'none' }}
+    - alias: 'update binary_sensor.motion_device_class low_spike attribute; remove: irradiance'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        low_spike: >-
+          {{ low_spike }}
+
+- id: motion_device_irradiance_low_spike_on
+  alias: motion_device_irradiance_low_spike_on
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  condition:
+    condition: and
+    conditions:
+      - alias: 'irradiance low_spike not on'
+        condition: template
+        value_template: >-
+          {% set s = state_attr('binary_sensor.motion_device_class','low_spike') -%}
+          {{ s|lower != 'none' and s is iterable and not 'irradiance' in s -}}
+  variables:
+    low_spike: >-
+      {% set s = state_attr('binary_sensor.motion_device_class','low_spike') -%}
+      {%- if s|lower != 'unknown' and s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        {%- set low_spike = (s|list + ['irradiance'])|sort|unique|list -%}
+      {%- else -%}
+        {%- set low_spike = ['irradiance'] -%}
+      {%- endif %}
+      {%- if low_spike is defined -%}
+        {{ low_spike }}
+      {%- else -%}none{%- endif %}
+  action:
+    - alias: 'test if low_spike list of device classes is valid'
+      condition: template
+      value_template: >-
+        {{ low_spike|lower != 'none' }}
+    - alias: 'update binary_sensor.motion_device_class low_spike attribute; add: irradiance'
+      service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_class
+        low_spike: >-
+          {{ low_spike }}
+
+- id: motion_device_irradiance_alarm_low_spike_on
+  alias: motion_device_irradiance_alarm_low_spike_on
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_irradiance_low_spike'
+      to: 'on'
+  variables:
+    low_spike: >-
+      {{ state_attr('binary_sensor.motion_device_irradiance','low_spike') }}
+    limit: >-
+      {{ state_attr('sensor.motion_device_irradiance_low_spike','limit') }}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{- limit|lower != 'none' and limit|lower != 'unknown' and limit is number -}}
+      - condition: template
+        value_template: >
+          {{- low_spike|lower != 'none' and low_spike|lower != 'unknown' and not low_spike is string and low_spike is iterable and low_spike|count > 0 -}}
+  action:
+    - variables:
+        markdown: >-
+          The <a href="/lovelace-primary/irradiance">irradiance</a> spike alarm was triggered (below {{ limit -}}) at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}:<br>
+          {%- for i in low_spike if 'id' in i and i.id|lower != 'none' -%}
+            {%- set name = state_attr(i.entity_id,'friendly_name')|replace("'","") -%}
+            {%- if loop.first -%}{{- '<ul>' -}}{%- endif -%}
+            {%- set d = state_attr('binary_sensor.motion_device_class','devices') -%}
+            {%- if d|lower != 'none' and not d is string and d is iterable and d|count > 0 -%}
+              {%- set d = d|selectattr('id','==',i.id)|list -%}
+              {%- if d|lower != 'none' and not d is string and d is iterable and d|count > 0 -%}
+                {%- set d = d|first -%}
+                <li><a href="/config/devices/device/{{- d.did -}}">{{- name -}}</a> is {{ states(low_spike[loop.index-1].entity_id) -}}{{- state_attr(low_spike[loop.index-1].entity_id,'unit_of_measurement') }} in <a href="/config/areas/area/{{- area_id(low_spike[loop.index-1].entity_id) -}}">{{- area_id(low_spike[loop.index-1].entity_id) -}}</a></li>
+              {%- else -%}
+                <li>{{- name }} irradiance is {{ states(i.entity_id) -}}{{- state_attr(i.entity_id,'unit_of_measurement') }}</li>
+              {%- endif -%}
+            {%- else -%}
+              {{- '<li>' -}}
+              {{ name }} irradiance is {{ states(i.entity_id) -}}{{- state_attr(i.entity_id,'unit_of_measurement') }}
+              {{- '</li>' -}}
+            {%- endif -%}
+            {%- if loop.last -%}{{- '</ul>' -}}{%- endif -%}
+          {%- endfor -%}
+    - service: python_script.set_state
+      data_template:
+        entity_id: binary_sensor.motion_device_irradiance_low_spike
+        markdown: >-
+          {{ markdown }}
+    - condition: template
+      value_template: >
+        {{ is_state_attr('binary_sensor.motion_device_irradiance_exist','alarm','on') }}
+    - alias: 'trigger motion notification'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_irradiance_low_spike_notify
+
+- id: motion_device_irradiance_alarm_low_spike_off
+  alias: motion_device_irradiance_alarm_low_spike_off
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_irradiance_low_spike'
+      to: 'off'
+  action:
+    - condition: template
+      value_template: >
+        {{ is_state_attr('binary_sensor.motion_device_irradiance_exist','alarm','on') }}
+    - alias: 'trigger irradiance low_spike dismiss'
+      service: automation.trigger
+      data_template:
+        entity_id: automation.motion_device_irradiance_low_spike_dismiss
+
+- id: motion_device_irradiance_low_spike_notify
+  alias: motion_device_irradiance_low_spike_notify
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  condition:
+    condition: template
+    value_template: >-
+      {{ state_attr('binary_sensor.motion_device_irradiance_low_spike','markdown')|lower != 'none' }}
+  variables:
+    class: >-
+      {{ 'irradiance' }}
+    low_spike: >-
+      {% set low_spike = state_attr('binary_sensor.motion_device_irradiance','low_spike') %}
+      {{ low_spike }}
+    action: >-
+      {% set action = class + '-alarm' %}
+      {{ action }}
+    url: >-
+      {% set url = '/lovelace-primary/' + class %}
+      {{ url }}
+    title: >-
+      {% set title = states('sensor.motion_app') + ': ' + class + ' low_spike' %}
+      {{ title }}
+    notification_id: >-
+      {{ 'device-' + class + '-low_spike' }}
+    icon: >-
+      {% set icon = 'notification-' + class + '-low_spike' %}
+      {{ icon }}
+    header: >-
+      {{- '<img src="/local/images/icons/' + icon + '.png?v1">' -}}
+    footer: >-
+      <a href="/notify-devices/{{- class -}}"><img src="https://img.shields.io/badge/{{- class -}}-device-cyan.svg"></a>
+      {%- if did is defined and did|lower != 'none' and did|lower != 'null' -%}
+         <br><a href="/config/devices/device/{{- did -}}"><img src="https://img.shields.io/badge/{{- class -}}-config-blue.svg"></a>
+      {%- endif -%}
+    body: >-
+      {{ state_attr('binary_sensor.motion_device_irradiance_low_spike','markdown') }}
+      <p>We have notified <b>{{- state_attr('sensor.motion_role_primary','friendly_name') -}}</b> about your irradiance alarm.
+      To inspect and change the alarm click the <b>{{- action -}}</b> button below.
+      {{- '<p>' -}}
+      <a href="{{- url -}}"><img src="https://img.shields.io/badge/{{- action -}}-yellow.svg"></a>
+    message: >-
+      {{- header -}}<hr>{{- body -}}<br>{{- footer -}}
+  action:
+    - alias: 'notify irradiance sensor activated'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+- id: motion_device_irradiance_low_spike_dismiss
+  alias: motion_device_irradiance_low_spike_dismiss
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'off'
+  trigger:
+  variables:
+    class: >-
+      {{ 'irradiance' }}
+    notification_id: >-
+      {{ 'device-' + class + '-low_spike' }}
+  action:
+    - alias: 'dismiss irradiance low_spike notification'
+      service: persistent_notification.dismiss
+      data_template:
+        notification_id: >-
+          {{ notification_id }}
+
+### responses
+
+- id: motion_device_irradiance_response
+  alias: motion_device_irradiance_response
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+    - platform: event
+      event_type: mobile_app_notification_action
+      event_data:
+        action:
+          - "device-irradiance-bad-wait"
+          - "device-irradiance-bad-help"
+          - "device-irradiance-bad-deny"
+          - "device-irradiance-bad-approve"
+          - "device-irradiance-good-wait"
+          - "device-irradiance-good-help"
+          - "device-irradiance-good-deny"
+          - "device-irradiance-good-approve"
+          - "device-irradiance-high-wait"
+          - "device-irradiance-high-help"
+          - "device-irradiance-high-deny"
+          - "device-irradiance-high-approve"
+          - "device-irradiance-low-wait"
+          - "device-irradiance-low-help"
+          - "device-irradiance-low-deny"
+          - "device-irradiance-low-approve"
+  variables:
+    event: >-
+      {% set event = none -%}
+      {%- if trigger|lower != 'none' -%}
+        {%- set event = trigger.event|default('none') -%}
+      {%- endif -%}
+      {{- event }}
+    action: >-
+      {% set action = none -%}
+      {% if event|lower != 'none' and 'data' in event %}
+        {% set action = event.data.action|default('none') %}
+      {%- endif -%}
+      {{- action }}
+    condition: >-
+      {% set condition = none -%}
+      {% if action|lower != 'none' %}
+        {% set condition = action|replace('device-irradiance-','')|regex_replace('-.*','') %}
+      {%- endif -%}
+      {{- condition }}
+    response: >-
+      {% set response = none -%}
+      {% if condition|lower != 'none' %}
+        {% set response = action|replace('device-irradiance-' + condition|string + '-','') %}
+      {%- endif -%}
+      {{- response }}
+    origin: >-
+      {% if trigger|lower != 'none' %}
+        {{ trigger.event.origin|default(none) }}
+      {% else %}none{% endif %}
+    time_fired: >-
+      {% if trigger|lower != 'none' %}
+        {{ trigger.event.time_fired|default(none) }}
+      {% else %}none{% endif %}
+    context: >-
+      {% if trigger|lower != 'none' %}
+        {{ trigger.event.context }}
+      {% else %}none{% endif %}
+    responses: >-
+      {%- set responses = none -%}
+      {%- if condition|lower != 'none' and condition|string|length > 0 -%}
+        {%- set s = state_attr('binary_sensor.motion_device_irradiance_' + condition|string,'responses') -%}
+        {%- if s|lower != 'none' -%}
+          {%- set responses = s -%}
+        {%- endif -%}
+      {%- endif -%}
+      {{- responses -}}
+    actions: >-
+      {%- set actions = none -%}
+      {%- if condition|lower != 'none' and condition|string|length > 0 -%}
+        {%- set s = state_attr('binary_sensor.motion_device_irradiance_' + condition|string,'actions') -%}
+        {%- if not s is string and s is iterable and 'did' in s -%}
+          {%- set actions = s -%}
+        {%- endif -%}
+      {%- endif -%}
+      {{- actions -}}
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','trace') }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  TRACE: Device irradiance response
+                notification_id: >-
+                  {{ 'device-irradiance-response' }}
+                message: >-
+                  Response <b>received</b>: "{{ response -}}"; condition: {{ condition|string -}}; context: {{ context|string -}}; at: {{ time_fired }}
+    - choose:
+        - alias: 'test if response in responses'
+          conditions:
+            - alias: 'test if response is valid'
+              condition: template
+              value_template: >
+                {{ response|lower != 'none' and response|string|length > 0 }}
+            - alias: 'test if responses are valid'
+              condition: template
+              value_template: >
+                {{ responses|lower != 'none' and not responses is string and responses is iterable and responses|count > 0 }}
+            - alias: 'test if response in responses'
+              condition: template
+              value_template: >
+                {{ response|lower in responses }}
+          sequence:
+            - alias: 'set device_irradiance: timestamp, when'
+              variables:
+                timestamp: >-
+                  {{ utcnow().timestamp() }}
+                when: >-
+                  {{ timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+                response: >-
+                  {{ response }}
+            - choose:
+                - conditions:
+                    - condition: template
+                      value_template: >
+                        {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+                  sequence:
+                    - service: persistent_notification.create
+                      data_template:
+                        title: >-
+                          DEBUG: device irradiance response
+                        notification_id: >-
+                          {{ 'device-irradiance-response' }}
+                        message: >-
+                          Device irradiance <b>updated</b> to <code>{{- response -}}</code> at <i>{{- when -}}</i>
+            - alias: 'set binary_sensor.motion_device_irradiance to new state w/ condition, response, actions, timestamp, when'
+              service: python_script.set_state
+              data_template:
+                entity_id: binary_sensor.motion_device_irradiance
+                timestamp: >-
+                  {{ timestamp }}
+                when: >-
+                  {{ when }}
+                actions: >-
+                  {{ actions }}
+                condition: >-
+                  {{ condition }}
+                response: >-
+                  {{ response }}
+            - alias: 'trigger automation for irradiance approve'
+              service: automation.trigger
+              data_template:
+                entity_id: >-
+                  {{ 'automation.motion_device_irradiance_' + response|string }}
+
+##
+
+- id: motion_device_irradiance_approve
+  alias: motion_device_irradiance_approve
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+  variables:
+    condition: >-
+      {% set condition = state_attr('binary_sensor.motion_device_irradiance','condition') %}
+      {{ condition }}
+    response: >-
+      {% set response = 'approve' %}
+      {{ response }}
+    actions: >-
+      {% set actions = state_attr('binary_sensor.motion_device_irradiance_alarm_exist','actions') %}
+      {{ actions }}
+    function: >-
+      {% set function = state_attr('sensor.motion_device_irradiance_approve','function') %}
+      {{- function -}}
+    timestamp: >-
+      {{ utcnow().timestamp() }}
+    when: >-
+      {{ timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: irradiance response: {{ response }}
+                notification_id: >-
+                  {{ 'device-irradiance-response' }}
+                message: >-
+                  Device irradiance response: <b>{{- response -}}</b> at <i>{{- when -}}</i>; Condition: {{ condition -}}; Trigger: {{ function -}}
+    - alias: 'function not none'
+      condition: template
+      value_template: >-
+        {{ function|lower != 'none' }}
+    - alias: 'trigger automation for irradiance approve'
+      service: automation.trigger
+      data_template:
+        entity_id: >-
+          {{ function }}
+
+- id: motion_device_irradiance_deny
+  alias: motion_device_irradiance_deny
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+  variables:
+    condition: >-
+      {% set condition = state_attr('binary_sensor.motion_device_irradiance','condition') %}
+      {{ condition }}
+    response: >-
+      {% set response = 'deny' %}
+      {{ response }}
+    actions: >-
+      {% set actions = state_attr('binary_sensor.motion_device_irradiance_alarm_exist','actions') %}
+      {{ actions }}
+    function: >-
+      {% set function = state_attr('sensor.motion_device_irradiance_deny','function') %}
+      {{- function -}}
+    timestamp: >-
+      {{ utcnow().timestamp() }}
+    when: >-
+      {{ timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: irradiance response: {{ response }}
+                notification_id: >-
+                  {{ 'device-irradiance-response' }}
+                message: >-
+                  Device irradiance response: <b>{{- response -}}</b> at <i>{{- when -}}</i>; Condition: {{ condition -}}; Trigger: {{ function -}}
+    - alias: 'function not none'
+      condition: template
+      value_template: >-
+        {{ function|lower != 'none' }}
+    - alias: 'trigger automation for irradiance deny'
+      service: automation.trigger
+      data_template:
+        entity_id: >-
+          {{ function }}
+
+- id: motion_device_irradiance_wait
+  alias: motion_device_irradiance_wait
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+  variables:
+    condition: >-
+      {% set condition = state_attr('binary_sensor.motion_device_irradiance','condition') %}
+      {{ condition }}
+    response: >-
+      {% set response = 'wait' %}
+      {{ response }}
+    actions: >-
+      {% set actions = state_attr('binary_sensor.motion_device_irradiance_alarm_exist','actions') %}
+      {{ actions }}
+    function: >-
+      {% set function = state_attr('sensor.motion_device_irradiance_wait','function') %}
+      {{- function -}}
+    timestamp: >-
+      {{ utcnow().timestamp() }}
+    when: >-
+      {{ timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: irradiance response: {{ response }}
+                notification_id: >-
+                  {{ 'device-irradiance-response' }}
+                message: >-
+                  Device irradiance response: <b>{{- response -}}</b> at <i>{{- when -}}</i>; Condition: {{ condition -}}; Trigger: {{ function -}}
+    - alias: 'function not none'
+      condition: template
+      value_template: >-
+        {{ function|lower != 'none' }}
+    - alias: 'trigger automation for irradiance wait'
+      service: automation.trigger
+      data_template:
+        entity_id: >-
+          {{ function }}
+
+- id: motion_device_irradiance_help
+  alias: motion_device_irradiance_help
+  mode: single
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+  variables:
+    condition: >-
+      {% set condition = state_attr('binary_sensor.motion_device_irradiance','condition') %}
+      {{ condition }}
+    response: >-
+      {% set response = 'help' %}
+      {{ response }}
+    actions: >-
+      {% set actions = state_attr('binary_sensor.motion_device_irradiance_alarm_exist','actions') %}
+      {{ actions }}
+    function: >-
+      {% set function = state_attr('sensor.motion_device_irradiance_help','function') %}
+      {{- function -}}
+    timestamp: >-
+      {{ utcnow().timestamp() }}
+    when: >-
+      {{ timestamp|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','debug') }}
+          sequence:
+            - service: persistent_notification.create
+              data_template:
+                title: >-
+                  DEBUG: irradiance response: {{ response }}
+                notification_id: >-
+                  {{ 'device-irradiance-response' }}
+                message: >-
+                  Device irradiance response: <b>{{- response -}}</b> at <i>{{- when -}}</i>; Condition: {{ condition -}}; Trigger: {{ function -}}
+    - alias: 'function not none'
+      condition: template
+      value_template: >-
+        {{ function|lower != 'none' }}
+    - alias: 'function automation for irradiance help'
+      service: automation.trigger
+      data_template:
+        entity_id: >-
+          {{ function }}
+
+- id: motion_device_irradiance_sensor
+  alias: motion_device_irradiance_sensor
+  mode: 'single'
+  max_exceeded: 'silent'
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.motion_device_irradiance'
+      attribute: 'status'
+  variables:
+    class: >-
+      {%- set class = 'irradiance' -%}
+      {{- class -}}
+    unit: >-
+      {{- state_attr('binary_sensor.motion_device_' + class,'unit') -}}
+    status: >-
+      {{- state_attr('binary_sensor.motion_device_' + class,'status') -}}
+    devices: >-
+      {{- state_attr('binary_sensor.motion_device_' + class,'devices') -}}
+    measurement: >-
+      {%- set s = status -%}
+      {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        [{%- for i in s|rejectattr('entity_id','search','binary_sensor\.')|selectattr('entity_id','search','sensor\.')|list if not state_attr(i.entity_id, 'state_class')|string in ['total','total_increasing'] -%}
+          {"did":"{{- i.did -}}","id":"{{- i.id -}}","friendly_name":"{{- state_attr(i.entity_id,'friendly_name') -}}","entity_id":"{{- i.entity_id -}}","state":"{{- states(i.entity_id) -}}","updated":{{- states[i.entity_id].last_updated|as_timestamp(None) -}}}
+          {%- if not loop.last -%},{%- endif -%}
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
+    values: >-
+      {%- set s = measurement -%}
+      {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        [{% for i in s if 'entity_id' in i and not i.entity_id is none -%}
+          {%- if not loop.first -%},{%- endif -%}
+          {{- states(i.entity_id)|float(none) -}}
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
+    statistics: >-
+      {%- set s = status -%}
+      {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+        [{%- for i in s|rejectattr('entity_id','search','binary_sensor\.')|selectattr('entity_id','search','sensor\.')|list if state_attr(i.entity_id, 'state_class')|string in ['total','total_increasing'] -%}
+          {"did":"{{- i.did -}}","class":"{{- i.class -}}","id":"{{- i.id -}}","friendly_name":"{{- state_attr(i.entity_id,'friendly_name') -}}","entity_id":"{{- i.entity_id -}}","state":"{{- states(i.entity_id) -}}","updated":{{- states[i.entity_id].last_updated|as_timestamp(None) -}}}
+          {%- if not loop.last -%},{%- endif -%}
+        {%- endfor -%}]
+      {%- else -%}none{%- endif %}
+    dids: >-
+      {%- set dids = status|selectattr('entity_id','defined')|rejectattr('entity_id','search','binary_sensor\.')|selectattr('entity_id','search','sensor\.')|map(attribute='did')|sort|unique|list -%}
+      {{ dids }}
+    ids: >-
+      {%- set ids = status|selectattr('entity_id','defined')|rejectattr('entity_id','search','binary_sensor\.')|selectattr('entity_id','search','sensor\.')|map(attribute='id')|sort|unique|list -%}
+      {{ ids }}
+    total: >-
+      {% set s = ids -%}
+      {% if s|lower != 'none' and not s is string %}
+        {{- ids|count -}}
+      {% else %}none{% endif %}
+    areas: >-
+      {% set s = ids -%}
+      {%- if s|lower != 'none' and not s is string -%}
+        {{- devices|rejectattr('area','in',[None,'none','None'])|selectattr('id','in',ids)|map(attribute='area')|sort|unique|list -}}
+      {%- else -%}none{%- endif %}
+    min: >-
+      {% set s = values|reject('none') -%}
+      {% if s|lower != 'none' and not s is string %}
+        {% set s = s|select('number')|list|default(none) %}
+        {% if s|lower != 'none' and s|count > 0 %}
+          {{ s|min }}
+        {% else %}none{% endif %}
+      {% else %}none{% endif %}
+    max: >-
+      {% set s = values|reject('none') -%}
+      {% if s|lower != 'none' and not s is string %}
+        {% set s = s|select('number')|list|default(none) %}
+        {% if s|lower != 'none' and s|count > 0 %}
+          {{ s|max }}
+        {% else %}none{% endif %}
+      {% else %}none{% endif %}
+    mean: >-
+      {% set s = values|reject('none') -%}
+      {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {% set s = s|select('number')|list|default(none) %}
+        {% if s|lower != 'none' and s|count > 0 %}
+          {{ '%0.2f'|format(s|average) }}
+        {% else %}none{% endif %}
+      {% else %}none{% endif %}
+    sum: >-
+      {% set s = values|reject('none') -%}
+      {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {% set s = s|select('number')|list|default(none) %}
+        {% if s|lower != 'none' and s|count > 0 %}
+          {{ '%0.2f'|format(s|sum) }}
+        {% else %}none{% endif %}
+      {% else %}none{% endif %}
+    count: >-
+      {% set s = values|reject('none') -%}
+      {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
+        {% set s = s|select('number')|list|default(none) %}
+        {% if s|lower != 'none' and s|count > 0 %}
+          {{ (s|count) }}
+        {% else %}none{% endif %}
+      {% else %}none{% endif %}
+    state: >-
+      {{- mean -}}
+  action:
+    - alias: 'set sensor.motion_device_irradiance'
+      service: python_script.set_state
+      data_template:
+        entity_id: 'sensor.motion_device_irradiance'
+        last: >-
+          {{- utcnow().timestamp() -}}
+        unit: >-
+          {{- unit -}}
+        unit_of_measurement: >-
+          {{- unit -}}
+        dids: >-
+          {{- dids -}}
+        ids: >-
+          {{- ids -}}
+        measurement: >-
+          {{- measurement -}}
+        statistics: >-
+          {{ statistics|reject('none')|list }}
+        total: >-
+          {{- total -}}
+        areas: >-
+          {{- areas -}}
+        values: >-
+          {{- values -}}
+        min: >-
+          {{- min -}}
+        max: >-
+          {{- max -}}
+        mean: >-
+          {{- mean -}}
+        sum: >-
+          {{- sum -}}
+        count: >-
+          {{- count -}}
+        state: >-
+          {{ state }}
+
