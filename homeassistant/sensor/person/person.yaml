@@ -100,6 +100,16 @@
               {%- endif -%}
             {%- endif -%}
           {%- else -%}none{%- endif -%}
+        selected: >-
+          {%- set s = states('input_select.motion_person') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {{- s -}}
+          {%- else -%}
+            {%- set s = states('sensor.motion_person_calculator') -%}
+            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+              {{- s -}}
+            {%- else -%}none{%- endif -%}
+          {%- endif -%}
       value_template: >-
         {{- states('sensor.motion_person_calculator') -}}
 
@@ -108,25 +118,9 @@
     motion_person_calculator:
       value_template: >-
         {% set id = states('input_text.motion_person') %}
-        {% for i in states.person if i.attributes is iterable and 'id' in i.attributes and i.attributes.id == id %}
-          {% if loop.first %}{{ i.attributes.id }}{% endif %}
-        {% else %}{{ states.person|selectattr('attributes.id','defined')|list|map(attribute='attributes.id')|list|first }}{% endfor %}
-
-# person
-
-- platform: template
-  sensors:
-    motion_person_selected:
-      value_template: >-
-        {%- set s = states('input_select.motion_person') -%}
-        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-          {{- s -}}
-        {%- else -%}
-          {%- set s = states.sensor.motion_person_selected.state -%}
-          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-            {{- s -}}
-          {%- else -%}none{%- endif -%}
-        {%- endif -%}
+        {% for i in states.person|selectattr('attributes.id','defined')|map(attribute='attributes.id')|reject('none') if id == i %}
+          {% if loop.first %}{{ i }}{% endif %}
+        {% else %}{{ states.person|selectattr('attributes.id','defined')|map(attribute='attributes.id')|list|first }}{% endfor %}
 
 # ago
 
@@ -299,3 +293,39 @@
         {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
           {{ s|int(0) * 7 * 24 * 60 * 60 -}}
         {%- else -%}{{- 604800 -}}{%- endif -%}
+
+# setup
+
+- platform: template
+  sensors:
+    motion_person_setup_cli:
+      friendly_name: Motion person setup CLI
+      icon_template: 'mdi:web'
+      attribute_templates:
+        command: >-
+          {%- set s = states('input_text.motion_person') -%}
+          {% if s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'unknown' and s|lower != 'null' and s|lower != 'false' and s is string and s|length > 0 %}
+            {% set p = s %}
+            {% set s = states('sensor.motion_person_setup_command') %}
+            {% if s|lower == true and p == state_attr('sensor.motion_person_setup_command','MOTION_USER') %}
+              {{- 'none' -}}
+            {% else %}
+              {{- 'jq -Sc \'.MOTION_USER="' +  p|string + '"\' /config/setup.json | tee /tmp/setup.json && mv -f /tmp/setup.json /config/setup.json' -}}
+            {% endif %}
+          {% else %}none{% endif %}
+      value_template: >-
+        {% set s = states('sensor.motion_person_setup_command') %}
+        {% if s|lower == 'true' %}
+          {{ state_attr('sensor.motion_person_setup_command','MOTION_USER') }}
+        {% else %}null{% endif %}
+
+- platform: command_line
+  name: motion_person_setup_command
+  scan_interval: 86400
+  command_timeout: 10
+  command: "eval {{ state_attr('sensor.motion_person_setup_cli','command') -}}"
+  json_attributes:
+    - timestamp
+    - MOTION_USER
+  value_template: >
+    {{- value_json is defined and 'timestamp' in value_json -}}
