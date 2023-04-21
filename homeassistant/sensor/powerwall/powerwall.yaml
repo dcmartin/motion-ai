@@ -532,3 +532,68 @@
     {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - states('sensor.motion_person_weeks_timestamp')|int(0) }}
   end: '{{ now() }}'
 
+# generating
+
+- platform: template
+  sensors:
+    motion_powerwall_generating:
+      friendly_name: 'Generating'
+      icon_template: 'mdi:solar-power'
+      unit_of_measurement: 'KWh'
+      attribute_templates:
+        time: >-
+          {%- set mean = states('sensor.motion_powerwall_generating_time_mean_1w')|float(None) -%}
+          {%- set max = states('sensor.motion_powerwall_generating_time_max_1w')|float(None) -%}
+          {%- set today = states('sensor.motion_powerwall_generating_time_1d')|float(None) -%}
+          {%- set week = states('sensor.motion_powerwall_generating_time_1w')|float(None) -%}
+          {"today":{{ today }},
+           "week":{"total":{{ week }}, "mean":{{ mean }}, "max": {{ max }},
+           "coverage": {{ (state_attr('sensor.motion_powerwall_generating_time_max_1w','age_coverage_ratio')|float(0) * 100)|int }},
+           "usage": {{ (state_attr('sensor.motion_powerwall_generating_time_max_1w','buffer_usage_ratio')|float(0) * 100)|int }}}}
+        usage: >-
+          {"coverage": {{ (state_attr('sensor.motion_powerwall_charge_total_1w','age_coverage_ratio')|float(0) * 100)|int }},
+           "usage": {{ (state_attr('sensor.motion_powerwall_charge_total_1w','buffer_usage_ratio')|float(0) * 100)|int }}}
+      value_template: >-
+        {{- states('sensor.motion_powerwall_generating_total_1w')|float(None) -}}
+
+- platform: statistics
+  name: motion_powerwall_generating_total_1w
+  entity_id: sensor.motion_powerwall_solar_export
+  state_characteristic: sum_differences
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_powerwall_generating_time_mean_1w
+  entity_id: sensor.motion_powerwall_generating_time_1d
+  state_characteristic: mean
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_powerwall_generating_time_max_1w
+  entity_id: sensor.motion_powerwall_generating_time_1d
+  state_characteristic: value_max
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+- platform: history_stats
+  name: motion_powerwall_generating_time_1d
+  entity_id: binary_sensor.motion_powerwall_generating
+  state: 'on'
+  type: time
+  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
+  end: '{{ now() }}'
+
+- platform: history_stats
+  name: motion_powerwall_generating_time_1w
+  entity_id: binary_sensor.motion_powerwall_generating
+  state: 'on'
+  type: time
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - states('sensor.motion_person_weeks_timestamp')|int(0) }}
+  end: '{{ now() }}'
+

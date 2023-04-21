@@ -14,8 +14,6 @@
   binary_sensor:
     - name: 'motion_powerwall_charged'
       attributes:
-        time: >-
-          {{ state_attr('sensor.motion_powerwall_exporting','time') }}
         duration: >-
           {% set now = utcnow().timestamp() %}
           {{ (now - state_attr('sensor.motion_powerwall_charged','last')|as_timestamp(now))|int(None) }}
@@ -48,8 +46,6 @@
   binary_sensor:
     - name: 'motion_powerwall_discharging'
       attributes:
-        time: >-
-          {{ state_attr('sensor.motion_powerwall_exporting','time') }}
         duration: >-
           {% set now = utcnow().timestamp() %}
           {{ (now - state_attr('binary_sensor.motion_powerwall_charged','last')|as_timestamp(now))|int(None) }}
@@ -76,8 +72,6 @@
   binary_sensor:
     - name: 'motion_powerwall_exporting'
       attributes:
-        time: >-
-          {{ state_attr('sensor.motion_powerwall_exporting','time') }}
         charge: >-
           {{ states('sensor.motion_powerwall_charge')|float(None) }}
         site: >-
@@ -91,6 +85,30 @@
       state: >-
         {# zero is a positive value for import; negative of that is for export #}
         {{ states('sensor.motion_powerwall_site_now')|float(0) < (0 - state_attr('binary_sensor.motion_powerwall_self_sufficient','zero')|float(0)) }}
+
+- unique_id: motion_powerwall_generating
+  trigger:
+    - platform: template
+      value_template: >-
+        {{ states('sensor.motion_powerwall_solar_now')|float(None)|lower != 'none' }}
+    - platform: event
+      event_type: homeassistant_started
+  binary_sensor:
+    - name: 'motion_powerwall_generating'
+      attributes:
+        charge: >-
+          {{ states('sensor.motion_powerwall_charge')|float(None) }}
+        site: >-
+          {{ states('sensor.motion_powerwall_site_now')|float(None) }}
+        solar: >-
+          {{ states('sensor.motion_powerwall_solar_now')|float(None) }}
+        battery: >-
+          {{ states('sensor.motion_powerwall_battery_now')|float(None) }}
+        load: >-
+          {{ states('sensor.motion_powerwall_load_now')|float(None) }}
+      state: >-
+        {# zero is a positive value for import; negative of that is for export #}
+        {{ states('sensor.motion_powerwall_solar_now')|float(0) > state_attr('binary_sensor.motion_powerwall_self_sufficient','zero')|float(0) }}
 
 ## problem
 
