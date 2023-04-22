@@ -2,6 +2,51 @@
 ## sensor/powerwall/powerwall.yaml
 ###
 
+- platform: template
+  sensors:
+    motion_powerwall:
+      friendly_name: Powerwall state
+      icon_template: 'mdi:battery'
+      attribute_templates:
+        age: >-
+          {%- set age = timedelta(days=7) -%}
+          {{- age -}}
+        oldest: >-
+          {{ states('sensor.motion_powerwall_ago_oldest') }}
+        count: >-
+          {{ states('sensor.motion_powerwall_ago_count') }}
+        coverage: >-
+         {{ state_attr('sensor.motion_powerwall_ago_oldest','age_coverage_ratio')|float(0) * 100 }}
+        usage: >-
+         {{ state_attr('sensor.motion_powerwall_ago_oldest','buffer_usage_ratio')|float(0) * 100 }}
+        online: >-
+          {{ states('sensor.motion_powerwall_ago_ratio') }}
+        relative: >-
+          {% set s = states.binary_sensor.motion_powerwall_connected.last_updated %}
+          {%- if s|float(-1) > 0 -%}
+            {% set s = utcnow().timestamp() - s|float(0) %}
+            {{ s|as_datetime|relative_time }}
+          {% else -%}Pending{% endif %}
+      value_template: >-
+        {{- is_state('binary_sensor.motion_powerwall','on') }}
+
+- platform: statistics
+  name: motion_powerwall_ago_oldest
+  entity_id: binary_sensor.motion_powerwall
+  state_characteristic: datetime_oldest
+  sampling_size: 10000
+  max_age:
+    days: 7
+
+- platform: history_stats
+  name: motion_powerwall_ago_ratio
+  entity_id: binary_sensor.motion_powerwall
+  state: 'on'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - timedelta(day=7) }}
+  end: '{{ now() }}'
+
 ## statistics
 
 # site
@@ -10,6 +55,14 @@
   name: motion_powerwall_site_mean
   entity_id: sensor.motion_powerwall_site_now
   state_characteristic: mean
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_powerwall_site_min
+  entity_id: sensor.motion_powerwall_site_now
+  state_characteristic: value_min
   sampling_size: 1000
   max_age:
     days: 7
@@ -41,6 +94,14 @@
     days: 7
 
 - platform: statistics
+  name: motion_powerwall_load_min
+  entity_id: sensor.motion_powerwall_load_now
+  state_characteristic: value_min
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+- platform: statistics
   name: motion_powerwall_load_max
   entity_id: sensor.motion_powerwall_load_now
   state_characteristic: value_max
@@ -67,6 +128,14 @@
     days: 7
 
 - platform: statistics
+  name: motion_powerwall_solar_min
+  entity_id: sensor.motion_powerwall_solar_now
+  state_characteristic: value_min
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+- platform: statistics
   name: motion_powerwall_solar_max
   entity_id: sensor.motion_powerwall_solar_now
   state_characteristic: value_max
@@ -88,6 +157,14 @@
   name: motion_powerwall_battery_mean
   entity_id: sensor.motion_powerwall_battery_now
   state_characteristic: mean
+  sampling_size: 1000
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_powerwall_battery_min
+  entity_id: sensor.motion_powerwall_battery_now
+  state_characteristic: value_min
   sampling_size: 1000
   max_age:
     days: 7
@@ -186,7 +263,7 @@
   state: 'on'
   type: ratio
   start: >-
-    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - states('sensor.motion_person_weeks_timestamp')|int(0) }}
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - timedelta(days=7) }}
   end: '{{ now() }}'
 
 - platform: history_stats
@@ -203,7 +280,7 @@
   state: 'on'
   type: count
   start: >-
-    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - states('sensor.motion_person_weeks_timestamp')|int(0) }}
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - timedelta(days=7) }}
   end: '{{ now() }}'
 
 - platform: history_stats
@@ -220,7 +297,7 @@
   state: 'on'
   type: time
   start: >-
-    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - states('sensor.motion_person_weeks_timestamp')|int(0) }}
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - timedelta(days=7) }}
   end: '{{ now() }}'
 
 # self-sufficient
@@ -239,7 +316,7 @@
   state: 'on'
   type: ratio
   start: >-
-    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - states('sensor.motion_person_weeks_timestamp')|int(0) }}
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - timedelta(days=7) }}
   end: '{{ now() }}'
 
 - platform: history_stats
@@ -256,7 +333,7 @@
   state: 'on'
   type: count
   start: >-
-    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - states('sensor.motion_person_weeks_timestamp')|int(0) }}
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - timedelta(days=7) }}
   end: '{{ now() }}'
 
 - platform: history_stats
@@ -273,7 +350,7 @@
   state: 'on'
   type: time
   start: >-
-    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - states('sensor.motion_person_weeks_timestamp')|int(0) }}
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - timedelta(days=7) }}
   end: '{{ now() }}'
 
 # discharging
@@ -286,6 +363,8 @@
       icon_template: 'mdi:power-plug-battery-outline'
       unit_of_measurement: 'KWh'
       attribute_templates:
+        load: >-
+          {"mean":{{- states('sensor.motion_powerwall_load_mean')|float(None) -}}, "min":{{- states('sensor.motion_powerwall_load_min')|float(None) -}},"max":{{- states('sensor.motion_powerwall_load_max')|float(None) -}}}
         total: >-
           {%- set today = states('sensor.motion_powerwall_discharging_total_today')|float(None) -%}
           {%- set week = states('sensor.motion_powerwall_discharging_total_week')|float(None) -%}
@@ -345,7 +424,7 @@
   state: 'on'
   type: time
   start: >-
-    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - states('sensor.motion_person_weeks_timestamp')|int(0) }}
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - timedelta(days=7) }}
   end: '{{ now() }}'
 
 # charging
@@ -358,6 +437,8 @@
       icon_template: 'mdi:battery-charging'
       unit_of_measurement: 'KWh'
       attribute_templates:
+        battery: >-
+          {"mean":{{- states('sensor.motion_powerwall_battery_mean')|float(None) -}}, "min":{{- states('sensor.motion_powerwall_battery_min')|float(None) -}},"max":{{- states('sensor.motion_powerwall_battery_max')|float(None) -}}}
         total: >-
           {%- set today = states('sensor.motion_powerwall_charging_total_today')|float(None) -%}
           {%- set week = states('sensor.motion_powerwall_charging_total_week')|float(None) -%}
@@ -417,7 +498,7 @@
   state: 'on'
   type: time
   start: >-
-    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - states('sensor.motion_person_weeks_timestamp')|int(0) }}
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - timedelta(days=7) }}
   end: '{{ now() }}'
 
 # charged
@@ -452,7 +533,7 @@
   state: 'on'
   type: time
   start: >-
-    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - states('sensor.motion_person_weeks_timestamp')|int(0) }}
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - timedelta(days=7) }}
   end: '{{ now() }}'
 
 # exporting
@@ -465,6 +546,8 @@
       icon_template: 'mdi:transmission-tower-export'
       unit_of_measurement: 'KWh'
       attribute_templates:
+        site: >-
+          {"mean":{{- states('sensor.motion_powerwall_site_mean')|float(None) -}}, "min":{{- states('sensor.motion_powerwall_site_min')|float(None) -}},"max":{{- states('sensor.motion_powerwall_site_max')|float(None) -}}}
         total: >-
           {%- set today = states('sensor.motion_powerwall_exporting_total_today')|float(None) -%}
           {%- set week = states('sensor.motion_powerwall_exporting_total_week')|float(None) -%}
@@ -524,7 +607,7 @@
   state: 'on'
   type: time
   start: >-
-    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - states('sensor.motion_person_weeks_timestamp')|int(0) }}
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - timedelta(days=7) }}
   end: '{{ now() }}'
 
 # generating
@@ -537,6 +620,8 @@
       icon_template: 'mdi:solar-power'
       unit_of_measurement: 'KWh'
       attribute_templates:
+        solar: >-
+          {"mean":{{- states('sensor.motion_powerwall_solar_mean')|float(None) -}}, "min":{{- states('sensor.motion_powerwall_solar_min')|float(None) -}},"max":{{- states('sensor.motion_powerwall_solar_max')|float(None) -}}}
         total: >-
           {%- set today = states('sensor.motion_powerwall_generating_total_today')|float(None) -%}
           {%- set week = states('sensor.motion_powerwall_generating_total_week')|float(None) -%}
@@ -596,6 +681,6 @@
   state: 'on'
   type: time
   start: >-
-    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - states('sensor.motion_person_weeks_timestamp')|int(0) }}
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - timedelta(days=7) }}
   end: '{{ now() }}'
 
