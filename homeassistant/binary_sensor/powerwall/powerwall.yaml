@@ -86,6 +86,27 @@
               {{- state_attr(i.entity_id,'friendly_name') + ': ' + states(i.entity_id)|float(0.0)|string + ' ' + state_attr(i.entity_id,'unit_of_measurement') -}}
             {%- endfor -%}
           {%- else -%}null{%- endif %}
+        markdown: >-
+          {%- set coverage = state_attr('sensor.motion_powerwall','coverage') -%}
+          {%- set oldest = state_attr('sensor.motion_powerwall','oldest') -%}
+          {%- set age = state_attr('sensor.motion_powerwall','age') -%}
+          {%- set online = state_attr('sensor.motion_powerwall','online') -%}
+          {%- set current = state_attr('sensor.motion_powerwall','relative') -%}
+          {%- if coverage|lower != 'none' and age|lower != 'none' and oldest|lower != 'none' -%}
+            {%- set age = age|as_datetime -%}
+            {%- set oldest = oldest|as_datetime -%}
+            {%- set relative = oldest|relative_time -%}
+            {%- set coverage = state_attr('sensor.motion_powerwall_ago','coverage') -%}
+            {%- set complete = age|lower != 'none' and oldest|lower != 'none' and oldest <= utcnow() - age %}
+            Activity last updated {{ current }} ago; on-line {{ online -}}% over the past {{ relative -}}
+            {%- if not complete -%}
+              {{- ' (<i>statistics at ' + '%0.1f'|format(coverage) + '% of target</i>)' -}}
+            {%- endif -%}
+          {%- elif current|lower != 'none' -%}
+            Activity last updated {{ current -}} ago (warning: no statistics)
+          {%- else -%}
+            <h2>No activity statistics.</h2>
+          {%- endif -%}
       value_template: >-
         {% set s = state_attr('binary_sensor.motion_powerwall','total') %}
         {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'null' %}
