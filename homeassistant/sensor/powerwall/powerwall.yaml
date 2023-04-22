@@ -27,6 +27,25 @@
             {% set s = utcnow().timestamp() - s|float(0) %}
             {{ s|as_datetime|relative_time }}
           {% else -%}Pending{% endif %}
+        markdown: >-
+          {%- set s = state_attr('binary_sensor.motion_powerwall','measurement') -%}
+          {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
+            {%- for i in s if state_attr(i.entity_id,'device_class')|lower == 'battery' -%}
+              {%- if loop.first -%}{{- '<h3>Battery</h3><ul>' -}}{%- endif -%}
+              <li>{{- state_attr(i.entity_id,'friendly_name') + ': ' + states(i.entity_id)|float(0.0)|string + ' ' + state_attr(i.entity_id,'unit_of_measurement') -}}</li>
+              {%- if loop.last -%}{{- '</ul>' -}}{%- endif -%}
+            {%- endfor -%}
+            {%- for i in s if state_attr(i.entity_id,'device_class')|lower == 'energy' -%}
+              {%- if loop.first -%}{{- '<h3>Energy</h3><ul>' -}}{%- endif -%}
+              <li>{{- state_attr(i.entity_id,'friendly_name') + ': ' + states(i.entity_id)|float(0.0)|string + ' ' + state_attr(i.entity_id,'unit_of_measurement') -}}</li>
+              {%- if loop.last -%}{{- '</ul>' -}}{%- endif -%}
+            {%- endfor -%}
+            {%- for i in s if state_attr(i.entity_id,'device_class')|lower == 'power' -%}
+              {%- if loop.first -%}{{- '<h3>Power</h3><ul>' -}}{%- endif -%}
+              <li>{{- state_attr(i.entity_id,'friendly_name') + ': ' + states(i.entity_id)|float(0.0)|string + ' ' + state_attr(i.entity_id,'unit_of_measurement') -}}</li>
+              {%- if loop.last -%}{{- '</ul>' -}}{%- endif -%}
+            {%- endfor -%}
+          {%- endif -%}
       value_template: >-
         {{- is_state('binary_sensor.motion_powerwall','on') }}
 
@@ -38,14 +57,13 @@
   max_age:
     days: 7
 
-- platform: history_stats
+- platform: statistics
   name: motion_powerwall_ago_ratio
   entity_id: binary_sensor.motion_powerwall
-  state: 'on'
-  type: ratio
-  start: >-
-    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - timedelta(day=7) }}
-  end: '{{ now() }}'
+  state_characteristic: average_step
+  sampling_size: 10000
+  max_age:
+    days: 7
 
 ## statistics
 
@@ -249,39 +267,37 @@
 
 # history_stats
 
-- platform: history_stats
+- platform: statistics
   name: motion_powerwall_load_spike_ratio_1d
   entity_id: binary_sensor.motion_powerwall_load_spike
-  state: 'on'
-  type: ratio
-  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
-  end: '{{ now() }}'
+  state_characteristic: average_step
+  sampling_size: 100
+  max_age:
+    days: 1
 
-- platform: history_stats
+- platform: statistics
   name: motion_powerwall_load_spike_ratio_1w
   entity_id: binary_sensor.motion_powerwall_load_spike
-  state: 'on'
-  type: ratio
-  start: >-
-    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - timedelta(days=7) }}
-  end: '{{ now() }}'
+  state_characteristic: average_step
+  sampling_size: 1000
+  max_age:
+    days: 7
 
-- platform: history_stats
+- platform: statistics
   name: motion_powerwall_load_spike_count_1d
   entity_id: binary_sensor.motion_powerwall_load_spike
-  state: 'on'
-  type: count
-  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
-  end: '{{ now() }}'
+  state_characteristic: count
+  sampling_size: 100
+  max_age:
+    days: 1
 
-- platform: history_stats
+- platform: statistics
   name: motion_powerwall_load_spike_count_1w
   entity_id: binary_sensor.motion_powerwall_load_spike
-  state: 'on'
-  type: count
-  start: >-
-    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - timedelta(days=7) }}
-  end: '{{ now() }}'
+  state_characteristic: count
+  sampling_size: 1000
+  max_age:
+    days: 7
 
 - platform: history_stats
   name: motion_powerwall_load_spike_time_1d
@@ -297,44 +313,42 @@
   state: 'on'
   type: time
   start: >-
-    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - timedelta(days=7) }}
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7) }}
   end: '{{ now() }}'
 
 # self-sufficient
 
-- platform: history_stats
+- platform: statistics
   name: motion_powerwall_self_sufficient_ratio_1d
   entity_id: binary_sensor.motion_powerwall_self_sufficient
-  state: 'on'
-  type: ratio
-  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
-  end: '{{ now() }}'
+  state_characteristic: average_step
+  sampling_size: 100
+  max_age:
+    days: 1
 
-- platform: history_stats
+- platform: statistics
   name: motion_powerwall_self_sufficient_ratio_1w
   entity_id: binary_sensor.motion_powerwall_self_sufficient
-  state: 'on'
-  type: ratio
-  start: >-
-    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - timedelta(days=7) }}
-  end: '{{ now() }}'
+  state_characteristic: average_step
+  sampling_size: 1000
+  max_age:
+    days: 7
 
-- platform: history_stats
+- platform: statistics
   name: motion_powerwall_self_sufficient_count_1d
   entity_id: binary_sensor.motion_powerwall_self_sufficient
-  state: 'on'
-  type: count
-  start: '{{ now().replace(hour=0).replace(minute=0).replace(second=0) }}'
-  end: '{{ now() }}'
+  state_characteristic: count
+  sampling_size: 100
+  max_age:
+    days: 1
 
-- platform: history_stats
+- platform: statistics
   name: motion_powerwall_self_sufficient_count_1w
   entity_id: binary_sensor.motion_powerwall_self_sufficient
-  state: 'on'
-  type: count
-  start: >-
-    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - timedelta(days=7) }}
-  end: '{{ now() }}'
+  state_characteristic: count
+  sampling_size: 1000
+  max_age:
+    days: 7
 
 - platform: history_stats
   name: motion_powerwall_self_sufficient_time_1d
@@ -350,7 +364,7 @@
   state: 'on'
   type: time
   start: >-
-    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - timedelta(days=7) }}
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7) }}
   end: '{{ now() }}'
 
 # discharging
@@ -424,7 +438,7 @@
   state: 'on'
   type: time
   start: >-
-    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - timedelta(days=7) }}
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7) }}
   end: '{{ now() }}'
 
 # charging
@@ -498,7 +512,7 @@
   state: 'on'
   type: time
   start: >-
-    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - timedelta(days=7) }}
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7) }}
   end: '{{ now() }}'
 
 # charged
@@ -533,7 +547,7 @@
   state: 'on'
   type: time
   start: >-
-    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - timedelta(days=7) }}
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7) }}
   end: '{{ now() }}'
 
 # exporting
@@ -607,7 +621,7 @@
   state: 'on'
   type: time
   start: >-
-    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - timedelta(days=7) }}
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7) }}
   end: '{{ now() }}'
 
 # generating
@@ -681,6 +695,6 @@
   state: 'on'
   type: time
   start: >-
-    {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp()|int(0) - timedelta(days=7) }}
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7) }}
   end: '{{ now() }}'
 
