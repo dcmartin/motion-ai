@@ -2,6 +2,76 @@
 # homeassistant/automation/device/class/class_unavailable.yaml
 ###
 
+## reload integration
+
+- id: motion_device_class_unavailable_reload_config
+  alias: motion_device_class_unavailable_reload_config
+  mode: 'restart'
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_class_unavailable
+      to: 'on'
+      for:
+        hours: 4
+  variables:
+    devices: >-
+      {% set devices = state_attr('binary_sensor.motion_device_class_unavailable','dids') -%}
+      {{ devices }}
+    names: >-
+      {%- set names = devices|map('device_attr','name')|list  -%}
+      {{ names }}
+    areas: >-
+      {%- set areas = devices|map('device_attr','area_id')|list  -%}
+      {{ areas }}
+  action:
+    - alias: 'test if any devices are unavailable'
+      condition: template
+      value_template: >
+        {{ devices|lower != 'none' and not devices is string and devices is iterable and devices|count > 0 }}
+    - alias: 'enable reload integrations for devices'
+      repeat:
+        while:
+          - alias: 'test if device is valid therefore not done'
+            condition: template
+            value_template: >-
+              {% set s = devices[repeat.index-1]|default('') %}
+              {{ s|string != '' }}
+        sequence:
+          - variables:
+              device_id: >-
+                {% set s = devices[repeat.index-1] %}
+                {{ s|string }}
+              name: >-
+                {% set s = names[repeat.index-1] %}
+                {{ s|string }}
+              area: >-
+                {% set s = areas[repeat.index-1] %}
+                {{ s|string }}
+          - alias: 'call homeassistant.reload_config_entry for device_id'
+            service: homeassistant.reload_config_entry
+            data_template:
+              device_id: >-
+                {{ device_id }}
+          - condition: template
+            value_template: >
+              {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','notice') }}
+          - service: persistent_notification.create
+            data_template:
+              title: >-
+                NOTICE: Reloaded integration {{ name }}
+              notification_id: >
+                {{- 'info-device-class-unavailable-reload-' + device_id -}}
+              message: >-
+                Device {{ name }} in area {{ area }} has been reloaded; id: {{ device_id }}
+
+#    - alias: 'reload temperature device config_entry'
+#      service: homeassistant.reload_config_entry
+#      target:
+#        device_id: >-
+#          {{ devices }}
+
 ## rescan_unavailable
 
 - id: motion_device_class_unavailable
