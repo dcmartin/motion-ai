@@ -13,6 +13,10 @@
     - platform: state
       entity_id: binary_sensor.motion_device_class_unavailable
       to: 'off'
+    - platform: state
+      entity_id: 'automation.motion_device_class_unavailable_notify'
+      attribute: 'current'
+      to: '1'
   action:
     - alias: 'dismiss reload_config notification'
       service: persistent_notification.dismiss
@@ -41,11 +45,14 @@
     areas: >-
       {%- set areas = devices|map('device_attr','area_id')|list  -%}
       {{ areas }}
+  condition:
+    condition: and
+    conditions:
+      - alias: 'test if any devices are unavailable'
+        condition: template
+        value_template: >-
+          {{ devices|lower != 'none' and not devices is string and devices is iterable and devices|count > 0 }}
   action:
-    - alias: 'test if any devices are unavailable'
-      condition: template
-      value_template: >
-        {{ devices|lower != 'none' and not devices is string and devices is iterable and devices|count > 0 }}
     - alias: 'call homeassistant.reload_config_entry for all device ids'
       service: homeassistant.reload_config_entry
       data_template:
@@ -63,12 +70,12 @@
         notification_id: >
           {{- 'info-device-class-unavailable-reload' -}}
         message: >-
-          {% set icon = 'unavailable-icon' %}
-          {{- '<img src="/local/images/icons/' + icon + '.png?v1">' -}}<br>
+          {% set icon = 'reload-icon' %}
+          <img src="/local/images/icons/{{- icon -}}.png"><hr>
           There are {{ devices|count }} <a href="/notify-unavailable/all">unavailable</a> devices; the following <a href="/config/integrations">integration(s)</a> have been reloaded:
           {%- for i in devices -%}
             {%- if loop.first -%}{{- '<ol>' -}}{%- endif -%}
-            <li><a href="/config/devices/device/{{- i -}}">{{- names[loop.index-1] -}}</a> in <a href="/config/areas/area/{{- areas[loop.index-1] -}}">{{ areas[loop.index-1] }}</a> ({{- i -}})</li>
+            <li><a href="/config/devices/device/{{- i -}}">{{- names[loop.index-1] -}}</a> in <a href="/config/areas/area/{{- areas[loop.index-1] -}}">{{- areas[loop.index-1] -}}</a></li>
             {%- if loop.last -%}{{- '</ol>' -}}{%- endif -%}
           {%- endfor -%}
           <br><i>Last updated</i>: {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
