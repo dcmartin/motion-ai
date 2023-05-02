@@ -4,9 +4,25 @@
 
 ## reload integration
 
+- id: motion_device_class_unavailable_reload_config_dismiss
+  alias: motion_device_class_unavailable_reload_config_dismiss
+  mode: 'single'
+  max_exceeded: 'warn'
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_device_class_unavailable
+      to: 'off'
+  action:
+    - alias: 'dismiss notification'
+      service: persistent_notification.dismiss
+      data_template:
+        notification_id: >
+          {{- 'info-device-class-unavailable-reload' -}}
+
 - id: motion_device_class_unavailable_reload_config
   alias: motion_device_class_unavailable_reload_config
-  mode: 'restart'
+  mode: 'single'
   max_exceeded: 'warn'
   initial_state: 'on'
   trigger:
@@ -30,49 +46,33 @@
       condition: template
       value_template: >
         {{ devices|lower != 'none' and not devices is string and devices is iterable and devices|count > 0 }}
-    - alias: 'enable reload integrations for devices'
-      repeat:
-        while:
-          - alias: 'test if not done'
-            condition: template
-            value_template: >-
-              {% set s = devices[repeat.index-1]|default('') %}
-              {{ s|string != '' }}
-        sequence:
-          - variables:
-              device_id: >-
-                {% set s = devices[repeat.index-1] %}
-                {{ s|string }}
-              name: >-
-                {% set s = names[repeat.index-1] %}
-                {{ s|string }}
-              area: >-
-                {% set s = areas[repeat.index-1] %}
-                {{ s|string }}
-          - alias: 'call homeassistant.reload_config_entry for device_id'
-            service: homeassistant.reload_config_entry
-            data_template:
-              device_id: >-
-                {{ device_id }}
-          - alias: 'test log_level'
-            condition: template
-            value_template: >
-              {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','notice') }}
-          - alias: 'create notification'
-            service: persistent_notification.create
-            data_template:
-              title: >-
-                NOTICE: Reloaded integration {{ name }}
-              notification_id: >
-                {{- 'info-device-class-unavailable-reload-' + device_id -}}
-              message: >-
-                Device {{ name }} in area {{ area }} has been reloaded; id: {{ device_id }}
-
-#    - alias: 'reload temperature device config_entry'
-#      service: homeassistant.reload_config_entry
-#      target:
-#        device_id: >-
-#          {{ devices }}
+    - alias: 'call homeassistant.reload_config_entry for all device ids'
+      service: homeassistant.reload_config_entry
+      data_template:
+        device_id: >-
+          {{ devices }}
+    - alias: 'test log_level'
+      condition: template
+      value_template: >
+        {{ states('sensor.motion_log_level') in state_attr('sensor.motion_log_level','notice') }}
+    - alias: 'create notification'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          NOTICE: Reloaded unavailable device(s)
+        notification_id: >
+          {{- 'info-device-class-unavailable-reload' -}}
+        message: >-
+          {% set icon = 'unavailable-icon' %}
+          {{- '<img src="/local/images/icons/' + icon + '.png?v1">' -}}<br>
+          There are {{ devices|count }} <a href="/notify-unavailable/all">unavailable</a> devices; the following <a href="/config/integrations">integration(s)</a> have been reloaded:
+          {%- for i in devices -%}
+            {%- if loop.first -%}{{- '<ol>' -}}{%- endif -%}
+            <li><a href="/config/devices/device/{{- i -}}">{{- names[loop.index-1] -}}</a> in <a href="/config/areas/area/{{- areas[loop.index-1] -}}">{{ areas[loop.index-1] }}
+ ({{- i -}})</li>
+            {%- if loop.last -%}{{- '</ol>' -}}{%- endif -%}
+          {%- endfor -%}
+          <br><i>Last updated</i>: {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
 
 ## rescan_unavailable
 
