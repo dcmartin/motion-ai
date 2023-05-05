@@ -4,8 +4,6 @@
 
 - unique_id: motion_uptime_ago
   trigger:
-    - platform: time_pattern
-      minutes: /1
     - platform: state
       entity_id: 'sensor.motion_uptime'
   sensor:
@@ -39,3 +37,55 @@
         {%- if s > 0 -%}
           {{- (utcnow().timestamp() - s)|int -}}
         {%- else -%}null{%- endif -%}
+
+- unique_id: motion_uptime
+  trigger:
+    - platform: time_pattern
+      minutes: /1
+  sensor:
+    - name: motion_uptime
+      device_class: 'timestamp'
+      attributes:
+        wait: >-
+          {{- states('input_number.motion_uptime_wait') -}}
+        ago: >-
+          {{- states('sensor.motion_uptime_ago') -}}
+        mean: >-
+          {{- states('sensor.motion_uptime_mean') -}}
+        min: >-
+          {{- states('sensor.motion_uptime_min') -}}
+        max: >-
+          {{- states('sensor.motion_uptime_max') -}}
+        stdev: >-
+          {{- states('sensor.motion_uptime_stdev') -}}
+        duration: >-
+          {%- set s = states('sensor.motion_uptime_oldest') -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' -%}
+            {{ s|as_datetime|relative_time }}
+          {%- else -%}Pending{%- endif -%}
+        relative: >-
+          {{ state_attr('sensor.motion_uptime_ago','relative') }}
+        age: >-
+          {% set age = timedelta(days=7) %}
+          {{ age }}
+        markdown: >-
+          {%- set coverage = state_attr('sensor.motion_uptime_ago','coverage') -%}
+          {%- set oldest = state_attr('sensor.motion_uptime_ago','oldest') -%}
+          {%- set age = timedelta(days=7) -%}
+          {%- set current = states('sensor.uptime') -%}
+          {%- if coverage|lower != 'none' and age|lower != 'none' and oldest|lower != 'none' -%}
+            {%- set oldest = oldest|as_datetime -%}
+            {%- set relative = oldest|relative_time -%}
+            {%- set mean = state_attr('sensor.motion_uptime_ago','mean') -%}
+            {%- set complete = age|lower != 'none' and oldest|lower != 'none' and oldest <= utcnow() - age %}
+            Uptime is {{ current|as_datetime|relative_time -}}; average for the past {{ relative }} is {{ (utcnow().timestamp() - mean|int(0))|as_datetime|relative_time -}}
+            {%- if not complete -%}
+              {{- ' (<i>statistics at ' + '%0.1f'|format(coverage) + '% of target</i>)' -}}
+            {%- endif -%}
+          {%- elif current|lower != 'none' -%}
+            Uptime is {{ current -}}s (warning: no statistics)
+          {%- else -%}
+            <h2>No uptime statistics.</h2>
+          {%- endif -%}
+      state: >-
+        {{ states('sensor.uptime') }}
