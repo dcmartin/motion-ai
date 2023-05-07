@@ -429,3 +429,433 @@
   sampling_size: 100
   max_age:
     days: 7
+
+## primary
+
+- platform: template
+  sensors:
+    motion_primary_away:
+      unique_id: motion_primary_away_status
+      friendly_name: '👱 away'
+      icon_template: >-
+        {% if is_state('binary_sensor.motion_primary_away','on') %}
+          {{- 'mdi:home-remove' -}}
+        {%- else %}
+          {{- 'mdi:home-remove-outline' -}}
+        {%- endif %}
+      attribute_templates:
+        age: >-
+          {{ (now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7))|as_timestamp }}
+        ratio: >-
+          [{{ state_attr('sensor.motion_primary_away_today','ratio') }},{{ state_attr('sensor.motion_primary_away_week','ratio') }}]
+        time: >-
+          [{{ state_attr('sensor.motion_primary_away_today','time') }},{{ state_attr('sensor.motion_primary_away_week','time') }}]
+        count: >-
+          [{{ state_attr('sensor.motion_primary_away_ratio_week','total') }},{{ state_attr('sensor.motion_primary_away_time_week','total') }}]
+        oldest: >-
+          {{- state_attr('sensor.motion_primary_away_week','oldest') -}}
+        today: >-
+          [{{ state_attr('sensor.motion_primary_away_today','ratio') }},{{ state_attr('sensor.motion_primary_away_today','time') }}]
+        week: >-
+          [{{ state_attr('sensor.motion_primary_away_week','ratio') }},{{ state_attr('sensor.motion_primary_away_week','time') }}]
+      value_template: >-
+        {%- if is_state('binary_sensor.motion_primary_away','on') -%}Away{%- else -%}Not away{%- endif -%};
+        Count: {{ state_attr('sensor.motion_primary_away','ratio') -}};
+        Time: {{ state_attr('sensor.motion_primary_away','time') }}
+        Oldest: {{ state_attr('sensor.motion_primary_away','oldest') }}
+
+## away_today
+
+- platform: template
+  sensors:
+    motion_primary_away_today:
+      friendly_name: 'Away (today)'
+      icon_template: 'mdi:away'
+      attribute_templates:
+        start: >-
+          {{ now().replace(hour=0).replace(minute=0).replace(second=0).timestamp() }}
+        ratio: >-
+          {%- set s = states('sensor.motion_primary_away_ratio_history_stats_1d') -%}
+          {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+            {{- s|int(0) -}}
+          {%- else -%}null{%- endif -%}
+        time: >-
+          {%- set s = states('sensor.motion_primary_away_time_history_stats_1d') -%}
+          {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+            {{- s|int(0) -}}
+          {%- else -%}null{%- endif -%}
+        oldest: >-
+          {{- states('sensor.motion_primary_away_time_oldest_1d') -}}
+      value_template: >-
+        Count: {{ state_attr('sensor.motion_primary_away_today','ratio') -}};
+        Time: {{ state_attr('sensor.motion_primary_away_today','time') }}
+        Oldest: {{ state_attr('sensor.motion_primary_away_today','oldest') }}
+
+## away_week
+
+- platform: template
+  sensors:
+    motion_primary_away_week:
+      friendly_name: 'Away (week)'
+      icon_template: 'mdi:away'
+      attribute_templates:
+        start: >-
+          {{ (now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7))|as_timestamp }}
+        ratio: >-
+          {%- set s = states('sensor.motion_primary_away_ratio_history_stats_1w') -%}
+          {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+            {{- s|int(0) -}}
+          {%- else -%}null{%- endif -%}
+        time: >-
+          {%- set s = states('sensor.motion_primary_away_time_history_stats_1w') -%}
+          {%- if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' -%}
+            {{- s|int(0) -}}
+          {%- else -%}null{%- endif -%}
+        oldest: >-
+          ["{{- state_attr('sensor.motion_primary_away_ratio_week','oldest') -}}","{{-state_attr('sensor.motion_primary_away_time_week','oldest') -}}"]
+      value_template: >-
+        Count: {{ state_attr('sensor.motion_primary_away_week','ratio') -}};
+        Time: {{ state_attr('sensor.motion_primary_away_week','time') }};
+        Oldest: {{ state_attr('sensor.motion_primary_away_week','oldest') }}
+
+## away_ratio
+
+# ratio: 1 day
+
+- platform: template
+  sensors:
+    motion_primary_away_ratio_today:
+      friendly_name: 'Away ratio (1d)'
+      icon_template: 'mdi:map'
+      attribute_templates:
+        min: >-
+          {{ states('sensor.motion_primary_away_ratio_min_1d') }}
+        max: >-
+          {{ states('sensor.motion_primary_away_ratio_max_1d') }}
+        mean: >-
+          {{ states('sensor.motion_primary_away_ratio_mean_1d') }}
+        count: >-
+          {{ states('sensor.motion_primary_away_ratio_count_1d') }}
+        stdev: >-
+          {{ states('sensor.motion_primary_away_ratio_stdev_1d') }}
+        coverage: >-
+          {{ state_attr('sensor.motion_primary_away_ratio_count_1d','age_coverage_ratio')|float(0) * 100 }}
+        usage: >-
+          {{ state_attr('sensor.motion_primary_away_ratio_count_1d','buffer_usage_ratio')|float(0) * 100 }}
+        oldest: >-
+          {{ states('sensor.motion_primary_away_ratio_oldest_1d') }}
+      value_template: >-
+        {{ states('sensor.motion_primary_away_ratio_history_stats_1d')|int('null') }}
+
+- platform: history_stats
+  name: motion_primary_away_ratio_history_stats_1d
+  entity_id: binary_sensor.motion_primary_away
+  state: 'on'
+  type: ratio
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0) }}
+  end: '{{ now() }}'
+
+- platform: statistics
+  name: motion_primary_away_ratio_oldest_1d
+  entity_id: sensor.motion_primary_away_ratio_history_stats_1d
+  state_characteristic: datetime_oldest
+  sampling_size: 100
+  max_age:
+    days: 1
+
+- platform: statistics
+  name: motion_primary_away_ratio_count_1d
+  entity_id: sensor.motion_primary_away_ratio_history_stats_1d
+  state_characteristic: count
+  sampling_size: 100
+  max_age:
+    days: 1
+
+- platform: statistics
+  name: motion_primary_away_ratio_mean_1d
+  entity_id: sensor.motion_primary_away_ratio_history_stats_1d
+  state_characteristic: mean
+  sampling_size: 100
+  max_age:
+    days: 1
+
+- platform: statistics
+  name: motion_primary_away_ratio_min_1d
+  entity_id: sensor.motion_primary_away_ratio_history_stats_1d
+  state_characteristic: value_min
+  sampling_size: 100
+  max_age:
+    days: 1
+
+- platform: statistics
+  name: motion_primary_away_ratio_max_1d
+  entity_id: sensor.motion_primary_away_ratio_history_stats_1d
+  state_characteristic: value_max
+  sampling_size: 100
+  max_age:
+    days: 1
+
+- platform: statistics
+  name: motion_primary_away_ratio_stdev_1d
+  entity_id: sensor.motion_primary_away_ratio_history_stats_1d
+  state_characteristic: standard_deviation
+  sampling_size: 100
+  max_age:
+    days: 1
+
+# ratio: 1 week
+
+- platform: template
+  sensors:
+    motion_primary_away_ratio_week:
+      friendly_name: 'Away ratio (1w)'
+      icon_template: 'mdi:map'
+      attribute_templates:
+        min: >-
+          {{ states('sensor.motion_primary_away_ratio_min_1w') }}
+        max: >-
+          {{ states('sensor.motion_primary_away_ratio_max_1w') }}
+        mean: >-
+          {{ states('sensor.motion_primary_away_ratio_mean_1w') }}
+        count: >-
+          {{ states('sensor.motion_primary_away_ratio_count_1w') }}
+        stdev: >-
+          {{ states('sensor.motion_primary_away_ratio_stdev_1w') }}
+        coverage: >-
+          {{ state_attr('sensor.motion_primary_away_ratio_count_1w','age_coverage_ratio')|float(0) * 100 }}
+        usage: >-
+          {{ state_attr('sensor.motion_primary_away_ratio_count_1w','buffer_usage_ratio')|float(0) * 100 }}
+        oldest: >-
+          {{ states('sensor.motion_primary_away_ratio_oldest_1w') }}
+      value_template: >-
+        {{ states('sensor.motion_primary_away_ratio_history_stats_1w')|int('null') }}
+
+- platform: history_stats
+  name: motion_primary_away_ratio_history_stats_1w
+  entity_id: binary_sensor.motion_primary_away
+  state: 'on'
+  type: ratio
+  start: >-
+    {{ state_attr('sensor.motion_primary_away_week','start')|float(now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7)) }}
+  end: '{{ now() }}'
+
+- platform: statistics
+  name: motion_primary_away_ratio_oldest_1w
+  entity_id: sensor.motion_primary_away_ratio_history_stats_1w
+  state_characteristic: datetime_oldest
+  sampling_size: 100
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_primary_away_ratio_count_1w
+  entity_id: sensor.motion_primary_away_ratio_history_stats_1w
+  state_characteristic: count
+  sampling_size: 100
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_primary_away_ratio_mean_1w
+  entity_id: sensor.motion_primary_away_ratio_history_stats_1w
+  state_characteristic: mean
+  sampling_size: 100
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_primary_away_ratio_min_1w
+  entity_id: sensor.motion_primary_away_ratio_history_stats_1w
+  state_characteristic: value_min
+  sampling_size: 100
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_primary_away_ratio_max_1w
+  entity_id: sensor.motion_primary_away_ratio_history_stats_1w
+  state_characteristic: value_max
+  sampling_size: 100
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_primary_away_ratio_stdev_1w
+  entity_id: sensor.motion_primary_away_ratio_history_stats_1w
+  state_characteristic: standard_deviation
+  sampling_size: 100
+  max_age:
+    days: 7
+
+## away_time
+
+# time: 1 day
+
+- platform: template
+  sensors:
+    motion_primary_away_time_today:
+      friendly_name: 'Away time (1d)'
+      icon_template: 'mdi:map'
+      attribute_templates:
+        min: >-
+          {{ states('sensor.motion_primary_away_time_min_1d') }}
+        max: >-
+          {{ states('sensor.motion_primary_away_time_max_1d') }}
+        mean: >-
+          {{ states('sensor.motion_primary_away_time_mean_1d') }}
+        count: >-
+          {{ states('sensor.motion_primary_away_time_count_1d') }}
+        stdev: >-
+          {{ states('sensor.motion_primary_away_time_stdev_1d') }}
+        coverage: >-
+          {{ state_attr('sensor.motion_primary_away_time_count_1d','age_coverage_time')|float(0) * 100 }}
+        usage: >-
+          {{ state_attr('sensor.motion_primary_away_time_count_1d','buffer_usage_time')|float(0) * 100 }}
+        oldest: >-
+          {{ states('sensor.motion_primary_away_time_oldest_1d') }}
+      value_template: >-
+        {{ states('sensor.motion_primary_away_time_history_stats_1d')|int('null') }}
+
+# 1 day
+
+- platform: history_stats
+  name: motion_primary_away_time_history_stats_1d
+  entity_id: binary_sensor.motion_primary_away
+  state: 'on'
+  type: time
+  start: >-
+    {{ now().replace(hour=0).replace(minute=0).replace(second=0) }}
+  end: '{{ now() }}'
+
+- platform: statistics
+  name: motion_primary_away_time_oldest_1d
+  entity_id: sensor.motion_primary_away_time_history_stats_1d
+  state_characteristic: datetime_oldest
+  sampling_size: 100
+  max_age:
+    days: 1
+
+- platform: statistics
+  name: motion_primary_away_time_count_1d
+  entity_id: sensor.motion_primary_away_time_history_stats_1d
+  state_characteristic: count
+  sampling_size: 100
+  max_age:
+    days: 1
+
+- platform: statistics
+  name: motion_primary_away_time_mean_1d
+  entity_id: sensor.motion_primary_away_time_history_stats_1d
+  state_characteristic: mean
+  sampling_size: 100
+  max_age:
+    days: 1
+
+- platform: statistics
+  name: motion_primary_away_time_min_1d
+  entity_id: sensor.motion_primary_away_time_history_stats_1d
+  state_characteristic: value_min
+  sampling_size: 100
+  max_age:
+    days: 1
+
+- platform: statistics
+  name: motion_primary_away_time_max_1d
+  entity_id: sensor.motion_primary_away_time_history_stats_1d
+  state_characteristic: value_max
+  sampling_size: 100
+  max_age:
+    days: 1
+
+- platform: statistics
+  name: motion_primary_away_time_stdev_1d
+  entity_id: sensor.motion_primary_away_time_history_stats_1d
+  state_characteristic: standard_deviation
+  sampling_size: 100
+  max_age:
+    days: 1
+
+# 1 week
+
+- platform: template
+  sensors:
+    motion_primary_away_time_week:
+      friendly_name: 'Away time (1w)'
+      icon_template: 'mdi:map'
+      attribute_templates:
+        min: >-
+          {{ states('sensor.motion_primary_away_time_min_1w') }}
+        max: >-
+          {{ states('sensor.motion_primary_away_time_max_1w') }}
+        mean: >-
+          {{ states('sensor.motion_primary_away_time_mean_1w') }}
+        count: >-
+          {{ states('sensor.motion_primary_away_time_count_1w') }}
+        stdev: >-
+          {{ states('sensor.motion_primary_away_time_stdev_1w') }}
+        coverage: >-
+          {{ state_attr('sensor.motion_primary_away_time_count_1w','age_coverage_ratio')|float(0) * 100 }}
+        usage: >-
+          {{ state_attr('sensor.motion_primary_away_time_count_1w','buffer_usage_ratio')|float(0) * 100 }}
+        oldest: >-
+          {{ states('sensor.motion_primary_away_time_oldest_1w') }}
+      value_template: >-
+        {{ states('sensor.motion_primary_away_time_history_stats_1w')|int('null') }}
+
+- platform: history_stats
+  name: motion_primary_away_time_history_stats_1w
+  entity_id: binary_sensor.motion_primary_away
+  state: 'on'
+  type: time
+  start: >-
+    {{ state_attr('sensor.motion_primary_away_week','start')|float(now().replace(hour=0).replace(minute=0).replace(second=0) - timedelta(days=7)) }}
+  end: '{{ now() }}'
+
+- platform: statistics
+  name: motion_primary_away_time_oldest_1w
+  entity_id: sensor.motion_primary_away_time_history_stats_1w
+  state_characteristic: datetime_oldest
+  sampling_size: 100
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_primary_away_time_count_1w
+  entity_id: sensor.motion_primary_away_time_history_stats_1w
+  state_characteristic: count
+  sampling_size: 100
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_primary_away_time_mean_1w
+  entity_id: sensor.motion_primary_away_time_history_stats_1w
+  state_characteristic: mean
+  sampling_size: 100
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_primary_away_time_min_1w
+  entity_id: sensor.motion_primary_away_time_history_stats_1w
+  state_characteristic: value_min
+  sampling_size: 100
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_primary_away_time_max_1w
+  entity_id: sensor.motion_primary_away_time_history_stats_1w
+  state_characteristic: value_max
+  sampling_size: 100
+  max_age:
+    days: 7
+
+- platform: statistics
+  name: motion_primary_away_time_stdev_1w
+  entity_id: sensor.motion_primary_away_time_history_stats_1w
+  state_characteristic: standard_deviation
+  sampling_size: 100
+  max_age:
+    days: 7
