@@ -77,18 +77,17 @@
               {% set lat = state_attr(s,'latitude')|float(-1) -%}
               {% set lng = state_attr(s,'longitude')|float(-1) -%}
             {% endif %}
-            {%- if lat is defined and lat > 0 and lng is defined and lng > 0 %}
+            {%- if lat is defined and lat is number and lng is defined and lng is number %}
               {%- set zones = state_attr('binary_sensor.motion_person_zones','zones') -%}
               {%- if not zones is string and zones is iterable and zones|count > 0 -%}
-                {%- set s = closest(lat,lng,zones) %}
-                {%- if s|lower != 'none' and s.entity_id|lower != 'none' and s.entity_id|string in zones -%}
-                  {%- set d = distance(lat, lng, s) -%}
-                  {%- if d|lower != 'none' and d|lower != 'null' and d|lower != 'unknown' and d|lower != 'unavailable' and d|int(0) is number and d|int(0) < 40075 -%}
-                    {%- set d = '%0.2f'|format(d|float(0.0) * 1000) -%}
-                  {%- else -%}{%- set d = None -%}{%- endif -%}
-                  {%- set r = s.attributes.radius|default(None) -%}
-                  {{- '{"name":"' + s.attributes.friendly_name + '","radius":' + r|string + ',"entity_id":"' + s.entity_id + '","inside":' + (d|int(0) < r|int(0))|string + ',"distance":' + d|string + '}' -}}
-                {%- else -%}unknown{%- endif -%}
+                {% set ns = namespace(x=[]) %}
+                {% for zone in zones %}
+                  {% set ns.x = ns.x + [(distance(zone, state_attr('sensor.motion_person','device')), zone)] %}
+                {% endfor %}
+                {% set s = (ns.x|sort)[0][1] %}
+                {% set d = distance(s,state_attr('sensor.motion_person','device')) %}
+                {%- set r = state_attr(s, 'radius') -%}
+                {{- '{"name":"' + state_attr(s,'friendly_name') + '","radius":' + r|string + ',"entity_id":"' + s + '","inside":' + (d|int(0) < r|int(0))|string + ',"distance":' + d|string + '}' -}}
               {%- else -%}none{%- endif -%}
             {%- else -%}none{%- endif -%}
           {%- else -%}none{%- endif -%}
