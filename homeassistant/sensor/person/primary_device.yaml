@@ -65,24 +65,27 @@
           {% if s|float(-1) > 0 %}
             {{ '%0.1f'|format(s|float) }}
           {% else %}none{% endif %}
-        zone: >- 
+        zone: >-
           {% if is_state('binary_sensor.motion_person_zones','on') -%}
-            {% set s = state_attr('sensor.motion_primary','device') %}
-            {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
-              {% set lat = state_attr(s,'latitude')|float(-1) -%}
-              {% set lng = state_attr(s,'longitude')|float(-1) -%}
-            {% endif %}
-            {%- if lat is defined and lat is number and lng is defined and lng is number %}
-              {%- set zones = state_attr('binary_sensor.motion_person_zones','zones') -%}
-              {%- if not zones is string and zones is iterable and zones|count > 0 -%}
+            {%- set zones = state_attr('binary_sensor.motion_person_zones','zones') -%}
+            {%- if not zones is string and zones is iterable and zones|count > 0 -%}
+              {% set s = state_attr('sensor.motion_primary','device') %}
+              {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+                {% set dev = s %}
+                {% set lat = state_attr(s,'latitude')|float(-1) -%}
+                {% set lng = state_attr(s,'longitude')|float(-1) -%}
+              {% endif %}
+              {%- if dev is defined and lat is defined and lat is number and lng is defined and lng is number %}
                 {% set ns = namespace(x=[]) %}
                 {% for zone in zones %}
-                  {% set ns.x = ns.x + [(distance(zone, state_attr('sensor.motion_primary','device')), zone)] %}
+                  {%- if dev|lower != 'none' -%}
+                    {% set ns.x = ns.x + [(distance(zone, dev), zone)] %}
+                  {% endif %}
                 {% endfor %}
-                {% set s = (ns.x|sort)[0][1] %}
-                {% set d = distance(s,state_attr('sensor.motion_primary','device')) %}
-                {%- set r = state_attr(s, 'radius') -%}
-                {{- '{"name":"' + state_attr(s,'friendly_name') + '","radius":' + r|string + ',"entity_id":"' + s + '","inside":' + (d|int(0) < r|int(0))|string + ',"distance":' + d|string + '}' -}}
+                {% set z = (ns.x|sort)[0][1] %}
+                {% set d = distance(z, dev) %}
+                {%- set r = state_attr(z, 'radius') -%}
+                {{- '{"name":"' + state_attr(z,'friendly_name') + '","radius":' + r|string + ',"entity_id":"' + z + '","inside":' + (d|int(0) < r|int(0))|string + ',"distance":' + d|string + '}' -}}
               {%- else -%}none{%- endif -%}
             {%- else -%}none{%- endif -%}
           {%- else -%}none{%- endif -%}
