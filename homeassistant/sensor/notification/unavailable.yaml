@@ -58,12 +58,25 @@
           {%- endif -%}
           The system {{ name }} is unavailable one or more devices.
         device: >-
-          {% set s = state_attr('binary_sensor.motion_notification_device_unavailable','recipient') %}
-          {% if s|lower != 'none' %}
-            {% set s = state_attr('sensor.motion_' + s|string,'device') %}
-            {% if s|lower != 'none' %}
-              {{ s }}
-            {% else %}none{% endif %}
-          {% else %}none{% endif %}
+          {%- set s = state_attr('binary_sensor.motion_notification_device_unavailable','recipient') -%}
+          {%- if s|lower != 'none' -%}
+            {%- if s is string -%}
+              {%- set s = state_attr('sensor.motion_' + s|string,'device') -%}
+              {%- if s|lower != 'none' -%}
+                {%- set device = s -%}
+              {%- endif -%}
+            {%- elif s is iterable and s|count > 0 -%}
+              {% set ns = namespace(x=[]) %}
+              {%- for i in s if state_attr('sensor.motion_' + i|string,'device')|lower != 'none' -%}
+                {% set ns.x = ns.x + [i] %}
+              {% endfor %}
+              {%- if ns.x|count > 0 -%}
+                {% set device = ns.x|first %}
+              {%- endif -%}
+            {%- else -%}none{%- endif -%}
+          {%- else -%}none{%- endif -%}
+          {%- if device is defined -%}
+            {{- device -}}
+          {%- else -%}none{%- endif -%}
       value_template: >-
         {{ 'unknown' }}
