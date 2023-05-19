@@ -1,0 +1,31 @@
+###
+# homeassistant/binary_sensor/domain/media_player.yaml
+###
+
+- platform: template
+  sensors:
+    motion_domain_media_player_playing:
+      friendly_name: 'Playing from media_players'
+      attribute_templates:
+        playing: >-
+          [{%- for i in states.media_player if states(i.entity_id) == 'playing' -%}
+            {%- set eid = i.entity_id -%}
+            {%- set did = device_id(eid) -%}
+            {%- set aid = area_id(eid) -%}
+            {%- set p = state_attr(eid,'media_position')|float(None) -%}
+            {%- set d = state_attr(eid,'media_duration')|float(None) -%}
+            {%- set u = state_attr(eid,'media_position_updated_at') -%}
+            {%- set c = None -%}{%- if p is number and d is number and d|float != 0 -%}{%- set c = '%0.2f'|format(p/d*100) -%}{%- endif -%}
+            {%- if state_attr(eid,'media_content_type') == 'tvshow' -%}
+              {%- set t = state_attr(eid,'media_series_title') + ' (S%02d'|format(state_attr(eid,'media_season')) + 'E%02d'|format(state_attr(eid,'media_episode')) + '): ' + state_attr(eid,'media_title')%}
+            {%- else -%}
+              {%- set t = state_attr(eid,'media_title') -%}
+            {%- endif -%}
+            {%- if not loop.first -%}{{- ',' -}}{%- endif -%}
+            {{- '{' -}}
+            "user":"{{- state_attr(eid,'username')-}}","area":"{{- aid -}}", "completed":{{- c -}}, "did":"{{- did -}}", "device":"{{- device_attr(did,'name') -}}", "title":"{{- t -}}", "relative":"{{- u|relative_time -}}","ago":{{- u|as_timestamp(None) -}}
+            {{- '}' -}}
+          {%- endfor -%}]
+      value_template: >-
+        {{ states.media_player|selectattr('state','==','playing')|list|count > 0 }}
+

@@ -1,0 +1,88 @@
+###
+# homeassistant/template/domain/media_player.yaml
+###
+
+- unique_id: motion_domain_media_player_activity_ago
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_domain_media_player_playing
+      to:
+        - 'on'
+  sensor:
+    - name: motion_domain_media_player_activity_ago
+      device_class: 'duration'
+      state_class: 'measurement'
+      unit_of_measurement: 's'
+      attributes:
+        ago: >-
+          {{ utcnow().timestamp() }}
+      state: >-
+        {{ state_attr('binary_sensor.motion_domain_media_player_activity','ago') }}
+
+- unique_id: motion_domain_media_player_activity
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.motion_domain_media_player_playing
+      to:
+        - 'on'
+        - 'off'
+      for:
+        seconds: 15
+  binary_sensor:
+    - name: motion_domain_media_player_activity
+      device_class: 'occupancy'
+      attributes:
+        ago: >-
+          {%- set s = state_attr('binary_sensor.motion_domain_media_player_playing','playing')|reject('none')|map(attribute='ago')|max|int(None) -%}
+          {%- if s|lower != 'none' -%}
+            {%- set s = utcnow().timestamp()|int - s -%}
+          {%- else -%}
+            {%- set s = state_attr('sensor.motion_domain_media_player_activity_ago','ago') -%}
+            {%- if s|lower != 'none' -%}
+              {%- set s = (utcnow().timestamp() - s)|int -%}
+            {%- endif -%}
+          {%- endif -%}
+          {{ s }}
+        relative: >-
+          {%- set s = state_attr('binary_sensor.motion_domain_media_player_playing','playing')|reject('none')|map(attribute='ago')|max|int(None) -%}
+          {%- if s|lower != 'none' -%}
+            {%- set s = s|as_datetime|relative_time -%}
+          {%- else -%}
+            {%- set s = state_attr('sensor.motion_domain_media_player_activity_ago','ago') -%}
+            {%- set s = (utcnow().timestamp()|int - s|int(0))|as_datetime|relative_time -%}
+          {%- endif -%}
+          {{ s }}
+        summary: >-
+          {%- set s = state_attr('binary_sensor.motion_domain_media_player_playing','playing') -%}
+          {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
+            {%- set count = s|reject('none')|list|count -%}
+            {%- set ago = utcnow().timestamp()|int - s|reject('none')|map(attribute='ago')|max|int(None) -%}
+            {%- set relative = 'pending' -%}
+            {%- if ago|lower != 'none' -%}
+              {%- set relative = (utcnow().timestamp()|int - ago|int(0))|as_datetime|relative_time -%}
+            {%- endif -%}
+            There are {{ count }} devices playing: [{%- for i in s -%}{%- if not loop.first -%},{%- endif -%}{{ i.user, i.title }}{%- endfor -%}].  Last playing {{ relative }} ago.
+          {%- else -%}
+            Nothing being played.  Last playing {{ state_attr('binary_sensor.motion_domain_media_player_activity','ago') }}
+          {%- endif -%}
+        markdown: >-
+          {%- set s = state_attr('binary_sensor.motion_domain_media_player_playing','playing') -%}
+          {%- if s|lower != 'none' and s is iterable and s|reject('none')|list|count > 0 -%}
+            {%- set count = s|reject('none')|list|count -%}
+            {%- set ago = utcnow().timestamp()|int - s|reject('none')|map(attribute='ago')|max|int(None) -%}
+            {%- set relative = 'pending' -%}
+            {%- if ago|lower != 'none' -%}
+              {%- set relative = (utcnow().timestamp()|int - ago|int(0))|as_datetime|relative_time -%}
+            {%- endif -%}
+            <h2>Now playing</h2>There are {{ count }} devices playing as of {{ relative }} ago.
+            {%- for i in s -%}
+              {%- if loop.first -%}<ol>{%- endif -%}
+              <li>User: {{ i.user }} is watching <i>{{- i.title -}}</i></li>
+              {%- if loop.last -%}</ol>{%- endif -%}
+            {%- endfor -%}
+          {%- else -%}
+            <h2>Nothing being played.</h2>Last playing {{ state_attr('binary_sensor.motion_domain_media_player_activity','ago') }}
+          {%- endif -%}
+          <br><i>Last updated</i>: {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
+      state: >-
+        {{ is_state('binary_sensor.motion_domain_media_player_playing','on') and state_attr('binary_sensor.motion_domain_media_player_playing','playing')|reject('none')|map(attribute='ago')|max > utcnow().timestamp()|int - 1800 }}
