@@ -91,8 +91,36 @@
             {%- endif -%}
             <h2>Now playing</h2>There are {{ count }} devices playing as of {{ relative }} ago.
             {%- for i in s -%}
+              {# find user by ID #}
+              {%- set u = states.person|map(attribute='attributes.id')|select('contains',i.user)|list -%}
+              {%- if u|lower != 'none' and u is iterable and u|count > 0 -%}
+                {%- set u = u|first -%}
+                {%- set n = states.prson|selectattr('attributes.id','==',u)|map(attribute='user_id')|first -%}
+                {%- set f = states.prson|selectattr('attributes.id','==',u)|map(attribute='attributes.friendly_name')|first -%}
+              {%- else -%}
+                {# find user by entity ID #}
+                {%- set u = states.person|map(attribute='entity_id')|map('replace','person.','')|select('contains',i.user)|list -%}
+                {%- if u|lower != 'none' and u is iterable and u|count > 0 -%}
+                  {%- set u = u|first -%}
+                  {%- set n = states.prson|selectattr('entity_id','==',u)|map(attribute='user_id')|first -%}
+                  {%- set f = states.prson|selectattr('entity_id','==',u)|map(attribute='attributes.friendly_name')|first -%}
+                {%- else -%}
+                  {# find user by friendly name #}
+                  {%- set u = states.person|map(attribute='attributes.friendly_name')|select('contains',i.user)|list -%}
+                  {%- if u|lower != 'none' and u is iterable and u|count > 0 -%}
+                    {%- set u = u|first -%}
+                    {%- set n = states.prson|selectattr('attributes.friendly_name','==',u)|map(attribute='user_id')|first -%}
+                    {%- set f = states.prson|selectattr('attributes.friendly_name','==',u)|map(attribute='attributes.friendly_name')|first -%}
+                  {%- endif -%}
+                {%- endif -%}
+              {%- endif -%}
+              {%- set d = device_attr(i.did,'name_by_user')-%}{%- if d|lower == 'none' -%}{%- set d = device_attr(i.did,'name') -%}{%- endif -%}
               {%- if loop.first -%}<ol>{%- endif -%}
-              <li>User: {{ i.user }} is watching <i>{{- i.title -}}</i></li>
+              {%- if n is defined -%}
+                <li><a href="/config/person/{{- n -}}">{{- f -}}</a> is watching <i>{{- i.title -}}</i></li> on <a href="/config/devices/device/{{- i.did -}}"><b>{{- d -}}</b></a>
+              {%- else -%}
+                <li>{{- i.user }} is watching <i>{{- i.title -}}</i></li> on <a href="/config/devices/device/{{- i.did -}}"><b>{{- d -}}</b></a>
+              {%- endif -%}
               {%- if loop.last -%}</ol>{%- endif -%}
             {%- endfor -%}
           {%- else -%}
