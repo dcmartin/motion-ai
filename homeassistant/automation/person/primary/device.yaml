@@ -1,0 +1,158 @@
+###
+# homeassistant/automation/motion/primary/device.yaml
+###
+
+- id: motion_primary_device_selected
+  alias: motion_primary_device_selected
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: input_select.motion_primary_device
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {% set s = states('input_select.motion_primary_device') %}
+          {{- s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -}}
+      - condition: template
+        value_template: >-
+          {% set s = state_attr('sensor.motion_primary','sensor') %}
+          {{- s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -}}
+  action:
+    - alias: 'set motion_primary.sensor source'
+      service: python_script.set_state
+      data_template:
+        entity_id: >-
+          {{ state_attr('sensor.motion_primary','sensor') }}
+        source: >-
+          {{ 'device_tracker.' + states('input_select.motion_primary_device') }}
+    - alias: 'set input_text.motion_primary_device'
+      service: input_text.set_value
+      target:
+        entity_id: 'input_text.motion_primary_device'
+      data:
+        value: >-
+          {{ states('input_select.motion_primary_device') }}
+    - alias: 'set motion_primary_device'
+      service: homeassistant.update_entity
+      data_template:
+        entity_id: sensor.motion_primary_device
+
+- id: motion_primary_device_update
+  alias: motion_primary_device_update
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_primary
+      to:
+    - platform: state
+      entity_id: sensor.motion_primary
+      attribute: 'device'
+  variables:
+    device_tracker: >-
+      {% set s = states('sensor.motion_primary') %}
+      {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' and s|lower|length > 0 %}
+        {% set s = state_attr('sensor.motion_primary','device') %}
+        {% if s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'none' and s|lower != 'null' and s|lower|length > 0 %}
+          {{ s }}
+        {%- else -%}none{%- endif -%}
+      {%- else -%}none{%- endif -%}
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {{- device_tracker|lower != 'none' -}}
+  action:
+    - alias: 'update motion_primary_device'
+      service: homeassistant.update_entity
+      data_template:
+        entity_id: >-
+          {{ device_tracker }}
+
+- id: motion_primary_device_restored
+  alias: motion_primary_device_restored
+  initial_state: 'off'
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_primary_device
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {% set s = states('sensor.motion_primary_device') %}
+          {{- s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'auto' -}}
+  action:
+    - service: input_text.set_value
+      target:
+        entity_id: input_text.motion_primary_device
+      data:
+        value: >-
+          {{ states('input_select.motion_primary_device') }}
+
+- id: motion_primary_device_input_select_watchdog
+  alias: motion_primary_device_input_select_watchdog
+  initial_state: 'on'
+  trigger:
+    - platform: time_pattern
+      minutes: /5
+  action:
+    - service: automation.trigger
+      entity_id: automation.motion_primary_device_input_select
+
+- id: motion_primary_device_input_select
+  alias: motion_primary_device_input_select
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: states.device_tracker
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {%- for state in states.device_tracker if state.attributes is iterable and 'source_type' in state.attributes and state.attributes.source_type|string == 'gps' -%}
+            {%- if loop.first -%}true{%- endif -%}
+          {% else %}false{%- endfor -%}
+  variables:
+    old: >-
+      {% set old = state_attr('input_select.motion_primary_device','options') -%}
+      {{- old }}
+    new: >-
+      {% set id = states('input_text.motion_primary') %}
+      ["none"{%- for s in states.device_tracker -%}
+        {%- set l = loop -%}
+        {%- for i in states.person if s.entity_id == i.attributes.source and i.attributes.id == id -%}
+          {%- if loop.first or l.first -%},{%- endif -%}
+          "{{- s.entity_id|replace('device_tracker.','') -}}"
+        {%- endfor -%}
+      {%- endfor -%}]
+    default: >-
+      {% set id = states('input_text.motion_primary') %}
+      {%- for s in states.device_tracker -%}
+        {%- set l = loop -%}
+        {%- for i in states.person if s.entity_id == i.attributes.source and i.attributes.id == id -%}
+          {%- if loop.first or l.last -%}{{ s.entity_id|replace('device_tracker.','') }}{%- endif -%}
+        {%- endfor -%}
+      {%- endfor -%}
+  action:
+    - variables:
+        options: >-
+          {{ (['none'] + new|reject('none')|list)|sort|unique|list }}
+    - condition: template
+      value_template: >-
+        {{- options != old }}
+    - service: input_select.set_options
+      target:
+        entity_id: input_select.motion_primary_device
+      data_template:
+        options: >-
+          {{ options }}
+    - service: input_select.select_option
+      target:
+        entity_id: input_select.motion_primary_device
+      data_template:
+        option: >-
+          {{ default }}

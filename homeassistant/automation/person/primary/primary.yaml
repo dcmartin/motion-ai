@@ -1,0 +1,123 @@
+###
+# homeassistant/automation/motion/primary/primary.yaml
+###
+
+- id: motion_primary_selected
+  alias: motion_primary_selected
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: input_select.motion_primary
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >-
+          {% set s = states('input_select.motion_primary') %}
+          {{- s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -}}
+  action:
+    - alias: 'set input_text.motion_primary'
+      service: input_text.set_value
+      target:
+        entity_id: 'input_text.motion_primary'
+      data:
+        value: >-
+          {{ states('input_select.motion_primary') }}
+    - alias: 'set motion_primary'
+      service: homeassistant.update_entity
+      data_template:
+        entity_id: sensor.motion_primary
+
+- id: motion_primary_select_set_options_watchdog
+  alias: motion_primary_select_set_options_watchdog
+  initial_state: 'on'
+  trigger:
+    - platform: time_pattern
+      minutes: /5
+  action:
+    - service: automation.trigger
+      entity_id: automation.motion_primary_select_set_options
+
+- id: motion_primary_select_set_options
+  alias: motion_primary_select_set_options
+  initial_state: 'on'
+  trigger:
+    - platform: state
+      entity_id: sensor.motion_domain_person_count
+      attribute: 'ids'
+  variables:
+    person: >-
+      {% set person = states('sensor.motion_primary') -%}
+      {{- person }}
+    old: >-
+      {% set old = state_attr('input_select.motion_primary','options') -%}
+      {{- old }}
+    new: >-
+      {% set s = state_attr('sensor.motion_domain_person_count','ids') -%}
+      {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+        {%- for i in s -%}
+          {%- if loop.first -%}[{%- else -%},{%- endif -%}
+          '{{- i -}}'
+          {%- if loop.last -%}]{%- endif -%}
+        {%- endfor -%}
+      {%- else -%}[]{%- endif %}
+    selected: >-
+      {% set selected = states('input_select.motion_primary') -%}
+      {{- selected }}
+    specified: >-
+      {% set specified = states('input_text.motion_primary') -%}
+      {{- specified }}
+    current: >-
+      {% set current = none -%}
+      {%- set s = states('sensor.motion_primary_selected') -%}
+      {%- if s|lower != 'none' and s|string|length > 0 -%}
+        {%- set current = s -%}
+      {%- endif -%}
+      {{- current }}
+    default: >-
+      {% set s = selected -%}
+      {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+        {%- set p = s -%} 
+      {%- elif s|lower == 'none' -%}
+        {%- set s = person -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|lower != 'auto' -%}
+          {%- set p = s -%}
+        {%- endif -%}
+        {%- if not p is defined -%}
+          {%- set s = specified -%}
+          {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' -%}
+            {%- set p = s -%}
+          {%- endif -%}
+        {%- endif -%}
+      {%- endif -%}
+      {%- if p is defined -%}
+        {{ p }}
+      {%- else -%}
+        {%- set s = states('sensor.motion_primary_calculator') -%}
+        {%- if s|lower != 'none' and s|lower != 'unknown' and s|lower != 'unavailable' and s|lower != 'null' and s|string|length > 0 -%}
+          {{- s -}} 
+        {%- else -%}none{%- endif -%}
+      {%- endif %}
+  action:
+    - variables:
+        options: >-
+          {%- if not new is string and new is iterable -%}
+            {{ (['none'] + new)|sort|unique|list }}
+          {%- else -%}['none']{%- endif -%}
+    - condition: template
+      value_template: >-
+        {{- options != old }}
+    - service: input_select.set_options
+      target:
+        entity_id: input_select.motion_primary
+      data_template:
+        options: >-
+          {{ options }}
+    - condition: template
+      value_template: >-
+        {{- default in state_attr('input_select.motion_primary','options') }}
+    - service: input_select.select_option
+      data_template:
+        entity_id: input_select.motion_primary
+        option: >-
+          {{ default }}
