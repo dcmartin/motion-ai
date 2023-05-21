@@ -39,6 +39,8 @@
     - name: motion_domain_media_player_activity
       device_class: 'occupancy'
       attributes:
+        playing: >-
+          {{- state_attr('binary_sensor.motion_domain_media_player_playing','playing') -}}
         ago: >-
           {%- set s = state_attr('binary_sensor.motion_domain_media_player_playing','playing')|reject('none')|map(attribute='ago')|max|int(None) -%}
           {%- if s|lower != 'none' -%}
@@ -125,6 +127,16 @@
             {%- endfor -%}
           {%- else -%}
             <h2>Nothing being played.</h2>Last playing {{ state_attr('binary_sensor.motion_domain_media_player_activity','ago') }}
+            {%- set s = state_attr('binary_sensor.motion_domain_media_player_activity','playing') -%}
+            {%- if s|lower != 'none' and s is iterable and s|reject('none')|list|count > 0 -%}
+              <h3>Previously playing</h3>
+              {%- for i in s|reject('none')|list -%}
+                {%- if loop.first -%}<ol>{%- endif -%}
+                {%- set d = device_attr(i.did,'name_by_user')-%}{%- if d|lower == 'none' -%}{%- set d = device_attr(i.did,'name') -%}{%- endif -%}
+                <li>{{- i.user }} was watching <i>{{- i.title -}}</i></li> on <a href="/config/devices/device/{{- i.did -}}"><b>{{- d -}}</b></a>
+                {%- if loop.last -%}</ol>{%- endif -%}
+              {%- endfor -%}
+            {%- endif -%}
           {%- endif -%}
           <br><i>Last updated</i>: {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
       state: >-
