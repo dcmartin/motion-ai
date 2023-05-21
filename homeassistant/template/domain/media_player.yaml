@@ -34,7 +34,7 @@
         - 'on'
         - 'off'
       for:
-        seconds: 30
+        seconds: 10
   binary_sensor:
     - name: motion_domain_media_player_activity
       device_class: 'occupancy'
@@ -79,14 +79,18 @@
           {%- set s = state_attr('binary_sensor.motion_domain_media_player_playing','playing') -%}
           {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
             {%- set count = s|reject('none')|list|count -%}
-            {%- set ago = utcnow().timestamp()|int - s|reject('none')|map(attribute='ago')|select('number')|max|int(None) -%}
-            {%- set relative = 'pending' -%}
-            {%- if ago|lower != 'none' -%}
-              {%- set relative = (utcnow().timestamp()|int - ago|int(0))|as_datetime|relative_time -%}
+            {%- set ago = s|reject('none')|map(attribute='ago')|select('number')|max -%}
+            {%- if ago|lower != 'none' and ago is number -%}
+              {%- set ago = (utcnow().timestamp()|int - ago|int(0))|as_datetime|relative_time -%}
             {%- endif -%}
-            There are {{ count }} devices playing: [{%- for i in s -%}{%- if not loop.first -%},{%- endif -%}{{ i.user, i.title }}{%- endfor -%}].  Last playing {{ relative }} ago.
+            There are {{ count }} devices playing: [{%- for i in s -%}{%- if not loop.first -%},{%- endif -%}{{ i.user, i.title }}{%- endfor -%}].  Last playing: {{ ago -}}.
           {%- else -%}
-            Nothing being played.  Last playing {{ state_attr('binary_sensor.motion_domain_media_player_activity','ago') }}
+            {{- 'Nothing being played.' -}}
+            {%- set ago = state_attr('binary_sensor.motion_domain_media_player_activity','ago') -%}
+            {%- if ago|lower != 'none' -%}
+              {%- set ago = (utcnow().timestamp()|int - ago|int(0))|as_datetime|relative_time -%}
+              {{- ' Last playing: ' -}}{{ ago -}}.
+            {%- endif -%}
           {%- endif -%}
         markdown: >-
           {%- set s = state_attr('binary_sensor.motion_domain_media_player_playing','playing') -%}
@@ -132,16 +136,29 @@
               {%- if loop.last -%}</ol>{%- endif -%}
             {%- endfor -%}
           {%- else -%}
-            <h2>Nothing being played.</h2>Last playing {{ state_attr('binary_sensor.motion_domain_media_player_activity','ago') }}
             {%- set s = state_attr('binary_sensor.motion_domain_media_player_activity','playing') -%}
             {%- if s|lower != 'none' and s is iterable and s|reject('none')|list|count > 0 -%}
+              <h2>Playing stopped</h2>
+              {%- set ago = state_attr('binary_sensor.motion_domain_media_player_activity','ago') -%}
+              {%- if ago|lower != 'none' -%}
+                {%- set ago = (utcnow().timestamp()|int - ago|int(0))|as_datetime|relative_time -%}
+                {{- 'Last playing: ' -}}{{ ago -}}.
+              {%- endif -%}
               <h3>Previously playing</h3>
               {%- for i in s|reject('none')|list -%}
                 {%- if loop.first -%}<ol>{%- endif -%}
                 {%- set d = device_attr(i.did,'name_by_user')-%}{%- if d|lower == 'none' -%}{%- set d = device_attr(i.did,'name') -%}{%- endif -%}
-                <li>{{- i.user }} was watching <i>{{- i.title -}}</i></li> on <a href="/config/devices/device/{{- i.did -}}"><b>{{- d -}}</b></a>
+                {%- set a = i.ago|float(0)|as_timestamp(0)|as_datetime|relative_time -%}
+                <li>{{- i.user }} was watching <i>{{- i.title -}}</i></li> {{ i }} ago on <a href="/config/devices/device/{{- i.did -}}"><b>{{- d -}}</b></a>
                 {%- if loop.last -%}</ol>{%- endif -%}
               {%- endfor -%}
+            {%- else -%}
+              <h2>Nothing being played.</h2>
+              {%- set ago = state_attr('binary_sensor.motion_domain_media_player_activity','ago') -%}
+              {%- if ago|lower != 'none' -%}
+                {%- set ago = (utcnow().timestamp()|int - ago|int(0))|as_datetime|relative_time -%}
+                {{- 'Last playing: ' -}}{{ ago -}}.
+              {%- endif -%}
             {%- endif -%}
           {%- endif -%}
           <br><i>Last updated</i>: {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') }}
