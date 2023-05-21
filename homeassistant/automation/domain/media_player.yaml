@@ -31,8 +31,8 @@
         state: >-
           {{ states.media_player|map(attribute='entity_id')|map('device_id')|reject('none')|list|count }}
 
-- id: motion_domain_media_player_activity_notify
-  alias: motion_domain_media_player_activity_notify
+- id: motion_domain_media_player_activity_on_notify
+  alias: motion_domain_media_player_activity_on_notify
   mode: 'single'
   max_exceeded: 'silent'
   initial_state: 'on'
@@ -40,6 +40,56 @@
     platform: state
     entity_id: binary_sensor.motion_domain_media_player_activity
     to: 'on'
+  variables:
+    title: >-
+      {% set title = states('sensor.motion_app') + ': media player(s) activity' %}
+      {{ title }}
+    notification_id: >-
+      {{ 'domain-media-player-activity-notify' }}
+    action: >-
+      {%- set action = 'activity-alarm' -%}
+      {{- action -}}
+    url: >-
+      {%- set url = '/notify-activity/media-player' -%}
+      {{- url -}}
+    footer: >-
+      <a href="{{- url -}}"><img width="25%" height="25%" src="https://img.shields.io/badge/{{- action -}}-yellow.svg"></a>
+    icon: >-
+      {% set icon = 'notification-domain-media-player-activity' %}
+      {{ icon }}
+    header: >-
+      {{- '<img src="/local/images/icons/' + icon + '.png?v1">' -}}
+    body: >-
+      Media player(s) <a href="{{- url -}}">activity</a> at {{ utcnow().timestamp()|timestamp_custom("%a %b %d %I:%M %p %Z",true,'unknown') -}}:
+      {{- state_attr('binary_sensor.motion_domain_media_player_activity','markdown') -}}
+    message: >-
+      {{- header -}}<hr>{{- body -}}<p>{{- footer -}}
+  action:
+    - alias: 'notify activity device'
+      service: persistent_notification.create
+      data_template:
+        title: >-
+          {{- title -}}
+        notification_id: >-
+          {{- notification_id -}}
+        message: >-
+          {{- message -}}
+
+- id: motion_domain_media_player_activity_off_notify
+  alias: motion_domain_media_player_activity_off_notify
+  mode: 'single'
+  max_exceeded: 'silent'
+  initial_state: 'on'
+  trigger:
+    platform: state
+    entity_id: binary_sensor.motion_domain_media_player_activity
+    to: 'off'
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.state != trigger.from_state.state }}
   variables:
     title: >-
       {% set title = states('sensor.motion_app') + ': media player(s) activity' %}
