@@ -30,9 +30,6 @@
   trigger:
     - platform: state
       entity_id: binary_sensor.motion_domain_media_player_playing
-      to:
-        - 'on'
-        - 'off'
       for:
         seconds: 10
   binary_sensor:
@@ -101,14 +98,15 @@
         markdown: >-
           {%- set s = state_attr('binary_sensor.motion_domain_media_player_playing','playing') -%}
           {%- if s|lower != 'none' and s is iterable and s|reject('none')|list|count > 0 -%}
-            {%- set count = s|reject('none')|list|count -%}
-            {%- set ago = utcnow().timestamp()|int - s|reject('none')|map(attribute='ago')|select('number')|max|int(None) -%}
+            {%- set playing = s -%}
+            {%- set count = playing|reject('none')|list|count -%}
+            {%- set ago = utcnow().timestamp()|int - playing|reject('none')|map(attribute='ago')|select('number')|max|int(None) -%}
             {%- set relative = 'pending' -%}
             {%- if ago|lower != 'none' -%}
               {%- set relative = (utcnow().timestamp()|int - ago|int(0))|as_datetime|relative_time -%}
             {%- endif -%}
             <h2>Now playing</h2>There are {{ count }} devices playing as of {{ relative }} ago.
-            {%- for i in s -%}
+            {%- for i in playing -%}
               {# find user by ID #}
               {%- set u = states.person|map(attribute='attributes.id')|select('contains',i.user)|list -%}
               {%- if u|lower != 'none' and u is iterable and u|count > 0 -%}
@@ -141,9 +139,19 @@
               {%- endif -%}
               {%- if loop.last -%}</ol>{%- endif -%}
             {%- endfor -%}
+            {%- set s = state_attr('binary_sensor.motion_domain_media_player_activity','playing') -%}
+            {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
+              {%- for i in s|reject('none')|list if i.title not in playing|map(attribute='title')|list -%}
+                {%- if loop.first -%}<h3>Previously playing</h3><ol>{%- endif -%}
+                {%- set d = device_attr(i.did,'name_by_user')-%}{%- if d|lower == 'none' -%}{%- set d = device_attr(i.did,'name') -%}{%- endif -%}
+                <li>{{- i.user }} was watching <i>{{- i.title -}}</i>< on <a href="/config/devices/device/{{- i.did -}}"><b>{{- d -}}</b></a></li>
+                {%- if loop.last -%}</ol>{%- endif -%}
+              {%- endfor -%}
+            {%- endif -%}
           {%- else -%}
             {%- set s = state_attr('binary_sensor.motion_domain_media_player_activity','playing') -%}
-            {%- if s|lower != 'none' and s is iterable and s|reject('none')|list|count > 0 -%}
+            {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
+              {%- set previous = s -%}
               <h2>Playing stopped</h2>
               {%- set s = state_attr('binary_sensor.motion_domain_media_player_activity_ago','ago') -%}
               {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
@@ -151,7 +159,7 @@
                 {%- set ago = (utcnow().timestamp()|int - s|int(0))|as_datetime|relative_time -%}
                 {{- 'Last playing: ' -}}{{ ago -}}.
               {%- endif -%}
-              {%- for i in s|reject('none')|list -%}
+              {%- for i in previous|reject('none')|list -%}
                 {%- if loop.first -%}<h3>Previously playing</h3><ol>{%- endif -%}
                 {%- set d = device_attr(i.did,'name_by_user')-%}{%- if d|lower == 'none' -%}{%- set d = device_attr(i.did,'name') -%}{%- endif -%}
                 <li>{{- i.user }} was watching <i>{{- i.title -}}</i>< on <a href="/config/devices/device/{{- i.did -}}"><b>{{- d -}}</b></a></li>
@@ -164,6 +172,16 @@
                 {% set s = s|select('number')|max %}
                 {%- set ago = (utcnow().timestamp()|int - s|int(0))|as_datetime|relative_time -%}
                 {{- 'Last playing: ' -}}{{ ago -}}.
+              {%- endif -%}
+              {%- set s = state_attr('binary_sensor.motion_domain_media_player_activity','previous') -%}
+              {%- if s|lower != 'none' and s is iterable and s|count > 0 -%}
+                {%- set previous = s -%}
+                {%- for i in previous|reject('none')|list -%}
+                  {%- if loop.first -%}<h3>Previously playing</h3><ol>{%- endif -%}
+                  {%- set d = device_attr(i.did,'name_by_user')-%}{%- if d|lower == 'none' -%}{%- set d = device_attr(i.did,'name') -%}{%- endif -%}
+                  <li>{{- i.user }} was watching <i>{{- i.title -}}</i>< on <a href="/config/devices/device/{{- i.did -}}"><b>{{- d -}}</b></a></li>
+                  {%- if loop.last -%}</ol>{%- endif -%}
+                {%- endfor -%}
               {%- endif -%}
             {%- endif -%}
           {%- endif -%}
