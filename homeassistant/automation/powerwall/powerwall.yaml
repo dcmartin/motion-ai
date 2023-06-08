@@ -117,3 +117,150 @@
           Load power spiked  to {{ load }} kW; mean: {{ mean -}}; {{ start|int|timestamp_custom("%a %b %d @ %I:%M %p",true,'unknown') -}};
           duration: {{ '%0.2f'|format(duration|float(0.0)) -}}s;
           energy: {{ '%0.2f'|format(energy|float(0.0)) -}} kWh
+
+- id: motion_powerwall_binary_sensor
+  alias: motion_powerwall_binary_sensor
+  initial_state: 'on'
+  mode: single
+  max_exceeded: silent
+  trigger:
+    - platform: time_pattern
+      minutes: /1
+    - platform: event
+      event_type: homeassistant_started
+  variables:
+    ids: >-
+      [{%- for state in states.binary_sensor if 'connected_to_tesla' in state.entity_id -%}
+        {%- if not loop.first -%},{% endif -%}
+        "{{- state.entity_id|replace('binary_sensor.','')|replace('_connected_to_tesla','') -}}"
+      {%- endfor -%}]
+    total: >-
+      {% set s = ids %}
+      {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+        {{ s|count }}
+      {%- else -%}0{%- endif %}
+    sensors: >-
+      {% set s = ids %}
+      {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+        [{%- for i in s -%}
+          {%- set o = loop -%}
+          {%- for state in states.sensor if 'sensor.' + i + '_' in state.entity_id and state.state|lower != 'unknown' -%}
+            {%- if not o.first or not loop.first -%},{%- endif -%}
+            {"id":"{{- state.entity_id|replace('switch.','') -}}","state":{% if not state is number %}"{{- state.state -}}"{%- else -%}{{- state.state -}}{%- endif -%},"attributes":{{- state.attributes|to_json -}}}
+          {%- endfor -%}
+        {%- endfor -%}]
+      {%- else -%}{{- 'none' -}}{%- endif %}
+    measurement: >-
+      {% set s = ids %}
+      {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+        [{%- for i in s -%}
+          {% set o = loop %}
+          {%- for state in states.sensor if 'sensor.' + i + '_' in state.entity_id and state.state|lower != 'unknown' and 'device_class' in state.attributes and state.attributes.device_class|lower != 'none' %}
+            {%- if not o.first or not loop.first -%},{%- endif -%}
+            {%- set v = state.state -%}
+            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","state":"{{- v -}}"}
+          {%- endfor -%}
+        {%- endfor -%}]
+      {%- else -%}{{- 'none' -}}{%- endif %}
+    status: >-
+      {% set s = ids %}
+      {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+        [{%- for i in s -%}
+          {% set o = loop %}
+          {%- for state in states.binary_sensor if 'binary_sensor.' + i + '_' in state.entity_id and state.state|lower != 'unknown' %}
+            {%- if not o.first or not loop.first -%},{%- endif -%}
+            {%- set v = state.state -%}
+            {"id":"{{- i -}}","entity_id":"{{- state.entity_id -}}","state":"{{- v -}}"}
+          {%- endfor -%}
+        {%- endfor -%}]
+      {%- else -%}{{- 'none' -}}{%- endif %}
+    control: >-
+      {% set s = status %}
+      {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+        {%- for i in s -%}
+          {%- if not loop.first -%}{{- '; ' -}}{%- endif -%}
+          {{- state_attr(i.entity_id,'friendly_name') + ': ' + states(i.entity_id) -}}
+        {%- endfor -%}
+      {%- else -%}{{- 'none' -}}{%- endif %}
+    battery: >-
+      {% set s = measurement %}
+      {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+        {%- for i in s if state_attr(i.entity_id,'device_class')|lower == 'battery' -%}
+          {%- if not loop.first -%}{{- '; ' -}}{%- endif -%}
+          {{- state_attr(i.entity_id,'friendly_name') + ': ' + states(i.entity_id)|string + ' ' + state_attr(i.entity_id,'unit_of_measurement') -}}
+        {%- endfor -%}
+      {%- else -%}{{- 'none' -}}{%- endif %}
+    energy: >-
+      {% set s = measurement %}
+      {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+        {%- for i in s if state_attr(i.entity_id,'device_class')|lower == 'energy' -%}
+          {%- if not loop.first -%}{{- '; ' -}}{%- endif -%}
+          {{- state_attr(i.entity_id,'friendly_name') + ': ' + states(i.entity_id)|string + ' ' + state_attr(i.entity_id,'unit_of_measurement') -}}
+        {%- endfor -%}
+      {%- else -%}{{- 'none' -}}{%- endif %}
+    power: >-
+      {% set s = measurement %}
+      {% if s|lower != 'unknown' and s|lower != 'none' and not s is string %}
+        {%- for i in s if state_attr(i.entity_id,'device_class')|lower == 'power' -%}
+          {%- if not loop.first -%}{{- '; ' -}}{%- endif -%}
+          {{- state_attr(i.entity_id,'friendly_name') + ': ' + states(i.entity_id)|string + ' ' + state_attr(i.entity_id,'unit_of_measurement') -}}
+        {%- endfor -%}
+      {%- else -%}{{- 'none' -}}{%- endif %}
+    markdown: >-
+      {%- set coverage = state_attr('sensor.motion_powerwall','coverage') -%}
+      {%- set oldest = state_attr('sensor.motion_powerwall','oldest') -%}
+      {%- set age = state_attr('sensor.motion_powerwall','age') -%}
+      {%- set online = state_attr('sensor.motion_powerwall','online') -%}
+      {%- set current = state_attr('sensor.motion_powerwall','relative') -%}
+      {%- if coverage|lower != 'none' and age|lower != 'none' and oldest|lower != 'none' -%}
+        {%- set age = age|as_datetime -%}
+        {%- set oldest = oldest|as_datetime -%}
+        {%- set relative = oldest|relative_time -%}
+        {%- set coverage = state_attr('sensor.motion_powerwall_ratio','coverage') -%}
+        {%- set timestamp = utcnow().timestamp() -%}
+        {%- set complete = age|lower != 'none' and oldest|lower != 'none' and oldest|as_timestamp(timestamp) <= timestamp - age|as_timestamp(timestamp) %}
+        Last updated {{ current }} ago; on-line {{ online -}}% over the past {{ relative -}}
+        {%- if not complete and coverage is number -%}
+          {{- ' (<i>statistics at ' + '%0.1f'|format(coverage|float(0)) + '%- of target</i>)' -}}
+        {%- endif -%}
+      {%- elif current|lower != 'none' -%}
+        Last updated {{ current -}} ago (warning: no statistics)
+      {%- else -%}
+        <h2>No statistics.</h2>
+      {%- endif -%}
+    state: >-
+      {% set s = total %}
+      {% if s|lower != 'unknown' and s|lower != 'none' and s|lower != 'unavailable' and s|lower != 'none' %}
+        {% if s|int(0) > 0 %}on{% else %}off{% endif %}
+      {% else %}{{- 'unknown' -}}{% endif %}
+  action:
+    - alias: 'set binary_sensor.motion_powerwall'
+      service: python_script.set_state
+      data_template:
+        allow_create: true
+        entity_id: >-
+          {{ 'binary_sensor.motion_powerwall' }}
+        friendly_name: >-
+          {{ 'Powerwall update' }}
+        ids: >-
+          {{ ids }}
+        total: >-
+          {{ total }}
+        sensors: >-
+          {{ sensors }}
+        measurement: >-
+          {{ measurement }}
+        status: >-
+          {{ status }}
+        control: >-
+          {{ control }}
+        battery: >-
+          {{ battery }}
+        energy: >-
+          {{ energy }}
+        power: >-
+          {{ power }}
+        markdown: >-
+          {{ markdown }}
+        state: >-
+          {{ state }}
