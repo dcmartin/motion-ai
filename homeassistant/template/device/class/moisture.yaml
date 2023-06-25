@@ -115,12 +115,22 @@
         markdown: >-
           {% set c = 'moisture' -%}
           {%- set alarms = ['required','alarm'] -%}
+          {% set s = state_attr('binary_sensor.motion_device_class','sensors') -%}
+          {% set b = state_attr('binary_sensor.motion_device_class','binary_sensors') -%}
+          {%- if s|lower != 'none' and b|lower != 'none' -%}
+            {% set required = (s|list + b|list)|sort|unique %}
+            {%- if 'moisture' in required -%}{%- set required = 'on' -%}{%- else -%}{%- set required = 'off' -%}{%- endif -%}
+          {%- else -%}{%- set required = 'none' -%}{%- endif -%}
+          {% set s = state_attr('binary_sensor.motion_device_class','alarm') -%}
+          {%- if s|lower != 'none' -%}
+            {%- if 'moisture' in s -%}{%- set alarms_on = 'on' -%}{%- else -%}{%- set alarms_on = 'off' -%}{%- endif -%}
+          {%- else -%}{%- set alarms_on = 'none' %}{%- endif %}
           <h1>{{ c|upper }}</h1>
           {%- set s = state_attr('binary_sensor.motion_device_class','alarms') -%}
           {%- if s|lower != 'none' and not s is string and s is iterable and s|count > 0 -%}
             {%- set alarms = alarms + s|sort|unique|list -%}
           {%- endif -%}
-          {%- for i in alarms if state_attr('binary_sensor.motion_device_moisture_exist',i)|lower != 'none' -%}
+          {%- for i in alarms if required == 'on' or alarms_on == 'on' -%}
             {%- if loop.first -%}<ul>{%- endif -%}
             <li>{{- i|upper -}}: {{ state_attr('binary_sensor.motion_device_moisture_exist',i) -}}</li>
             {%- if loop.last -%}</ul>{%- endif -%}
