@@ -429,7 +429,7 @@ homeassistant/setup.json: setup.json.tmpl
 
 .PHONY: ${MEDIA} necessary all default run stop logs restart tidy clean realclean distclean $(PACKAGES) homeassistant/motion/webcams.json homeassistant/setup.json allclean
 
-allclean: distclean
+distclean:
 	@echo "${MC}Making: $@${NC}"
 	@-sudo rm -fr MOTIONCAM_* NETCAM_* MOTION_* LOGGER_* MQTT_* YOLO_* LOG_LEVEL DEBUG
 	@-sudo rm -fr *.sh.json
