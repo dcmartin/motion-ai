@@ -4,32 +4,67 @@
 
 - id: motion_domain_persistent_notification_count
   alias: motion_domain_persistent_notification_count
-  mode: 'single'
-  max_exceeded: 'silent'
+  mode: 'queued'
+  max_exceeded: 'warn'
+  max: 100
   initial_state: 'on'
   trigger:
-    - platform: event
-      event_type: call_service
-      event_data:
-        domain: persistent_notification
-        service: create
-    - platform: event
-      event_type: call_service
-      event_data:
-        domain: persistent_notification
-        service: dismiss
+    - platform: persistent_notification
+      update_type:
+        - added
+        - removed
   action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ trigger.update_type == 'added' }}
+          sequence:
+            - alias: 'increment persistent_notification_counter'
+              service: counter.increment
+              data_template:
+                entity_id: counter.motion_domain_persistent_notification_counter
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ trigger.update_type == 'removed' }}
+          sequence:
+            - alias: 'decrement persistent_notification_counter'
+              service: counter.decrement
+              data_template:
+                entity_id: counter.motion_domain_persistent_notification_counter
+    - variables:
+        update: >-
+          {%- set update = 0 -%}
+          {%- if trigger.update_type == 'added' -%}{%- set update = 1 -%}{%- elif trigger.update_type == 'removed' -%}{%- set update = -1 -%}{%- endif -%}
+          {{- update|int(0) -}}
+        counter: >-
+          {{- states('counter.motion_domain_persistent_notification_counter') -}}
+        previous: >-
+          {%- set previous = states('counter.motion_persistent_notification_counter')|int(0) -%}
+          {{ previous }}
+        current: >-
+          {%- set s = previous + update|int(0) -%}
+          {%- if s|int(0) > 0 -%}{{- s -}}{%- else -%}{{- 0 -}}{%- endif -%}
     - alias: 'set motion_domain_persistent_notification_count'
       service: python_script.set_state
       data_template:
         entity_id: sensor.motion_domain_persistent_notification_count
         allow_create: true
-        online: >-
-          {{ states.persistent_notification|selectattr('state','==','notifying')|list|count }}
-        offline: >-
-          {{ states.persistent_notification|rejectattr('state','==','notifying')|list|count }}
+        counter: >-
+          {{ counter }}
+        previous: >-
+          {{ previous }}
+        update: >-
+          {{ update }}
+        id: >-
+          {{ trigger.notification.notification_id }}
+        title: >-
+          {{ trigger.notification.title }}
+        message: >-
+          {{ trigger.notification.message }}
+        datetime: >-
+          {{ trigger.notification.created_at }}
         state: >-
-          {% set s = states.persistent_notification|default('none') %}
-          {% if s|lower != 'none' and not s is string and s|list is iterable %}
-            {{ s|list|count }}
-          {% else %}{{- 'none' -}}{% endif %}
+          {{ current }}
